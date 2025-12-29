@@ -1,18 +1,35 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google"; 
+import { 
+  Oswald,
+  Montserrat,
+  Playfair_Display,
+  Great_Vibes
+} from "next/font/google"; 
 import "./globals.css";
+import localFont from "next/font/local";
 import Navbar from "@/components/navbar";
 import Footer from "@/components/footer";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+const oswald = Oswald({
   subsets: ["latin"],
+  variable: "--font-oswald"
 });
 
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
+const montserrat = Montserrat({
   subsets: ["latin"],
+  variable: "--font-montserrat"
 });
+
+const playfairDisplay = Playfair_Display({
+  subsets: ["latin"],
+  variable: "--font-playfair-display"
+})
+
+const greatVibes = Great_Vibes({
+  subsets: ["latin"],
+  variable: "--font-great-vibes",
+  weight: "400"
+})
 
 export const metadata: Metadata = {
   title: "Dolly's Closet  ",
@@ -27,8 +44,14 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
-      >
+        className={`
+            ${oswald.variable} 
+            ${montserrat.variable} 
+            ${playfairDisplay.variable} 
+            ${greatVibes.variable} 
+            antialiased`
+          }>
+
         <Navbar />
         {children}
         <Footer />
