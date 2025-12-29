@@ -22,10 +22,10 @@ export default function Navbar() {
                             className="group relative"
                         >
                             <div>
-                                <h3 className="text-black font-semibold text-lg group-hover:text-[#E7A3B0] transition-all 
-                                        duration-300">
+                                <p className="text-black font-semibold text-lg group-hover:text-[#E7A3B0] transition-all 
+                                        duration-300 font-montserrat">
                                     {item}
-                                </h3>
+                                </p>
 
                                 <span 
                                     className="absolute left-0 -bottom-0.5 h-1 w-0 bg-[#E7A3B0] transition-all 
