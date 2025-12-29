@@ -15,7 +15,9 @@ export default function Navbar() {
                     {/**Iterates the list for the navigation items*/}
                     {["Collection", "About", "Contact"].map((item) => (
                         <Link 
-                            href={`/${item.toLowerCase()}`} 
+                            // checks if the item is Collection and will redirect to the root page 
+                            // since the root page is the collection page
+                            href={item === "Collection" ? "/" : `/${item.toLowerCase()}`} 
                             key={item}
                             className="group relative"
                         >
