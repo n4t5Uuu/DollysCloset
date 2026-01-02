@@ -8,7 +8,7 @@ export default function Navbar() {
                 
                 <div className="flex items-center gap-5">
                     <Image src="/assets/no-bg-logo.png" alt="Dolly's Closet Logo" width={60} height={60} />
-                    <h2 className="text-[#E7A3B0] text-2xl !font-great-vibes text-4xl">Dolly's Closet</h2>
+                    <h2 className="text-[#E7A3B0] text-2xl !font-great-vibes text-3xl">Dolly's Closet</h2>
                 </div>
 
                 <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 flex items-center justify-center gap-10">

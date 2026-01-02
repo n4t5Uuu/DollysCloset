@@ -12,7 +12,7 @@ export default function Footer() {
 
     return (
         <footer className="w-full bg-[#262626] h-[240px] mt-[200px] flex items-center justify-center">
-            <div className="grid grid-cols-4 gap-10">
+            <div className="grid grid-cols-4">
                 <div>
                     <Image 
                         src="/assets/logo.jpg" 
