@@ -23,7 +23,6 @@ export default function CatalogPage() {
                     Featured Collection
                 </h3>
                 <FeatureCardCarousel />
-
             </div>
         </main>
     )
