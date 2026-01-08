@@ -1,6 +1,9 @@
 import Image from "next/image";
+
 import FeatureCardCarousel from "@/components/catalog/feature-card-carousel";
 import SearchBar from "@/components/search-bar";
+import CatalogSidebar from "@/components/catalog/catalog-sidebar";
+import ProductCard from "@/components/catalog/product-card";
 
 export const metadata = {
     title: "Dolly's Closet - Catalog",
@@ -27,15 +30,17 @@ export default function CatalogPage() {
             </div>
 
             {/* For the Collections */}
-            <div className="w-full">
-                <div className="flex justify-between items-center bg-[#E7A3B0] h-[60px] px-8 w-full">
+            <div className="w-full space-y-8">
+                <div className="flex justify-between items-center bg-[#E7A3B0] h-[60px] w-full px-8">
                     <h2 className="!font-playfair-display font-bold text-2xl text-[#121212]">
                         Our Collections
                     </h2>
                     <SearchBar />
                 </div>
 
-
+                <div className="w-full px-8">
+                    <CatalogSidebar />
+                </div>
             </div>
         </main>
     )
