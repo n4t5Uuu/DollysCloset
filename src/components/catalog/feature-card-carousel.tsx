@@ -116,8 +116,8 @@ export default function FeatureCardCarousel() {
                     </CarouselItem>
                 ))}
             </CarouselContent>
-            <CarouselPrevious />
-            <CarouselNext />
+            <CarouselPrevious className="cursor-pointer hover:bg-[#E679A3]"/>
+            <CarouselNext className="cursor-pointer hover:bg-[#E679A3]"/>
         </Carousel>
     )
 }

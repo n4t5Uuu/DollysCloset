@@ -119,9 +119,17 @@
   font-family: var(--font-montserrat);
 }
 
+html, body {
+  overflow-x: hidden;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+}
+
 main {
   margin-top: 80px;
 }
+
 
 h1, h2, h3, h4, h5, h6 {
   font-family: var(--font-oswald);
