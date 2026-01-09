@@ -38,8 +38,28 @@ export default function CatalogPage() {
                     <SearchBar />
                 </div>
 
-                <div className="w-full px-8">
-                    <CatalogSidebar />
+                <div className="w-full px-8 grid grid-cols-5">
+                    <div className="col-span-1">
+                        <CatalogSidebar />
+                    </div>
+                    <div className="col-span-4">
+                        <div className="mb-2 text-sm text-gray-500 font-montserrat">
+                            12 Items Found
+                        </div>
+
+                        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-x-4 gap-y-10">
+                            {Array.from({ length: 18 }).map((_, index) => (
+                                <ProductCard key={index} />
+                            ))}
+                        </div>
+
+                        <div className="mt-16 flex justify-center">
+                            <button className="px-8 py-3 bg-[#E7A3B0] text-white font-medium rounded-lg font-oswald text-sm 
+                                tracking-widest hover:bg-[#ca8c98] transition-colors uppercase">
+                                Load More
+                            </button>
+                        </div>
+                    </div>
                 </div>
             </div>
         </main>
