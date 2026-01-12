@@ -11,7 +11,7 @@ export default function Footer() {
     const contentStyle = "text-white "
 
     return (
-        <footer className="w-full bg-[#262626] h-[240px] mt-[200px] flex items-center justify-center">
+        <footer className="w-full bg-[#262626] h-[240px] mt-[100px] flex items-center justify-center">
             <div className="grid grid-cols-4">
                 <div>
                     <Image 

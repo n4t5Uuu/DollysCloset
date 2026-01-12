@@ -5,11 +5,6 @@ import SearchBar from "@/components/search-bar";
 import CatalogSidebar from "@/components/catalog/catalog-sidebar";
 import ProductCard from "@/components/catalog/product-card";
 
-export const metadata = {
-    title: "Dolly's Closet - Catalog",
-    description: "Dolly's Closet - Catalog",
-}
-
 export default function CatalogPage() {
     return (
         <main className="space-y-12 w-full flex flex-col items-center">

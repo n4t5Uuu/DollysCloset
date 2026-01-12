@@ -31,7 +31,7 @@ export default function ProductCard() {
                 />
                  */}
 
-                <CardFooter className="bg-[#fa9cadd2] h-20 w-full flex flex-col justify-center items-start px-4 absolute bottom-0 text-[#121212] font-medium">
+                <CardFooter className="bg-[#e7a3b0ed] h-20 w-full flex flex-col justify-center items-start px-4 absolute bottom-0 text-[#121212] font-medium">
                     <CardTitle className="font-bold text-xl tracking-widest text-black/90 mb-1">
                         PRODUCT NAME
                     </CardTitle>
