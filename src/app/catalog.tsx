@@ -43,7 +43,7 @@ export default function CatalogPage() {
                         </div>
 
                         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-x-4 gap-y-10">
-                            {Array.from({ length: 18 }).map((_, index) => (
+                            {Array.from({ length: 5 }).map((_, index) => (
                                 <ProductCard key={index} />
                             ))}
                         </div>

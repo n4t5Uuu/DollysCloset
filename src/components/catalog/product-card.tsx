@@ -9,7 +9,7 @@ import Image from "next/image"
 interface ProductCardProps {
     productName: string
     price: number
-    image: string //assuming na string siya
+    image: string // assuming na string siya
 }
 
 export default function ProductCard() {
