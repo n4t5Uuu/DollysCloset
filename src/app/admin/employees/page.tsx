@@ -1,57 +1,88 @@
 // app/admin/employees/page.tsx
 "use client";
 
-import { useState } from "react";
-import { Plus, Edit2, Trash2, Eye, Search, ChevronUp, ChevronDown } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Plus, Edit2, Trash2, Eye, Search, ChevronUp, ChevronDown, X, AlertTriangle, Trash, Loader2 } from "lucide-react";
+import { browserSupabase } from "@/lib/supabase/browser";
+import { useRouter } from "next/navigation";
 
-// Mock data - replace with Supabase fetch later
-const mockEmployees = [
-  {
-    user_id: "1",
-    username: "maria_garcia",
-    first_name: "Maria",
-    last_name: "Garcia",
-    role: "employee",
-    created_at: "2025-01-10",
-  },
-  {
-    user_id: "2",
-    username: "alex_thompson",
-    first_name: "Alex",
-    last_name: "Thompson",
-    role: "employee",
-    created_at: "2025-01-08",
-  },
-  {
-    user_id: "3",
-    username: "sarah_kim",
-    first_name: "Sarah",
-    last_name: "Kim",
-    role: "employee",
-    created_at: "2024-12-20",
-  },
-  {
-    user_id: "4",
-    username: "james_wilson",
-    first_name: "James",
-    last_name: "Wilson",
-    role: "employee",
-    created_at: "2024-12-15",
-  },
-];
+type Employee = {
+  user_key: string;
+  id: string;
+  username: string;
+  first_name: string;
+  last_name: string;
+  role: string;
+  created_at: string;
+  updated_at: string;
+};
 
 export default function EmployeesPage() {
-  const [employees, setEmployees] = useState(mockEmployees);
+  const router = useRouter();
+  const [employees, setEmployees] = useState<Employee[]>([]);
+  const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
-  const [sortConfig, setSortConfig] = useState({ key: "created_at", direction: "desc" });
-  const [selectedRows, setSelectedRows] = useState(new Set());
+  const [sortConfig, setSortConfig] = useState({ key: "user_key", direction: "asc" });
+  const [selectedRows, setSelectedRows] = useState<Set<string>>(new Set());
 
-  const filteredEmployees = employees.filter(
-    (emp) =>
-      emp.username.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      emp.first_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      emp.last_name.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  // Modal states
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [showViewModal, setShowViewModal] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [showBulkDeleteModal, setShowBulkDeleteModal] = useState(false);
+  const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
+  const [actionLoading, setActionLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  // Form data
+  const [formData, setFormData] = useState({
+    username: "",
+    first_name: "",
+    last_name: "",
+    password: "",
+  });
+
+  // Fetch employees 
+  useEffect(() => {
+    fetchEmployees();
+  }, []);
+
+  async function fetchEmployees() {
+    try {
+      setLoading(true);
+      setError(null);
+
+      const { data, error } = await browserSupabase
+        .from('tbl_users')
+        .select('*')
+      console.log('fetch Data:', data);
+      if (error) throw error;
+      setEmployees(data || []);
+
+
+    } catch (err: any) {
+      console.error('Error fetching employees:', err);
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  const filteredEmployees = employees.filter((emp) => {
+    const query = searchTerm.toLowerCase();
+
+    const username = (emp.username ?? "").toLowerCase();
+    const firstName = (emp.first_name ?? "").toLowerCase();
+    const lastName = (emp.last_name ?? "").toLowerCase();
+
+    return (
+      username.includes(query) ||
+      firstName.includes(query) ||
+      lastName.includes(query)
+    );
+  });
+
 
   const sortedEmployees = [...filteredEmployees].sort((a, b) => {
     const aValue = a[sortConfig.key as keyof typeof a];
@@ -73,7 +104,7 @@ export default function EmployeesPage() {
     if (selectedRows.size === sortedEmployees.length) {
       setSelectedRows(new Set());
     } else {
-      setSelectedRows(new Set(sortedEmployees.map((e) => e.user_id)));
+      setSelectedRows(new Set(sortedEmployees.map((e) => e.id)));
     }
   };
 
@@ -87,14 +118,236 @@ export default function EmployeesPage() {
     setSelectedRows(newSelected);
   };
 
-  const handleDelete = (id: string) => {
-    setEmployees(employees.filter((e) => e.user_id !== id));
-    selectedRows.delete(id);
-    setSelectedRows(new Set(selectedRows));
+  // Modal handlers
+  const openAddModal = () => {
+    setFormData({ username: "", first_name: "", last_name: "", password: "" });
+    setError(null);
+    setShowAddModal(true);
   };
 
+  const openEditModal = (employee: Employee) => {
+    setSelectedEmployee(employee);
+    setFormData({
+      username: employee.username,
+      first_name: employee.first_name,
+      last_name: employee.last_name,
+      password: "",
+    });
+    setError(null);
+    setShowEditModal(true);
+  };
+
+  const openViewModal = (employee: Employee) => {
+    setSelectedEmployee(employee);
+    setShowViewModal(true);
+  };
+
+  const openDeleteModal = (employee: Employee) => {
+    setSelectedEmployee(employee);
+    setError(null);
+    setShowDeleteModal(true);
+  };
+
+  const handleAddEmployee = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setActionLoading(true);
+    setError(null);
+
+    try {
+      // Get current session token
+      const { data: { session } } = await browserSupabase.auth.getSession();
+      
+      if (!session) {
+        throw new Error('Not authenticated');
+      }
+
+      // Call the API route
+      const response = await fetch('/api/admin/create-employee', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`
+        },
+        body: JSON.stringify({
+          username: formData.username,
+          password: formData.password,
+          first_name: formData.first_name,
+          last_name: formData.last_name,
+        })
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to add employee');
+      }
+
+      // Refresh employee list
+      await fetchEmployees();
+      setShowAddModal(false);
+      setFormData({ username: "", first_name: "", last_name: "", password: "" });
+    } catch (err: any) {
+      console.error('Error adding employee:', err);
+      setError(err.message || 'Failed to add employee');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleEditEmployee = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedEmployee) return;
+
+    setActionLoading(true);
+    setError(null);
+
+    try {
+      // Get current session token
+      const { data: { session } } = await browserSupabase.auth.getSession();
+      
+      if (!session) {
+        throw new Error('Not authenticated');
+      }
+
+      // Call the API route
+      const response = await fetch('/api/admin/edit-employee', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`
+        },
+        body: JSON.stringify({
+          employee_id: selectedEmployee.user_id, 
+          username: formData.username,
+          first_name: formData.first_name,
+          last_name: formData.last_name,
+          password: formData.password || undefined,
+        })
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to update employee');
+      }
+
+      // Refresh employee list
+      await fetchEmployees();
+      setShowEditModal(false);
+      setSelectedEmployee(null);
+    } catch (err: any) {
+      console.error('Error updating employee:', err);
+      setError(err.message || 'Failed to update employee');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleDeleteEmployee = async () => {
+    if (!selectedEmployee) return;
+
+    setActionLoading(true);
+    setError(null);
+
+    try {
+      // Get current session token
+      const { data: { session } } = await browserSupabase.auth.getSession();
+      
+      if (!session) {
+        throw new Error('Not authenticated');
+      }
+
+      // Call the API route
+      const response = await fetch('/api/admin/delete-employee', {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`
+        },
+        body: JSON.stringify({
+          employee_id: selectedEmployee.user_id, 
+        })
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to delete employee');
+      }
+
+      // Refresh employee list
+      await fetchEmployees();
+      selectedRows.delete(selectedEmployee.user_id);
+      setSelectedRows(new Set(selectedRows));
+      setShowDeleteModal(false);
+      setSelectedEmployee(null);
+    } catch (err: any) {
+      console.error('Error deleting employee:', err);
+      setError(err.message || 'Failed to delete employee');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+
+  // Bulk delete handler (DISABLED FOR NOW)
+  // const handleBulkDelete = async () => {
+  //   setActionLoading(true);
+  //   setError(null);
+
+  //   try {
+  //     const idsToDelete = Array.from(selectedRows);
+
+  //     // Get current session token
+  //     const { data: { session } } = await browserSupabase.auth.getSession();
+      
+  //     if (!session) {
+  //       throw new Error('Not authenticated');
+  //     }
+
+  //     // Call the API route
+  //     const response = await fetch('/api/admin/bulk-delete-employees', {
+  //       method: 'DELETE',
+  //       headers: {
+  //         'Content-Type': 'application/json',
+  //         'Authorization': `Bearer ${session.access_token}`
+  //       },
+  //       body: JSON.stringify({
+  //         employee_ids: idsToDelete,
+  //       })
+  //     });
+
+  //     const data = await response.json();
+
+  //     if (!response.ok) {
+  //       throw new Error(data.error || 'Failed to delete employees');
+  //     }
+
+  //     // Refresh employee list
+  //     await fetchEmployees();
+  //     setSelectedRows(new Set());
+  //     setShowBulkDeleteModal(false);
+  //   } catch (err: any) {
+  //     console.error('Error bulk deleting employees:', err);
+  //     setError(err.message || 'Failed to delete employees');
+  //   } finally {
+  //     setActionLoading(false);
+  //   }
+  // };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-[#faf8f8] via-white to-[#f5f0f0] flex items-center justify-center">
+        <div className="flex flex-col items-center gap-4">
+          <Loader2 className="w-12 h-12 text-[#E7A3B0] animate-spin" />
+          <p className="text-gray-600 font-medium">Loading employees...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#faf8f8] via-white to-[#f5f0f0] p-8">
+    <div className="min-h-screen bg-gradient-to-br from-[#faf8f8] via-white to-[#f5f0f0]">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="mb-8">
@@ -102,13 +355,54 @@ export default function EmployeesPage() {
             <h1 className="text-4xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent">
               Manage Employees
             </h1>
-            <button className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-[#E7A3B0] to-[#f0b8c3] hover:from-[#d891a0] hover:to-[#E7A3B0] text-white rounded-lg font-medium transition-all duration-300 shadow-md hover:shadow-lg hover:scale-105">
+            <button
+              onClick={openAddModal}
+              className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-[#E7A3B0] to-[#f0b8c3] hover:from-[#d891a0] hover:to-[#E7A3B0] text-white rounded-lg font-medium transition-all duration-300 shadow-md hover:shadow-lg hover:scale-105"
+            >
               <Plus size={18} />
               Add Employee
             </button>
           </div>
           <p className="text-gray-600 text-sm">Manage staff members, roles, and permissions</p>
         </div>
+
+        {/* Global Error Message */}
+        {error && (
+          <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-xl flex items-center gap-3">
+            <AlertTriangle className="w-5 h-5 text-red-600 flex-shrink-0" />
+            <p className="text-red-700 text-sm">{error}</p>
+            <button
+              onClick={() => setError(null)}
+              className="ml-auto text-red-600 hover:text-red-800"
+            >
+              <X size={18} />
+            </button>
+          </div>
+        )}
+
+        {/* Bulk Actions Bar */}
+        {selectedRows.size > 0 && (
+          <div className="mb-6 p-4 bg-[#E7A3B0]/10 border border-[#E7A3B0]/30 rounded-xl flex items-center justify-between animate-in fade-in slide-in-from-top-2 duration-300">
+            <span className="text-[#E7A3B0] font-semibold">
+              {selectedRows.size} employee{selectedRows.size !== 1 ? "s" : ""} selected
+            </span>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setSelectedRows(new Set())}
+                className="px-4 py-2 text-gray-700 hover:bg-white rounded-lg font-medium transition-all"
+              >
+                Clear Selection
+              </button>
+              <button
+                onClick={() => setShowBulkDeleteModal(true)}
+                className="flex items-center gap-2 px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg font-medium transition-all shadow-md hover:shadow-lg"
+              >
+                <Trash size={16} />
+                Delete Selected
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* Search Bar */}
         <div className="mb-6">
@@ -126,43 +420,26 @@ export default function EmployeesPage() {
 
         {/* Table Container */}
         <div className="bg-white rounded-2xl shadow-lg border border-[#E7A3B0]/10 overflow-hidden">
-          {/* Table Header */}
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead>
                 <tr className="bg-gradient-to-r from-[#faf8f8] to-white border-b border-[#E7A3B0]/10">
-                  <th className="px-6 py-4 text-left">
+
+                {/* Checkbox column for bulk selection (DISABLED FOR NOW) */}
+                  {/* <th className="px-6 py-4 text-left">
                     <input
                       type="checkbox"
                       checked={selectedRows.size === sortedEmployees.length && sortedEmployees.length > 0}
                       onChange={toggleSelectAll}
                       className="w-4 h-4 rounded border-[#E7A3B0]/30 cursor-pointer"
                     />
-                  </th>
-                  <SortableHeader
-                    label="Username"
-                    sortKey="username"
-                    sortConfig={sortConfig}
-                    onSort={toggleSort}
-                  />
-                  <SortableHeader
-                    label="First Name"
-                    sortKey="first_name"
-                    sortConfig={sortConfig}
-                    onSort={toggleSort}
-                  />
-                  <SortableHeader
-                    label="Last Name"
-                    sortKey="last_name"
-                    sortConfig={sortConfig}
-                    onSort={toggleSort}
-                  />
-                  <SortableHeader
-                    label="Joined"
-                    sortKey="created_at"
-                    sortConfig={sortConfig}
-                    onSort={toggleSort}
-                  />
+                  </th> */}
+                  <SortableHeader label="User ID" sortKey="user_key" sortConfig={sortConfig} onSort={toggleSort} />
+                  <SortableHeader label="Username" sortKey="username" sortConfig={sortConfig} onSort={toggleSort} />
+                  <SortableHeader label="First Name" sortKey="first_name" sortConfig={sortConfig} onSort={toggleSort} />
+                  <SortableHeader label="Last Name" sortKey="last_name" sortConfig={sortConfig} onSort={toggleSort} />
+                  <SortableHeader label="Joined" sortKey="created_at" sortConfig={sortConfig} onSort={toggleSort} />
+                  <SortableHeader label="Last Updated" sortKey="updated_at" sortConfig={sortConfig} onSort={toggleSort} />
                   <th className="px-6 py-4 text-right text-gray-600 font-semibold text-sm">Actions</th>
                 </tr>
               </thead>
@@ -170,18 +447,22 @@ export default function EmployeesPage() {
                 {sortedEmployees.length > 0 ? (
                   sortedEmployees.map((employee, idx) => (
                     <tr
-                      key={employee.user_id}
+                      key={employee.user_key}
                       className={`border-b border-[#E7A3B0]/10 transition-all duration-200 hover:bg-[#E7A3B0]/3 ${
                         idx % 2 === 0 ? "bg-white" : "bg-[#faf8f8]"
-                      }`}
+                      } ${selectedRows.has(employee.user_key) ? "bg-[#E7A3B0]/5" : ""}`}
                     >
-                      <td className="px-6 py-4">
+                      {/*  Checkbox column for bulk selection (DISABLED FOR NOW) */}
+                      {/* <td className="px-6 py-4">
                         <input
                           type="checkbox"
-                          checked={selectedRows.has(employee.user_id)}
-                          onChange={() => toggleSelectRow(employee.user_id)}
+                          checked={selectedRows.has(employee.user_key)}
+                          onChange={() => toggleSelectRow(employee.user_key)}
                           className="w-4 h-4 rounded border-[#E7A3B0]/30 cursor-pointer"
                         />
+                      </td> */}
+                      <td className="px-6 py-4">
+                        <span className="font-medium text-gray-900">{employee.user_key}</span>
                       </td>
                       <td className="px-6 py-4">
                         <span className="font-medium text-gray-900">{employee.username}</span>
@@ -195,22 +476,31 @@ export default function EmployeesPage() {
                           year: "numeric",
                         })}
                       </td>
+                      <td className="px-6 py-4 text-gray-600 text-sm">
+                        {new Date(employee.updated_at).toLocaleDateString("en-US", {
+                          month: "short",
+                          day: "numeric",
+                          year: "numeric",
+                        })}
+                      </td>
                       <td className="px-6 py-4">
                         <div className="flex items-center justify-end gap-2">
                           <button
+                            onClick={() => openViewModal(employee)}
                             title="View"
                             className="p-2 hover:bg-[#E7A3B0]/10 rounded-lg transition-all duration-200 text-[#E7A3B0] hover:scale-110"
                           >
                             <Eye size={18} />
                           </button>
                           <button
+                            onClick={() => openEditModal(employee)}
                             title="Edit"
                             className="p-2 hover:bg-blue-50 rounded-lg transition-all duration-200 text-blue-600 hover:scale-110"
                           >
                             <Edit2 size={18} />
                           </button>
                           <button
-                            onClick={() => handleDelete(employee.user_id)}
+                            onClick={() => openDeleteModal(employee)}
                             title="Delete"
                             className="p-2 hover:bg-red-50 rounded-lg transition-all duration-200 text-red-600 hover:scale-110"
                           >
@@ -222,7 +512,7 @@ export default function EmployeesPage() {
                   ))
                 ) : (
                   <tr>
-                    <td colSpan={6} className="px-6 py-12 text-center">
+                    <td colSpan={7} className="px-6 py-12 text-center">
                       <div className="flex flex-col items-center gap-2">
                         <Search className="w-10 h-10 text-[#E7A3B0]/30" />
                         <p className="text-gray-600 font-medium">No employees found</p>
@@ -244,9 +534,379 @@ export default function EmployeesPage() {
                 </span>
               )}
             </div>
-            <span>Showing {sortedEmployees.length} of {employees.length} employees</span>
+            <span>
+              Showing {sortedEmployees.length} of {employees.length} employees
+            </span>
           </div>
         </div>
+      </div>
+
+      {/* Add Employee Modal */}
+      {showAddModal && (
+        <Modal onClose={() => setShowAddModal(false)} title="Add New Employee">
+          <form onSubmit={handleAddEmployee} className="space-y-5">
+            {error && (
+              <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">
+                {error}
+              </div>
+            )}
+
+            <div className="space-y-2">
+              <label className="block text-sm font-semibold text-gray-700">Username</label>
+              <input
+                type="text"
+                value={formData.username}
+                onChange={(e) => setFormData({ ...formData, username: e.target.value })}
+                placeholder="Enter username"
+                className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:border-[#E7A3B0] focus:ring-2 focus:ring-[#E7A3B0]/20 transition-all"
+                required
+                disabled={actionLoading}
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <label className="block text-sm font-semibold text-gray-700">First Name</label>
+                <input
+                  type="text"
+                  value={formData.first_name}
+                  onChange={(e) => setFormData({ ...formData, first_name: e.target.value })}
+                  placeholder="First name"
+                  className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:border-[#E7A3B0] focus:ring-2 focus:ring-[#E7A3B0]/20 transition-all"
+                  required
+                  disabled={actionLoading}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <label className="block text-sm font-semibold text-gray-700">Last Name</label>
+                <input
+                  type="text"
+                  value={formData.last_name}
+                  onChange={(e) => setFormData({ ...formData, last_name: e.target.value })}
+                  placeholder="Last name"
+                  className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:border-[#E7A3B0] focus:ring-2 focus:ring-[#E7A3B0]/20 transition-all"
+                  required
+                  disabled={actionLoading}
+                />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <label className="block text-sm font-semibold text-gray-700">Password</label>
+              <input
+                type="password"
+                value={formData.password}
+                onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                placeholder="Enter password"
+                className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:border-[#E7A3B0] focus:ring-2 focus:ring-[#E7A3B0]/20 transition-all"
+                required
+                minLength={6}
+                disabled={actionLoading}
+              />
+              <p className="text-xs text-gray-500">Minimum 6 characters</p>
+            </div>
+
+            <div className="flex gap-3 pt-4">
+              <button
+                type="button"
+                onClick={() => setShowAddModal(false)}
+                disabled={actionLoading}
+                className="flex-1 px-4 py-3 border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                disabled={actionLoading}
+                className="flex-1 px-4 py-3 bg-gradient-to-r from-[#E7A3B0] to-[#f0b8c3] text-white rounded-xl hover:from-[#d891a0] hover:to-[#E7A3B0] font-medium transition-all shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              >
+                {actionLoading ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    Adding...
+                  </>
+                ) : (
+                  'Add Employee'
+                )}
+              </button>
+            </div>
+          </form>
+        </Modal>
+      )}
+
+      {/* Edit Employee Modal */}
+      {showEditModal && selectedEmployee && (
+        <Modal onClose={() => setShowEditModal(false)} title="Edit Employee">
+          <form onSubmit={handleEditEmployee} className="space-y-5">
+            {error && (
+              <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">
+                {error}
+              </div>
+            )}
+
+            <div className="space-y-2">
+              <label className="block text-sm font-semibold text-gray-700">Username</label>
+              <input
+                type="text"
+                value={formData.username}
+                onChange={(e) => setFormData({ ...formData, username: e.target.value })}
+                className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:border-[#E7A3B0] focus:ring-2 focus:ring-[#E7A3B0]/20 transition-all"
+                required
+                disabled={actionLoading}
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <label className="block text-sm font-semibold text-gray-700">First Name</label>
+                <input
+                  type="text"
+                  value={formData.first_name}
+                  onChange={(e) => setFormData({ ...formData, first_name: e.target.value })}
+                  className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:border-[#E7A3B0] focus:ring-2 focus:ring-[#E7A3B0]/20 transition-all"
+                  required
+                  disabled={actionLoading}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <label className="block text-sm font-semibold text-gray-700">Last Name</label>
+                <input
+                  type="text"
+                  value={formData.last_name}
+                  onChange={(e) => setFormData({ ...formData, last_name: e.target.value })}
+                  className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:border-[#E7A3B0] focus:ring-2 focus:ring-[#E7A3B0]/20 transition-all"
+                  required
+                  disabled={actionLoading}
+                />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <label className="block text-sm font-semibold text-gray-700">New Password (optional)</label>
+              <input
+                type="password"
+                value={formData.password}
+                onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                placeholder="Leave blank to keep current password"
+                className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:border-[#E7A3B0] focus:ring-2 focus:ring-[#E7A3B0]/20 transition-all"
+                minLength={6}
+                disabled={actionLoading}
+              />
+              <p className="text-xs text-gray-500">Minimum 6 characters if changing</p>
+            </div>
+
+            <div className="flex gap-3 pt-4">
+              <button
+                type="button"
+                onClick={() => setShowEditModal(false)}
+                disabled={actionLoading}
+                className="flex-1 px-4 py-3 border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                disabled={actionLoading}
+                className="flex-1 px-4 py-3 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-xl hover:from-blue-600 hover:to-blue-700 font-medium transition-all shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              >
+                {actionLoading ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    Saving...
+                  </>
+                ) : (
+                  'Save Changes'
+                )}
+              </button>
+            </div>
+          </form>
+        </Modal>
+      )}
+
+      {/* View Employee Modal */}
+      {showViewModal && selectedEmployee && (
+        <Modal onClose={() => setShowViewModal(false)} title="Employee Details">
+          <div className="space-y-4">
+            <div className="bg-gradient-to-br from-[#E7A3B0]/10 to-pink-50 rounded-xl p-4 border border-[#E7A3B0]/20">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Username</p>
+                  <p className="font-semibold text-gray-900">{selectedEmployee.username}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Role</p>
+                  <p className="font-semibold text-gray-900 capitalize">{selectedEmployee.role}</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="bg-gray-50 rounded-xl p-4">
+                <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">First Name</p>
+                <p className="font-semibold text-gray-900">{selectedEmployee.first_name}</p>
+              </div>
+              <div className="bg-gray-50 rounded-xl p-4">
+                <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Last Name</p>
+                <p className="font-semibold text-gray-900">{selectedEmployee.last_name}</p>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="bg-gray-50 rounded-xl p-4">
+                <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Joined Date</p>
+                <p className="font-semibold text-gray-900">
+                  {new Date(selectedEmployee.created_at).toLocaleDateString("en-US", {
+                    month: "short",
+                    day: "numeric",
+                    year: "numeric",
+                  })}
+                </p>
+              </div>
+              <div className="bg-gray-50 rounded-xl p-4">
+                <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Last Updated</p>
+                <p className="font-semibold text-gray-900">
+                  {new Date(selectedEmployee.updated_at).toLocaleDateString("en-US", {
+                    month: "short",
+                    day: "numeric",
+                    year: "numeric",
+                  })}
+                </p>
+              </div>
+            </div>
+
+            <button
+              onClick={() => setShowViewModal(false)}
+              className="w-full px-4 py-3 bg-gradient-to-r from-[#E7A3B0] to-[#f0b8c3] text-white rounded-xl hover:from-[#d891a0] hover:to-[#E7A3B0] font-medium transition-all shadow-md hover:shadow-lg"
+            >
+              Close
+            </button>
+          </div>
+        </Modal>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {showDeleteModal && selectedEmployee && (
+        <Modal onClose={() => setShowDeleteModal(false)} title="Delete Employee">
+          <div className="space-y-5">
+            {error && (
+              <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">
+                {error}
+              </div>
+            )}
+
+            <div className="flex items-center gap-4 p-4 bg-red-50 rounded-xl border border-red-200">
+              <div className="w-12 h-12 rounded-full bg-red-100 flex items-center justify-center flex-shrink-0">
+                <AlertTriangle className="w-6 h-6 text-red-600" />
+              </div>
+              <div>
+                <h3 className="font-semibold text-gray-900 mb-1">Are you sure?</h3>
+                <p className="text-sm text-gray-600">
+                  This will permanently delete <span className="font-semibold">{selectedEmployee.username}</span> and all
+                  associated data. This action cannot be undone.
+                </p>
+              </div>
+            </div>
+
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowDeleteModal(false)}
+                disabled={actionLoading}
+                className="flex-1 px-4 py-3 border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleDeleteEmployee}
+                disabled={actionLoading}
+                className="flex-1 px-4 py-3 bg-gradient-to-r from-red-500 to-red-600 text-white rounded-xl hover:from-red-600 hover:to-red-700 font-medium transition-all shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              >
+                {actionLoading ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    Deleting...
+                  </>
+                ) : (
+                  'Delete Employee'
+                )}
+              </button>
+            </div>
+          </div>
+        </Modal>
+      )}
+
+      {/* Bulk Delete Confirmation Modal */}
+      {showBulkDeleteModal && (
+        <Modal onClose={() => setShowBulkDeleteModal(false)} title="Delete Multiple Employees">
+          <div className="space-y-5">
+            {error && (
+              <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">
+                {error}
+              </div>
+            )}
+
+            <div className="flex items-center gap-4 p-4 bg-red-50 rounded-xl border border-red-200">
+              <div className="w-12 h-12 rounded-full bg-red-100 flex items-center justify-center flex-shrink-0">
+                <AlertTriangle className="w-6 h-6 text-red-600" />
+              </div>
+              <div>
+                <h3 className="font-semibold text-gray-900 mb-1">Are you sure?</h3>
+                <p className="text-sm text-gray-600">
+                  This will permanently delete <span className="font-semibold">{selectedRows.size} employee{selectedRows.size !== 1 ? 's' : ''}</span> and all
+                  associated data. This action cannot be undone.
+                </p>
+              </div>
+            </div>
+
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowBulkDeleteModal(false)}
+                disabled={actionLoading}
+                className="flex-1 px-4 py-3 border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleBulkDelete}
+                disabled={actionLoading}
+                className="flex-1 px-4 py-3 bg-gradient-to-r from-red-500 to-red-600 text-white rounded-xl hover:from-red-600 hover:to-red-700 font-medium transition-all shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              >
+                {actionLoading ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    Deleting...
+                  </>
+                ) : (
+                  `Delete ${selectedRows.size} Employee${selectedRows.size !== 1 ? 's' : ''}`
+                )}
+              </button>
+            </div>
+          </div>
+        </Modal>
+      )}
+    </div>
+  );
+}
+
+// Reusable Modal Component
+function Modal({ children, onClose, title }: { children: React.ReactNode; onClose: () => void; title: string }) {
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+      <div
+        className="bg-white rounded-2xl shadow-2xl max-w-md w-full max-h-[90vh] overflow-y-auto"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="sticky top-0 bg-white border-b border-gray-100 px-6 py-4 flex items-center justify-between rounded-t-2xl">
+          <h2 className="text-xl font-bold text-gray-900">{title}</h2>
+          <button
+            onClick={onClose}
+            className="p-2 hover:bg-gray-100 rounded-lg transition-colors text-gray-500 hover:text-gray-700"
+          >
+            <X size={20} />
+          </button>
+        </div>
+        <div className="px-6 py-6">{children}</div>
       </div>
     </div>
   );
@@ -265,11 +925,7 @@ function SortableHeader({ label, sortKey, sortConfig, onSort }: any) {
         {label}
         {isActive && (
           <span className="text-[#E7A3B0]">
-            {sortConfig.direction === "asc" ? (
-              <ChevronUp size={16} />
-            ) : (
-              <ChevronDown size={16} />
-            )}
+            {sortConfig.direction === "asc" ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
           </span>
         )}
       </div>
