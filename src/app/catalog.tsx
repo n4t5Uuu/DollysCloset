@@ -1,11 +1,47 @@
+"use client";
+
+import { useState } from "react";
 import Image from "next/image";
 
 import FeatureCardCarousel from "@/components/catalog/feature-card-carousel";
 import SearchBar from "@/components/search-bar";
 import CatalogSidebar from "@/components/catalog/catalog-sidebar";
 import ProductCard from "@/components/catalog/product-card";
+import ProductModal from "@/components/catalog/product-modal";
+import { useProducts } from "@/contexts/ProductContext";
+import { Product } from "@/data/product-test-data";
 
 export default function CatalogPage() {
+    const { productList, catalogStatus } = useProducts();
+    const [activeFilter, setActiveFilter] = useState("All Products");
+    const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+    const [isModalOpen, setIsModalOpen] = useState(false);
+    
+    // Get only published products (featured and standard, exclude unlisted)
+    let publishedProducts = productList.filter(
+        product => catalogStatus[product.id] !== "unlisted"
+    );
+
+    // Apply category/type filtering
+    if (activeFilter === "New Arrivals") {
+        publishedProducts = publishedProducts.filter(product => product.isNewArrival);
+    } else if (activeFilter !== "All Products") {
+        // Check if it's a main category (Men Tops, Women Tops, etc.) or a subcategory (Teenagers, Long Sleeves, etc.)
+        publishedProducts = publishedProducts.filter(product => 
+            product.category === activeFilter || product.type === activeFilter
+        );
+    }
+
+    const handleProductClick = (product: Product) => {
+        setSelectedProduct(product);
+        setIsModalOpen(true);
+    };
+
+    const handleCloseModal = () => {
+        setIsModalOpen(false);
+        setSelectedProduct(null);
+    };
+
     return (
         <main className="space-y-12 w-full flex flex-col items-center">
 
@@ -21,7 +57,7 @@ export default function CatalogPage() {
                 <h3 className="text-[#121212] !font-playfair-display font-bold text-2xl mb-8">
                     Featured Collection
                 </h3>
-                <FeatureCardCarousel />
+                <FeatureCardCarousel onProductClick={handleProductClick} />
             </div>
 
             {/* For the Collections */}
@@ -35,16 +71,20 @@ export default function CatalogPage() {
 
                 <div className="w-full px-8 grid grid-cols-5">
                     <div className="col-span-1">
-                        <CatalogSidebar />
+                        <CatalogSidebar activeFilter={activeFilter} onFilterChange={setActiveFilter} />
                     </div>
                     <div className="col-span-4">
                         <div className="mb-2 text-sm text-gray-500 font-montserrat">
-                            12 Items Found
+                            {publishedProducts.length} Items Found
                         </div>
 
                         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-x-4 gap-y-10">
-                            {Array.from({ length: 5 }).map((_, index) => (
-                                <ProductCard key={index} />
+                            {publishedProducts.map((product) => (
+                                <ProductCard 
+                                    key={product.id} 
+                                    product={product}
+                                    onClick={() => handleProductClick(product)}
+                                />
                             ))}
                         </div>
 
@@ -57,6 +97,15 @@ export default function CatalogPage() {
                     </div>
                 </div>
             </div>
+
+            {/* Product Modal */}
+            {selectedProduct && (
+                <ProductModal
+                    product={selectedProduct}
+                    isOpen={isModalOpen}
+                    onClose={handleCloseModal}
+                />
+            )}
         </main>
     )
 }

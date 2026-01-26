@@ -410,7 +410,7 @@ export default function EmployeesPage() {
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-[#E7A3B0]/60 w-5 h-5" />
             <input
               type="text"
-              placeholder="Search by name or username..."
+              placeholder="Search by name or email..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="w-full pl-12 pr-4 py-3 border border-[#E7A3B0]/20 rounded-xl bg-white focus:outline-none focus:border-[#E7A3B0] focus:ring-2 focus:ring-[#E7A3B0]/20 transition-all duration-300 text-gray-900 placeholder-gray-400"
@@ -552,12 +552,12 @@ export default function EmployeesPage() {
             )}
 
             <div className="space-y-2">
-              <label className="block text-sm font-semibold text-gray-700">Username</label>
+              <label className="block text-sm font-semibold text-gray-700">Email Address</label>
               <input
                 type="text"
                 value={formData.username}
                 onChange={(e) => setFormData({ ...formData, username: e.target.value })}
-                placeholder="Enter username"
+                placeholder="Enter email address"
                 className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:border-[#E7A3B0] focus:ring-2 focus:ring-[#E7A3B0]/20 transition-all"
                 required
                 disabled={actionLoading}
@@ -646,7 +646,7 @@ export default function EmployeesPage() {
             )}
 
             <div className="space-y-2">
-              <label className="block text-sm font-semibold text-gray-700">Username</label>
+              <label className="block text-sm font-semibold text-gray-700">Email Address</label>
               <input
                 type="text"
                 value={formData.username}
@@ -732,7 +732,7 @@ export default function EmployeesPage() {
             <div className="bg-gradient-to-br from-[#E7A3B0]/10 to-pink-50 rounded-xl p-4 border border-[#E7A3B0]/20">
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Username</p>
+                  <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Email Address</p>
                   <p className="font-semibold text-gray-900">{selectedEmployee.username}</p>
                 </div>
                 <div>

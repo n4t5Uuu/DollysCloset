@@ -20,12 +20,14 @@ import Link from "next/link";
 
 import {useState} from "react";
 
-export default function CatalogSidebar() {
-    const [activeFilter, setActiveFilter] = useState("All Products");
+interface CatalogSidebarProps {
+    activeFilter: string;
+    onFilterChange: (filter: string) => void;
+}
 
+export default function CatalogSidebar({ activeFilter, onFilterChange }: CatalogSidebarProps) {
     const handleFilterChange = (filter: string) => {
-        setActiveFilter(filter);
-
+        onFilterChange(filter);
         console.log("Filtering to ", filter);
     };
 
@@ -64,7 +66,9 @@ export default function CatalogSidebar() {
 
                         {/**Men Tops */}
                         <AccordionItem value="item-1" >
-                            <AccordionTrigger className="font-montserrat text-lg font-bold uppercase tracking-wide cursor-pointer">
+                            <AccordionTrigger className={cn("font-montserrat text-lg font-bold uppercase tracking-wide cursor-pointer",
+                                    activeFilter === "Men's Top" && "text-[#E679A3]")}
+                            >
                                 Men Tops
                             </AccordionTrigger>
 
@@ -86,7 +90,9 @@ export default function CatalogSidebar() {
 
                         {/**Women Tops */}
                         <AccordionItem value="item-2" >
-                            <AccordionTrigger className="font-montserrat text-lg font-bold uppercase tracking-wide cursor-pointer">
+                            <AccordionTrigger className={cn("font-montserrat text-lg font-bold uppercase tracking-wide cursor-pointer",
+                                    activeFilter === "Women's Top" && "text-[#E679A3]")}
+                            >
                                 Women Tops
                             </AccordionTrigger>
 
@@ -108,7 +114,9 @@ export default function CatalogSidebar() {
                         
                         {/**Coords */}
                         <AccordionItem value="item-3" >
-                            <AccordionTrigger className="font-montserrat text-lg font-bold uppercase tracking-wide cursor-pointer">
+                            <AccordionTrigger className={cn("font-montserrat text-lg font-bold uppercase tracking-wide cursor-pointer",
+                                    activeFilter === "Coords" && "text-[#E679A3]")}
+                            >
                                 Coords
                             </AccordionTrigger>
 
@@ -130,7 +138,9 @@ export default function CatalogSidebar() {
 
                         {/**Seasonal */}
                         <AccordionItem value="item-4" >
-                            <AccordionTrigger className="font-montserrat text-lg font-bold uppercase tracking-wide cursor-pointer">
+                            <AccordionTrigger className={cn("font-montserrat text-lg font-bold uppercase tracking-wide cursor-pointer",
+                                    activeFilter === "Seasonal" && "text-[#E679A3]")}
+                            >
                                 Seasonal
                             </AccordionTrigger>
 
