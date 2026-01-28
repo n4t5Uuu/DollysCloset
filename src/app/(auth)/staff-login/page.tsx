@@ -93,7 +93,7 @@ export default function StaffLoginPage() {
 
         {/* Username */}
         <div className="mb-4">
-          <label className="block text-sm font-medium mb-1">Username</label>
+          <label className="block text-sm font-medium mb-1">Email Address</label>
           <input
             type="text"
             value={email}

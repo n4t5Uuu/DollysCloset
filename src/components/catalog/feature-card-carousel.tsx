@@ -21,8 +21,22 @@ import {
 import { useEffect, useState, useRef }from "react";
 import Autoplay from "embla-carousel-autoplay";
 import {type CarouselApi} from "@/components/ui/carousel";
+import { useProducts } from "@/contexts/ProductContext";
+import { Product } from "@/data/product-test-data";
+import Image from "next/image";
 
-export default function FeatureCardCarousel() {
+interface FeatureCardCarouselProps {
+    onProductClick?: (product: Product) => void;
+}
+
+export default function FeatureCardCarousel({ onProductClick }: FeatureCardCarouselProps) {
+    const { productList, catalogStatus } = useProducts();
+    
+    // Get only featured products
+    const featuredProducts = productList.filter(
+        product => catalogStatus[product.id] === "featured"
+    );
+
     // Track the Embla API instance
     const [api, setApi] = useState<CarouselApi | null>(null);
     const [current, setCurrent] = useState(0);
@@ -83,6 +97,16 @@ export default function FeatureCardCarousel() {
             api.off("reInit", onScroll);
         }
     }, [api]);
+
+    // If no featured products, show placeholder message
+    if (featuredProducts.length === 0) {
+        return (
+            <div className="w-full max-w-[1400px] mx-auto py-12 text-center">
+                <p className="text-gray-500 font-montserrat">No featured products yet</p>
+            </div>
+        );
+    }
+
     return (
         <Carousel
             setApi={setApi}
@@ -90,24 +114,34 @@ export default function FeatureCardCarousel() {
             className="w-full max-w-[1400px] mx-auto"
             opts={{
                 align: "center",
-                loop: true
+                loop: featuredProducts.length > 1
             }}
         >
             <CarouselContent className="ml-4">
-                {[1,2,3,4,5,6].map((_, index) => (
+                {featuredProducts.map((product) => (
                     <CarouselItem 
-                        key={index}
+                        key={product.id}
                         className="pl-4 basis-1/2 md:basis-1/5"
                     >
                         <div className="p-1">
                             <div className="feature-card-inner transition-transform duration-0 ease-out">
-                                <Card className="border-0 shadow-md group overflow-hidden bg-muted/20">
-                                    <CardContent className="flex aspect-square iems-center justify-center 
+                                <Card 
+                                    className="border-0 shadow-md group overflow-hidden bg-muted/20 cursor-pointer"
+                                    onClick={() => onProductClick?.(product)}
+                                >
+                                    <CardContent className="flex aspect-square items-center justify-center p-0 relative 
                                         text-mute-foreground/50 hover:text-primary/80 transition-colors">
-                                        <div className="h-full w-full bg-primary/20 flex items-center justify-center">
-                                            <span className="text-xl font-bold bg-white/50 px-4 py-2 rounded-md text-black">
-                                                PROD {index + 1}
-                                            </span>
+                                        <div className="h-full w-full bg-primary/20 flex items-center justify-center relative overflow-hidden">
+                                            <Image
+                                                src={product.images[0] || "/placeholder.png"}
+                                                alt={product.name}
+                                                fill
+                                                className="object-cover group-hover:scale-110 transition-transform duration-300"
+                                            />
+                                            <div className="absolute bottom-0 left-0 right-0 bg-[#e7a3b0ed] p-3">
+                                                <p className="text-sm font-bold text-black/90 line-clamp-1">{product.name}</p>
+                                                <p className="text-xs text-black/80 font-oswald">₱{product.price.toFixed(2)}</p>
+                                            </div>
                                         </div>
                                     </CardContent>
                                 </Card>

@@ -9,6 +9,7 @@ import "./globals.css";
 import localFont from "next/font/local";
 import Navbar from "@/components/navbar";
 import Footer from "@/components/footer";
+import { ProductProvider } from "@/contexts/ProductContext";
 
 const oswald = Oswald({
   subsets: ["latin"],
@@ -52,9 +53,11 @@ export default function RootLayout({
             antialiased`
           }>
 
-        <Navbar />
-        {children}
-        <Footer />
+        <ProductProvider>
+          <Navbar />
+          {children}
+          <Footer />
+        </ProductProvider>
       </body>
     </html>
   );
