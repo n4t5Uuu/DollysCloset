@@ -1,16 +1,5 @@
-import { createClient } from '@supabase/supabase-js';
+import {supabaseAdmin} from '@/lib/supabase/admin'; 
 import { NextRequest, NextResponse } from 'next/server';
-
-const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!,
-  {
-    auth: {
-      autoRefreshToken: false,
-      persistSession: false
-    }
-  }
-);
 
 export async function DELETE(request: NextRequest) {
   try {
@@ -24,6 +13,8 @@ export async function DELETE(request: NextRequest) {
     const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(token);
     
     if (authError || !user) {
+      console.error("Auth Error: ", authError)
+      console.log("User: ", user)
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
@@ -35,6 +26,7 @@ export async function DELETE(request: NextRequest) {
       .single();
 
     if (userError || userData?.role !== 'admin') {
+      console.error("User Error: ", userError)
       return NextResponse.json({ error: 'Forbidden: Admin access required' }, { status: 403 });
     }
 
@@ -49,6 +41,7 @@ export async function DELETE(request: NextRequest) {
     const { error: deleteAuthError } = await supabaseAdmin.auth.admin.deleteUser(employee_id);
 
     if (deleteAuthError) {
+      console.error("Delete Auth Error: ", deleteAuthError)
       return NextResponse.json({ error: deleteAuthError.message }, { status: 500 });
     }
 
@@ -59,6 +52,7 @@ export async function DELETE(request: NextRequest) {
       .eq('user_id', employee_id);
 
     if (deleteUserError) {
+      console.error("Delete User Error: ", deleteUserError)
       return NextResponse.json({ error: deleteUserError.message }, { status: 500 });
     }
 
