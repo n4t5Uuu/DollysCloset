@@ -6,7 +6,7 @@ import { Plus, Edit2, Trash2, Eye, Search, ChevronUp, ChevronDown, X, AlertTrian
 import { browserSupabase } from "@/lib/supabase/browser";
 import { useRouter } from "next/navigation";
 
-type Employee = {
+interface Employee {
   user_key: string;
   id: string;
   username: string;

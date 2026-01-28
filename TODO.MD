@@ -22,9 +22,10 @@
 ## Bug Fixes
     - [ ] Log in error
 
-## To-do UI
+## To-do
     - [ ] About Us Page
-
+    - [ ] Refactor recently added code by Ko Han and Josh
+ 
 ## 
 
 ## ✅ Completed
