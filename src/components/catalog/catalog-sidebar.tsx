@@ -77,7 +77,7 @@ export default function CatalogSidebar({ activeFilter, onFilterChange }: Catalog
                                     <button
                                         key={subcategory}
                                         onClick={() => handleFilterChange(subcategory)}
-                                        className={cn("text-left text-lg font-montserrat px-3 py-1 font-medium rounded-md transition-colors w-full cursor-pointer",
+                                        className={cn("text-left text-lg font-montserrat px-3 py-1 font-bold rounded-md transition-colors w-full cursor-pointer",
                                         activeFilter === subcategory 
                                             ? "bg-[#E7A3B0] text-black font-bold" // Pink Active State
                                             : "text-gray-500 hover:text-black")}
@@ -149,7 +149,7 @@ export default function CatalogSidebar({ activeFilter, onFilterChange }: Catalog
                                     <button
                                         key={subcategory}
                                         onClick={() => handleFilterChange(subcategory)}
-                                        className={cn("text-left text-lg font-montserrat px-3 font-medium py-1 rounded-md transition-colors w-full cursor-pointer",
+                                        className={cn("text-left text-lg font-montserrat px-3 py-1 font-bold rounded-md transition-colors w-full cursor-pointer",
                                         activeFilter === subcategory 
                                             ? "bg-[#E7A3B0] text-black font-bold" // Pink Active State
                                             : "text-gray-500 hover:text-black")}

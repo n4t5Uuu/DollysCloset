@@ -7,14 +7,14 @@ import { browserSupabase } from "@/lib/supabase/browser";
 import { useRouter } from "next/navigation";
 
 interface Employee {
-  user_key: string;
-  id: string;
-  username: string;
-  first_name: string;
-  last_name: string;
-  role: string;
-  created_at: string;
-  updated_at: string;
+  user_key: string
+  id: string
+  username: string
+  first_name: string
+  last_name: string
+  role: string
+  created_at: string
+  updated_at: string
 };
 
 export default function EmployeesPage() {
@@ -56,6 +56,7 @@ export default function EmployeesPage() {
       const { data, error } = await browserSupabase
         .from('tbl_users')
         .select('*')
+        
       console.log('fetch Data:', data);
       if (error) throw error;
       setEmployees(data || []);
