@@ -18,17 +18,22 @@ import {cn} from "@/lib/utils";
 
 import Link from "next/link";
 
-import {useState} from "react";
-
 interface CatalogSidebarProps {
     activeFilter: string;
+    sortBy: string;
     onFilterChange: (filter: string) => void;
+    onSortChange: (sort: string) => void;
 }
 
-export default function CatalogSidebar({ activeFilter, onFilterChange }: CatalogSidebarProps) {
+export default function CatalogSidebar({ activeFilter, sortBy, onFilterChange, onSortChange }: CatalogSidebarProps) {
     const handleFilterChange = (filter: string) => {
         onFilterChange(filter);
         console.log("Filtering to ", filter);
+    };
+
+    const handleSortChange = (sort: string) => {
+        onSortChange(sort);
+        console.log("Sorting to ", sort);
     };
 
     return(
@@ -168,7 +173,7 @@ export default function CatalogSidebar({ activeFilter, onFilterChange }: Catalog
                         Sort by:
                     </h3>
                 </div>
-                <Select defaultValue="newest">
+                <Select value={sortBy} onValueChange={handleSortChange}>
                     <SelectTrigger className="w-full bg-gray-100 border-none rounded-md font-montserrat text-sm focus:ring-0 text-black">
                         <SelectValue placeholder="Sort option" />
                     </SelectTrigger>

@@ -14,6 +14,7 @@ import { Product } from "@/data/product-test-data";
 export default function CatalogPage() {
     const { productList, catalogStatus } = useProducts();
     const [activeFilter, setActiveFilter] = useState("All Products");
+    const [sortBy, setSortBy] = useState("newest");
     const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
     const [isModalOpen, setIsModalOpen] = useState(false);
     
@@ -32,8 +33,18 @@ export default function CatalogPage() {
         );
     }
 
+    // Apply sorting
+    if (sortBy === "price-low") {
+        publishedProducts.sort((a, b) => a.price - b.price);
+    } else if (sortBy === "price-high") {
+        publishedProducts.sort((a, b) => b.price - a.price);
+    } else if (sortBy === "newest") {
+        publishedProducts.sort((a, b) => Number(b.id) - Number(a.id));
+    }
+
     const handleProductClick = (product: Product) => {
         setSelectedProduct(product);
+        console.log("Selected Product: ", product)
         setIsModalOpen(true);
     };
 
@@ -71,7 +82,7 @@ export default function CatalogPage() {
 
                 <div className="w-full px-8 grid grid-cols-5">
                     <div className="col-span-1">
-                        <CatalogSidebar activeFilter={activeFilter} onFilterChange={setActiveFilter} />
+                        <CatalogSidebar activeFilter={activeFilter} sortBy={sortBy} onFilterChange={setActiveFilter} onSortChange={setSortBy} />
                     </div>
                     <div className="col-span-4">
                         <div className="mb-2 text-sm text-gray-500 font-montserrat">
