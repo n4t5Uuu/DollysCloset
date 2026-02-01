@@ -4,6 +4,7 @@ import { Product } from "@/data/product-test-data";
 import Image from "next/image";
 import { useState } from "react";
 import { X } from "lucide-react";
+import { Card, CardContent } from "@/components/ui/card";
 
 interface ProductModalProps {
   product: Product;
@@ -18,19 +19,19 @@ export default function ProductModal({ product, isOpen, onClose }: ProductModalP
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={onClose}>
-      <div 
-        className="bg-white rounded-lg shadow-xl max-w-4xl w-full mx-4 max-h-[90vh] overflow-y-auto relative"
+      <Card 
+        className="bg-white rounded-lg shadow-xl max-w-4xl w-full mx-4 max-h-[90vh] overflow-y-auto relative border-none"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Close Button */}
         <button
           onClick={onClose}
-          className="absolute top-4 right-4 p-2 hover:bg-gray-100 rounded-full transition-colors z-10 bg-white shadow-md"
+          className="absolute top-4 right-4 p-2 hover:bg-gray-100 rounded-full transition-colors z-10 bg-white shadow-md text-black cursor-pointer"
         >
           <X className="w-6 h-6" />
         </button>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 p-8">
+        <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-8 p-8">
           {/* Left Side - Images */}
           <div className="space-y-4">
             {/* Main Image */}
@@ -69,15 +70,15 @@ export default function ProductModal({ product, isOpen, onClose }: ProductModalP
           {/* Right Side - Details */}
           <div className="space-y-6">
             <div>
-              <h2 className="text-3xl font-bold font-playfair-display mb-2">{product.name}</h2>
-              <p className="text-gray-600 text-sm">{product.category}</p>
+              <h2 className="text-3xl font-bold font-playfair-display mb-2 text-black">{product.name}</h2>
+              <p className="text-black text-sm">{product.category}</p>
             </div>
 
             <div className="text-3xl font-bold text-[#E7A3B0] font-oswald">
               ₱{product.price.toFixed(2)}
             </div>
 
-            <div className="space-y-3 text-gray-700">
+            <div className="space-y-3 text-black">
               <div className="flex justify-between">
                 <span className="font-semibold">Brand:</span>
                 <span>{product.brand}</span>
@@ -92,7 +93,7 @@ export default function ProductModal({ product, isOpen, onClose }: ProductModalP
               </div>
             </div>
 
-            <p className="text-gray-600 leading-relaxed">
+            <p className="text-black leading-relaxed">
               {product.description}
             </p>
 
@@ -105,13 +106,13 @@ export default function ProductModal({ product, isOpen, onClose }: ProductModalP
 
             {/* Visit Store Message */}
             <div className="pt-4 border-t border-gray-200">
-              <p className="text-center text-xl font-semibold text-gray-800 font-playfair-display">
+              <p className="text-center text-xl font-semibold text-black font-playfair-display">
                 Visit Our Physical Store!
               </p>
             </div>
           </div>
-        </div>
-      </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }
