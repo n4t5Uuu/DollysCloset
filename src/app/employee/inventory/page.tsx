@@ -4,6 +4,7 @@
 import { useState } from "react";
 import { Product } from "@/data/product-test-data";
 import { useProducts } from "@/contexts/ProductContext";
+import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -15,6 +16,13 @@ import {
 } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Eye, Pencil, Trash2 } from "lucide-react";
+import {
+  Card,
+  CardContent,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 
 const categoryTypes: { [key: string]: string[] } = {
   "Men's Top": ["Teenagers", "Long Sleeves", "Polo"],
@@ -285,6 +293,7 @@ export default function EmployeeInventoryPage() {
             className="bg-green-500 hover:bg-green-600 text-white"
             onClick={() => setShowAddModal(true)}
           >
+            <Plus className="w-4 h-4" />
             Add Products
           </Button>
         </div>
@@ -347,7 +356,7 @@ export default function EmployeeInventoryPage() {
                 <td className="p-4 text-center">
                   <button
                     onClick={() => cycleCatalogStatus(product.id)}
-                    className={`px-3 py-1 rounded text-sm font-medium ${
+                    className={`cursor-pointer px-3 py-1 rounded text-sm font-medium ${
                       catalogStatus[product.id] === "featured"
                         ? "bg-purple-100 text-purple-800"
                         : catalogStatus[product.id] === "standard"
@@ -367,7 +376,7 @@ export default function EmployeeInventoryPage() {
                     <Button
                       size="icon"
                       variant="outline"
-                      className="border-pink-200 text-pink-600 bg-pink-50 hover:bg-pink-100"
+                      className="border-pink-200 text-pink-600 bg-pink-50 hover:bg-pink-200 hover:text-pink-700 hover:border-pink-300"
                       onClick={() => setViewProduct(product)}
                       title="View product details"
                     >
@@ -377,7 +386,7 @@ export default function EmployeeInventoryPage() {
                     <Button
                       size="icon"
                       variant="outline"
-                      className="border-blue-200 text-blue-600 bg-blue-50 hover:bg-blue-100"
+                      className="border-blue-200 text-blue-600 bg-blue-50 hover:bg-blue-200 hover:text-blue-700 hover:border-blue-300"
                       onClick={() => handleEditProduct(product)}
                       title="Edit product"
                     >
@@ -387,7 +396,7 @@ export default function EmployeeInventoryPage() {
                     <Button
                       size="icon"
                       variant="outline"
-                      className="border-red-200 text-red-600 bg-red-50 hover:bg-red-100"
+                      className="border-red-200 text-red-600 bg-red-50 hover:bg-red-200 hover:text-red-700 hover:border-red-300"
                       onClick={() => handleDeleteProduct(product.id)}
                       title="Delete product"
                     >
@@ -411,7 +420,7 @@ export default function EmployeeInventoryPage() {
                 <h3 className="text-xl font-semibold text-gray-900">{viewProduct.name}</h3>
               </div>
               <button
-                className="text-gray-500 hover:text-gray-700 text-2xl leading-none"
+                className="cursor-pointer text-gray-500 hover:text-gray-700 text-2xl leading-none"
                 onClick={() => setViewProduct(null)}
                 aria-label="Close product overview"
               >
@@ -497,6 +506,7 @@ export default function EmployeeInventoryPage() {
           size="sm"
           onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
           disabled={currentPage === 1}
+          className="cursor-pointer hover:bg-pink-50 hover:text-pink-600 hover:border-pink-200"
         >
           &lt;
         </Button>
@@ -520,8 +530,8 @@ export default function EmployeeInventoryPage() {
               onClick={() => setCurrentPage(pageNum)}
               className={
                 currentPage === pageNum
-                  ? "bg-[#E7A3B0] hover:bg-[#ca8c98]"
-                  : ""
+                  ? "bg-[#E7A3B0] hover:bg-[#ca8c98] cursor-pointer"
+                  : "cursor-pointer hover:bg-pink-50 hover:text-pink-600 hover:border-pink-200"
               }
             >
               {pageNum}
@@ -536,6 +546,7 @@ export default function EmployeeInventoryPage() {
             variant="outline"
             size="sm"
             onClick={() => setCurrentPage(totalPages)}
+            className="cursor-pointer hover:bg-pink-50 hover:text-pink-600 hover:border-pink-200"
           >
             {totalPages}
           </Button>
@@ -547,6 +558,7 @@ export default function EmployeeInventoryPage() {
             setCurrentPage((prev) => Math.min(totalPages, prev + 1))
           }
           disabled={currentPage === totalPages}
+          className="cursor-pointer hover:bg-pink-50 hover:text-pink-600 hover:border-pink-200"
         >
           &gt;
         </Button>
@@ -555,26 +567,26 @@ export default function EmployeeInventoryPage() {
       {/* Add Product Modal */}
       {showAddModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-gray-900 rounded-lg p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+          <Card className="bg-white w-full max-w-2xl max-h-[90vh] overflow-y-auto border-gray-200 p-0 gap-0">
             {/* Modal Header */}
-            <div className="flex justify-between items-center mb-6">
-              <h2 className="text-2xl font-bold text-white">{editingProduct ? "Edit Product" : "Add Product"}</h2>
+            <CardHeader className="flex flex-row items-center justify-between p-6 border-b border-gray-100 space-y-0">
+              <CardTitle className="text-2xl font-bold text-gray-900">{editingProduct ? "Edit Product" : "Add Product"}</CardTitle>
               <button
                 onClick={() => {
                   setShowAddModal(false);
                   setEditingProduct(null);
                 }}
-                className="text-gray-400 hover:text-white text-2xl"
+                className="cursor-pointer text-gray-400 hover:text-gray-600 text-2xl"
               >
                 ×
               </button>
-            </div>
+            </CardHeader>
 
             {/* Modal Form */}
-            <div className="space-y-5">
+            <CardContent className="space-y-5 p-6">
               {/* Product Name */}
               <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
                   Product Name <span className="text-red-500">*</span>
                 </label>
                 <Input
@@ -583,14 +595,14 @@ export default function EmployeeInventoryPage() {
                   onChange={(e) =>
                     setFormData({ ...formData, name: e.target.value })
                   }
-                  className="bg-gray-800 border-gray-700 text-white"
+                  className="bg-white border-gray-300 text-gray-900 placeholder:text-gray-500 focus:border-pink-500 focus:ring-pink-500"
                 />
               </div>
 
               {/* Category and Type */}
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-2">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
                     Category <span className="text-red-500">*</span>
                   </label>
                   <Select
@@ -599,12 +611,12 @@ export default function EmployeeInventoryPage() {
                       setFormData({ ...formData, category: value, type: "" })
                     }
                   >
-                    <SelectTrigger className="bg-gray-800 border-gray-700 text-white">
+                    <SelectTrigger className="bg-white border-gray-300 text-gray-900 placeholder:text-gray-500 focus:ring-pink-500">
                       <SelectValue placeholder="Select category" />
                     </SelectTrigger>
-                    <SelectContent className="bg-gray-800 border-gray-700">
+                    <SelectContent className="bg-white border-gray-300">
                       {categories.map((cat) => (
-                        <SelectItem key={cat} value={cat} className="text-white">
+                        <SelectItem key={cat} value={cat} className="cursor-pointer text-gray-900 focus:bg-gray-100 focus:text-gray-900">
                           {cat}
                         </SelectItem>
                       ))}
@@ -613,7 +625,7 @@ export default function EmployeeInventoryPage() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-2">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
                     Type <span className="text-red-500">*</span>
                   </label>
                   <Select
@@ -623,14 +635,14 @@ export default function EmployeeInventoryPage() {
                     }
                   >
                     <SelectTrigger 
-                      className="bg-gray-800 border-gray-700 text-white"
+                      className="bg-white border-gray-300 text-gray-900 placeholder:text-gray-500 focus:ring-pink-500"
                       disabled={!formData.category}
                     >
                       <SelectValue placeholder="Select type" />
                     </SelectTrigger>
-                    <SelectContent className="bg-gray-800 border-gray-700">
+                    <SelectContent className="bg-white border-gray-300">
                       {availableTypes.map((type) => (
-                        <SelectItem key={type} value={type} className="text-white">
+                        <SelectItem key={type} value={type} className="cursor-pointer text-gray-900 focus:bg-gray-100 focus:text-gray-900">
                           {type}
                         </SelectItem>
                       ))}
@@ -642,7 +654,7 @@ export default function EmployeeInventoryPage() {
               {/* Price and Size */}
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-2">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
                     Price <span className="text-red-500">*</span>
                   </label>
                   <Input
@@ -652,12 +664,12 @@ export default function EmployeeInventoryPage() {
                     onChange={(e) =>
                       setFormData({ ...formData, price: e.target.value })
                     }
-                    className="bg-gray-800 border-gray-700 text-white"
+                    className="bg-white border-gray-300 text-gray-900 placeholder:text-gray-500 focus:border-pink-500 focus:ring-pink-500"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-2">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
                     Size
                   </label>
                   <Input
@@ -666,7 +678,7 @@ export default function EmployeeInventoryPage() {
                     onChange={(e) =>
                       setFormData({ ...formData, size: e.target.value })
                     }
-                    className="bg-gray-800 border-gray-700 text-white"
+                    className="bg-white border-gray-300 text-gray-900 placeholder:text-gray-500 focus:border-pink-500 focus:ring-pink-500"
                   />
                 </div>
               </div>
@@ -674,7 +686,7 @@ export default function EmployeeInventoryPage() {
               {/* Brand and Stock */}
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-2">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
                     Brand
                   </label>
                   <Input
@@ -683,12 +695,12 @@ export default function EmployeeInventoryPage() {
                     onChange={(e) =>
                       setFormData({ ...formData, brand: e.target.value })
                     }
-                    className="bg-gray-800 border-gray-700 text-white"
+                    className="bg-white border-gray-300 text-gray-900 placeholder:text-gray-500 focus:border-pink-500 focus:ring-pink-500"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-2">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
                     Stock Available
                   </label>
                   <Input
@@ -698,14 +710,14 @@ export default function EmployeeInventoryPage() {
                     onChange={(e) =>
                       setFormData({ ...formData, stock: e.target.value })
                     }
-                    className="bg-gray-800 border-gray-700 text-white"
+                    className="bg-white border-gray-300 text-gray-900 placeholder:text-gray-500 focus:border-pink-500 focus:ring-pink-500"
                   />
                 </div>
               </div>
 
               {/* Description */}
               <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
                   Description
                 </label>
                 <textarea
@@ -714,16 +726,16 @@ export default function EmployeeInventoryPage() {
                   onChange={(e) =>
                     setFormData({ ...formData, description: e.target.value })
                   }
-                  className="w-full bg-gray-800 border border-gray-700 text-white rounded px-3 py-2 min-h-[120px] focus:outline-none focus:ring-2 focus:ring-pink-500"
+                  className="w-full bg-white border border-gray-200 text-gray-900 rounded px-3 py-2 min-h-[120px] focus:outline-none focus:ring-2 focus:ring-pink-500"
                 />
               </div>
 
               {/* Image Upload */}
               <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
                   Product Images
                 </label>
-                <div className="border-2 border-dashed border-gray-700 rounded-lg p-4 text-center hover:border-gray-600">
+                <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center hover:border-gray-400 bg-gray-50">
                   <input
                     type="file"
                     id="imageUpload"
@@ -734,7 +746,7 @@ export default function EmployeeInventoryPage() {
                   />
                   <label htmlFor="imageUpload" className="cursor-pointer block">
                     <svg
-                      className="w-12 h-12 mx-auto text-gray-500 mb-2"
+                      className="w-12 h-12 mx-auto text-gray-400 mb-2"
                       fill="none"
                       stroke="currentColor"
                       viewBox="0 0 24 24"
@@ -746,7 +758,7 @@ export default function EmployeeInventoryPage() {
                         d="M12 4v16m8-8H4"
                       />
                     </svg>
-                    <p className="text-gray-400 text-sm">
+                    <p className="text-gray-600 text-sm">
                       Click to upload images
                     </p>
                   </label>
@@ -758,7 +770,7 @@ export default function EmployeeInventoryPage() {
                         <img src={img} alt={`Preview ${index + 1}`} className="w-full h-20 object-cover rounded" />
                         <button
                           onClick={() => removeImage(index)}
-                          className="absolute top-1 right-1 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                          className="cursor-pointer absolute top-1 right-1 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
                         >
                           ×
                         </button>
@@ -772,15 +784,35 @@ export default function EmployeeInventoryPage() {
               <div className="space-y-3">
                 <div className="flex items-center gap-3">
                   <Checkbox
+                    id="isFeatured"
+                    checked={formData.isFeatured}
+                    onCheckedChange={(checked) =>
+                      setFormData({ ...formData, isFeatured: checked as boolean })
+                    }
+                    className="bg-white border-black data-[state=checked]:bg-pink-500 data-[state=checked]:border-white"
+                  />
+                  <label
+                    htmlFor="newArrival"
+                    className={`text-sm font-medium cursor-pointer ${
+                      formData.isPublished ? "text-gray-700" : "text-gray-500"
+                    }`}
+                  >
+                    Featured (Show in Carousel)
+                  </label>
+                </div>
+
+                <div className="flex items-center gap-3">
+                  <Checkbox
                     id="newArrival"
                     checked={formData.isNewArrival}
                     onCheckedChange={(checked) =>
                       setFormData({ ...formData, isNewArrival: checked as boolean })
                     }
+                    className="bg-white border-black data-[state=checked]:bg-pink-500 data-[state=checked]:border-white"
                   />
                   <label
                     htmlFor="newArrival"
-                    className="text-sm font-medium text-gray-300 cursor-pointer"
+                    className="text-sm font-medium text-gray-700 cursor-pointer"
                   >
                     New Arrival
                   </label>
@@ -788,60 +820,63 @@ export default function EmployeeInventoryPage() {
 
                 <div className="flex items-center gap-3">
                   <Checkbox
-                    id="isPublished"
+                    id="publishToCatalog"
                     checked={formData.isPublished}
                     onCheckedChange={(checked) =>
                       setFormData({ ...formData, isPublished: checked as boolean })
                     }
+                    className="bg-white border-black data-[state=checked]:bg-pink-500 data-[state=checked]:border-white"
                   />
                   <label
-                    htmlFor="isPublished"
-                    className="text-sm font-medium text-gray-300 cursor-pointer"
+                    htmlFor="publishToCatalog"
+                    className="text-sm font-medium text-gray-700 cursor-pointer"
                   >
                     Publish to Catalog
-                  </label>
-                </div>
-
-                <div className="flex items-center gap-3">
-                  <Checkbox
-                    id="isFeatured"
-                    checked={formData.isFeatured}
-                    disabled={!formData.isPublished}
-                    onCheckedChange={(checked) =>
-                      setFormData({ ...formData, isFeatured: checked as boolean })
-                    }
-                  />
-                  <label
-                    htmlFor="isFeatured"
-                    className={`text-sm font-medium cursor-pointer ${
-                      formData.isPublished ? "text-gray-300" : "text-gray-500"
-                    }`}
-                  >
-                    Featured (Show in Carousel)
                   </label>
                 </div>
               </div>
 
               {/* Action Buttons */}
-              <div className="flex gap-3 pt-6 border-t border-gray-700">
+            </CardContent>
+            <CardFooter className="flex gap-3 p-6 border-t border-gray-100 bg-gray-50/50">
                 <Button
-                  onClick={handleAddProduct}
-                  className="flex-1 bg-[#E7A3B0] hover:bg-[#ca8c98] text-white font-medium"
-                >
-                  {editingProduct ? "✓ Update Product" : "✚ Add Product"}
-                </Button>
-                <Button
-                  onClick={() => {
-                    setShowAddModal(false);
-                    setEditingProduct(null);
-                  }}
-                  className="flex-1 bg-gray-700 hover:bg-gray-600 text-white font-medium"
+                  type="button"
+                  variant="outline"
+                  onClick={() => setShowAddModal(false)}
+                  className="flex-1 bg-white border-gray-300 text-gray-700 hover:bg-gray-50 cursor-pointer"
                 >
                   Cancel
                 </Button>
-              </div>
-            </div>
-          </div>
+                <Button
+                  onClick={() => {
+                    const price = parseFloat(formData.price) || 0;
+                    const stock = parseInt(formData.stock) || 0;
+                    const status = (!formData.isPublished ? "unlisted" : (formData.isFeatured ? "featured" : "standard")) as "featured" | "standard" | "unlisted";
+
+                    if (editingProduct) {
+                      updateProduct({
+                        ...editingProduct,
+                        ...formData,
+                        price,
+                        stock,
+                      }, status);
+                    } else {
+                      addProduct({
+                        id: (Math.random() * 10000).toString(),
+                        ...formData,
+                        price,
+                        stock,
+                        condition: "New",
+                      }, status);
+                    }
+                    setShowAddModal(false);
+                  }}
+                  className="flex-1 bg-[#E7A3B0] hover:bg-[#ca8c98] text-white font-medium cursor-pointer"
+                >
+                  {editingProduct ? "✓ Update Product" : "✚ Add Product"}
+                </Button>
+              </CardFooter>
+          </Card>
         </div>
       )}
     </div>

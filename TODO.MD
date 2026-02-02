@@ -24,6 +24,7 @@
     - [ ] The logout button should be a stand alone button and not on the drop down
     - [ ] Display better errors for the frontend when logging in and avoid displaying backend errors
     - [ ] Remove the footer from the dashboard
+    - [ ] Fix the logout loading icon
  
 
 ## Bug Fixes
