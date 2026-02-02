@@ -10,14 +10,14 @@ export function useUser() {
     const [loading, setLoading] = useState(true);
 
     async function fetchUserRole(userId: string) {
-        const roleData = await dataHelper.getUserRole(userId);
-        setUserRole(roleData?.role || null);
+        const { data } = await dataHelper.getUserRole(userId);
+        setUserRole(data?.role || null);
     }
 
     useEffect(() => {
         async function getUser() {
             try {
-                const user = await authHelper.getUser();
+                const { user } = await authHelper.getUser();
                 setUser(user || null);
 
                 if (user) {

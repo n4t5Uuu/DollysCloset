@@ -16,20 +16,18 @@ export const dataHelper = {
     },
 
     async getUserRole(user_id: string) {
-        try {
-            const {data: userRole, error} = await browserSupabase.from("tbl_users")
-                .select("role")
-                .eq("user_id", user_id)
-                .single()
-            
-            if(error)
-                throw error;
-
-            console.log("User Role: ", userRole);
-            return userRole;
-        } catch (error) {
-            console.log("Error Fetching User Role: ", error)
+        const { data, error } = await browserSupabase.from("tbl_users")
+            .select("role")
+            .eq("user_id", user_id)
+            .single()
+        
+        if (error) {
+            console.error("Error Fetching User Role: ", error)
+        } else {
+            console.log("User Role: ", data);
         }
+
+        return { data, error };
     },
     
 }

@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { browserSupabase } from "@/lib/supabase/browser";
+import { authHelper } from "@/lib/auth-helper";
+import { dataHelper } from "@/lib/data-helper";
 
 export default function StaffLoginPage() {
   const router = useRouter();
@@ -16,10 +17,12 @@ export default function StaffLoginPage() {
   // Sign out any existing sessions when accessing the login page
   useEffect(() => {
     async function signOutExistingUser() {
-      const { data: { user } } = await browserSupabase.auth.getUser();
-      if (user) {
-        await browserSupabase.auth.signOut();
-      }
+        console.log("Checking for existing session...");
+        const { user } = await authHelper.getUser();
+        if (user) {
+            console.log("Signing out existing user:", user.email);
+            await authHelper.signOut();
+        }
     }
   
     signOutExistingUser();
@@ -28,46 +31,56 @@ export default function StaffLoginPage() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
-    setLoading(true);;
+    setLoading(true);
 
     try {
+      console.log("Attempting login for:", email);
+      
       // Login with Supabase Auth
-      const { data: authData, error: loginError } = await browserSupabase.auth.signInWithPassword({ 
-        email,
-        password
-      });
+      const { data: authData, error: loginError } = await authHelper.signIn(email, password);
 
       if (loginError) {
+        console.error("Login error:", loginError);
         setError(loginError.message);
         setLoading(false);
         return;
       }
 
-      // Get user role from tbl_users
-      const { data: user, error: userError } = await browserSupabase
-        .from('tbl_users')
-        .select('role')
-        .eq('user_id', authData.user.id)
-        .single();
-
-      if (userError) {
-        setError("Failed to fetch user data");
+      if (!authData?.user) {
+        console.error("Login successful but no user returned");
+        setError("Login failed - no user returned");
         setLoading(false);
         return;
       }
 
+      console.log("Login successful, fetching role for:", authData.user.id);
+
+      // Get user role from tbl_users
+      const { data: userRoleData, error: userError } = await dataHelper.getUserRole(authData.user.id);
+
+      if (userError || !userRoleData) {
+        console.error("Role fetch error:", userError);
+        setError("Failed to fetch user data: " + (userError?.message || "Unknown error"));
+        setLoading(false);
+        return;
+      }
+
+      console.log("User role found:", userRoleData.role);
+
       // Redirect based on role
-      router.refresh();
-      if (user.role === 'admin') {
+      router.refresh(); // Refresh to ensure middleware picks up the new session
+      if (userRoleData.role === 'admin') {
         router.push('/admin/dashboard');
-      } else if (user.role === 'employee') {
+      } else if (userRoleData.role === 'employee') {
         router.push('/employee/dashboard');
       } else {
+        console.warn("Invalid/Unauthorized role:", userRoleData.role);
         setError("Invalid user role");
         setLoading(false);
       }
 
     } catch (err: unknown) {
+      console.error("Unexpected error in handleSubmit:", err);
       const message = err instanceof Error ? err.message : "Login failed. Please try again.";
       setError(message);
       setLoading(false);

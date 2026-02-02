@@ -2,46 +2,41 @@ import { browserSupabase } from "./supabase/browser";
 
 export const authHelper = {
     async signIn(email: string, password: string) {
-        try {
-            const {data, error} = await browserSupabase.auth.signInWithPassword({
-                email,
-                password
-            })
+        const { data, error } = await browserSupabase.auth.signInWithPassword({
+            email,
+            password
+        })
 
-            if(error)
-                throw error;
-
-            console.log("User Signed In: ", data);
-            return data;
-        } catch (error) {
+        if (error) {
             console.error("Error Signing In: ", error)
+        } else {
+            console.log("User Signed In: ", data);
         }
+
+        return { data, error };
     },
 
     async getUser() {
-        try {
-            const {data: {user}, error} = await browserSupabase.auth.getUser();
+        const { data: { user }, error } = await browserSupabase.auth.getUser();
 
-            if(error)
-                throw error;
-
-            console.log("User: ", user);
-            return user;
-        } catch (error) {
+        if (error) {
             console.error("Error Getting User: ", error)
+        } else {
+            console.log("User: ", user);
         }
+
+        return { user, error };
     },
 
     async signOut() {
-        try {
-            const {error} = await browserSupabase.auth.signOut();
+        const { error } = await browserSupabase.auth.signOut();
 
-            if(error)
-                throw error;
-
-            console.log("User Signed Out");
-        } catch (error) {
+        if (error) {
             console.error("Error Signing Out: ", error)
+        } else {
+            console.log("User Signed Out");
         }
+        
+        return { error };
     }
 }
