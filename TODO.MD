@@ -24,7 +24,7 @@
     - [ ] The logout button should be a stand alone button and not on the drop down
     - [ ] Display better errors for the frontend when logging in and avoid displaying backend errors
     - [ ] Remove the footer from the dashboard
-    - [ ] Remove the logout button from the dashboard sidebar 
+ 
 
 ## Bug Fixes
     - [ ] Log in error (error is due to RLS and try to fix it)
@@ -38,5 +38,6 @@
 ## 
 
 ## ✅ Completed
+   - [x] Remove the logout button from the dashboard sidebar
 
 

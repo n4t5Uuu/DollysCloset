@@ -1,20 +1,19 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
-import { browserSupabase } from "@/lib/supabase/browser";
+import { usePathname } from "next/navigation";
+
 import { 
   Home,
   BarChart3,
   Users,
   Activity,
-  Package,
-  LogOut 
+  Package
 } from "lucide-react";
 
 export default function AdminSidebar() {
   const pathname = usePathname();
-  const router = useRouter();
+
 
   const navItems = [
     { href: "/admin/dashboard", label: "Home", icon: Home },
@@ -24,10 +23,7 @@ export default function AdminSidebar() {
     { href: "/admin/inventory", label: "Manage Inventory", icon: Package },
   ];
 
-  async function handleLogout() {
-    await browserSupabase.auth.signOut();
-    router.push("/staff-login");
-  }
+
 
   return (
     <aside className="w-64 bg-white border-r border-gray-200 min-h-screen flex flex-col">
@@ -62,16 +58,7 @@ export default function AdminSidebar() {
         </ul>
       </nav>
 
-      {/* Logout Button */}
-      <div className="p-4 border-t border-gray-200">
-        <button
-          onClick={handleLogout}
-          className="flex items-center gap-3 px-4 py-3 w-full rounded-lg text-gray-700 hover:bg-gray-100 transition-colors"
-        >
-          <LogOut className="w-5 h-5" />
-          <span className="font-medium">Logout</span>
-        </button>
-      </div>
+
     </aside>
   );
 }
