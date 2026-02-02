@@ -18,9 +18,14 @@
     - [ ] Sidebar for the admin and employee
     - [ ] Login 
     - [ ] Logging out loading icon
+    - [ ] Put the collections, about us, and collections after the user has logged in
+    - [ ] Put the dashboard tab on the the navbar and not on the drop down where the logout is
+    - [ ] The logout button should be a stand alone button and not on the drop down
+    - [ ] Display better errors for the frontend when logging in and avoid displaying backend errors
 
 ## Bug Fixes
-    - [ ] Log in error
+    - [ ] Log in error (error is due to RLS and try to fix it)
+    
 
 ## To-do
     - [ ] About Us Page
