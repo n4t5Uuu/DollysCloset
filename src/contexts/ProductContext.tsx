@@ -6,6 +6,12 @@ import { useUser } from "@/hooks/useUser";
 
 type CatalogStatus = "featured" | "standard" | "unlisted";
 
+export type FieldChange = {
+  field: string;
+  oldValue: any;
+  newValue: any;
+};
+
 export type ActivityLog = {
   id: string;
   timestamp: string;
@@ -14,6 +20,7 @@ export type ActivityLog = {
   productName?: string;
   statusFrom?: CatalogStatus;
   statusTo?: CatalogStatus;
+  fieldChanges?: FieldChange[];
   actorId?: string;
   actorEmail?: string;
   actorRole?: "admin" | "employee" | "unknown";
@@ -107,12 +114,17 @@ export function ProductProvider({ children }: { children: React.ReactNode }) {
   }, [activityLogs]);
 
   const logActivity = (log: Omit<ActivityLog, "id" | "timestamp" | "actorId" | "actorEmail" | "actorRole">) => {
+    // Only log if user data is available
+    if (!user?.email || !userRole) {
+      return;
+    }
+
     const newLog: ActivityLog = {
       id: `log-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
       timestamp: new Date().toISOString(),
-      actorId: user?.id,
-      actorEmail: user?.email || "Unknown",
-      actorRole: userRole || "unknown",
+      actorId: user.id,
+      actorEmail: user.email,
+      actorRole: userRole,
       ...log,
     };
 
@@ -135,10 +147,26 @@ export function ProductProvider({ children }: { children: React.ReactNode }) {
   };
 
   const updateProduct = (product: Product, status: CatalogStatus) => {
+    const oldProduct = productList.find(p => p.id === product.id);
     setProductList(productList.map(p => p.id === product.id ? product : p));
     setCatalogStatusState({ ...catalogStatus, [product.id]: status });
     if (status !== "unlisted") {
       setPreviousCatalogStatus({ ...previousCatalogStatus, [product.id]: status as "featured" | "standard" });
+    }
+
+    // Track field changes
+    const fieldChanges: FieldChange[] = [];
+    if (oldProduct) {
+      if (oldProduct.name !== product.name) fieldChanges.push({ field: "Name", oldValue: oldProduct.name, newValue: product.name });
+      if (oldProduct.category !== product.category) fieldChanges.push({ field: "Category", oldValue: oldProduct.category, newValue: product.category });
+      if (oldProduct.type !== product.type) fieldChanges.push({ field: "Type", oldValue: oldProduct.type, newValue: product.type });
+      if (oldProduct.price !== product.price) fieldChanges.push({ field: "Price", oldValue: `₱${oldProduct.price}`, newValue: `₱${product.price}` });
+      if (oldProduct.size !== product.size) fieldChanges.push({ field: "Size", oldValue: oldProduct.size, newValue: product.size });
+      if (oldProduct.brand !== product.brand) fieldChanges.push({ field: "Brand", oldValue: oldProduct.brand, newValue: product.brand });
+      if (oldProduct.stock !== product.stock) fieldChanges.push({ field: "Stock", oldValue: oldProduct.stock, newValue: product.stock });
+      if (oldProduct.description !== product.description) fieldChanges.push({ field: "Description", oldValue: oldProduct.description, newValue: product.description });
+      if (oldProduct.isNewArrival !== product.isNewArrival) fieldChanges.push({ field: "New Arrival", oldValue: oldProduct.isNewArrival ? "Yes" : "No", newValue: product.isNewArrival ? "Yes" : "No" });
+      if (JSON.stringify(oldProduct.images) !== JSON.stringify(product.images)) fieldChanges.push({ field: "Images", oldValue: `${oldProduct.images.length} images`, newValue: `${product.images.length} images` });
     }
 
     logActivity({
@@ -146,6 +174,7 @@ export function ProductProvider({ children }: { children: React.ReactNode }) {
       productId: product.id,
       productName: product.name,
       statusTo: status,
+      fieldChanges: fieldChanges.length > 0 ? fieldChanges : undefined,
     });
   };
 
