@@ -67,14 +67,17 @@ export default function Contact() {
           </p>
         </div>
 
+        <div>
+          <h2 className="font-oswald text-2xl font-bold uppercase tracking-wide text-gray-800 mb-6">
+            Connect With Us
+          </h2>
+        </div>
+
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
           {/* LEFT COLUMN: Contact Info */}
-          <div className="space-y-8">
+          <div className="flex flex-col gap-8 h-full">
             {/* Contact Methods Cards */}
             <div className="space-y-4">
-              <h2 className="font-oswald text-2xl font-bold uppercase tracking-wide text-gray-800 mb-6">
-                Connect With Us
-              </h2>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 {contactMethods.map((method, index) => {
@@ -116,7 +119,7 @@ export default function Contact() {
             </div>
 
             {/* Store Location Card */}
-            <div className="bg-white rounded-2xl p-8 shadow-lg border border-gray-100">
+            <div className="bg-white rounded-2xl p-8 shadow-lg border border-gray-100 flex-1 flex flex-col justify-between">
               <div className="flex items-start gap-4 mb-6">
                 <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-[#E7A3B0] to-[#f0b8c3] flex items-center justify-center shadow-md flex-shrink-0">
                   <MapPin className="w-7 h-7 text-white" />
@@ -165,10 +168,10 @@ export default function Contact() {
           </div>
 
           {/* RIGHT COLUMN: Email Form */}
-          <div className="lg:sticky lg:top-32 h-fit">
-            <div className="bg-white rounded-2xl p-8 shadow-lg border border-gray-100">
-              <div className="flex items-center gap-4 mb-6">
-                <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-[#E7A3B0] to-[#f0b8c3] flex items-center justify-center shadow-md">
+          <div className="h-full">
+            <div className="bg-white rounded-2xl p-8 shadow-lg border border-gray-100 h-full flex flex-col">
+              <div className="flex items-center gap-4 mb-6 shrink-0">
+                <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-[#E7A3B0] to-[#f0b8c3] flex items-center justify-center shadow-md shrink-0">
                   <Send className="w-7 h-7 text-white" />
                 </div>
 
@@ -182,7 +185,7 @@ export default function Contact() {
                 </div>
               </div>
 
-              <form onSubmit={handleSubmit} className="space-y-5">
+              <form onSubmit={handleSubmit} className="space-y-5 flex-1 flex flex-col">
                 <div className="space-y-2">
                   <label className="font-montserrat text-sm font-semibold text-gray-700">
                     Your Email
@@ -211,7 +214,7 @@ export default function Contact() {
                   />
                 </div>
 
-                <div className="space-y-2">
+                <div className="space-y-2 flex-1 flex flex-col">
                   <label className="font-montserrat text-sm font-semibold text-gray-700">
                     Message
                   </label>
@@ -219,19 +222,19 @@ export default function Contact() {
                     placeholder="Tell us what's on your mind..."
                     value={formData.body}
                     onChange={(e) => setFormData({ ...formData, body: e.target.value })}
-                    className="bg-gray-50 border-gray-200 rounded-xl min-h-[180px] p-4 placeholder:text-gray-400 font-montserrat resize-none focus-visible:ring-[#E7A3B0] focus-visible:border-[#E7A3B0] transition-all"
+                    className="bg-gray-50 border-gray-200 rounded-xl flex-1 p-4 placeholder:text-gray-400 font-montserrat resize-none focus-visible:ring-[#E7A3B0] focus-visible:border-[#E7A3B0] transition-all min-h-[180px]"
                     required
                   />
                 </div>
 
                 <Button
                   type="submit"
-                  className="w-full h-12 bg-gradient-to-r from-[#E7A3B0] to-[#f0b8c3] hover:from-[#d891a0] hover:to-[#E7A3B0] text-white font-bold font-montserrat uppercase tracking-wider text-base rounded-xl transition-all duration-300 shadow-md hover:shadow-lg"
+                  className="w-full h-12 bg-gradient-to-r from-[#E7A3B0] to-[#f0b8c3] hover:from-[#d891a0] hover:to-[#E7A3B0] text-white font-bold font-montserrat uppercase tracking-wider text-base rounded-xl transition-all duration-300 shadow-md hover:shadow-lg shrink-0"
                 >
                   Send Message
                 </Button>
 
-                <p className="text-center text-xs text-gray-500 font-montserrat mt-4">
+                <p className="text-center text-xs text-gray-500 font-montserrat mt-4 shrink-0">
                   By submitting this form, you agree to our privacy policy
                 </p>
               </form>
