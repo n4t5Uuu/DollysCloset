@@ -35,7 +35,7 @@ export async function middleware(request: NextRequest) {
     request.nextUrl.pathname.startsWith('/employee')
   )) {
     console.log('User not authenticated, redirecting to login')
-    return NextResponse.redirect(new URL('/staff-login', request.url))
+    return NextResponse.redirect(new URL('/login', request.url))
   }
 
   // If authenticated, check role-based access

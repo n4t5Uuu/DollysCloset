@@ -17,15 +17,23 @@ export const authHelper = {
     },
 
     async getUser() {
-        const { data: { user }, error } = await browserSupabase.auth.getUser();
+        try {
+            const { data: { session }, error: sessionError } = await browserSupabase.auth.getSession();
 
-        if (error) {
-            console.error("Error Getting User: ", error)
-        } else {
-            console.log("User: ", user);
+            if (sessionError) {
+                console.error("Error Getting Session: ", sessionError)
+                return { user: null, error: sessionError };
+            }
+
+            if (!session?.user) {
+                return { user: null, error: null };
+            }
+
+            return { user: session.user, error: null };
+        } catch (error) {
+            console.error("Exception getting user:", error);
+            return { user: null, error };
         }
-
-        return { user, error };
     },
 
     async signOut() {

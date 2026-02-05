@@ -17,15 +17,25 @@ export function useUser() {
     useEffect(() => {
         async function getUser() {
             try {
-                const { user } = await authHelper.getUser();
+                const { user, error } = await authHelper.getUser();
+                
+                if (error) {
+                    console.warn("Auth session not available:", error);
+                    setUser(null);
+                    setLoading(false);
+                    return;
+                }
+                
                 setUser(user || null);
 
                 if (user) {
                     await fetchUserRole(user.id);
+                } else {
+                    setLoading(false);
                 }
             } catch (error) {
                 console.error("Error fetching user:", error);
-            } finally {
+                setUser(null);
                 setLoading(false);
             }
         }
