@@ -32,7 +32,7 @@ const categoryTypes: { [key: string]: string[] } = {
 };
 
 export default function AdminInventoryPage() {
-  const { productList, catalogStatus, addProduct, updateProduct, deleteProduct, cycleCatalogStatus } = useProducts();
+  const { productList, catalogStatus, addProduct, updateProduct, deleteProduct, cycleCatalogStatus, logActivity } = useProducts();
   const [searchQuery, setSearchQuery] = useState("");
   const [visibilityFilter, setVisibilityFilter] = useState("all");
   const [availabilityFilter, setAvailabilityFilter] = useState("all");
@@ -123,6 +123,11 @@ export default function AdminInventoryPage() {
   };
 
   const handleEditProduct = (product: Product) => {
+    logActivity({
+      action: "opened_edit",
+      productId: product.id,
+      productName: product.name,
+    });
     setEditingProduct(product);
     setFormData({
       name: product.name,
@@ -377,7 +382,14 @@ export default function AdminInventoryPage() {
                       size="icon"
                       variant="outline"
                       className="border-pink-200 text-pink-600 bg-pink-50 hover:bg-pink-200 hover:text-pink-700 hover:border-pink-300"
-                      onClick={() => setViewProduct(product)}
+                      onClick={() => {
+                        logActivity({
+                          action: "viewed",
+                          productId: product.id,
+                          productName: product.name,
+                        });
+                        setViewProduct(product);
+                      }}
                       title="View product details"
                     >
                       <Eye className="h-4 w-4" />
