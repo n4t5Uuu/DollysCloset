@@ -8,7 +8,7 @@ import {
 import "./globals.css";
 import localFont from "next/font/local";
 import Navbar from "@/components/navbar";
-import Footer from "@/components/footer";
+import ConditionalFooter from "@/components/conditional-footer";
 import { ProductProvider } from "@/contexts/ProductContext";
 
 const oswald = Oswald({
@@ -56,7 +56,7 @@ export default function RootLayout({
         <ProductProvider>
           <Navbar />
           {children}
-          <Footer />
+          <ConditionalFooter />
         </ProductProvider>
       </body>
     </html>

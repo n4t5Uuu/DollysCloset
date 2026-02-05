@@ -5,16 +5,18 @@ import { useState, useEffect } from "react";
 import { Plus, Edit2, Trash2, Eye, Search, ChevronUp, ChevronDown, X, AlertTriangle, Trash, Loader2 } from "lucide-react";
 import { browserSupabase } from "@/lib/supabase/browser";
 import { useRouter } from "next/navigation";
+import { Card, CardHeader, CardTitle, CardContent, CardFooter } from "@/components/ui/card";
 
-type Employee = {
-  user_key: string;
-  id: string;
-  username: string;
-  first_name: string;
-  last_name: string;
-  role: string;
-  created_at: string;
-  updated_at: string;
+interface Employee {
+  user_key: string
+  id: string
+  user_id: string
+  username: string
+  first_name: string
+  last_name: string
+  role: string
+  created_at: string
+  updated_at: string
 };
 
 export default function EmployeesPage() {
@@ -56,6 +58,7 @@ export default function EmployeesPage() {
       const { data, error } = await browserSupabase
         .from('tbl_users')
         .select('*')
+        
       console.log('fetch Data:', data);
       if (error) throw error;
       setEmployees(data || []);
@@ -357,7 +360,7 @@ export default function EmployeesPage() {
             </h1>
             <button
               onClick={openAddModal}
-              className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-[#E7A3B0] to-[#f0b8c3] hover:from-[#d891a0] hover:to-[#E7A3B0] text-white rounded-lg font-medium transition-all duration-300 shadow-md hover:shadow-lg hover:scale-105"
+              className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-[#E7A3B0] to-[#f0b8c3] hover:from-[#d891a0] hover:to-[#E7A3B0] text-white rounded-lg font-medium transition-all duration-300 shadow-md hover:shadow-lg hover:scale-105 cursor-pointer"
             >
               <Plus size={18} />
               Add Employee
@@ -488,21 +491,21 @@ export default function EmployeesPage() {
                           <button
                             onClick={() => openViewModal(employee)}
                             title="View"
-                            className="p-2 hover:bg-[#E7A3B0]/10 rounded-lg transition-all duration-200 text-[#E7A3B0] hover:scale-110"
+                            className="p-2 hover:bg-[#E7A3B0]/10 rounded-lg transition-all duration-200 text-[#E7A3B0] hover:scale-110 cursor-pointer"
                           >
                             <Eye size={18} />
                           </button>
                           <button
                             onClick={() => openEditModal(employee)}
                             title="Edit"
-                            className="p-2 hover:bg-blue-50 rounded-lg transition-all duration-200 text-blue-600 hover:scale-110"
+                            className="p-2 hover:bg-blue-50 rounded-lg transition-all duration-200 text-blue-600 hover:scale-110 cursor-pointer"
                           >
                             <Edit2 size={18} />
                           </button>
                           <button
                             onClick={() => openDeleteModal(employee)}
                             title="Delete"
-                            className="p-2 hover:bg-red-50 rounded-lg transition-all duration-200 text-red-600 hover:scale-110"
+                            className="p-2 hover:bg-red-50 rounded-lg transition-all duration-200 text-red-600 hover:scale-110 cursor-pointer"
                           >
                             <Trash2 size={18} />
                           </button>
@@ -541,6 +544,8 @@ export default function EmployeesPage() {
         </div>
       </div>
 
+      {/* Add Employee Modal */}
+      {/* Add Employee Modal */}
       {/* Add Employee Modal */}
       {showAddModal && (
         <Modal onClose={() => setShowAddModal(false)} title="Add New Employee">
@@ -619,7 +624,7 @@ export default function EmployeesPage() {
               <button
                 type="submit"
                 disabled={actionLoading}
-                className="flex-1 px-4 py-3 bg-gradient-to-r from-[#E7A3B0] to-[#f0b8c3] text-white rounded-xl hover:from-[#d891a0] hover:to-[#E7A3B0] font-medium transition-all shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                className="flex-1 px-4 py-3 bg-gradient-to-r from-[#E7A3B0] to-[#f0b8c3] text-white rounded-xl hover:from-[#d891a0] hover:to-[#E7A3B0] font-medium transition-all shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 cursor-pointer"
               >
                 {actionLoading ? (
                   <>
@@ -836,8 +841,8 @@ export default function EmployeesPage() {
         </Modal>
       )}
 
-      {/* Bulk Delete Confirmation Modal */}
-      {showBulkDeleteModal && (
+      {/* Bulk Delete Confirmation Modal (DISABLED) */}
+      {/* {showBulkDeleteModal && (
         <Modal onClose={() => setShowBulkDeleteModal(false)} title="Delete Multiple Employees">
           <div className="space-y-5">
             {error && (
@@ -868,7 +873,7 @@ export default function EmployeesPage() {
                 Cancel
               </button>
               <button
-                onClick={handleBulkDelete}
+                // onClick={handleBulkDelete}
                 disabled={actionLoading}
                 className="flex-1 px-4 py-3 bg-gradient-to-r from-red-500 to-red-600 text-white rounded-xl hover:from-red-600 hover:to-red-700 font-medium transition-all shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
               >
@@ -884,7 +889,7 @@ export default function EmployeesPage() {
             </div>
           </div>
         </Modal>
-      )}
+      )} */}
     </div>
   );
 }

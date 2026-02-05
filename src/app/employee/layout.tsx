@@ -2,6 +2,7 @@
 import { redirect } from "next/navigation";
 import { createServerSupabase } from "@/lib/supabase/server";
 import EmployeeSidebar from "@/components/employee/employee-sidebar";
+import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
 
 export const dynamic = "force-dynamic";
 
@@ -31,11 +32,13 @@ export default async function EmployeeLayout({
   }
 
   return (
-    <div className="flex min-h-screen bg-gray-50">
-      <EmployeeSidebar />
-      <main className="flex-1 p-8">
-        {children}
-      </main>
-    </div>
+    <SidebarProvider>
+      <div className="flex min-h-screen w-full bg-gray-50">
+        <EmployeeSidebar />
+        <SidebarInset className="flex-1 p-8">
+          {children}
+        </SidebarInset>
+      </div>
+    </SidebarProvider>
   );
 }
