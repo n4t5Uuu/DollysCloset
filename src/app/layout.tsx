@@ -7,8 +7,7 @@ import {
 } from "next/font/google"; 
 import "./globals.css";
 import localFont from "next/font/local";
-import Navbar from "@/components/navbar";
-import ConditionalFooter from "@/components/conditional-footer";
+import ConditionalFooter, { ConditionalNavbar } from "@/components/conditional-footer-and-header";
 import { ProductProvider } from "@/contexts/ProductContext";
 
 const oswald = Oswald({
@@ -54,7 +53,7 @@ export default function RootLayout({
           }>
 
         <ProductProvider>
-          <Navbar />
+          <ConditionalNavbar />
           {children}
           <ConditionalFooter />
         </ProductProvider>
