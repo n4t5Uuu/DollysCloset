@@ -3,6 +3,7 @@ import { createServerSupabase } from "@/lib/supabase/server";
 import AdminSidebar from "@/components/admin/admin-sidebar";
 import EmployeeSidebar from "@/components/employee/employee-sidebar";
 import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
+import { dataHelper } from "@/lib/data-helper";
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
     const supabase = await createServerSupabase();
@@ -10,11 +11,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
 
     if (!user) redirect("/login");
 
-    const { data: userData, error } = await supabase
-        .from('tbl_users')
-        .select('role')
-        .eq('user_id', user.id)
-        .single();
+    const { data: userData, error } = await dataHelper.getUserRole(user.id, supabase);
 
     if (error || !userData) redirect("/login");
 

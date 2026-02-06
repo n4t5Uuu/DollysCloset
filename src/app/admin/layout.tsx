@@ -2,6 +2,7 @@
 import AdminSidebar from "@/components/admin/admin-sidebar";
 import { redirect } from "next/navigation";
 import { createServerSupabase } from "@/lib/supabase/server";
+import { dataHelper } from "@/lib/data-helper";
 
 export const dynamic = "force-dynamic";
 
@@ -19,11 +20,7 @@ export default async function AdminLayout({
   if (!user) redirect("/login");
 
   // Check user role
-  const { data: userData, error } = await supabase
-    .from('tbl_users')
-    .select('role')
-    .eq('user_id', user.id)
-    .single();
+  const { data: userData, error } = await dataHelper.getUserRole(user.id, supabase);
 
   // If user is not admin, redirect to employee dashboard
   if (error || userData?.role !== 'admin') {

@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { createServerSupabase } from "@/lib/supabase/server";
 import EmployeeSidebar from "@/components/employee/employee-sidebar";
 import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
+import { dataHelper } from "@/lib/data-helper";
 
 export const dynamic = "force-dynamic";
 
@@ -20,11 +21,7 @@ export default async function EmployeeLayout({
   if (!user) redirect("/login");
 
   // Check user role
-  const { data: userData, error } = await supabase
-    .from('tbl_users')
-    .select('role')
-    .eq('user_id', user.id)
-    .single();
+  const { data: userData, error } = await dataHelper.getUserRole(user.id, supabase);
 
   // If user is admin, redirect to admin dashboard
   if (error || userData?.role === 'admin') {

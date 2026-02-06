@@ -15,8 +15,8 @@ export const dataHelper = {
         }
     },
 
-    async getUserRole(user_id: string) {
-        const { data, error } = await browserSupabase.from("tbl_users")
+    async getUserRole(user_id: string, supabase: any = browserSupabase) {
+        const { data, error } = await supabase.from("tbl_users")
             .select("role")
             .eq("user_id", user_id)
             .single()

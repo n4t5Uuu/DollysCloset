@@ -370,7 +370,7 @@ export default function AdminInventoryPage() {
                     }`}
                   >
                     {catalogStatus[product.id] === "featured" ? "Featured" : 
-                     catalogStatus[product.id] === "standard" ? "Standard" : "Unlisted"}
+                    catalogStatus[product.id] === "standard" ? "Standard" : "Unlisted"}
                   </button>
                 </td>
                 <td className="p-4 text-right font-medium">

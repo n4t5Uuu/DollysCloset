@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
 import { NextRequest, NextResponse } from 'next/server';
+import { dataHelper } from "@/lib/data-helper";
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -28,11 +29,7 @@ export async function DELETE(request: NextRequest) {
     }
 
     // Check if user is admin
-    const { data: userData, error: userError } = await supabaseAdmin
-      .from('tbl_users')
-      .select('role')
-      .eq('user_id', user.id)
-      .single();
+    const { data: userData, error: userError } = await dataHelper.getUserRole(user.id, supabaseAdmin);
 
     if (userError || userData?.role !== 'admin') {
       return NextResponse.json({ error: 'Forbidden: Admin access required' }, { status: 403 });
