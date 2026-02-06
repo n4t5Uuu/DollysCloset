@@ -20,7 +20,7 @@ export default function Navbar() {
                 <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 flex items-center justify-center gap-10">
                     {NAV_LINKS.map((item) => (
                         <Link 
-                            href={item === "Collection" ? "/" : `/${item.toLowerCase()}`} 
+                            href={`/${item.toLowerCase()}`} 
                             key={item}
                             className="group relative"
                         >

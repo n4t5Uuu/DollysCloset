@@ -23,7 +23,7 @@ export default function EmployeeSidebar() {
 
 
   const navItems = [
-    { href: "/employee/dashboard", label: "Home", icon: Home },
+    { href: "/dashboard", label: "Home", icon: Home },
     { href: "/employee/inventory", label: "Manage Inventory", icon: Package },
   ];
 

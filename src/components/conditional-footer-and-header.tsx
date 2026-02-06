@@ -6,7 +6,7 @@ import Navbar from "@/components/navbar";
 
 export function ConditionalNavbar() {
     const pathname = usePathname();
-    const hiddenNavbarPaths = ["/login"];
+    const hiddenNavbarPaths = ["/"];
 
     const shouldHideNavbar = hiddenNavbarPaths.includes(pathname);
 
@@ -17,7 +17,7 @@ export function ConditionalNavbar() {
     return <Navbar />;
 }
 
-export default function ConditionalFooter() {
+export function ConditionalFooter() {
     const pathname = usePathname();
 
     // Array of path prefixes where the footer should be hidden

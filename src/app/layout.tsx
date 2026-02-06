@@ -7,7 +7,7 @@ import {
 } from "next/font/google"; 
 import "./globals.css";
 import localFont from "next/font/local";
-import ConditionalFooter, { ConditionalNavbar } from "@/components/conditional-footer-and-header";
+import {ConditionalFooter, ConditionalNavbar } from "@/components/conditional-footer-and-header";
 import { ProductProvider } from "@/contexts/ProductContext";
 
 const oswald = Oswald({

@@ -34,8 +34,7 @@ export default function UserProfileDropdown() {
     };
 
     const getDashboardLink = () => {
-        if (userRole === 'admin') return '/admin/dashboard';
-        if (userRole === 'employee') return '/employee/dashboard';
+        if (userRole === 'admin' || userRole === 'employee') return '/dashboard';
         return '/';
     };
 

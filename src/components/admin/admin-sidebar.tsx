@@ -16,7 +16,7 @@ export default function AdminSidebar() {
 
 
   const navItems = [
-    { href: "/admin/dashboard", label: "Home", icon: Home },
+    { href: "/dashboard", label: "Home", icon: Home },
     { href: "/admin/analytics", label: "Analytics", icon: BarChart3 },
     { href: "/admin/employees", label: "Manage Employees", icon: Users },
     { href: "/admin/activity-logs", label: "Activity Logs", icon: Activity },
