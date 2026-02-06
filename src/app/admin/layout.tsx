@@ -3,6 +3,7 @@ import AdminSidebar from "@/components/admin/admin-sidebar";
 import { redirect } from "next/navigation";
 import { createServerSupabase } from "@/lib/supabase/server";
 import { dataHelper } from "@/lib/data-helper";
+import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
 
 export const dynamic = "force-dynamic";
 
@@ -28,11 +29,13 @@ export default async function AdminLayout({
   }
 
   return (
-    <div className="flex min-h-screen bg-gray-50">
-      <AdminSidebar />
-      <main className="flex-1 p-8">
-        {children}
-      </main>
-    </div>
+    <SidebarProvider>
+      <div className="flex min-h-screen w-full bg-gray-50">
+        <AdminSidebar />
+        <SidebarInset className="flex-1 p-8">
+          {children}
+        </SidebarInset>
+      </div>
+    </SidebarProvider>
   );
 }
