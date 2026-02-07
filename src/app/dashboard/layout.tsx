@@ -17,12 +17,14 @@ export default async function DashboardLayout({ children }: { children: React.Re
 
     if (userData.role === 'admin') {
         return (
-            <div className="flex min-h-screen bg-gray-50">
+            <SidebarProvider>
+            <div className="flex min-h-screen w-full bg-gray-50">
                 <AdminSidebar />
-                <main className="flex-1 p-8">
+                <SidebarInset className="flex-1 p-8">
                     {children}
-                </main>
+                </SidebarInset>
             </div>
+            </SidebarProvider>
         );
     } else if (userData.role === 'employee') {
         return (

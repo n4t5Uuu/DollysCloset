@@ -35,8 +35,8 @@
 ## To-do
     - [ ] About Us Page
     - [ ] Refactor recently added code by Ko Han and Josh
+    - [ ] Add a trending feature on the catalog
  
-## 
 
 ## ✅ Completed
    - [x] Remove the logout button from the dashboard sidebar
