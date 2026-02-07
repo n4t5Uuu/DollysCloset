@@ -5,7 +5,7 @@ import Image from "next/image";
 import Link from "next/link";
 import UserProfileDropdown from "./user-profile-dropdown";
 
-const NAV_LINKS = ["Collection", "About", "Contact"];
+const navLinks = ["Dashboard","Collection", "About", "Contact"];
 
 export default function Navbar() {
     return (
@@ -18,7 +18,7 @@ export default function Navbar() {
                 </div>
 
                 <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 flex items-center justify-center gap-10">
-                    {NAV_LINKS.map((item) => (
+                    {navLinks.map((item) => (
                         <Link 
                             href={`/${item.toLowerCase()}`} 
                             key={item}

@@ -21,7 +21,7 @@ export function ConditionalFooter() {
     const pathname = usePathname();
 
     // Array of path prefixes where the footer should be hidden
-    const hiddenFooterPaths = ["/admin", "/employee"];
+    const hiddenFooterPaths = ["/", "/dashboard", "/admin", "/employee"];
 
     const shouldHideFooter = hiddenFooterPaths.some((path) => pathname.startsWith(path));
 

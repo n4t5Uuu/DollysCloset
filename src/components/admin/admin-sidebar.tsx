@@ -52,10 +52,10 @@ export default function AdminSidebar() {
                     <SidebarMenuButton
                       asChild
                       isActive={isActive}
-                      className={`h-auto px-4 py-3 rounded-lg transition-colors ${
+                      className={`h-auto px-4 py-3 rounded-xl transition-all duration-300 ease-out group/item ${
                         isActive
-                          ? "bg-black text-white hover:bg-black/90 hover:text-white"
-                          : "text-gray-700 hover:bg-gray-100 hover:text-gray-900"
+                          ? "bg-black text-[#E7A3B0] shadow-xl shadow-[#E7A3B0]/20 [&_svg]:text-[#E7A3B0] scale-[1.02] font-semibold hover:bg-black/90"
+                          : "text-zinc-500 hover:bg-[#E7A3B0]/10 hover:text-[#E7A3B0] hover:translate-x-1 hover:shadow-sm [&_svg]:transition-colors"
                       }`}
                     >
                       <Link href={item.href} className="flex items-center gap-3">
