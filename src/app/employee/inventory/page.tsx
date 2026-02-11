@@ -90,6 +90,35 @@ export default function EmployeeInventoryPage() {
   const categories = Object.keys(categoryTypes);
   const availableTypes = formData.category ? categoryTypes[formData.category] || [] : [];
 
+  const resetForm = () => {
+    setFormData({
+      name: "",
+      category: "",
+      type: "",
+      price: "",
+      size: "",
+      brand: "",
+      stock: "",
+      description: "",
+      isNewArrival: false,
+      isPublished: true,
+      isFeatured: false,
+      images: [],
+    });
+    setImageFiles([]);
+    setEditingProduct(null);
+  };
+
+  const openAddModal = () => {
+    resetForm();
+    setShowAddModal(true);
+  };
+
+  const closeModal = () => {
+    setShowAddModal(false);
+    resetForm();
+  };
+
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (files) {
@@ -216,24 +245,7 @@ export default function EmployeeInventoryPage() {
       addProduct(newProduct, initialStatus);
     }
     
-    // Reset form and close modal
-    setFormData({
-      name: "",
-      category: "",
-      type: "",
-      price: "",
-      size: "",
-      brand: "",
-      stock: "",
-      description: "",
-      isNewArrival: false,
-      isPublished: true,
-      isFeatured: false,
-      images: [],
-    });
-    setImageFiles([]);
-    setEditingProduct(null);
-    setShowAddModal(false);
+    closeModal();
   };
 
   return (
@@ -296,7 +308,7 @@ export default function EmployeeInventoryPage() {
         <div className="flex gap-3">
           <Button 
             className="bg-green-500 hover:bg-green-600 text-white"
-            onClick={() => setShowAddModal(true)}
+            onClick={openAddModal}
           >
             <Plus className="w-4 h-4" />
             Add Products
@@ -584,10 +596,7 @@ export default function EmployeeInventoryPage() {
             <CardHeader className="flex flex-row items-center justify-between p-6 border-b border-gray-100 space-y-0">
               <CardTitle className="text-2xl font-bold text-gray-900">{editingProduct ? "Edit Product" : "Add Product"}</CardTitle>
               <button
-                onClick={() => {
-                  setShowAddModal(false);
-                  setEditingProduct(null);
-                }}
+                onClick={closeModal}
                 className="cursor-pointer text-gray-400 hover:text-gray-600 text-2xl"
               >
                 ×
@@ -854,7 +863,7 @@ export default function EmployeeInventoryPage() {
                 <Button
                   type="button"
                   variant="outline"
-                  onClick={() => setShowAddModal(false)}
+                  onClick={closeModal}
                   className="flex-1 bg-white border-gray-300 text-gray-700 hover:bg-gray-50 cursor-pointer"
                 >
                   Cancel
@@ -881,7 +890,7 @@ export default function EmployeeInventoryPage() {
                         condition: "New",
                       }, status);
                     }
-                    setShowAddModal(false);
+                    closeModal();
                   }}
                   className="flex-1 bg-[#E7A3B0] hover:bg-[#ca8c98] text-white font-medium cursor-pointer"
                 >
