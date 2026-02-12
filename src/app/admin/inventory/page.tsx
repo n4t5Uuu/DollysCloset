@@ -616,7 +616,7 @@ export default function AdminInventoryPage() {
                       <SelectTrigger className="border-gray-300 text-gray-900 bg-white">
                         <SelectValue placeholder="Select category" />
                       </SelectTrigger>
-                      <SelectContent className="bg-white z-[60]">
+                      <SelectContent className="bg-white text-gray-900 z-[60]">
                         {categories.length === 0 ? (
                           <SelectItem value="none" disabled>No categories found</SelectItem>
                         ) : (
@@ -682,7 +682,7 @@ export default function AdminInventoryPage() {
                       <SelectTrigger className="border-gray-300 text-gray-900 bg-white">
                         <SelectValue />
                       </SelectTrigger>
-                      <SelectContent className="bg-white z-[60]">
+                      <SelectContent className="bg-white text-gray-900 z-[60]">
                         <SelectItem value="New">New</SelectItem>
                         <SelectItem value="Like New">Like New</SelectItem>
                         <SelectItem value="Good">Good</SelectItem>

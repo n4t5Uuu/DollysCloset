@@ -1,6 +1,7 @@
 import { createClient } from '@supabase/supabase-js';
 import { NextRequest, NextResponse } from 'next/server';
 import { dataHelper } from "@/lib/data-helper";
+import { logActivity } from "@/lib/activity-logger";
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -43,6 +44,27 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
     }
 
+    // Fetch current product to track changes
+    const { data: currentProduct } = await supabaseAdmin
+      .from('tbl_product')
+      .select('*')
+      .eq('product_id', product_id)
+      .single();
+
+    // Build change description
+    const changes: string[] = [];
+    if (currentProduct) {
+      if (currentProduct.product_name !== product_name) changes.push(`name: ${currentProduct.product_name} → ${product_name}`);
+      if (currentProduct.category_id !== category_id) changes.push(`category: ${currentProduct.category_id} → ${category_id}`);
+      if (currentProduct.product_price !== parseFloat(product_price)) changes.push(`price: ${currentProduct.product_price} → ${product_price}`);
+      if (currentProduct.product_brand !== (product_brand || 'Dolly\'s Closet')) changes.push(`brand: ${currentProduct.product_brand} → ${product_brand || 'Dolly\'s Closet'}`);
+      if (currentProduct.product_description !== (product_description || '')) changes.push(`description updated`);
+      if (currentProduct.product_stock !== parseInt(product_stock)) changes.push(`stock: ${currentProduct.product_stock} → ${product_stock}`);
+      if (currentProduct.product_condition !== product_condition) changes.push(`condition: ${currentProduct.product_condition} → ${product_condition}`);
+      if (currentProduct.size_label !== size_label) changes.push(`size: ${currentProduct.size_label} → ${size_label}`);
+      if (currentProduct.show_in_catalog !== (show_in_catalog !== false)) changes.push(`visibility: ${currentProduct.show_in_catalog ? 'shown' : 'hidden'} → ${show_in_catalog !== false ? 'shown' : 'hidden'}`);
+    }
+
     // Update tbl_product
     const { error: updateError } = await supabaseAdmin
       .from('tbl_product')
@@ -64,6 +86,14 @@ export async function PUT(request: NextRequest) {
       console.error('Update error:', updateError);
       return NextResponse.json({ error: updateError.message }, { status: 500 });
     }
+
+    // Log activity
+    await logActivity(
+      supabaseAdmin,
+      'edit_product',
+      product_id,
+      changes.length > 0 ? `Updated product "${product_name}": ${changes.join(', ')}` : `Updated product "${product_name}"`
+    );
 
     return NextResponse.json({ 
       success: true, 

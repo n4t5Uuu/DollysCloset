@@ -1,6 +1,7 @@
 import { createClient } from '@supabase/supabase-js';
 import { NextRequest, NextResponse } from 'next/server';
 import { dataHelper } from "@/lib/data-helper";
+import { logActivity } from "@/lib/activity-logger";
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -52,6 +53,14 @@ export async function DELETE(request: NextRequest) {
       console.error('Delete error:', deleteError);
       return NextResponse.json({ error: deleteError.message }, { status: 500 });
     }
+
+    // Log activity
+    await logActivity(
+      supabaseAdmin,
+      'delete_product',
+      product_id,
+      'Deleted product'
+    );
 
     return NextResponse.json({ 
       success: true, 

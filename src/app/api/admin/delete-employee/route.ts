@@ -1,6 +1,7 @@
 import { createClient } from '@supabase/supabase-js';
 import { NextRequest, NextResponse } from 'next/server';
 import { dataHelper } from "@/lib/data-helper";
+import { logActivity } from "@/lib/activity-logger";
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -58,6 +59,14 @@ export async function DELETE(request: NextRequest) {
     if (deleteUserError) {
       return NextResponse.json({ error: deleteUserError.message }, { status: 500 });
     }
+
+    // Log activity
+    await logActivity(
+      supabaseAdmin,
+      'delete_employee',
+      null,
+      `Deleted employee with ID: ${employee_id}`
+    );
 
     return NextResponse.json({ 
       success: true, 

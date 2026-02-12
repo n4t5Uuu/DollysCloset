@@ -1,6 +1,7 @@
 import { createClient } from '@supabase/supabase-js';
 import { NextRequest, NextResponse } from 'next/server';
 import { dataHelper } from "@/lib/data-helper";
+import { logActivity } from "@/lib/activity-logger";
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -43,6 +44,22 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
     }
 
+    // Fetch current employee to track changes
+    const { data: currentEmployee } = await supabaseAdmin
+      .from('tbl_users')
+      .select('*')
+      .eq('user_id', employee_id)
+      .single();
+
+    // Build change description
+    const changes: string[] = [];
+    if (currentEmployee) {
+      if (currentEmployee.username !== username) changes.push(`username: ${currentEmployee.username} → ${username}`);
+      if (currentEmployee.first_name !== first_name) changes.push(`first name: ${currentEmployee.first_name} → ${first_name}`);
+      if (currentEmployee.last_name !== last_name) changes.push(`last name: ${currentEmployee.last_name} → ${last_name}`);
+      if (password) changes.push(`password changed`);
+    }
+
     // Update tbl_users
     const { error: updateError } = await supabaseAdmin
       .from('tbl_users')
@@ -68,6 +85,14 @@ export async function PUT(request: NextRequest) {
         return NextResponse.json({ error: passwordError.message }, { status: 500 });
       }
     }
+
+    // Log activity
+    await logActivity(
+      supabaseAdmin,
+      'edit_employee',
+      null,
+      changes.length > 0 ? `Updated employee "${first_name} ${last_name}": ${changes.join(', ')}` : `Updated employee "${first_name} ${last_name}"`
+    );
 
     return NextResponse.json({ 
       success: true, 

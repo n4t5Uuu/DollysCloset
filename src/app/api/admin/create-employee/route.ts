@@ -1,6 +1,7 @@
 import { createClient } from '@supabase/supabase-js';
 import { NextRequest, NextResponse } from 'next/server';
 import { dataHelper } from "@/lib/data-helper";
+import { logActivity } from "@/lib/activity-logger";
 
 // Create a Supabase client with service role key
 const supabaseAdmin = createClient(
@@ -78,6 +79,14 @@ export async function POST(request: NextRequest) {
       await supabaseAdmin.auth.admin.deleteUser(authData.user.id);
       return NextResponse.json({ error: updateError.message }, { status: 500 });
     }
+
+    // Log activity
+    await logActivity(
+      supabaseAdmin,
+      'create_employee',
+      null,
+      `Created employee: ${first_name} ${last_name} (${username})`
+    );
 
     return NextResponse.json({ 
       success: true, 

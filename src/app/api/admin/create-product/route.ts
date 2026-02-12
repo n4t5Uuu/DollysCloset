@@ -1,6 +1,7 @@
 import { createClient } from '@supabase/supabase-js';
 import { NextRequest, NextResponse } from 'next/server';
 import { dataHelper } from "@/lib/data-helper";
+import { logActivity } from "@/lib/activity-logger";
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -65,6 +66,16 @@ export async function POST(request: NextRequest) {
     if (insertError) {
       console.error('Insert error:', insertError);
       return NextResponse.json({ error: insertError.message }, { status: 500 });
+    }
+
+    // Log activity
+    if (product?.[0]) {
+      await logActivity(
+        supabaseAdmin,
+        'create_product',
+        product[0].product_id,
+        `Created product: ${product_name}`
+      );
     }
 
     return NextResponse.json({ 

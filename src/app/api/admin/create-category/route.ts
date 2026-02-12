@@ -1,6 +1,7 @@
 import { createClient } from '@supabase/supabase-js';
 import { NextRequest, NextResponse } from 'next/server';
 import { dataHelper } from "@/lib/data-helper";
+import { logActivity } from "@/lib/activity-logger";
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -59,6 +60,14 @@ export async function POST(request: NextRequest) {
       console.error('Insert error:', insertError);
       return NextResponse.json({ error: insertError.message }, { status: 500 });
     }
+
+    // Log activity
+    await logActivity(
+      supabaseAdmin,
+      'create_category',
+      null,
+      `Created category: ${category_name}`
+    );
 
     // Construct the category object to return immediately
     const newCategory = {
