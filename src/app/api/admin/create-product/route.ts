@@ -1,7 +1,7 @@
 import { createClient } from '@supabase/supabase-js';
 import { NextRequest, NextResponse } from 'next/server';
+import { authHelper } from "@/lib/auth-helper";
 import { dataHelper } from "@/lib/data-helper";
-import { logActivity } from "@/lib/activity-logger";
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -30,11 +30,13 @@ export async function POST(request: NextRequest) {
     }
 
     // Check if user is admin
-    const { data: userData, error: userError } = await dataHelper.getUserRole(user.id, supabaseAdmin);
+    const { data: userData, error: userError } = await authHelper.getUserRole(user.id, supabaseAdmin);
 
     if (userError || userData?.role !== 'admin') {
       return NextResponse.json({ error: 'Forbidden: Admin access required' }, { status: 403 });
     }
+
+    const editor = user.email || user.user_metadata?.username || 'Unknown';
 
     // Get product data from request
     const { product_name, category_id, product_price, product_brand, product_description, product_stock, product_condition, size_label, show_in_catalog, image_id } = await request.json();
@@ -70,12 +72,13 @@ export async function POST(request: NextRequest) {
 
     // Log activity
     if (product?.[0]) {
-      await logActivity(
-        supabaseAdmin,
-        'create_product',
-        product[0].product_id,
-        `Created product: ${product_name}`
-      );
+      await dataHelper.logActivity({
+        actionType: 'create_product',
+        productId: product[0].product_id,
+        description: `Created product: ${product_name}`,
+        editor: editor,
+        user_id: user.id
+      });
     }
 
     return NextResponse.json({ 

@@ -1,7 +1,7 @@
 import { createClient } from '@supabase/supabase-js';
 import { NextRequest, NextResponse } from 'next/server';
+import { authHelper } from "@/lib/auth-helper";
 import { dataHelper } from "@/lib/data-helper";
-import { logActivity } from "@/lib/activity-logger";
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -30,11 +30,13 @@ export async function POST(request: NextRequest) {
     }
 
     // Check if user is admin
-    const { data: userData, error: userError } = await dataHelper.getUserRole(user.id, supabaseAdmin);
+    const { data: userData, error: userError } = await authHelper.getUserRole(user.id, supabaseAdmin);
 
     if (userError || userData?.role !== 'admin') {
       return NextResponse.json({ error: 'Forbidden: Admin access required' }, { status: 403 });
     }
+
+    const editor = user.email || user.user_metadata?.username || 'Unknown';
 
     // Get category data from request
     const { category_name, category_description, parent_category } = await request.json();
@@ -62,12 +64,13 @@ export async function POST(request: NextRequest) {
     }
 
     // Log activity
-    await logActivity(
-      supabaseAdmin,
-      'create_category',
-      null,
-      `Created category: ${category_name}`
-    );
+    await dataHelper.logActivity({
+      actionType: 'create_category',
+      productId: null,
+      description: `Created category: ${category_name}`,
+      editor: editor,
+      user_id: user.id
+    });
 
     // Construct the category object to return immediately
     const newCategory = {

@@ -1,7 +1,7 @@
 import { createClient } from '@supabase/supabase-js';
 import { NextRequest, NextResponse } from 'next/server';
+import { authHelper } from "@/lib/auth-helper";
 import { dataHelper } from "@/lib/data-helper";
-import { logActivity } from "@/lib/activity-logger";
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -30,11 +30,13 @@ export async function PUT(request: NextRequest) {
     }
 
     // Check if user is admin
-    const { data: userData, error: userError } = await dataHelper.getUserRole(user.id, supabaseAdmin);
+    const { data: userData, error: userError } = await authHelper.getUserRole(user.id, supabaseAdmin);
 
     if (userError || userData?.role !== 'admin') {
       return NextResponse.json({ error: 'Forbidden: Admin access required' }, { status: 403 });
     }
+
+    const editor = user.email || user.user_metadata?.username || 'Unknown';
 
     // Get employee data from request
     const { employee_id, username, first_name, last_name, password } = await request.json();
@@ -87,12 +89,13 @@ export async function PUT(request: NextRequest) {
     }
 
     // Log activity
-    await logActivity(
-      supabaseAdmin,
-      'edit_employee',
-      null,
-      changes.length > 0 ? `Updated employee "${first_name} ${last_name}": ${changes.join(', ')}` : `Updated employee "${first_name} ${last_name}"`
-    );
+    await dataHelper.logActivity({
+      actionType: 'edit_employee',
+      productId: null,
+      description: changes.length > 0 ? `Updated employee "${first_name} ${last_name}": ${changes.join(', ')}` : `Updated employee "${first_name} ${last_name}"`,
+      editor: editor,
+      user_id: employee_id
+    });
 
     return NextResponse.json({ 
       success: true, 

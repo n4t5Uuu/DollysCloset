@@ -5,7 +5,6 @@ import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Loader2, AlertTriangle, Search, X } from "lucide-react";
-import { browserSupabase } from "@/lib/supabase/browser";
 
 interface ActivityLog {
   log_id: number;
@@ -13,6 +12,8 @@ interface ActivityLog {
   action_type: string;
   product_id: number | null;
   description: string;
+  editor: string | null;
+  user_id: number | null;
 }
 
 const actionLabels: Record<string, string> = {
@@ -22,6 +23,9 @@ const actionLabels: Record<string, string> = {
   create_category: "Created Category",
   edit_category: "Edited Category",
   delete_category: "Deleted Category",
+  create_employee: "Created Employee",
+  edit_employee: "Edited Employee",
+  delete_employee: "Deleted Employee",
 };
 
 const actionColors: Record<string, string> = {
@@ -31,6 +35,9 @@ const actionColors: Record<string, string> = {
   create_category: "bg-purple-100 text-purple-800",
   edit_category: "bg-indigo-100 text-indigo-800",
   delete_category: "bg-red-100 text-red-800",
+  create_employee: "bg-green-100 text-green-800",
+  edit_employee: "bg-blue-100 text-blue-800",
+  delete_employee: "bg-red-100 text-red-800",
 };
 
 export default function ActivityLogsPage() {
@@ -38,6 +45,9 @@ export default function ActivityLogsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
+  const [sortOrder, setSortOrder] = useState<"desc" | "asc">("desc");
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
 
   useEffect(() => {
     fetchLogs();
@@ -47,13 +57,16 @@ export default function ActivityLogsPage() {
     try {
       setLoading(true);
       setError(null);
-      const { data, error: fetchError } = await browserSupabase
-        .from('tbl_activity_log')
-        .select('*')
-        .order('created_at', { ascending: false });
+
+      const response = await fetch('/api/admin/fetch-logs');
       
-      if (fetchError) throw fetchError;
-      setLogs(data || []);
+      if (!response.ok) {
+        throw new Error('Failed to fetch logs');
+      }
+      
+      const result = await response.json();
+      setLogs(result.data || []);
+
     } catch (err: any) {
       console.error('Error fetching logs:', err);
       setError(err.message || 'Failed to load activity logs');
@@ -65,8 +78,26 @@ export default function ActivityLogsPage() {
   const filteredLogs = logs.filter((log) =>
     log.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
     log.action_type?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    log.product_id?.toString().includes(searchQuery)
+    log.product_id?.toString().includes(searchQuery) ||
+    log.editor?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    log.user_id?.toString().includes(searchQuery)
   );
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery, sortOrder, logs.length]);
+
+  const sortedLogs = [...filteredLogs].sort((a, b) => {
+    const timeA = new Date(a.created_at).getTime();
+    const timeB = new Date(b.created_at).getTime();
+    return sortOrder === "desc" ? timeB - timeA : timeA - timeB;
+  });
+
+  const totalPages = Math.max(1, Math.ceil(sortedLogs.length / itemsPerPage));
+  const safePage = Math.min(currentPage, totalPages);
+  const startIndex = (safePage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const paginatedLogs = sortedLogs.slice(startIndex, endIndex);
 
 
   const handleResetLogs = async () => {
@@ -135,8 +166,16 @@ export default function ActivityLogsPage() {
             className="pl-10"
           />
         </div>
+        <Button
+          variant="outline"
+          onClick={() => setSortOrder((prev) => (prev === "desc" ? "asc" : "desc"))}
+        >
+          Sort: {sortOrder === "desc" ? "Newest" : "Oldest"}
+        </Button>
         <span className="text-sm text-gray-600">
-          Showing {filteredLogs.length} of {logs.length} logs
+          {filteredLogs.length > 0
+            ? `Showing ${startIndex + 1}-${Math.min(endIndex, filteredLogs.length)} of ${filteredLogs.length} logs`
+            : "Showing 0 logs"}
         </span>
       </div>
 
@@ -146,16 +185,18 @@ export default function ActivityLogsPage() {
         </div>
       ) : (
         <div className="overflow-hidden rounded-lg border border-gray-200 bg-white">
-          <div className="grid grid-cols-5 gap-4 border-b bg-gray-50 px-6 py-4 text-xs font-semibold uppercase tracking-wide text-gray-700">
+          <div className="grid grid-cols-7 gap-4 border-b bg-gray-50 px-6 py-4 text-xs font-semibold uppercase tracking-wide text-gray-700">
             <div>Date & Time</div>
             <div>Action</div>
             <div>Product ID</div>
+            <div>User ID</div>
             <div>Description</div>
+            <div>Editor</div>
           </div>
 
           <div className="divide-y">
-            {filteredLogs.map((log) => (
-              <div key={log.log_id} className="grid grid-cols-5 gap-4 px-6 py-4 hover:bg-gray-50 transition">
+            {paginatedLogs.map((log) => (
+              <div key={log.log_id} className="grid grid-cols-7 gap-4 px-6 py-4 hover:bg-gray-50 transition">
                 <div className="text-sm text-gray-700">
                   {new Date(log.created_at).toLocaleString()}
                 </div>
@@ -167,12 +208,60 @@ export default function ActivityLogsPage() {
                 <div className="text-sm text-gray-900">
                   {log.product_id || "—"}
                 </div>
+                <div className="text-sm text-gray-900">
+                  {log.user_id || "—"}
+                </div>
                 <div className="text-sm text-gray-600">
                   {log.description || "—"}
+                </div>
+                <div className="text-sm text-gray-600">
+                  {log.editor || "—"}
                 </div>
               </div>
             ))}
           </div>
+        </div>
+      )}
+
+      {filteredLogs.length > 0 && totalPages > 1 && (
+        <div className="flex justify-center items-center gap-2 mt-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
+            disabled={safePage === 1}
+          >
+            &lt;
+          </Button>
+          {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+            const pageNum = totalPages <= 5
+              ? i + 1
+              : safePage <= 3
+                ? i + 1
+                : safePage >= totalPages - 2
+                  ? totalPages - 4 + i
+                  : safePage - 2 + i;
+
+            return (
+              <Button
+                key={pageNum}
+                variant={safePage === pageNum ? "default" : "outline"}
+                size="sm"
+                onClick={() => setCurrentPage(pageNum)}
+                className={safePage === pageNum ? "bg-[#E7A3B0] hover:bg-[#ca8c98]" : ""}
+              >
+                {pageNum}
+              </Button>
+            );
+          })}
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))}
+            disabled={safePage === totalPages}
+          >
+            &gt;
+          </Button>
         </div>
       )}
     </div>

@@ -19,6 +19,8 @@ export interface LogActivityProps {
     actionType: string;
     productId?: number | null;
     description?: string;
+    editor?: string | null;
+    user_id?: string | number | null;
 }
 
 export type FieldChange = {

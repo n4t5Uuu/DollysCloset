@@ -52,23 +52,24 @@ export default function EmployeesPage() {
 
   async function fetchEmployees() {
     try {
-      setLoading(true);
-      setError(null);
+      setLoading(true)
+      setError(null)
 
-      const { data, error } = await browserSupabase
-        .from('tbl_users')
-        .select('*')
-        
-      console.log('fetch Data:', data);
-      if (error) throw error;
-      setEmployees(data || []);
-
+      const response = await fetch('/api/admin/fetch-employees')
+      
+      if (!response.ok) {
+        throw new Error('Failed to fetch employees')
+      }
+      
+      const result = await response.json()
+      console.log('fetch Data:', result.data)
+      setEmployees(result.data)
 
     } catch (err: any) {
-      console.error('Error fetching employees:', err);
-      setError(err.message);
+      console.error('Error fetching employees:', err)
+      setError(err.message)
     } finally {
-      setLoading(false);
+      setLoading(false)
     }
   }
 

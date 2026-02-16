@@ -87,13 +87,20 @@ export default function AdminInventoryPage() {
     fetchCategories();
   }, []);
 
-  async function fetchProducts() {
+   async function fetchProducts() {
     try {
       setLoading(true);
       setError(null);
-      const { data, error } = await browserSupabase.from('tbl_product').select('*');
-      if (error) throw error;
-      setProducts(data || []);
+
+      const response = await fetch('/api/admin/fetch-products');
+      
+      if (!response.ok) {
+        throw new Error('Failed to fetch products');
+      }
+      
+      const result = await response.json();
+      setProducts(result.data || []);
+
     } catch (err: any) {
       console.error('Error fetching products:', err);
       setError(err.message);
@@ -104,9 +111,15 @@ export default function AdminInventoryPage() {
 
   async function fetchCategories() {
     try {
-      const { data, error } = await browserSupabase.from('tbl_category').select('*');
-      if (error) throw error;
-      setCategories(data || []);
+      const response = await fetch('/api/admin/fetch-categories');
+      
+      if (!response.ok) {
+        throw new Error('Failed to fetch categories');
+      }
+      
+      const result = await response.json();
+      setCategories(result.data || []);
+
     } catch (err: any) {
       console.error('Error fetching categories:', err);
       setCategories([]);

@@ -1,7 +1,7 @@
 import { createClient } from '@supabase/supabase-js';
 import { NextRequest, NextResponse } from 'next/server';
+import { authHelper } from "@/lib/auth-helper";
 import { dataHelper } from "@/lib/data-helper";
-import { logActivity } from "@/lib/activity-logger";
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -30,11 +30,13 @@ export async function DELETE(request: NextRequest) {
     }
 
     // Check if user is admin
-    const { data: userData, error: userError } = await dataHelper.getUserRole(user.id, supabaseAdmin);
+    const { data: userData, error: userError } = await authHelper.getUserRole(user.id, supabaseAdmin);
 
     if (userError || userData?.role !== 'admin') {
       return NextResponse.json({ error: 'Forbidden: Admin access required' }, { status: 403 });
     }
+
+    const editor = user.email || user.user_metadata?.username || 'Unknown';
 
     // Get employee_id from request
     const { employee_id } = await request.json();
@@ -61,12 +63,13 @@ export async function DELETE(request: NextRequest) {
     }
 
     // Log activity
-    await logActivity(
-      supabaseAdmin,
-      'delete_employee',
-      null,
-      `Deleted employee with ID: ${employee_id}`
-    );
+    await dataHelper.logActivity({
+      actionType: 'delete_employee',
+      productId: null,
+      description: 'Deleted employee',
+      editor: editor,
+      user_id: employee_id
+    });
 
     return NextResponse.json({ 
       success: true, 

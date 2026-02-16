@@ -1,7 +1,7 @@
 import { createClient } from '@supabase/supabase-js';
 import { NextRequest, NextResponse } from 'next/server';
+import { authHelper } from "@/lib/auth-helper";
 import { dataHelper } from "@/lib/data-helper";
-import { logActivity } from "@/lib/activity-logger";
 
 // Create a Supabase client with service role key
 const supabaseAdmin = createClient(
@@ -31,11 +31,13 @@ export async function POST(request: NextRequest) {
     }
 
     // Check if user is admin
-    const { data: userData, error: userError } = await dataHelper.getUserRole(user.id, supabaseAdmin);
+    const { data: userData, error: userError } = await authHelper.getUserRole(user.id, supabaseAdmin);
 
     if (userError || userData?.role !== 'admin') {
       return NextResponse.json({ error: 'Forbidden: Admin access required' }, { status: 403 });
     }
+
+    const editor = user.email || user.user_metadata?.username || 'Unknown';
 
     // Get employee data from request
     const { username, password, first_name, last_name } = await request.json();
@@ -81,12 +83,13 @@ export async function POST(request: NextRequest) {
     }
 
     // Log activity
-    await logActivity(
-      supabaseAdmin,
-      'create_employee',
-      null,
-      `Created employee: ${first_name} ${last_name} (${username})`
-    );
+    await dataHelper.logActivity({
+      actionType: 'create_employee',
+      productId: null,
+      description: `Created employee: ${first_name} ${last_name} (${username})`,
+      editor: editor,
+      user_id: authData.user.id
+    });
 
     return NextResponse.json({ 
       success: true, 
