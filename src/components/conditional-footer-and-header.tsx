@@ -21,9 +21,13 @@ export function ConditionalFooter() {
     const pathname = usePathname();
 
     // Array of path prefixes where the footer should be hidden
-    const hiddenFooterPaths = ["/", "/dashboard", "/admin", "/employee"];
-
-    const shouldHideFooter = hiddenFooterPaths.some((path) => pathname.startsWith(path));
+    // Array of path prefixes where the footer should be hidden.
+    // Dashboard, admin, and employee routes are hidden via startsWith.
+    // The login page (root '/') is hidden via exact match.
+    const hiddenFooterPrefixes = ["/dashboard", "/admin", "/employee"];
+    
+    // Check if path starts with any of the hidden prefixes OR if it is exactly the root path (login)
+    const shouldHideFooter = hiddenFooterPrefixes.some((path) => pathname.startsWith(path)) || pathname === "/";
 
     if (shouldHideFooter) {
         return null;

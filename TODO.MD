@@ -29,16 +29,17 @@
 
 ## Bug Fixes
     - [ ] Log in error (error is due to RLS and try to fix it)
-    - [ ] Retrieving user rolr
+    - [ ] Logging out takes longer than usual
     
 
 ## To-do
-    - [ ] About Us Page
     - [ ] Refactor recently added code by Ko Han and Josh
     - [ ] Add a trending feature on the catalog
  
 
 ## ✅ Completed
    - [x] Remove the logout button from the dashboard sidebar
+   - [x] About Us Page
+   - [x] Retrieving user role
 
 
