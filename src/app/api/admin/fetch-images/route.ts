@@ -1,0 +1,29 @@
+import { NextRequest, NextResponse } from "next/server";
+import { supabaseAdmin } from "@/lib/supabase/admin";
+
+export async function GET(request: NextRequest) {
+  try {
+    const { searchParams } = new URL(request.url);
+    const productId = searchParams.get("product_id");
+
+    if (!productId) {
+      return NextResponse.json({ error: "Missing product_id" }, { status: 400 });
+    }
+
+    const { data: images, error } = await supabaseAdmin
+      .from("tbl_product_image")
+      .select("*")
+      .eq("product_id", productId)
+      .order("display_order", { ascending: true });
+
+    if (error) throw error;
+
+    return NextResponse.json({ data: images || [] });
+  } catch (error) {
+    console.error("Fetch images error:", error);
+    return NextResponse.json(
+      { error: "Failed to fetch images", details: (error as Error).message },
+      { status: 500 }
+    );
+  }
+}

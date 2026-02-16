@@ -26,6 +26,10 @@ const actionLabels: Record<string, string> = {
   create_employee: "Created Employee",
   edit_employee: "Edited Employee",
   delete_employee: "Deleted Employee",
+  upload_image: "Uploaded Image",
+  set_primary_image: "Updated Image",
+  delete_image: "Deleted Image",
+  reorder_images: "Reordered Images",
 };
 
 const actionColors: Record<string, string> = {
@@ -38,6 +42,10 @@ const actionColors: Record<string, string> = {
   create_employee: "bg-green-100 text-green-800",
   edit_employee: "bg-blue-100 text-blue-800",
   delete_employee: "bg-red-100 text-red-800",
+  upload_image: "bg-green-100 text-green-800",
+  set_primary_image: "bg-blue-100 text-blue-800",
+  delete_image: "bg-red-100 text-red-800",
+  reorder_images: "bg-indigo-100 text-indigo-800",
 };
 
 export default function ActivityLogsPage() {

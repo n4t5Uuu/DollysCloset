@@ -5,6 +5,8 @@ import { Plus, Trash, Loader2, AlertTriangle, Search, Eye, Pencil, Trash2, X } f
 import { browserSupabase } from "@/lib/supabase/browser";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import ProductImageUpload from "@/components/product-image-upload";
+import ImageSelector from "@/components/image-selector";
 import {
   Select,
   SelectContent,
@@ -36,6 +38,15 @@ interface Product {
   created_at: string;
 }
 
+interface ProductImage {
+  image_id: string;
+  product_id: string;
+  image_url: string;
+  is_primary: boolean;
+  display_order: number;
+  created_at: string;
+}
+
 interface Category {
   category_id: number;
   category_name: string;
@@ -59,8 +70,11 @@ export default function AdminInventoryPage() {
   const [showAddModal, setShowAddModal] = useState(false);
   const [showCategoryModal, setShowCategoryModal] = useState(false);
   const [viewProduct, setViewProduct] = useState<Product | null>(null);
+  const [viewImages, setViewImages] = useState<ProductImage[]>([]);
 
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
+  const [productImages, setProductImages] = useState<ProductImage[]>([]);
+  const [stagedFiles, setStagedFiles] = useState<File[]>([]);
   const [formData, setFormData] = useState({
     product_name: "",
     category_id: "",
@@ -146,6 +160,18 @@ export default function AdminInventoryPage() {
 
   const getCategoryName = (id: number) => categories.find(c => c.category_id === id)?.category_name || 'Unknown';
 
+  const fetchProductImages = async (productId: string) => {
+    try {
+      const response = await fetch(`/api/admin/fetch-images?product_id=${productId}`);
+      if (response.ok) {
+        const result = await response.json();
+        setProductImages(result.data || []);
+      }
+    } catch (err) {
+      console.error('Error fetching images:', err);
+    }
+  };
+
   const resetForm = () => {
     setFormData({
       product_name: "",
@@ -160,6 +186,47 @@ export default function AdminInventoryPage() {
       image_id: "",
     });
     setEditingProduct(null);
+    setProductImages([]);
+    setStagedFiles([]);
+  };
+
+  const addStagedFiles = (files: File[]) => {
+    setStagedFiles([...stagedFiles, ...files]);
+  };
+
+  const removeStagedFile = (index: number) => {
+    setStagedFiles(stagedFiles.filter((_, i) => i !== index));
+  };
+
+  const uploadStagedImages = async (productId: string, session: any) => {
+    if (stagedFiles.length === 0) return;
+
+    try {
+      for (const file of stagedFiles) {
+        const formData = new FormData();
+        formData.append("file", file);
+        formData.append("product_id", productId);
+
+        const response = await fetch("/api/admin/upload-image", {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${session.access_token}`,
+          },
+          body: formData,
+        });
+
+        if (!response.ok) {
+          const error = await response.json();
+          const message = error.details
+            ? `${error.error}: ${error.details}`
+            : (error.error || "Image upload failed");
+          throw new Error(message);
+        }
+      }
+      setStagedFiles([]);
+    } catch (err) {
+      throw err;
+    }
   };
 
   const openAddModal = () => {
@@ -195,7 +262,7 @@ export default function AdminInventoryPage() {
     setSelectedProducts(newSelected);
   };
 
-  const handleEditProduct = (product: Product) => {
+  const handleEditProduct = async (product: Product) => {
     setEditingProduct(product);
     setFormData({
       product_name: product.product_name,
@@ -209,7 +276,24 @@ export default function AdminInventoryPage() {
       show_in_catalog: product.show_in_catalog,
       image_id: product.image_id || "",
     });
+    await fetchProductImages(product.product_id);
     setShowAddModal(true);
+  };
+
+  const handleViewProduct = async (product: Product) => {
+    setViewProduct(product);
+    try {
+      const response = await fetch(`/api/admin/fetch-images?product_id=${product.product_id}`);
+      if (response.ok) {
+        const result = await response.json();
+        setViewImages(result.data || []);
+      } else {
+        setViewImages([]);
+      }
+    } catch (err) {
+      console.error("Error fetching view images:", err);
+      setViewImages([]);
+    }
   };
 
   const handleDeleteProduct = async (productId: string) => {
@@ -302,6 +386,14 @@ export default function AdminInventoryPage() {
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || 'Failed to save product');
       await fetchProducts();
+      
+      // Upload staged images if this was a new product
+      if (!editingProduct && data.product?.product_id && stagedFiles.length > 0) {
+        await uploadStagedImages(data.product.product_id, session);
+      } else if (editingProduct) {
+        await fetchProductImages(editingProduct.product_id);
+      }
+      
       closeModal();
     } catch (err: any) {
       setError(err.message || 'Failed to save product');
@@ -365,6 +457,11 @@ export default function AdminInventoryPage() {
 
   return (
     <div className="p-6 space-y-6">
+      <div className="mb-8">
+        <h1 className="text-3xl font-bold text-gray-900">Manage Inventory</h1>
+        <p className="text-gray-600 mt-2">Create, update, and organize products and categories.</p>
+      </div>
+
       {error && (
         <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg flex items-start gap-3">
           <AlertTriangle className="w-5 h-5 mt-0.5 flex-shrink-0" />
@@ -513,7 +610,7 @@ export default function AdminInventoryPage() {
                   </td>
                   <td className="p-4">
                     <div className="flex gap-2 justify-center flex-wrap">
-                      <Button size="icon" variant="outline" className="border-pink-200 text-pink-600 bg-pink-50 hover:bg-pink-200 hover:text-pink-700 hover:border-pink-300" onClick={() => setViewProduct(product)}>
+                      <Button size="icon" variant="outline" className="border-pink-200 text-pink-600 bg-pink-50 hover:bg-pink-200 hover:text-pink-700 hover:border-pink-300" onClick={() => handleViewProduct(product)}>
                         <Eye className="h-4 w-4" />
                       </Button>
                       <Button size="icon" variant="outline" className="border-blue-200 text-blue-600 bg-blue-50 hover:bg-blue-200 hover:text-blue-700 hover:border-blue-300" onClick={() => handleEditProduct(product)}>
@@ -557,9 +654,12 @@ export default function AdminInventoryPage() {
           <Card className="bg-white w-full max-w-2xl max-h-[90vh] overflow-y-auto p-0 text-gray-900">
             <CardHeader className="flex flex-row items-center justify-between border-b p-6 space-y-0 text-gray-900">
               <CardTitle className="text-gray-900">Product Details</CardTitle>
-              <button
-                type="button"
-                onClick={() => setViewProduct(null)}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setViewProduct(null);
+                    setViewImages([]);
+                  }}
                 className="inline-flex h-9 w-9 items-center justify-center rounded-full text-gray-400 hover:text-gray-600"
                 aria-label="Close product details"
               >
@@ -567,6 +667,19 @@ export default function AdminInventoryPage() {
               </button>
             </CardHeader>
             <CardContent className="space-y-4 p-6 text-gray-900">
+              <div className="w-full">
+                {viewImages.length > 0 ? (
+                  <img
+                    src={(viewImages.find((img) => img.is_primary) || viewImages[0]).image_url}
+                    alt={`${viewProduct.product_name} primary`}
+                    className="w-full h-64 object-cover rounded-lg border"
+                  />
+                ) : (
+                  <div className="w-full h-64 rounded-lg border bg-gray-50 flex items-center justify-center text-gray-400 text-sm">
+                    No image available
+                  </div>
+                )}
+              </div>
               <div>
                 <p className="text-sm font-medium text-gray-500">Product Name</p>
                 <p className="text-lg font-semibold">{viewProduct.product_name}</p>
@@ -595,7 +708,15 @@ export default function AdminInventoryPage() {
               </div>
             </CardContent>
             <CardFooter className="border-t flex justify-end gap-3 p-6 bg-gray-50">
-              <Button variant="outline" onClick={() => setViewProduct(null)}>Close</Button>
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setViewProduct(null);
+                  setViewImages([]);
+                }}
+              >
+                Close
+              </Button>
             </CardFooter>
           </Card>
         </div>
@@ -704,6 +825,21 @@ export default function AdminInventoryPage() {
                     </Select>
                   </div>
                 </div>
+
+                {!editingProduct ? (
+                  <ImageSelector
+                    stagedFiles={stagedFiles}
+                    onFilesAdd={addStagedFiles}
+                    onFileRemove={removeStagedFile}
+                  />
+                ) : (
+                  <ProductImageUpload
+                    productId={editingProduct?.product_id || null}
+                    images={productImages}
+                    onImagesChange={setProductImages}
+                    loading={actionLoading}
+                  />
+                )}
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">Description</label>
