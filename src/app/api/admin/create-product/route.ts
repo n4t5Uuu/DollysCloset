@@ -36,6 +36,8 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Forbidden: Admin access required' }, { status: 403 });
     }
 
+    const editor = user.email || user.user_metadata?.username || 'Unknown';
+
     // Get product data from request
     const { product_name, category_id, product_price, product_brand, product_description, product_stock, product_condition, size_label, show_in_catalog, image_id } = await request.json();
 
@@ -74,7 +76,8 @@ export async function POST(request: NextRequest) {
         supabaseAdmin,
         'create_product',
         product[0].product_id,
-        `Created product: ${product_name}`
+        `Created product: ${product_name}`,
+        editor
       );
     }
 

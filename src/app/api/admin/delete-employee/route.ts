@@ -36,6 +36,8 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ error: 'Forbidden: Admin access required' }, { status: 403 });
     }
 
+    const editor = user.email || user.user_metadata?.username || 'Unknown';
+
     // Get employee_id from request
     const { employee_id } = await request.json();
 
@@ -65,7 +67,9 @@ export async function DELETE(request: NextRequest) {
       supabaseAdmin,
       'delete_employee',
       null,
-      `Deleted employee with ID: ${employee_id}`
+      'Deleted employee',
+      editor,
+      employee_id
     );
 
     return NextResponse.json({ 

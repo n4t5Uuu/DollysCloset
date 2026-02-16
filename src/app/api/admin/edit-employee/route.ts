@@ -36,6 +36,8 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json({ error: 'Forbidden: Admin access required' }, { status: 403 });
     }
 
+    const editor = user.email || user.user_metadata?.username || 'Unknown';
+
     // Get employee data from request
     const { employee_id, username, first_name, last_name, password } = await request.json();
 
@@ -91,7 +93,9 @@ export async function PUT(request: NextRequest) {
       supabaseAdmin,
       'edit_employee',
       null,
-      changes.length > 0 ? `Updated employee "${first_name} ${last_name}": ${changes.join(', ')}` : `Updated employee "${first_name} ${last_name}"`
+      changes.length > 0 ? `Updated employee "${first_name} ${last_name}": ${changes.join(', ')}` : `Updated employee "${first_name} ${last_name}"`,
+      editor,
+      employee_id
     );
 
     return NextResponse.json({ 

@@ -4,7 +4,9 @@ export async function logActivity(
   supabaseAdmin: SupabaseClient,
   action_type: string,
   product_id: number | null = null,
-  description: string = ''
+  description: string = '',
+  editor: string | null = null,
+  user_id: string | number | null = null
 ) {
   try {
     const { error } = await supabaseAdmin
@@ -14,6 +16,8 @@ export async function logActivity(
           action_type,
           product_id,
           description,
+          editor,
+          user_id,
           created_at: new Date().toISOString(),
         }
       ]);

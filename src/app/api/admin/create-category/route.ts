@@ -36,6 +36,8 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Forbidden: Admin access required' }, { status: 403 });
     }
 
+    const editor = user.email || user.user_metadata?.username || 'Unknown';
+
     // Get category data from request
     const { category_name, category_description, parent_category } = await request.json();
 
@@ -66,7 +68,8 @@ export async function POST(request: NextRequest) {
       supabaseAdmin,
       'create_category',
       null,
-      `Created category: ${category_name}`
+      `Created category: ${category_name}`,
+      editor
     );
 
     // Construct the category object to return immediately

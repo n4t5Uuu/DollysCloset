@@ -36,6 +36,8 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ error: 'Forbidden: Admin access required' }, { status: 403 });
     }
 
+    const editor = user.email || user.user_metadata?.username || 'Unknown';
+
     // Get product_ids from request
     const { product_ids } = await request.json();
 
@@ -59,7 +61,8 @@ export async function DELETE(request: NextRequest) {
       supabaseAdmin,
       'delete_product',
       null,
-      `Bulk deleted ${product_ids.length} product(s)`
+      `Bulk deleted ${product_ids.length} product(s)`,
+      editor
     );
 
     return NextResponse.json({ 

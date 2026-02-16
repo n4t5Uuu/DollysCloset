@@ -12,6 +12,8 @@ interface ActivityLog {
   action_type: string;
   product_id: number | null;
   description: string;
+  editor: string | null;
+  user_id: number | null;
 }
 
 const actionLabels: Record<string, string> = {
@@ -21,6 +23,9 @@ const actionLabels: Record<string, string> = {
   create_category: "Created Category",
   edit_category: "Edited Category",
   delete_category: "Deleted Category",
+  create_employee: "Created Employee",
+  edit_employee: "Edited Employee",
+  delete_employee: "Deleted Employee",
 };
 
 const actionColors: Record<string, string> = {
@@ -30,6 +35,9 @@ const actionColors: Record<string, string> = {
   create_category: "bg-purple-100 text-purple-800",
   edit_category: "bg-indigo-100 text-indigo-800",
   delete_category: "bg-red-100 text-red-800",
+  create_employee: "bg-green-100 text-green-800",
+  edit_employee: "bg-blue-100 text-blue-800",
+  delete_employee: "bg-red-100 text-red-800",
 };
 
 export default function ActivityLogsPage() {
@@ -67,7 +75,9 @@ export default function ActivityLogsPage() {
   const filteredLogs = logs.filter((log) =>
     log.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
     log.action_type?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    log.product_id?.toString().includes(searchQuery)
+    log.product_id?.toString().includes(searchQuery) ||
+    log.editor?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    log.user_id?.toString().includes(searchQuery)
   );
 
 
@@ -148,16 +158,18 @@ export default function ActivityLogsPage() {
         </div>
       ) : (
         <div className="overflow-hidden rounded-lg border border-gray-200 bg-white">
-          <div className="grid grid-cols-5 gap-4 border-b bg-gray-50 px-6 py-4 text-xs font-semibold uppercase tracking-wide text-gray-700">
+          <div className="grid grid-cols-7 gap-4 border-b bg-gray-50 px-6 py-4 text-xs font-semibold uppercase tracking-wide text-gray-700">
             <div>Date & Time</div>
             <div>Action</div>
             <div>Product ID</div>
+            <div>User ID</div>
             <div>Description</div>
+            <div>Editor</div>
           </div>
 
           <div className="divide-y">
             {filteredLogs.map((log) => (
-              <div key={log.log_id} className="grid grid-cols-5 gap-4 px-6 py-4 hover:bg-gray-50 transition">
+              <div key={log.log_id} className="grid grid-cols-7 gap-4 px-6 py-4 hover:bg-gray-50 transition">
                 <div className="text-sm text-gray-700">
                   {new Date(log.created_at).toLocaleString()}
                 </div>
@@ -169,8 +181,14 @@ export default function ActivityLogsPage() {
                 <div className="text-sm text-gray-900">
                   {log.product_id || "—"}
                 </div>
+                <div className="text-sm text-gray-900">
+                  {log.user_id || "—"}
+                </div>
                 <div className="text-sm text-gray-600">
                   {log.description || "—"}
+                </div>
+                <div className="text-sm text-gray-600">
+                  {log.editor || "—"}
                 </div>
               </div>
             ))}

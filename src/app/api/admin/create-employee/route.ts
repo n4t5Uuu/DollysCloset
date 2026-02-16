@@ -37,6 +37,8 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Forbidden: Admin access required' }, { status: 403 });
     }
 
+    const editor = user.email || user.user_metadata?.username || 'Unknown';
+
     // Get employee data from request
     const { username, password, first_name, last_name } = await request.json();
 
@@ -85,7 +87,9 @@ export async function POST(request: NextRequest) {
       supabaseAdmin,
       'create_employee',
       null,
-      `Created employee: ${first_name} ${last_name} (${username})`
+      `Created employee: ${first_name} ${last_name} (${username})`,
+      editor,
+      authData.user.id
     );
 
     return NextResponse.json({ 
