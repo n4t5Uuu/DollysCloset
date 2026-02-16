@@ -16,7 +16,6 @@
     - [ ] Make the catalog sidebar sticky 
 
 ## UI that needs Changes
-    - [ ] Sidebar for the admin and employee
     - [ ] Login 
     - [ ] Logging out loading icon
     - [ ] Put the collections, about us, and collections after the user has logged in
@@ -35,11 +34,12 @@
 ## To-do
     - [ ] Refactor recently added code by Ko Han and Josh
     - [ ] Add a trending feature on the catalog
+    - [ ] Add a session that after the user logs out, they will be unable to go back to the previous pages using the back button
  
 
 ## ✅ Completed
    - [x] Remove the logout button from the dashboard sidebar
    - [x] About Us Page
    - [x] Retrieving user role
-
+   - [x] Sidebar for the admin and employee
 
