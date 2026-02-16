@@ -5,7 +5,6 @@ import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Loader2, AlertTriangle, Search, X } from "lucide-react";
-import { browserSupabase } from "@/lib/supabase/browser";
 
 interface ActivityLog {
   log_id: number;
@@ -47,13 +46,16 @@ export default function ActivityLogsPage() {
     try {
       setLoading(true);
       setError(null);
-      const { data, error: fetchError } = await browserSupabase
-        .from('tbl_activity_log')
-        .select('*')
-        .order('created_at', { ascending: false });
+
+      const response = await fetch('/api/admin/fetch-logs');
       
-      if (fetchError) throw fetchError;
-      setLogs(data || []);
+      if (!response.ok) {
+        throw new Error('Failed to fetch logs');
+      }
+      
+      const result = await response.json();
+      setLogs(result.data || []);
+
     } catch (err: any) {
       console.error('Error fetching logs:', err);
       setError(err.message || 'Failed to load activity logs');
