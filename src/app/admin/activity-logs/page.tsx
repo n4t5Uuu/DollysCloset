@@ -45,6 +45,9 @@ export default function ActivityLogsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
+  const [sortOrder, setSortOrder] = useState<"desc" | "asc">("desc");
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
 
   useEffect(() => {
     fetchLogs();
@@ -79,6 +82,22 @@ export default function ActivityLogsPage() {
     log.editor?.toLowerCase().includes(searchQuery.toLowerCase()) ||
     log.user_id?.toString().includes(searchQuery)
   );
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery, sortOrder, logs.length]);
+
+  const sortedLogs = [...filteredLogs].sort((a, b) => {
+    const timeA = new Date(a.created_at).getTime();
+    const timeB = new Date(b.created_at).getTime();
+    return sortOrder === "desc" ? timeB - timeA : timeA - timeB;
+  });
+
+  const totalPages = Math.max(1, Math.ceil(sortedLogs.length / itemsPerPage));
+  const safePage = Math.min(currentPage, totalPages);
+  const startIndex = (safePage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const paginatedLogs = sortedLogs.slice(startIndex, endIndex);
 
 
   const handleResetLogs = async () => {
@@ -147,8 +166,16 @@ export default function ActivityLogsPage() {
             className="pl-10"
           />
         </div>
+        <Button
+          variant="outline"
+          onClick={() => setSortOrder((prev) => (prev === "desc" ? "asc" : "desc"))}
+        >
+          Sort: {sortOrder === "desc" ? "Newest" : "Oldest"}
+        </Button>
         <span className="text-sm text-gray-600">
-          Showing {filteredLogs.length} of {logs.length} logs
+          {filteredLogs.length > 0
+            ? `Showing ${startIndex + 1}-${Math.min(endIndex, filteredLogs.length)} of ${filteredLogs.length} logs`
+            : "Showing 0 logs"}
         </span>
       </div>
 
@@ -168,7 +195,7 @@ export default function ActivityLogsPage() {
           </div>
 
           <div className="divide-y">
-            {filteredLogs.map((log) => (
+            {paginatedLogs.map((log) => (
               <div key={log.log_id} className="grid grid-cols-7 gap-4 px-6 py-4 hover:bg-gray-50 transition">
                 <div className="text-sm text-gray-700">
                   {new Date(log.created_at).toLocaleString()}
@@ -193,6 +220,48 @@ export default function ActivityLogsPage() {
               </div>
             ))}
           </div>
+        </div>
+      )}
+
+      {filteredLogs.length > 0 && totalPages > 1 && (
+        <div className="flex justify-center items-center gap-2 mt-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
+            disabled={safePage === 1}
+          >
+            &lt;
+          </Button>
+          {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+            const pageNum = totalPages <= 5
+              ? i + 1
+              : safePage <= 3
+                ? i + 1
+                : safePage >= totalPages - 2
+                  ? totalPages - 4 + i
+                  : safePage - 2 + i;
+
+            return (
+              <Button
+                key={pageNum}
+                variant={safePage === pageNum ? "default" : "outline"}
+                size="sm"
+                onClick={() => setCurrentPage(pageNum)}
+                className={safePage === pageNum ? "bg-[#E7A3B0] hover:bg-[#ca8c98]" : ""}
+              >
+                {pageNum}
+              </Button>
+            );
+          })}
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))}
+            disabled={safePage === totalPages}
+          >
+            &gt;
+          </Button>
         </div>
       )}
     </div>
