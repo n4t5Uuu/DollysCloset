@@ -1,30 +1,14 @@
 "use client";
 
 import React, { createContext, useContext, useState, useEffect } from "react";
-import { products as initialProducts, Product } from "@/data/product-test-data";
+import { 
+  Product, 
+  CatalogStatus, 
+  ActivityLog, 
+  FieldChange 
+} from "@/types/types";
+import { products as initialProducts } from "@/data/product-test-data";
 import { useUser } from "@/hooks/useUser";
-
-type CatalogStatus = "featured" | "standard" | "unlisted";
-
-export type FieldChange = {
-  field: string;
-  oldValue: any;
-  newValue: any;
-};
-
-export type ActivityLog = {
-  id: string;
-  timestamp: string;
-  action: "added" | "edited" | "deleted" | "status_changed" | "viewed" | "opened_edit";
-  productId?: string;
-  productName?: string;
-  statusFrom?: CatalogStatus;
-  statusTo?: CatalogStatus;
-  fieldChanges?: FieldChange[];
-  actorId?: string;
-  actorEmail?: string;
-  actorRole?: "admin" | "employee" | "unknown";
-};
 
 interface ProductContextType {
   productList: Product[];

@@ -1,3 +1,4 @@
+import { authHelper } from "@/lib/auth-helper";
 import { createServerSupabase } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import AdminDashboard from "@/components/dashboards/AdminDashboard";
@@ -9,7 +10,7 @@ export default async function DashboardPage() {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) redirect("/login");
 
-    const { data: userData } = await dataHelper.getUserRole(user.id, supabase);
+    const { data: userData } = await authHelper.getUserRole(user.id, supabase);
     
     if (userData?.role === 'admin') {
         return <AdminDashboard />;

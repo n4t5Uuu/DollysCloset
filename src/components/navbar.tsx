@@ -3,7 +3,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import UserProfileDropdown from "./user-profile-dropdown";
+import UserProfileDropdown from "./logout-button";
 
 const navLinks = ["Dashboard","Collection", "About", "Contact"];
 

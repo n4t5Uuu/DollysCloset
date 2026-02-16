@@ -1,33 +1,51 @@
 import { browserSupabase } from "./supabase/browser";
+import { createServerSupabase } from "./supabase/server";
+import { LogActivityProps } from "@/types/types";
 
 export const dataHelper = {
+    // retrieves the employees from the database
     async fetchEmployees() {
-        try {
-            const {data, error} = await browserSupabase.from("tbl_users")
-                .select('*');
-            
-            if(error)
-                throw error;
+        const {data, error} = await browserSupabase.from("tbl_users")
+            .select("*")
+            .eq("role", "Employee"); // check if ganto yung role mismo sa databases
 
-            console.log("Fetched Data: ",data)
-        } catch (error) {
-            console.log("Error Fetching Employees: ",error)
-        }
+            if (error) {
+                console.log("Error Fetching Employees: ", error)
+                return {data: null, error}
+            }
+
+        return {data, error: null}
     },
+    // retrieves the products from the database
+    async getProducts() {
+        const {data, error} = await browserSupabase.from("tbl_products")
+            .select("*")
 
-    async getUserRole(user_id: string, supabase: any = browserSupabase) {
-        const { data, error } = await supabase.from("tbl_users")
-            .select("role")
-            .eq("user_id", user_id)
-            .single()
+            if (error) {
+                console.log("Error Fetching Products: ", error)
+                return {data: null, error}
+            }
+
+        return {data, error: null}
+    }, 
+
+    // logs the activity of the user
+    async logActivity({actionType, productId = null, description = ""}: LogActivityProps) {
+        const supabase = await createServerSupabase()
+        const {error} = await supabase.from("tbl_activity_logs")
+            .insert({
+                action_type: actionType,
+                product_id: productId,
+                description: description
+            })
         
-        if (error) {
-            console.error("Error Fetching User Role: ", error)
-        } else {
-            console.log("User Role: ", data);
-        }
-
-        return { data, error };
-    },
-    
+            // returns false if it encountered an error
+            if (error) {
+                console.error("Error Logging Activity: ", error)
+                return false
+            }
+        
+            // returns true if the data is successfully inserted in the database
+            return true
+    }
 }

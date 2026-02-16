@@ -1,6 +1,7 @@
 // src/app/admin/layout.tsx
 import AdminSidebar from "@/components/admin/admin-sidebar";
 import { redirect } from "next/navigation";
+import { authHelper } from "@/lib/auth-helper";
 import { createServerSupabase } from "@/lib/supabase/server";
 import { dataHelper } from "@/lib/data-helper";
 import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
@@ -21,7 +22,7 @@ export default async function AdminLayout({
   if (!user) redirect("/login");
 
   // Check user role
-  const { data: userData, error } = await dataHelper.getUserRole(user.id, supabase);
+  const { data: userData, error } = await authHelper.getUserRole(user.id, supabase);
 
   // If user is not admin, redirect to employee dashboard
   if (error || userData?.role !== 'admin') {

@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import { authHelper } from "@/lib/auth-helper";
 import { createServerSupabase } from "@/lib/supabase/server";
 import AdminSidebar from "@/components/admin/admin-sidebar";
 import EmployeeSidebar from "@/components/employee/employee-sidebar";
@@ -11,7 +12,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
 
     if (!user) redirect("/login");
 
-    const { data: userData, error } = await dataHelper.getUserRole(user.id, supabase);
+    const { data: userData, error } = await authHelper.getUserRole(user.id, supabase);
 
     if (error || !userData) redirect("/login");
 

@@ -10,7 +10,7 @@ export function useUser() {
     const [loading, setLoading] = useState(true);
 
     async function fetchUserRole(userId: string) {
-        const { data } = await dataHelper.getUserRole(userId);
+        const { data } = await authHelper.getUserRole(userId);
         setUserRole(data?.role || null);
     }
 

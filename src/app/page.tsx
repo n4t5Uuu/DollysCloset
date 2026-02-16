@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { authHelper } from "@/lib/auth-helper";
-import { dataHelper } from "@/lib/data-helper";
+
 import { Eye, EyeOff } from "lucide-react";
 
 export default function Home() {
@@ -57,7 +57,7 @@ export default function Home() {
       console.log("Login successful, fetching role for:", authData.user.id);
 
       // Get user role from tbl_users
-      const { data: userRoleData, error: userError } = await dataHelper.getUserRole(authData.user.id);
+      const { data: userRoleData, error: userError } = await authHelper.getUserRole(authData.user.id);
 
       if (userError || !userRoleData) {
         console.error("Role fetch error:", userError);

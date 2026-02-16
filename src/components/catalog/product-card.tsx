@@ -5,7 +5,7 @@ import {
 } from "@/components/ui/card"
 
 import Image from "next/image"
-import { Product } from "@/data/product-test-data"
+import { Product } from "@/types/types"
 
 interface ProductCardProps {
     product?: Product;
