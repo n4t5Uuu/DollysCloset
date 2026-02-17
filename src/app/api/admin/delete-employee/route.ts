@@ -1,18 +1,7 @@
-import { createClient } from '@supabase/supabase-js';
 import { NextRequest, NextResponse } from 'next/server';
 import { authHelper } from "@/lib/auth-helper";
 import { dataHelper } from "@/lib/data-helper";
-
-const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!,
-  {
-    auth: {
-      autoRefreshToken: false,
-      persistSession: false
-    }
-  }
-);
+import { admin } from "@/lib/supabase/admin";
 
 export async function DELETE(request: NextRequest) {
   try {
@@ -23,14 +12,14 @@ export async function DELETE(request: NextRequest) {
     }
 
     const token = authHeader.replace('Bearer ', '');
-    const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(token);
+    const { data: { user }, error: authError } = await admin.auth.getUser(token);
     
     if (authError || !user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     // Check if user is admin
-    const { data: userData, error: userError } = await authHelper.getUserRole(user.id, supabaseAdmin);
+    const { data: userData, error: userError } = await authHelper.getUserRole(user.id, admin);
 
     if (userError || userData?.role !== 'admin') {
       return NextResponse.json({ error: 'Forbidden: Admin access required' }, { status: 403 });
@@ -46,14 +35,14 @@ export async function DELETE(request: NextRequest) {
     }
 
     // Delete auth user (this will cascade to tbl_users if foreign key is set up correctly)
-    const { error: deleteAuthError } = await supabaseAdmin.auth.admin.deleteUser(employee_id);
+    const { error: deleteAuthError } = await admin.auth.admin.deleteUser(employee_id);
 
     if (deleteAuthError) {
       return NextResponse.json({ error: deleteAuthError.message }, { status: 500 });
     }
 
     // If cascade isn't working, manually delete from tbl_users
-    const { error: deleteUserError } = await supabaseAdmin
+    const { error: deleteUserError } = await admin
       .from('tbl_users')
       .delete()
       .eq('user_id', employee_id);
@@ -68,7 +57,8 @@ export async function DELETE(request: NextRequest) {
       productId: null,
       description: 'Deleted employee',
       editor: editor,
-      user_id: employee_id
+      user_id: user.id,
+      supabase: admin
     });
 
     return NextResponse.json({ 

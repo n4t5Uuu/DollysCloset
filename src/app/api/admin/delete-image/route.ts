@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import { supabaseAdmin } from "@/lib/supabase/admin";
+import { admin } from "@/lib/supabase/admin";
+import { authHelper } from "@/lib/auth-helper";
 import { dataHelper } from "@/lib/data-helper";
-import { logActivity } from "@/lib/activity-logger";
 
 export async function DELETE(request: NextRequest) {
   try {
@@ -11,13 +11,13 @@ export async function DELETE(request: NextRequest) {
     }
 
     const token = authorization.replace("Bearer ", "");
-    const { data: { user }, error: userError } = await supabaseAdmin.auth.getUser(token);
+    const { data: { user }, error: userError } = await admin.auth.getUser(token);
 
     if (userError || !user) {
       return NextResponse.json({ error: "Invalid token" }, { status: 401 });
     }
 
-    const roleResponse = await dataHelper.getUserRole(user.id, supabaseAdmin);
+    const roleResponse = await authHelper.getUserRole(user.id, admin);
     if (roleResponse.error || roleResponse.data?.role !== "admin") {
       return NextResponse.json({ error: "Admin access required" }, { status: 403 });
     }
@@ -30,7 +30,7 @@ export async function DELETE(request: NextRequest) {
     }
 
     // Get image details
-    const { data: image, error: fetchError } = await supabaseAdmin
+    const { data: image, error: fetchError } = await admin
       .from("tbl_product_image")
       .select("*")
       .eq("image_id", imageId)
@@ -48,10 +48,10 @@ export async function DELETE(request: NextRequest) {
 
     // Delete from Supabase Storage
     const fileName = image_url.split("/").slice(-2).join("/");
-    await supabaseAdmin.storage.from("product-images").remove([fileName]);
+    await admin.storage.from("product-images").remove([fileName]);
 
     // Delete from database
-    const { error: deleteError } = await supabaseAdmin
+    const { error: deleteError } = await admin
       .from("tbl_product_image")
       .delete()
       .eq("image_id", imageId);
@@ -60,7 +60,7 @@ export async function DELETE(request: NextRequest) {
 
     // If deleted image was primary, set next highest display_order as primary
     if (is_primary) {
-      const { data: nextImages } = await supabaseAdmin
+      const { data: nextImages } = await admin
         .from("tbl_product_image")
         .select("*")
         .eq("product_id", product_id)
@@ -68,24 +68,24 @@ export async function DELETE(request: NextRequest) {
 
       if (nextImages && nextImages.length > 0) {
         // Update first remaining image as primary
-        await supabaseAdmin
+        await admin
           .from("tbl_product_image")
           .update({ is_primary: true })
           .eq("image_id", nextImages[0].image_id);
 
-        await supabaseAdmin
+        await admin
           .from("tbl_product")
           .update({ image_id: nextImages[0].image_id })
           .eq("product_id", productIdValue);
       } else {
-        await supabaseAdmin
+        await admin
           .from("tbl_product")
           .update({ image_id: null })
           .eq("product_id", productIdValue);
       }
     } else {
       // If deleted image was not primary, renumber display_order
-      const { data: images } = await supabaseAdmin
+      const { data: images } = await admin
         .from("tbl_product_image")
         .select("*")
         .eq("product_id", product_id)
@@ -93,7 +93,7 @@ export async function DELETE(request: NextRequest) {
 
       if (images) {
         for (let i = 0; i < images.length; i++) {
-          await supabaseAdmin
+          await admin
             .from("tbl_product_image")
             .update({ display_order: i + 1 })
             .eq("image_id", images[i].image_id);
@@ -103,13 +103,14 @@ export async function DELETE(request: NextRequest) {
 
     // Log activity
     const editor = user.email || user.user_metadata?.username || "Unknown";
-    await logActivity(
-      supabaseAdmin,
-      "delete_image",
-      productIdValue,
-      `Deleted image (was displaying as #${display_order})`,
-      editor
-    );
+    await dataHelper.logActivity({
+      actionType: "delete_image",
+      productId: productIdValue,
+      description: `Deleted image (was displaying as #${display_order})`,
+      editor: editor,
+      user_id: user.id,
+      supabase: admin
+    });
 
     return NextResponse.json({ success: true });
   } catch (error) {

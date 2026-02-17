@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { supabaseAdmin } from "@/lib/supabase/admin";
+import { admin } from "@/lib/supabase/admin";
 
 export async function GET(request: NextRequest) {
   try {
@@ -10,7 +10,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "Missing product_id" }, { status: 400 });
     }
 
-    const { data: images, error } = await supabaseAdmin
+    const { data: images, error } = await admin
       .from("tbl_product_image")
       .select("*")
       .eq("product_id", productId)

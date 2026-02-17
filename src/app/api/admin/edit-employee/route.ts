@@ -1,18 +1,7 @@
-import { createClient } from '@supabase/supabase-js';
 import { NextRequest, NextResponse } from 'next/server';
 import { authHelper } from "@/lib/auth-helper";
 import { dataHelper } from "@/lib/data-helper";
-
-const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!,
-  {
-    auth: {
-      autoRefreshToken: false,
-      persistSession: false
-    }
-  }
-);
+import { admin } from "@/lib/supabase/admin";
 
 export async function PUT(request: NextRequest) {
   try {
@@ -23,14 +12,14 @@ export async function PUT(request: NextRequest) {
     }
 
     const token = authHeader.replace('Bearer ', '');
-    const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(token);
+    const { data: { user }, error: authError } = await admin.auth.getUser(token);
     
     if (authError || !user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     // Check if user is admin
-    const { data: userData, error: userError } = await authHelper.getUserRole(user.id, supabaseAdmin);
+    const { data: userData, error: userError } = await authHelper.getUserRole(user.id, admin);
 
     if (userError || userData?.role !== 'admin') {
       return NextResponse.json({ error: 'Forbidden: Admin access required' }, { status: 403 });
@@ -47,7 +36,7 @@ export async function PUT(request: NextRequest) {
     }
 
     // Fetch current employee to track changes
-    const { data: currentEmployee } = await supabaseAdmin
+    const { data: currentEmployee } = await admin
       .from('tbl_users')
       .select('*')
       .eq('user_id', employee_id)
@@ -63,7 +52,7 @@ export async function PUT(request: NextRequest) {
     }
 
     // Update tbl_users
-    const { error: updateError } = await supabaseAdmin
+    const { error: updateError } = await admin
       .from('tbl_users')
       .update({
         username: username,
@@ -78,7 +67,7 @@ export async function PUT(request: NextRequest) {
 
     // Update password if provided
     if (password) {
-      const { error: passwordError } = await supabaseAdmin.auth.admin.updateUserById(
+      const { error: passwordError } = await admin.auth.admin.updateUserById(
         employee_id,
         { password: password }
       );
@@ -94,7 +83,8 @@ export async function PUT(request: NextRequest) {
       productId: null,
       description: changes.length > 0 ? `Updated employee "${first_name} ${last_name}": ${changes.join(', ')}` : `Updated employee "${first_name} ${last_name}"`,
       editor: editor,
-      user_id: employee_id
+      user_id: user.id,
+      supabase: admin
     });
 
     return NextResponse.json({ 

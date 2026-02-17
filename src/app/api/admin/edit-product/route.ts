@@ -1,19 +1,7 @@
-import { createClient } from '@supabase/supabase-js';
 import { NextRequest, NextResponse } from 'next/server';
 import { authHelper } from "@/lib/auth-helper";
 import { dataHelper } from "@/lib/data-helper";
-
-
-const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!,
-  {
-    auth: {
-      autoRefreshToken: false,
-      persistSession: false
-    }
-  }
-);
+import { admin } from "@/lib/supabase/admin";
 
 export async function PUT(request: NextRequest) {
   try {
@@ -24,14 +12,14 @@ export async function PUT(request: NextRequest) {
     }
 
     const token = authHeader.replace('Bearer ', '');
-    const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(token);
+    const { data: { user }, error: authError } = await admin.auth.getUser(token);
     
     if (authError || !user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     // Check if user is admin
-    const { data: userData, error: userError } = await authHelper.getUserRole(user.id, supabaseAdmin);
+    const { data: userData, error: userError } = await authHelper.getUserRole(user.id, admin);
 
     if (userError || userData?.role !== 'admin') {
       return NextResponse.json({ error: 'Forbidden: Admin access required' }, { status: 403 });
@@ -48,7 +36,7 @@ export async function PUT(request: NextRequest) {
     }
 
     // Fetch current product to track changes
-    const { data: currentProduct } = await supabaseAdmin
+    const { data: currentProduct } = await admin
       .from('tbl_product')
       .select('*')
       .eq('product_id', product_id)
@@ -69,7 +57,7 @@ export async function PUT(request: NextRequest) {
     }
 
     // Update tbl_product
-    const { error: updateError } = await supabaseAdmin
+    const { error: updateError } = await admin
       .from('tbl_product')
       .update({
         product_name,
@@ -96,7 +84,8 @@ export async function PUT(request: NextRequest) {
       productId: product_id,
       description: changes.length > 0 ? `Updated product "${product_name}": ${changes.join(', ')}` : `Updated product "${product_name}"`,
       editor: editor,
-      user_id: user.id
+      user_id: user.id,
+      supabase: admin
     });
 
     return NextResponse.json({ 

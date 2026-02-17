@@ -1,18 +1,7 @@
-import { createClient } from '@supabase/supabase-js';
 import { NextRequest, NextResponse } from 'next/server';
 import { authHelper } from "@/lib/auth-helper";
 import { dataHelper } from "@/lib/data-helper";
-
-const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!,
-  {
-    auth: {
-      autoRefreshToken: false,
-      persistSession: false
-    }
-  }
-);
+import { admin } from "@/lib/supabase/admin";
 
 export async function DELETE(request: NextRequest) {
   try {
@@ -23,14 +12,14 @@ export async function DELETE(request: NextRequest) {
     }
 
     const token = authHeader.replace('Bearer ', '');
-    const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(token);
+    const { data: { user }, error: authError } = await admin.auth.getUser(token);
     
     if (authError || !user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     // Check if user is admin
-    const { data: userData, error: userError } = await authHelper.getUserRole(user.id, supabaseAdmin);
+    const { data: userData, error: userError } = await authHelper.getUserRole(user.id, admin);
 
     if (userError || userData?.role !== 'admin') {
       return NextResponse.json({ error: 'Forbidden: Admin access required' }, { status: 403 });
@@ -54,7 +43,7 @@ export async function DELETE(request: NextRequest) {
     }
 
     // Fetch product images for cleanup
-    const { data: images, error: imagesError } = await supabaseAdmin
+    const { data: images, error: imagesError } = await admin
       .from('tbl_product_image')
       .select('image_id, image_url')
       .in('product_id', productIds);
@@ -70,10 +59,10 @@ export async function DELETE(request: NextRequest) {
         .filter((path) => path);
 
       if (filePaths.length > 0) {
-        await supabaseAdmin.storage.from('product-images').remove(filePaths);
+        await admin.storage.from('product-images').remove(filePaths);
       }
 
-      const { error: imageDeleteError } = await supabaseAdmin
+      const { error: imageDeleteError } = await admin
         .from('tbl_product_image')
         .delete()
         .in('product_id', productIds);
@@ -85,7 +74,7 @@ export async function DELETE(request: NextRequest) {
     }
 
     // Delete from tbl_product
-    const { error: deleteError } = await supabaseAdmin
+    const { error: deleteError } = await admin
       .from('tbl_product')
       .delete()
       .in('product_id', productIds);
@@ -101,7 +90,8 @@ export async function DELETE(request: NextRequest) {
       productId: null,
       description: `Bulk deleted ${product_ids.length} product(s)`,
       editor: editor,
-      user_id: user.id
+      user_id: user.id,
+      supabase: admin
     });
 
     return NextResponse.json({ 

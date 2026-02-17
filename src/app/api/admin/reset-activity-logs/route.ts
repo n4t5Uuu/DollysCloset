@@ -1,9 +1,9 @@
-import { supabaseAdmin } from "@/lib/supabase/admin";
+import { admin } from "@/lib/supabase/admin";
 import { NextResponse } from "next/server";
 
 export async function POST(request: Request) {
   try {
-    const { error } = await supabaseAdmin
+    const { error } = await admin
       .from("tbl_activity_log")
       .delete()
       .gte("log_id", 0);

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import { supabaseAdmin } from "@/lib/supabase/admin";
+import { admin } from "@/lib/supabase/admin";
+import { authHelper } from "@/lib/auth-helper";
 import { dataHelper } from "@/lib/data-helper";
-import { logActivity } from "@/lib/activity-logger";
 
 export async function PUT(request: NextRequest) {
   try {
@@ -11,13 +11,13 @@ export async function PUT(request: NextRequest) {
     }
 
     const token = authorization.replace("Bearer ", "");
-    const { data: { user }, error: userError } = await supabaseAdmin.auth.getUser(token);
+    const { data: { user }, error: userError } = await admin.auth.getUser(token);
 
     if (userError || !user) {
       return NextResponse.json({ error: "Invalid token" }, { status: 401 });
     }
 
-    const roleResponse = await dataHelper.getUserRole(user.id, supabaseAdmin);
+    const roleResponse = await authHelper.getUserRole(user.id, admin);
     if (roleResponse.error || roleResponse.data?.role !== "admin") {
       return NextResponse.json({ error: "Admin access required" }, { status: 403 });
     }
@@ -30,14 +30,14 @@ export async function PUT(request: NextRequest) {
 
     // Update display_order for each image based on new order
     for (let i = 0; i < orderedImageIds.length; i++) {
-        await supabaseAdmin
+        await admin
           .from("tbl_product_image")
         .update({ display_order: i + 1 })
         .eq("image_id", orderedImageIds[i]);
     }
 
     // Get updated images
-    const { data: updatedImages } = await supabaseAdmin
+    const { data: updatedImages } = await admin
       .from("tbl_product_image")
       .select("*")
       .eq("product_id", product_id)
@@ -45,13 +45,14 @@ export async function PUT(request: NextRequest) {
 
     // Log activity
     const editor = user.email || user.user_metadata?.username || "Unknown";
-    await logActivity(
-      supabaseAdmin,
-      "reorder_images",
-      parseInt(product_id),
-      `Reordered product images`,
-      editor
-    );
+    await dataHelper.logActivity({
+      actionType: "reorder_images",
+      productId: parseInt(product_id),
+      description: "Reordered product images",
+      editor: editor,
+      user_id: user.id,
+      supabase: admin
+    });
 
     return NextResponse.json(updatedImages);
   } catch (error) {

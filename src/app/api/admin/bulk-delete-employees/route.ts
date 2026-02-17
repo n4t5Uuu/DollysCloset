@@ -1,17 +1,7 @@
-import { createClient } from '@supabase/supabase-js';
 import { NextRequest, NextResponse } from 'next/server';
+import { authHelper } from "@/lib/auth-helper";
 import { dataHelper } from "@/lib/data-helper";
-
-const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!,
-  {
-    auth: {
-      autoRefreshToken: false,
-      persistSession: false
-    }
-  }
-);
+import { admin } from "@/lib/supabase/admin";
 
 export async function DELETE(request: NextRequest) {
   try {
@@ -22,14 +12,14 @@ export async function DELETE(request: NextRequest) {
     }
 
     const token = authHeader.replace('Bearer ', '');
-    const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(token);
+    const { data: { user }, error: authError } = await admin.auth.getUser(token);
     
     if (authError || !user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     // Check if user is admin
-    const { data: userData, error: userError } = await dataHelper.getUserRole(user.id, supabaseAdmin);
+    const { data: userData, error: userError } = await authHelper.getUserRole(user.id, admin);
 
     if (userError || userData?.role !== 'admin') {
       return NextResponse.json({ error: 'Forbidden: Admin access required' }, { status: 403 });
@@ -44,7 +34,7 @@ export async function DELETE(request: NextRequest) {
 
     // Delete auth users one by one (Supabase admin API doesn't support bulk delete)
     const deletePromises = employee_ids.map(id => 
-      supabaseAdmin.auth.admin.deleteUser(id)
+      admin.auth.admin.deleteUser(id)
     );
 
     const results = await Promise.allSettled(deletePromises);
@@ -56,13 +46,32 @@ export async function DELETE(request: NextRequest) {
     }
 
     // Delete from tbl_users (in case cascade didn't work)
-    const { error: deleteUserError } = await supabaseAdmin
+    const { error: deleteUserError } = await admin
       .from('tbl_users')
       .delete()
       .in('user_id', employee_ids);
 
     if (deleteUserError) {
       return NextResponse.json({ error: deleteUserError.message }, { status: 500 });
+    }
+
+    return NextResponse.json({ 
+      success: true, 
+      message: `Successfully deleted ${employee_ids.length} employee(s)`,
+      failed_count: failures.length
+    });
+
+    // Log activity
+    if (user) {
+      const editor = user.email || user.user_metadata?.username || 'Unknown';
+      await dataHelper.logActivity({
+        actionType: 'delete_employee',
+        productId: null,
+        description: `Bulk deleted ${employee_ids.length} employee(s)`,
+        editor: editor,
+        user_id: user.id,
+        supabase: admin
+      });
     }
 
     return NextResponse.json({ 

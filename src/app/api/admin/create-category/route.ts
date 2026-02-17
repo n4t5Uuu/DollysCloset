@@ -1,18 +1,7 @@
-import { createClient } from '@supabase/supabase-js';
 import { NextRequest, NextResponse } from 'next/server';
 import { authHelper } from "@/lib/auth-helper";
 import { dataHelper } from "@/lib/data-helper";
-
-const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!,
-  {
-    auth: {
-      autoRefreshToken: false,
-      persistSession: false
-    }
-  }
-);
+import { admin } from "@/lib/supabase/admin";
 
 export async function POST(request: NextRequest) {
   try {
@@ -23,14 +12,14 @@ export async function POST(request: NextRequest) {
     }
 
     const token = authHeader.replace('Bearer ', '');
-    const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(token);
+    const { data: { user }, error: authError } = await admin.auth.getUser(token);
     
     if (authError || !user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     // Check if user is admin
-    const { data: userData, error: userError } = await authHelper.getUserRole(user.id, supabaseAdmin);
+    const { data: userData, error: userError } = await authHelper.getUserRole(user.id, admin);
 
     if (userError || userData?.role !== 'admin') {
       return NextResponse.json({ error: 'Forbidden: Admin access required' }, { status: 403 });
@@ -47,7 +36,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Insert into tbl_category
-    const { data: category, error: insertError } = await supabaseAdmin
+    const { data: category, error: insertError } = await admin
       .from('tbl_category')
       .insert([
         {
@@ -69,7 +58,8 @@ export async function POST(request: NextRequest) {
       productId: null,
       description: `Created category: ${category_name}`,
       editor: editor,
-      user_id: user.id
+      user_id: user.id,
+      supabase: admin
     });
 
     // Construct the category object to return immediately

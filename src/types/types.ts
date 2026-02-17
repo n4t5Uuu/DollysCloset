@@ -21,6 +21,7 @@ export interface LogActivityProps {
     description?: string;
     editor?: string | null;
     user_id?: string | number | null;
+    supabase?: any;
 }
 
 export type FieldChange = {

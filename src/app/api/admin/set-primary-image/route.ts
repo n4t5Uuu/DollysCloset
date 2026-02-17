@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import { supabaseAdmin } from "@/lib/supabase/admin";
+import { admin } from "@/lib/supabase/admin";
+import { authHelper } from "@/lib/auth-helper";
 import { dataHelper } from "@/lib/data-helper";
-import { logActivity } from "@/lib/activity-logger";
 
 export async function PUT(request: NextRequest) {
   try {
@@ -11,13 +11,13 @@ export async function PUT(request: NextRequest) {
     }
 
     const token = authorization.replace("Bearer ", "");
-    const { data: { user }, error: userError } = await supabaseAdmin.auth.getUser(token);
+    const { data: { user }, error: userError } = await admin.auth.getUser(token);
 
     if (userError || !user) {
       return NextResponse.json({ error: "Invalid token" }, { status: 401 });
     }
 
-    const roleResponse = await dataHelper.getUserRole(user.id, supabaseAdmin);
+    const roleResponse = await authHelper.getUserRole(user.id, admin);
     if (roleResponse.error || roleResponse.data?.role !== "admin") {
       return NextResponse.json({ error: "Admin access required" }, { status: 403 });
     }
@@ -34,7 +34,7 @@ export async function PUT(request: NextRequest) {
     }
 
     // Get all images for this product
-    const { data: images, error: fetchError } = await supabaseAdmin
+    const { data: images, error: fetchError } = await admin
       .from("tbl_product_image")
       .select("*")
       .eq("product_id", productIdValue)
@@ -51,13 +51,13 @@ export async function PUT(request: NextRequest) {
     }
 
     // Set all images to not primary
-    await supabaseAdmin
+    await admin
       .from("tbl_product_image")
       .update({ is_primary: false })
       .eq("product_id", productIdValue);
 
     // Set the selected image as primary
-    await supabaseAdmin
+    await admin
       .from("tbl_product_image")
       .update({ is_primary: true })
       .eq("image_id", image_id);
@@ -66,12 +66,12 @@ export async function PUT(request: NextRequest) {
     let orderCounter = 2;
     for (const img of images) {
       if (img.image_id === image_id) {
-        await supabaseAdmin
+        await admin
           .from("tbl_product_image")
           .update({ display_order: 1 })
           .eq("image_id", image_id);
       } else {
-        await supabaseAdmin
+        await admin
           .from("tbl_product_image")
           .update({ display_order: orderCounter })
           .eq("image_id", img.image_id);
@@ -80,26 +80,27 @@ export async function PUT(request: NextRequest) {
     }
 
     // Get updated images
-    const { data: updatedImages } = await supabaseAdmin
+    const { data: updatedImages } = await admin
       .from("tbl_product_image")
       .select("*")
       .eq("product_id", productIdValue)
       .order("display_order", { ascending: true });
 
-    await supabaseAdmin
+    await admin
       .from("tbl_product")
       .update({ image_id })
       .eq("product_id", productIdValue);
 
     // Log activity
     const editor = user.email || user.user_metadata?.username || "Unknown";
-    await logActivity(
-      supabaseAdmin,
-      "set_primary_image",
-      productIdValue,
-      "Picture changed",
-      editor
-    );
+    await dataHelper.logActivity({
+      actionType: "set_primary_image",
+      productId: productIdValue,
+      description: "Picture changed",
+      editor: editor,
+      user_id: user.id,
+      supabase: admin
+    });
 
     return NextResponse.json(updatedImages);
   } catch (error) {

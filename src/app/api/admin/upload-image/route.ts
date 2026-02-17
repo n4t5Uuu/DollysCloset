@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import { supabaseAdmin } from "@/lib/supabase/admin";
+import { admin } from "@/lib/supabase/admin";
+import { authHelper } from "@/lib/auth-helper";
 import { dataHelper } from "@/lib/data-helper";
-import { logActivity } from "@/lib/activity-logger";
 
 export async function POST(request: NextRequest) {
   try {
@@ -11,13 +11,13 @@ export async function POST(request: NextRequest) {
     }
 
     const token = authorization.replace("Bearer ", "");
-    const { data: { user }, error: userError } = await supabaseAdmin.auth.getUser(token);
+    const { data: { user }, error: userError } = await admin.auth.getUser(token);
 
     if (userError || !user) {
       return NextResponse.json({ error: "Invalid token" }, { status: 401 });
     }
 
-    const roleResponse = await dataHelper.getUserRole(user.id, supabaseAdmin);
+    const roleResponse = await authHelper.getUserRole(user.id, admin);
     if (roleResponse.error || roleResponse.data?.role !== "admin") {
       return NextResponse.json({ error: "Admin access required" }, { status: 403 });
     }
@@ -36,7 +36,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Check max 5 images per product
-    const { data: existingImages, error: fetchError } = await supabaseAdmin
+    const { data: existingImages, error: fetchError } = await admin
       .from("tbl_product_image")
       .select("image_id")
       .eq("product_id", productIdValue);
@@ -55,7 +55,7 @@ export async function POST(request: NextRequest) {
     const fileName = `${productId}/${Date.now()}-${file.name}`;
     const fileBuffer = Buffer.from(await file.arrayBuffer());
 
-    const { data: uploadData, error: uploadError } = await supabaseAdmin.storage
+    const { data: uploadData, error: uploadError } = await admin.storage
       .from("product-images")
       .upload(fileName, fileBuffer, {
         contentType: file.type,
@@ -70,7 +70,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Get public URL
-    const { data: { publicUrl } } = supabaseAdmin.storage
+    const { data: { publicUrl } } = admin.storage
       .from("product-images")
       .getPublicUrl(fileName);
 
@@ -79,7 +79,7 @@ export async function POST(request: NextRequest) {
     const isFirstImage = (existingImages?.length || 0) === 0;
 
     // Insert image record
-    const { data: imageData, error: insertError } = await supabaseAdmin
+    const { data: imageData, error: insertError } = await admin
       .from("tbl_product_image")
       .insert({
         product_id: productIdValue,
@@ -100,14 +100,14 @@ export async function POST(request: NextRequest) {
 
     // Update product's image_id if this is the first image or product has no image yet
     if (imageData.image_id) {
-      const { data: productRow } = await supabaseAdmin
+      const { data: productRow } = await admin
         .from("tbl_product")
         .select("image_id")
         .eq("product_id", productIdValue)
         .single();
 
       if (isFirstImage || productRow?.image_id == null) {
-        await supabaseAdmin
+        await admin
           .from("tbl_product")
           .update({ image_id: imageData.image_id })
           .eq("product_id", productIdValue);
@@ -116,13 +116,14 @@ export async function POST(request: NextRequest) {
 
     // Log activity
     const editor = user.email || user.user_metadata?.username || "Unknown";
-    await logActivity(
-      supabaseAdmin,
-      "upload_image",
-      productIdValue,
-      `Uploaded image: ${file.name}`,
-      editor
-    );
+    await dataHelper.logActivity({
+      actionType: "upload_image",
+      productId: productIdValue,
+      description: `Uploaded image: ${file.name}`,
+      editor: editor,
+      user_id: user.id,
+      supabase: admin
+    });
 
     return NextResponse.json(imageData, { status: 201 });
   } catch (error) {

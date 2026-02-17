@@ -1,19 +1,7 @@
-import { createClient } from '@supabase/supabase-js';
 import { NextRequest, NextResponse } from 'next/server';
 import { authHelper } from "@/lib/auth-helper";
 import { dataHelper } from "@/lib/data-helper";
-
-// Create a Supabase client with service role key
-const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!, // Service role key
-  {
-    auth: {
-      autoRefreshToken: false,
-      persistSession: false
-    }
-  }
-);
+import { admin } from "@/lib/supabase/admin";
 
 export async function POST(request: NextRequest) {
   try {
@@ -24,14 +12,14 @@ export async function POST(request: NextRequest) {
     }
 
     const token = authHeader.replace('Bearer ', '');
-    const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(token);
+    const { data: { user }, error: authError } = await admin.auth.getUser(token);
     
     if (authError || !user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     // Check if user is admin
-    const { data: userData, error: userError } = await authHelper.getUserRole(user.id, supabaseAdmin);
+    const { data: userData, error: userError } = await authHelper.getUserRole(user.id, admin);
 
     if (userError || userData?.role !== 'admin') {
       return NextResponse.json({ error: 'Forbidden: Admin access required' }, { status: 403 });
@@ -48,7 +36,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Create auth user using Admin API
-    const { data: authData, error: createError } = await supabaseAdmin.auth.admin.createUser({
+    const { data: authData, error: createError } = await admin.auth.admin.createUser({
       email: username,
       password: password,
       email_confirm: true,
@@ -66,7 +54,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Update tbl_users with additional info
-    const { error: updateError } = await supabaseAdmin
+    const { error: updateError } = await admin
       .from('tbl_users')
       .update({
         username: username,
@@ -78,7 +66,7 @@ export async function POST(request: NextRequest) {
 
     if (updateError) {
       // Rollback: delete auth user if update fails
-      await supabaseAdmin.auth.admin.deleteUser(authData.user.id);
+      await admin.auth.admin.deleteUser(authData.user.id);
       return NextResponse.json({ error: updateError.message }, { status: 500 });
     }
 
@@ -88,7 +76,8 @@ export async function POST(request: NextRequest) {
       productId: null,
       description: `Created employee: ${first_name} ${last_name} (${username})`,
       editor: editor,
-      user_id: authData.user.id
+      user_id: user.id,
+      supabase: admin
     });
 
     return NextResponse.json({ 
