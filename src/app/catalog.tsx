@@ -9,7 +9,7 @@ import CatalogSidebar from "@/components/catalog/catalog-sidebar";
 import ProductCard from "@/components/catalog/product-card";
 import ProductModal from "@/components/catalog/product-modal";
 import { useProducts } from "@/contexts/ProductContext";
-import { Product } from "@/data/product-test-data";
+import { Product } from "@/types/types";
 
 export default function CatalogPage() {
     const { productList, catalogStatus } = useProducts();
@@ -73,7 +73,7 @@ export default function CatalogPage() {
 
             {/* For the Collections */}
             <div className="w-full space-y-8">
-                <div className="flex justify-between items-center bg-[#E7A3B0] h-[60px] w-full px-8">
+                <div className="flex justify-between items-center bg-[#E7A3B0] h-[60px] w-full px-8 sticky top-[80px] z-40 shadow-sm">
                     <h2 className="!font-playfair-display font-bold text-2xl text-[#121212]">
                         Our Collections
                     </h2>
@@ -81,7 +81,7 @@ export default function CatalogPage() {
                 </div>
 
                 <div className="w-full px-8 grid grid-cols-5">
-                    <div className="col-span-1">
+                    <div className="col-span-1 sticky top-[150px] h-fit self-start">
                         <CatalogSidebar activeFilter={activeFilter} sortBy={sortBy} onFilterChange={setActiveFilter} onSortChange={setSortBy} />
                     </div>
                     <div className="col-span-4">

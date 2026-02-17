@@ -16,6 +16,7 @@ export const dataHelper = {
 
         return {data, error: null}
     },
+
     // retrieves the products from the database
     async getProducts() {
         const {data, error} = await browserSupabase.from("tbl_products")
@@ -28,6 +29,12 @@ export const dataHelper = {
 
         return {data, error: null}
     }, 
+
+    async updateProduct() {
+        
+    },
+
+    
 
     // logs the activity of the user
     async logActivity({actionType, productId = null, description = "", editor = null, user_id = null, supabase = null}: LogActivityProps) {
@@ -50,5 +57,5 @@ export const dataHelper = {
         
             // returns true if the data is successfully inserted in the database
             return true
-    }
+    },
 }

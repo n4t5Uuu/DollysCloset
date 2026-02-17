@@ -137,7 +137,7 @@ export default function About() {
                                     <AccordionContent className="text-gray-600 pb-4 leading-relaxed">
                                         {faq.answer}
                                     </AccordionContent>
-                                </AccordionItem>
+                                </AccordionItem>    
                             ))}
                         </Accordion>
                     </div>
