@@ -54,29 +54,8 @@ export default function Home() {
         return;
       }
 
-      console.log("Login successful, fetching role for:", authData.user.id);
-
-      // Get user role from tbl_users
-      const { data: userRoleData, error: userError } = await authHelper.getUserRole(authData.user.id);
-
-      if (userError || !userRoleData) {
-        console.error("Role fetch error:", userError);
-        setError("Failed to fetch user data: " + (userError?.message || "Unknown error"));
-        setLoading(false);
-        return;
-      }
-
-      console.log("User role found:", userRoleData.role);
-
-      // Redirect based on role
-      router.refresh(); // Refresh to ensure middleware picks up the new session
-      if (userRoleData.role === 'admin' || userRoleData.role === 'employee') {
-        router.push('/dashboard');
-      } else {
-        console.warn("Invalid/Unauthorized role:", userRoleData.role);
-        setError("Invalid user role");
-        setLoading(false);
-      }
+      console.log("Login successful, redirecting to dashboard...");
+      router.push('/dashboard');
 
     } catch (err: unknown) {
       console.error("Unexpected error in handleSubmit:", err);
