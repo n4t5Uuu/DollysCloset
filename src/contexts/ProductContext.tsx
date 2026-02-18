@@ -6,7 +6,7 @@ import {
   CatalogStatus, 
   ActivityLog, 
   FieldChange 
-} from "@/types/types";
+} from "@/types/product.types";
 import { products as initialProducts } from "@/data/product-test-data";
 import { useUser } from "@/hooks/useUser";
 

@@ -5,7 +5,7 @@ import {
 } from "@/components/ui/card"
 
 import Image from "next/image"
-import { Product } from "@/types/types"
+import { Product } from "@/types/product.types"
 import { Heart } from "lucide-react"
 
 interface ProductCardProps {

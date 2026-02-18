@@ -5,9 +5,6 @@ import { Plus, Trash, Loader2, AlertTriangle, Search, Eye, Pencil, Trash2, X } f
 import { browserSupabase } from "@/lib/supabase/browser";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import ProductImageUpload from "@/components/product-image-upload";
-import ImageSelector from "@/components/image-selector";
 import {
   Select,
   SelectContent,
@@ -23,37 +20,9 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-
-interface Product {
-  product_id: string;
-  product_name: string;
-  category_id: number;
-  product_price: number;
-  product_brand: string;
-  product_description: string;
-  product_stock: number;
-  product_condition: string;
-  size_label: string;
-  show_in_catalog: boolean;
-  image_id: string | null;
-  created_at: string;
-}
-
-interface ProductImage {
-  image_id: string;
-  product_id: string;
-  image_url: string;
-  is_primary: boolean;
-  display_order: number;
-  created_at: string;
-}
-
-interface Category {
-  category_id: number;
-  category_name: string;
-  category_description: string;
-  parent_category: number | null;
-}
+import AddProduct from "@/components/modals/AddProduct";
+import AddCategory from "@/components/modals/AddCategory";
+import { InventoryProduct as Product, InventoryCategory as Category, InventoryProductImage as ProductImage } from "@/types/inventory.types";
 
 export default function AdminInventoryPage() {
   const [products, setProducts] = useState<Product[]>([]);
@@ -74,26 +43,6 @@ export default function AdminInventoryPage() {
   const [viewImages, setViewImages] = useState<ProductImage[]>([]);
 
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
-  const [productImages, setProductImages] = useState<ProductImage[]>([]);
-  const [stagedFiles, setStagedFiles] = useState<File[]>([]);
-  const [formData, setFormData] = useState({
-    product_name: "",
-    category_id: "",
-    product_price: "",
-    product_brand: "",
-    product_description: "",
-    product_stock: "",
-    product_condition: "New",
-    size_label: "One Size",
-    show_in_catalog: true,
-    image_id: "",
-  });
-
-  const [categoryForm, setCategoryForm] = useState({
-    category_name: "",
-    category_description: "",
-    parent_category: "",
-  });
 
   const itemsPerPage = 10;
 
@@ -161,88 +110,18 @@ export default function AdminInventoryPage() {
 
   const getCategoryName = (id: number) => categories.find(c => c.category_id === id)?.category_name || 'Unknown';
 
-  const fetchProductImages = async (productId: string) => {
-    try {
-      const response = await fetch(`/api/admin/fetch-images?product_id=${productId}`);
-      if (response.ok) {
-        const result = await response.json();
-        setProductImages(result.data || []);
-      }
-    } catch (err) {
-      console.error('Error fetching images:', err);
-    }
-  };
-
-  const resetForm = () => {
-    setFormData({
-      product_name: "",
-      category_id: "",
-      product_price: "",
-      product_brand: "",
-      product_description: "",
-      product_stock: "",
-      product_condition: "New",
-      size_label: "One Size",
-      show_in_catalog: true,
-      image_id: "",
-    });
-    setEditingProduct(null);
-    setProductImages([]);
-    setStagedFiles([]);
-  };
-
-  const addStagedFiles = (files: File[]) => {
-    setStagedFiles([...stagedFiles, ...files]);
-  };
-
-  const removeStagedFile = (index: number) => {
-    setStagedFiles(stagedFiles.filter((_, i) => i !== index));
-  };
-
-  const uploadStagedImages = async (productId: string, session: any) => {
-    if (stagedFiles.length === 0) return;
-
-    try {
-      for (const file of stagedFiles) {
-        const formData = new FormData();
-        formData.append("file", file);
-        formData.append("product_id", productId);
-
-        const response = await fetch("/api/admin/upload-image", {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${session.access_token}`,
-          },
-          body: formData,
-        });
-
-        if (!response.ok) {
-          const error = await response.json();
-          const message = error.details
-            ? `${error.error}: ${error.details}`
-            : (error.error || "Image upload failed");
-          throw new Error(message);
-        }
-      }
-      setStagedFiles([]);
-    } catch (err) {
-      throw err;
-    }
-  };
-
   const openAddModal = () => {
-    resetForm();
+    setEditingProduct(null);
     setShowAddModal(true);
   };
 
   const closeModal = () => {
     setShowAddModal(false);
-    resetForm();
+    setEditingProduct(null);
   };
 
   const closeCategoryModal = () => {
     setShowCategoryModal(false);
-    setCategoryForm({ category_name: "", category_description: "", parent_category: "" });
   };
 
   const toggleSelectAll = (checked: boolean) => {
@@ -263,21 +142,8 @@ export default function AdminInventoryPage() {
     setSelectedProducts(newSelected);
   };
 
-  const handleEditProduct = async (product: Product) => {
+  const handleEditProduct = (product: Product) => {
     setEditingProduct(product);
-    setFormData({
-      product_name: product.product_name,
-      category_id: product.category_id.toString(),
-      product_price: product.product_price.toString(),
-      product_brand: product.product_brand,
-      product_description: product.product_description,
-      product_stock: product.product_stock.toString(),
-      product_condition: product.product_condition,
-      size_label: product.size_label,
-      show_in_catalog: product.show_in_catalog,
-      image_id: product.image_id || "",
-    });
-    await fetchProductImages(product.product_id);
     setShowAddModal(true);
   };
 
@@ -347,104 +213,6 @@ export default function AdminInventoryPage() {
       await fetchProducts();
     } catch (err: any) {
       setError(err.message || 'Failed to delete products');
-    } finally {
-      setActionLoading(false);
-    }
-  };
-
-  const handleAddProduct = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setActionLoading(true);
-    setError(null);
-    try {
-      if (!formData.product_name || !formData.category_id || !formData.product_price) {
-        throw new Error('Please fill in all required fields');
-      }
-      const { data: { session } } = await browserSupabase.auth.getSession();
-      if (!session) throw new Error('Not authenticated');
-      const endpoint = editingProduct ? '/api/admin/edit-product' : '/api/admin/create-product';
-      const method = editingProduct ? 'PUT' : 'POST';
-      const response = await fetch(endpoint, {
-        method,
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${session.access_token}`
-        },
-        body: JSON.stringify({
-          ...(editingProduct && { product_id: editingProduct.product_id }),
-          product_name: formData.product_name,
-          category_id: parseInt(formData.category_id),
-          product_price: formData.product_price,
-          product_brand: formData.product_brand || "Dolly's Closet",
-          product_description: formData.product_description,
-          product_stock: formData.product_stock,
-          product_condition: formData.product_condition,
-          size_label: formData.size_label,
-          show_in_catalog: formData.show_in_catalog,
-          image_id: formData.image_id || null,
-        })
-      });
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.error || 'Failed to save product');
-      await fetchProducts();
-      
-      // Upload staged images if this was a new product
-      if (!editingProduct && data.product?.product_id && stagedFiles.length > 0) {
-        await uploadStagedImages(data.product.product_id, session);
-      } else if (editingProduct) {
-        await fetchProductImages(editingProduct.product_id);
-      }
-      
-      closeModal();
-    } catch (err: any) {
-      setError(err.message || 'Failed to save product');
-    } finally {
-      setActionLoading(false);
-    }
-  };
-
-  const handleAddCategory = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setActionLoading(true);
-    setError(null);
-    try {
-      if (!categoryForm.category_name) throw new Error('Please enter a category name');
-      const { data: { session } } = await browserSupabase.auth.getSession();
-      if (!session) throw new Error('Not authenticated');
-      
-      console.log('Sending category data:', {
-        category_name: categoryForm.category_name,
-        category_description: categoryForm.category_description,
-        parent_category: categoryForm.parent_category ? parseInt(categoryForm.parent_category) : null,
-      });
-
-      const response = await fetch('/api/admin/create-category', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${session.access_token}`
-        },
-        body: JSON.stringify({
-          category_name: categoryForm.category_name,
-          category_description: categoryForm.category_description,
-          parent_category: categoryForm.parent_category && categoryForm.parent_category !== "none" ? parseInt(categoryForm.parent_category) : null,
-        })
-      });
-      
-      const data = await response.json();
-      
-      console.log('Category response:', { status: response.status, data });
-
-      if (!response.ok) throw new Error(data.error || `Failed to add category (Status: ${response.status})`);
-      
-      // Add new category to local state instead of refetching all
-      if (data.category) {
-        setCategories([...categories, data.category]);
-      }
-      closeCategoryModal();
-    } catch (err: any) {
-      console.error('Error adding category:', err);
-      setError(err.message || 'Failed to add category');
     } finally {
       setActionLoading(false);
     }
@@ -723,239 +491,26 @@ export default function AdminInventoryPage() {
         </div>
       )}
 
-      {showAddModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <Card className="bg-white w-full max-w-2xl max-h-[90vh] overflow-y-auto p-0">
-            <CardHeader className="flex flex-row items-center justify-between border-b p-6 space-y-0 text-gray-900">
-              <CardTitle className="text-gray-900">{editingProduct ? "Edit Product" : "Add Product"}</CardTitle>
-              <button onClick={closeModal} className="text-gray-400 hover:text-gray-600 cursor-pointer">
-                <X className="w-5 h-5" />
-              </button>
-            </CardHeader>
+      <AddProduct
+        isOpen={showAddModal}
+        onClose={closeModal}
+        categories={categories}
+        productToEdit={editingProduct}
+        onProductSaved={() => {
+          fetchProducts();
+          closeModal();
+        }}
+      />
 
-            <form onSubmit={handleAddProduct}>
-              <CardContent className="space-y-5 p-6">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Product Name <span className="text-red-500">*</span></label>
-                  <Input
-                    placeholder="Enter product name"
-                    value={formData.product_name}
-                    onChange={(e) => setFormData({ ...formData, product_name: e.target.value })}
-                    required
-                    className="border-gray-300 text-gray-900 bg-white placeholder:text-gray-800"
-                  />
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Category <span className="text-red-500">*</span></label>
-                    <Select value={formData.category_id} onValueChange={(value) => setFormData({ ...formData, category_id: value })}>
-                      <SelectTrigger className="border-black text-black bg-white data-[placeholder]:text-black">
-                        <SelectValue placeholder="Select category" />
-                      </SelectTrigger>
-                      <SelectContent className="bg-white text-black z-60">
-                        {categories.length === 0 ? (
-                          <SelectItem value="none" disabled>No categories found</SelectItem>
-                        ) : (
-                          categories.map((cat) => (
-                            <SelectItem key={cat.category_id} value={cat.category_id.toString()}>{cat.category_name}</SelectItem>
-                          ))
-                        )}
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Price <span className="text-red-500">*</span></label>
-                    <Input
-                      type="number"
-                      step="0.01"
-                      placeholder="0.00"
-                      value={formData.product_price}
-                      onChange={(e) => setFormData({ ...formData, product_price: e.target.value })}
-                      required
-                      className="border-gray-300 text-gray-900 bg-white placeholder:text-gray-800"
-                    />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Brand</label>
-                    <Input
-                      placeholder="e.g., Gucci"
-                      value={formData.product_brand}
-                      onChange={(e) => setFormData({ ...formData, product_brand: e.target.value })}
-                      className="border-gray-300 text-gray-900 bg-white placeholder:text-gray-800"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Stock</label>
-                    <Input
-                      type="number"
-                      placeholder="0"
-                      value={formData.product_stock}
-                      onChange={(e) => setFormData({ ...formData, product_stock: e.target.value })}
-                      className="border-gray-300 text-gray-900 bg-white placeholder:text-gray-800"
-                    />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Size Label</label>
-                    <Input
-                      placeholder="e.g., One Size, M, L"
-                      value={formData.size_label}
-                      onChange={(e) => setFormData({ ...formData, size_label: e.target.value })}
-                      className="border-gray-300 text-gray-900 bg-white placeholder:text-gray-800"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Condition</label>
-                    <Select value={formData.product_condition} onValueChange={(value) => setFormData({ ...formData, product_condition: value })}>
-                      <SelectTrigger className="border-gray-300 text-gray-900 bg-white data-[placeholder]:text-gray-800">
-                        <SelectValue />
-                      </SelectTrigger>
-
-                      <SelectContent className="bg-white text-gray-900 z-[60]">
-                        <SelectItem value="New">New</SelectItem>
-                        <SelectItem value="Like New">Like New</SelectItem>
-                        <SelectItem value="Good">Good</SelectItem>
-                        <SelectItem value="Fair">Fair</SelectItem>
-                      </SelectContent>
-                      
-                    </Select>
-                  </div>
-                </div>
-
-                {!editingProduct ? (
-                  <ImageSelector
-                    stagedFiles={stagedFiles}
-                    onFilesAdd={addStagedFiles}
-                    onFileRemove={removeStagedFile}
-                  />
-                ) : (
-                  <ProductImageUpload
-                    productId={editingProduct?.product_id || null}
-                    images={productImages}
-                    onImagesChange={setProductImages}
-                    loading={actionLoading}
-                  />
-                )}
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Description</label>
-                  <Textarea
-                    placeholder="Enter product description"
-                    value={formData.product_description}
-                    onChange={(e) => setFormData({ ...formData, product_description: e.target.value })}
-                    className="w-full border border-gray-300 rounded px-3 py-2 min-h-[80px] focus:outline-none focus:ring-2 focus:ring-pink-500 bg-white text-gray-900 placeholder:text-gray-800 resize-none"
-                  />
-                </div>
-
-                <div className="space-y-3">
-                  <div className="flex items-center gap-3">
-                    <Checkbox
-                      id="show_in_catalog"
-                      checked={formData.show_in_catalog}
-                      onCheckedChange={(checked) => setFormData({ ...formData, show_in_catalog: checked as boolean })}
-                    />
-                    <label htmlFor="show_in_catalog" className="text-sm font-medium text-gray-700 cursor-pointer">
-                      Show in Catalog
-                    </label>
-                  </div>
-                </div>
-              </CardContent>
-
-              <CardFooter className="flex gap-3 p-6 border-t bg-gray-50">
-                <Button type="button" variant="outline" onClick={closeModal} className="flex-1 border-gray-300 text-gray-700 bg-white hover:bg-white hover:text-black transition-all duration-300 hover:scale-105 hover:shadow-md hover:border-gray-400 active:scale-95">Cancel</Button>
-                <Button type="submit" className="flex-1 bg-[#E7A3B0] hover:bg-[#ca8c98] text-white transition-all duration-300 hover:scale-[1.03] active:scale-95 shadow-sm hover:shadow-md" disabled={actionLoading}>
-                  {actionLoading ? ( <>
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    Saving...
-                  </> ) : (
-                    editingProduct ? "✓ Update" : "✚ Add"
-                  )}
-                </Button>
-              </CardFooter>
-            </form>
-          </Card>
-        </div>
-      )}
-
-      {showCategoryModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <Card className="bg-white w-full max-w-lg p-0">
-            <CardHeader className="flex flex-row items-center justify-between border-b p-6 space-y-0">
-              <CardTitle>Add Category</CardTitle>
-              <button onClick={closeCategoryModal} className="text-gray-400 hover:text-gray-600"><X className="w-5 h-5" /></button>
-            </CardHeader>
-
-            <form onSubmit={handleAddCategory}>
-              <CardContent className="space-y-4 p-6">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Category Name <span className="text-red-500">*</span></label>
-                  <Input
-                    type="text"
-                    placeholder="e.g., Men's Top"
-                    value={categoryForm.category_name}
-                    onChange={(e) => setCategoryForm({ ...categoryForm, category_name: e.target.value })}
-                    required
-                    className="border-gray-300 text-gray-900 bg-white"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Description</label>
-                  <Input
-                    type="text"
-                    placeholder="e.g., Men's clothing items"
-                    value={categoryForm.category_description}
-                    onChange={(e) => setCategoryForm({ ...categoryForm, category_description: e.target.value })}
-                    className="border-gray-300 text-gray-900 bg-white"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Parent Category (Optional)</label>
-                  <Select value={categoryForm.parent_category || "none"} onValueChange={(value) => setCategoryForm({ ...categoryForm, parent_category: value === "none" ? "" : value })}>
-                    <SelectTrigger className="border-gray-300 text-gray-900 bg-white">
-                      <SelectValue placeholder="None" />
-                    </SelectTrigger>
-                    <SelectContent className="bg-white z-[60]">
-                      <SelectItem value="none">None</SelectItem>
-                      {categories.map((cat) => (
-                        <SelectItem key={cat.category_id} value={cat.category_id.toString()}>
-                          {cat.category_name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </CardContent>
-
-              <CardFooter className="flex gap-3 p-6 border-t bg-gray-50">
-                <Button type="button" variant="outline" onClick={closeCategoryModal} className="flex-1">Cancel</Button>
-                <Button 
-                  type="submit" 
-                  className="flex-1 bg-purple-500 hover:bg-purple-600 text-white" 
-                  disabled={actionLoading || !categoryForm.category_name}
-                >
-                  {actionLoading ? ( <>
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    Adding...
-                  </> ) : (
-                    "✚ Add Category"
-                  )}
-                </Button>
-              </CardFooter>
-            </form>
-          </Card>
-        </div>
-      )}
+      <AddCategory
+        isOpen={showCategoryModal}
+        onClose={closeCategoryModal}
+        categories={categories}
+        onCategoryAdded={(newCategory) => {
+          setCategories([...categories, newCategory]);
+          closeCategoryModal();
+        }}
+      />
     </div>
   );
 }

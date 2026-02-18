@@ -9,7 +9,7 @@ import CatalogSidebar from "@/components/catalog/catalog-sidebar";
 import ProductCard from "@/components/catalog/product-card";
 import ProductModal from "@/components/catalog/product-modal";
 import { useProducts } from "@/contexts/ProductContext";
-import { Product } from "@/types/types";
+import { Product } from "@/types/product.types";
 import { InfiniteSlider } from "@/components/motion-primitives/infinite-slider";
 
 export default function CatalogPage() {

@@ -1,28 +1,4 @@
-export interface Product {
-    id: string;
-    name: string;
-    category: string;
-    type: string;
-    price: number;
-    brand: string;
-    size: string;
-    condition: string;
-    description: string;
-    stock: number;
-    isNewArrival: boolean;
-    images: string[];
-}
-
 export type CatalogStatus = "featured" | "standard" | "unlisted";
-
-export interface LogActivityProps {
-    actionType: string;
-    productId?: number | null;
-    description?: string;
-    editor?: string | null;
-    user_id?: string | number | null;
-    supabase?: any;
-}
 
 export type FieldChange = {
     field: string;
@@ -43,3 +19,12 @@ export type ActivityLog = {
     actorEmail?: string;
     actorRole?: "admin" | "employee" | "unknown";
 };
+
+export interface LogActivityProps {
+    actionType: string;
+    productId?: number | null;
+    description?: string;
+    editor?: string | null;
+    user_id?: string | number | null;
+    supabase?: any;
+}

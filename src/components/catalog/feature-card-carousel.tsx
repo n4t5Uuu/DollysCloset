@@ -22,7 +22,7 @@ import { useEffect, useState, useRef }from "react";
 import Autoplay from "embla-carousel-autoplay";
 import {type CarouselApi} from "@/components/ui/carousel";
 import { useProducts } from "@/contexts/ProductContext";
-import { Product } from "@/types/types";
+import { Product } from "@/types/product.types";
 import Image from "next/image";
 
 interface FeatureCardCarouselProps {

@@ -1,6 +1,6 @@
 import { browserSupabase } from "./supabase/browser";
 import { createServerSupabase } from "./supabase/server";
-import { LogActivityProps } from "@/types/types";
+import { LogActivityProps } from "@/types/logs.types";
 
 export const dataHelper = {
     // retrieves the employees from the database

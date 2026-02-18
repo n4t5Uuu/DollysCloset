@@ -6,18 +6,8 @@ import { Plus, Edit2, Trash2, Eye, Search, ChevronUp, ChevronDown, X, AlertTrian
 import { browserSupabase } from "@/lib/supabase/browser";
 import { useRouter } from "next/navigation";
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from "@/components/ui/card";
-
-interface Employee {
-  user_key: string
-  id: string
-  user_id: string
-  username: string
-  first_name: string
-  last_name: string
-  role: string
-  created_at: string
-  updated_at: string
-};
+import AddEmployee from "@/components/modals/AddEmployee";
+import { Employee } from "@/types/employee.types";
 
 export default function EmployeesPage() {
   const router = useRouter();
@@ -37,13 +27,7 @@ export default function EmployeesPage() {
   const [actionLoading, setActionLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Form data
-  const [formData, setFormData] = useState({
-    username: "",
-    first_name: "",
-    last_name: "",
-    password: "",
-  });
+
 
   // Fetch employees 
   useEffect(() => {
@@ -124,19 +108,13 @@ export default function EmployeesPage() {
 
   // Modal handlers
   const openAddModal = () => {
-    setFormData({ username: "", first_name: "", last_name: "", password: "" });
+    setSelectedEmployee(null);
     setError(null);
     setShowAddModal(true);
   };
 
   const openEditModal = (employee: Employee) => {
     setSelectedEmployee(employee);
-    setFormData({
-      username: employee.username,
-      first_name: employee.first_name,
-      last_name: employee.last_name,
-      password: "",
-    });
     setError(null);
     setShowEditModal(true);
   };
@@ -152,100 +130,7 @@ export default function EmployeesPage() {
     setShowDeleteModal(true);
   };
 
-  const handleAddEmployee = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setActionLoading(true);
-    setError(null);
 
-    try {
-      // Get current session token
-      const { data: { session } } = await browserSupabase.auth.getSession();
-      
-      if (!session) {
-        throw new Error('Not authenticated');
-      }
-
-      // Call the API route
-      const response = await fetch('/api/admin/create-employee', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${session.access_token}`
-        },
-        body: JSON.stringify({
-          username: formData.username,
-          password: formData.password,
-          first_name: formData.first_name,
-          last_name: formData.last_name,
-        })
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || 'Failed to add employee');
-      }
-
-      // Refresh employee list
-      await fetchEmployees();
-      setShowAddModal(false);
-      setFormData({ username: "", first_name: "", last_name: "", password: "" });
-    } catch (err: any) {
-      console.error('Error adding employee:', err);
-      setError(err.message || 'Failed to add employee');
-    } finally {
-      setActionLoading(false);
-    }
-  };
-
-  const handleEditEmployee = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!selectedEmployee) return;
-
-    setActionLoading(true);
-    setError(null);
-
-    try {
-      // Get current session token
-      const { data: { session } } = await browserSupabase.auth.getSession();
-      
-      if (!session) {
-        throw new Error('Not authenticated');
-      }
-
-      // Call the API route
-      const response = await fetch('/api/admin/edit-employee', {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${session.access_token}`
-        },
-        body: JSON.stringify({
-          employee_id: selectedEmployee.user_id, 
-          username: formData.username,
-          first_name: formData.first_name,
-          last_name: formData.last_name,
-          password: formData.password || undefined,
-        })
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || 'Failed to update employee');
-      }
-
-      // Refresh employee list
-      await fetchEmployees();
-      setShowEditModal(false);
-      setSelectedEmployee(null);
-    } catch (err: any) {
-      console.error('Error updating employee:', err);
-      setError(err.message || 'Failed to update employee');
-    } finally {
-      setActionLoading(false);
-    }
-  };
 
   const handleDeleteEmployee = async () => {
     if (!selectedEmployee) return;
@@ -341,7 +226,7 @@ export default function EmployeesPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-[#faf8f8] via-white to-[#f5f0f0] flex items-center justify-center">
+      <div className="min-h-screen bg-linear-to-br from-[#faf8f8] via-white to-[#f5f0f0] flex items-center justify-center">
         <div className="flex flex-col items-center gap-4">
           <Loader2 className="w-12 h-12 text-[#E7A3B0] animate-spin" />
           <p className="text-gray-600 font-medium">Loading employees...</p>
@@ -351,17 +236,17 @@ export default function EmployeesPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#faf8f8] via-white to-[#f5f0f0]">
+    <div className="min-h-screen bg-linear-to-br from-[#faf8f8] via-white to-[#f5f0f0]">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="mb-8">
           <div className="flex items-center justify-between mb-2">
-            <h1 className="text-4xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent">
+            <h1 className="text-4xl font-bold bg-linear-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent">
               Manage Employees
             </h1>
             <button
               onClick={openAddModal}
-              className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-[#E7A3B0] to-[#f0b8c3] hover:from-[#d891a0] hover:to-[#E7A3B0] text-white rounded-lg font-medium transition-all duration-300 shadow-md hover:shadow-lg hover:scale-105 cursor-pointer"
+              className="flex items-center gap-2 px-5 py-2.5 bg-linear-to-r from-[#E7A3B0] to-[#f0b8c3] hover:from-[#d891a0] hover:to-[#E7A3B0] text-white rounded-lg font-medium transition-all duration-300 shadow-md hover:shadow-lg hover:scale-105 cursor-pointer"
             >
               <Plus size={18} />
               Add Employee
@@ -373,7 +258,7 @@ export default function EmployeesPage() {
         {/* Global Error Message */}
         {error && (
           <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-xl flex items-center gap-3">
-            <AlertTriangle className="w-5 h-5 text-red-600 flex-shrink-0" />
+            <AlertTriangle className="w-5 h-5 text-red-600 shrink-0" />
             <p className="text-red-700 text-sm">{error}</p>
             <button
               onClick={() => setError(null)}
@@ -427,7 +312,7 @@ export default function EmployeesPage() {
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead>
-                <tr className="bg-gradient-to-r from-[#faf8f8] to-white border-b border-[#E7A3B0]/10">
+                <tr className="bg-linear-to-r from-[#faf8f8] to-white border-b border-[#E7A3B0]/10">
 
                 {/* Checkbox column for bulk selection (DISABLED FOR NOW) */}
                   {/* <th className="px-6 py-4 text-left">
@@ -530,7 +415,7 @@ export default function EmployeesPage() {
           </div>
 
           {/* Footer Stats */}
-          <div className="px-6 py-4 bg-gradient-to-r from-[#faf8f8] to-white border-t border-[#E7A3B0]/10 flex items-center justify-between text-sm text-gray-600">
+          <div className="px-6 py-4 bg-linear-to-r from-[#faf8f8] to-white border-t border-[#E7A3B0]/10 flex items-center justify-between text-sm text-gray-600">
             <div>
               {selectedRows.size > 0 && (
                 <span className="text-[#E7A3B0] font-medium">
@@ -548,194 +433,26 @@ export default function EmployeesPage() {
       {/* Add Employee Modal */}
       {/* Add Employee Modal */}
       {/* Add Employee Modal */}
-      {showAddModal && (
-        <Modal onClose={() => setShowAddModal(false)} title="Add New Employee">
-          <form onSubmit={handleAddEmployee} className="space-y-5">
-            {error && (
-              <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">
-                {error}
-              </div>
-            )}
+      <AddEmployee 
+        isOpen={showAddModal} 
+        onClose={() => setShowAddModal(false)}
+        onEmployeeSaved={fetchEmployees}
+      />
 
-            <div className="space-y-2">
-              <label className="block text-sm font-semibold text-gray-700">Email Address</label>
-              <input
-                type="text"
-                value={formData.username}
-                onChange={(e) => setFormData({ ...formData, username: e.target.value })}
-                placeholder="Enter email address"
-                className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:border-[#E7A3B0] focus:ring-2 focus:ring-[#E7A3B0]/20 transition-all"
-                required
-                disabled={actionLoading}
-              />
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <label className="block text-sm font-semibold text-gray-700">First Name</label>
-                <input
-                  type="text"
-                  value={formData.first_name}
-                  onChange={(e) => setFormData({ ...formData, first_name: e.target.value })}
-                  placeholder="First name"
-                  className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:border-[#E7A3B0] focus:ring-2 focus:ring-[#E7A3B0]/20 transition-all"
-                  required
-                  disabled={actionLoading}
-                />
-              </div>
-
-              <div className="space-y-2">
-                <label className="block text-sm font-semibold text-gray-700">Last Name</label>
-                <input
-                  type="text"
-                  value={formData.last_name}
-                  onChange={(e) => setFormData({ ...formData, last_name: e.target.value })}
-                  placeholder="Last name"
-                  className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:border-[#E7A3B0] focus:ring-2 focus:ring-[#E7A3B0]/20 transition-all"
-                  required
-                  disabled={actionLoading}
-                />
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <label className="block text-sm font-semibold text-gray-700">Password</label>
-              <input
-                type="password"
-                value={formData.password}
-                onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                placeholder="Enter password"
-                className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:border-[#E7A3B0] focus:ring-2 focus:ring-[#E7A3B0]/20 transition-all"
-                required
-                minLength={6}
-                disabled={actionLoading}
-              />
-              <p className="text-xs text-gray-500">Minimum 6 characters</p>
-            </div>
-
-            <div className="flex gap-3 pt-4">
-              <button
-                type="button"
-                onClick={() => setShowAddModal(false)}
-                disabled={actionLoading}
-                className="flex-1 px-4 py-3 border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                Cancel
-              </button>
-              <button
-                type="submit"
-                disabled={actionLoading}
-                className="flex-1 px-4 py-3 bg-gradient-to-r from-[#E7A3B0] to-[#f0b8c3] text-white rounded-xl hover:from-[#d891a0] hover:to-[#E7A3B0] font-medium transition-all shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 cursor-pointer"
-              >
-                {actionLoading ? (
-                  <>
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                    Adding...
-                  </>
-                ) : (
-                  'Add Employee'
-                )}
-              </button>
-            </div>
-          </form>
-        </Modal>
-      )}
-
-      {/* Edit Employee Modal */}
       {showEditModal && selectedEmployee && (
-        <Modal onClose={() => setShowEditModal(false)} title="Edit Employee">
-          <form onSubmit={handleEditEmployee} className="space-y-5">
-            {error && (
-              <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">
-                {error}
-              </div>
-            )}
-
-            <div className="space-y-2">
-              <label className="block text-sm font-semibold text-gray-700">Email Address</label>
-              <input
-                type="text"
-                value={formData.username}
-                onChange={(e) => setFormData({ ...formData, username: e.target.value })}
-                className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:border-[#E7A3B0] focus:ring-2 focus:ring-[#E7A3B0]/20 transition-all"
-                required
-                disabled={actionLoading}
-              />
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <label className="block text-sm font-semibold text-gray-700">First Name</label>
-                <input
-                  type="text"
-                  value={formData.first_name}
-                  onChange={(e) => setFormData({ ...formData, first_name: e.target.value })}
-                  className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:border-[#E7A3B0] focus:ring-2 focus:ring-[#E7A3B0]/20 transition-all"
-                  required
-                  disabled={actionLoading}
-                />
-              </div>
-
-              <div className="space-y-2">
-                <label className="block text-sm font-semibold text-gray-700">Last Name</label>
-                <input
-                  type="text"
-                  value={formData.last_name}
-                  onChange={(e) => setFormData({ ...formData, last_name: e.target.value })}
-                  className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:border-[#E7A3B0] focus:ring-2 focus:ring-[#E7A3B0]/20 transition-all"
-                  required
-                  disabled={actionLoading}
-                />
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <label className="block text-sm font-semibold text-gray-700">New Password (optional)</label>
-              <input
-                type="password"
-                value={formData.password}
-                onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                placeholder="Leave blank to keep current password"
-                className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:border-[#E7A3B0] focus:ring-2 focus:ring-[#E7A3B0]/20 transition-all"
-                minLength={6}
-                disabled={actionLoading}
-              />
-              <p className="text-xs text-gray-500">Minimum 6 characters if changing</p>
-            </div>
-
-            <div className="flex gap-3 pt-4">
-              <button
-                type="button"
-                onClick={() => setShowEditModal(false)}
-                disabled={actionLoading}
-                className="flex-1 px-4 py-3 border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                Cancel
-              </button>
-              <button
-                type="submit"
-                disabled={actionLoading}
-                className="flex-1 px-4 py-3 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-xl hover:from-blue-600 hover:to-blue-700 font-medium transition-all shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-              >
-                {actionLoading ? (
-                  <>
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                    Saving...
-                  </>
-                ) : (
-                  'Save Changes'
-                )}
-              </button>
-            </div>
-          </form>
-        </Modal>
+        <AddEmployee 
+            isOpen={showEditModal} 
+            onClose={() => { setShowEditModal(false); setSelectedEmployee(null); }} 
+            employeeToEdit={selectedEmployee}
+            onEmployeeSaved={fetchEmployees}
+        />
       )}
 
       {/* View Employee Modal */}
       {showViewModal && selectedEmployee && (
         <Modal onClose={() => setShowViewModal(false)} title="Employee Details">
           <div className="space-y-4">
-            <div className="bg-gradient-to-br from-[#E7A3B0]/10 to-pink-50 rounded-xl p-4 border border-[#E7A3B0]/20">
+            <div className="bg-linear-to-br from-[#E7A3B0]/10 to-pink-50 rounded-xl p-4 border border-[#E7A3B0]/20">
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Email Address</p>
@@ -784,7 +501,7 @@ export default function EmployeesPage() {
 
             <button
               onClick={() => setShowViewModal(false)}
-              className="w-full px-4 py-3 bg-gradient-to-r from-[#E7A3B0] to-[#f0b8c3] text-white rounded-xl hover:from-[#d891a0] hover:to-[#E7A3B0] font-medium transition-all shadow-md hover:shadow-lg"
+              className="w-full px-4 py-3 bg-linear-to-r from-[#E7A3B0] to-[#f0b8c3] text-white rounded-xl hover:from-[#d891a0] hover:to-[#E7A3B0] font-medium transition-all shadow-md hover:shadow-lg"
             >
               Close
             </button>
@@ -803,7 +520,7 @@ export default function EmployeesPage() {
             )}
 
             <div className="flex items-center gap-4 p-4 bg-red-50 rounded-xl border border-red-200">
-              <div className="w-12 h-12 rounded-full bg-red-100 flex items-center justify-center flex-shrink-0">
+              <div className="w-12 h-12 rounded-full bg-red-100 flex items-center justify-center shrink-0">
                 <AlertTriangle className="w-6 h-6 text-red-600" />
               </div>
               <div>
@@ -826,7 +543,7 @@ export default function EmployeesPage() {
               <button
                 onClick={handleDeleteEmployee}
                 disabled={actionLoading}
-                className="flex-1 px-4 py-3 bg-gradient-to-r from-red-500 to-red-600 text-white rounded-xl hover:from-red-600 hover:to-red-700 font-medium transition-all shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                className="flex-1 px-4 py-3 bg-linear-to-r from-red-500 to-red-600 text-white rounded-xl hover:from-red-600 hover:to-red-700 font-medium transition-all shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
               >
                 {actionLoading ? (
                   <>

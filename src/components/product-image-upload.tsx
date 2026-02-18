@@ -3,15 +3,7 @@
 import { useState } from "react";
 import { Upload, X, Star } from "lucide-react";
 import { Button } from "@/components/ui/button";
-
-interface ProductImage {
-  image_id: string;
-  product_id: string;
-  image_url: string;
-  is_primary: boolean;
-  display_order: number;
-  created_at: string;
-}
+import { InventoryProductImage as ProductImage } from "@/types/inventory.types";
 
 interface ProductImageUploadProps {
   productId: string | null;

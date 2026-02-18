@@ -1,5 +1,5 @@
 // src/app/admin/layout.tsx
-import AdminSidebar from "@/components/admin/admin-sidebar";
+import AdminSidebar from "@/components/sidebar/AdminSidebar";
 import { redirect } from "next/navigation";
 import { authHelper } from "@/lib/auth-helper";
 import { createServerSupabase } from "@/lib/supabase/server";
