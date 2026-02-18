@@ -28,51 +28,47 @@ interface CatalogSidebarProps {
 export default function CatalogSidebar({ activeFilter, sortBy, onFilterChange, onSortChange }: CatalogSidebarProps) {
     const handleFilterChange = (filter: string) => {
         onFilterChange(filter);
-        console.log("Filtering to ", filter);
     };
 
     const handleSortChange = (sort: string) => {
         onSortChange(sort);
-        console.log("Sorting to ", sort);
     };
 
     return(
-        <aside className="w-64 flex flex-col gap-8 pb-10">
+        <aside className="w-64 flex flex-col gap-10 pb-10 pr-6">
 
             {/*CATEGORIES SECTION */}
             <div className="space-y-6">
-                <h3 className="font-oswald text-2xl font-bold uppercase tracking-wide">
-                    Categories:
+                <h3 className="font-playfair-display text-xl font-bold uppercase tracking-wider border-b border-[#E7A3B0]/30 pb-2">
+                    Categories
                 </h3>
 
                 {/**Static Items */}
-                <div className="flex flex-col gap-2 pl-1 ">
-                    <Link 
-                        href="/" 
+                <div className="flex flex-col gap-3 pl-1">
+                    <button 
                         onClick={() => handleFilterChange("All Products")}
-                        className={cn("font-montserrat text-lg font-bold uppercase tracking-wide", 
-                                activeFilter === "All Products" && "bg-[#E679A3] text-[#121212] px-2 py-1 rounded-lg")}
+                        className={cn("text-left font-montserrat text-base font-medium tracking-wide transition-colors duration-200 hover:text-[#E7A3B0]", 
+                                activeFilter === "All Products" ? "text-[#E7A3B0] font-bold" : "text-gray-600")}
                     >
                         All Products
-                    </Link>
+                    </button>
 
-                    <Link 
-                        href="/"
+                    <button 
                         onClick={() => handleFilterChange("New Arrivals")}
-                        className={cn("font-montserrat text-lg font-bold uppercase tracking-wide", 
-                                activeFilter === "New Arrivals" && "bg-[#E679A3] text-[#121212] px-2 py-1 rounded-lg")}
+                        className={cn("text-left font-montserrat text-base font-medium tracking-wide transition-colors duration-200 hover:text-[#E7A3B0]", 
+                                activeFilter === "New Arrivals" ? "text-[#E7A3B0] font-bold" : "text-gray-600")}
                     
                     >
                         New Arrivals
-                    </Link>
+                    </button>
 
                     {/**Expandable Items */}
-                    <Accordion type="single" collapsible className="w-full text-black -mt-3" defaultValue="item-1">
+                    <Accordion type="single" collapsible className="w-full -ml-1" defaultValue="item-1">
 
                         {/**Men Tops */}
-                        <AccordionItem value="item-1" >
-                            <AccordionTrigger className={cn("font-montserrat text-lg font-bold uppercase tracking-wide cursor-pointer",
-                                    activeFilter === "Men's Top" && "text-[#E679A3]")}
+                        <AccordionItem value="item-1" className="border-none" >
+                            <AccordionTrigger className={cn("font-montserrat text-base font-medium tracking-wide cursor-pointer py-2 hover:text-[#E7A3B0] hover:no-underline",
+                                    activeFilter === "Men's Top" && "text-[#E7A3B0]")}
                             >
                                 Men Tops
                             </AccordionTrigger>
@@ -82,10 +78,10 @@ export default function CatalogSidebar({ activeFilter, sortBy, onFilterChange, o
                                     <button
                                         key={subcategory}
                                         onClick={() => handleFilterChange(subcategory)}
-                                        className={cn("text-left text-lg font-montserrat px-3 py-1 font-bold rounded-md transition-colors w-full cursor-pointer",
+                                        className={cn("text-left text-sm font-montserrat py-1 transition-colors w-full cursor-pointer hover:text-[#E7A3B0]",
                                         activeFilter === subcategory 
-                                            ? "bg-[#E7A3B0] text-black font-bold" // Pink Active State
-                                            : "text-gray-500 hover:text-black")}
+                                            ? "text-[#E7A3B0] font-bold" 
+                                            : "text-gray-500")}
                                     >
                                         {subcategory}
                                     </button>
@@ -94,9 +90,9 @@ export default function CatalogSidebar({ activeFilter, sortBy, onFilterChange, o
                         </AccordionItem>
 
                         {/**Women Tops */}
-                        <AccordionItem value="item-2" >
-                            <AccordionTrigger className={cn("font-montserrat text-lg font-bold uppercase tracking-wide cursor-pointer",
-                                    activeFilter === "Women's Top" && "text-[#E679A3]")}
+                        <AccordionItem value="item-2" className="border-none">
+                            <AccordionTrigger className={cn("font-montserrat text-base font-medium tracking-wide cursor-pointer py-2 hover:text-[#E7A3B0] hover:no-underline",
+                                    activeFilter === "Women's Top" && "text-[#E7A3B0]")}
                             >
                                 Women Tops
                             </AccordionTrigger>
@@ -106,10 +102,10 @@ export default function CatalogSidebar({ activeFilter, sortBy, onFilterChange, o
                                     <button
                                         key={subcategory}
                                         onClick={() => handleFilterChange(subcategory)}
-                                        className={cn("text-left text-lg font-montserrat px-3 py-1 font-bold rounded-md transition-colors w-full cursor-pointer",
+                                        className={cn("text-left text-sm font-montserrat py-1 transition-colors w-full cursor-pointer hover:text-[#E7A3B0]",
                                         activeFilter === subcategory 
-                                            ? "bg-[#E7A3B0] text-black font-bold" // Pink Active State
-                                            : "text-gray-500 hover:text-black")}
+                                            ? "text-[#E7A3B0] font-bold" 
+                                            : "text-gray-500")}
                                     >
                                         {subcategory}
                                     </button>
@@ -118,9 +114,9 @@ export default function CatalogSidebar({ activeFilter, sortBy, onFilterChange, o
                         </AccordionItem>
                         
                         {/**Coords */}
-                        <AccordionItem value="item-3" >
-                            <AccordionTrigger className={cn("font-montserrat text-lg font-bold uppercase tracking-wide cursor-pointer",
-                                    activeFilter === "Coords" && "text-[#E679A3]")}
+                        <AccordionItem value="item-3" className="border-none">
+                            <AccordionTrigger className={cn("font-montserrat text-base font-medium tracking-wide cursor-pointer py-2 hover:text-[#E7A3B0] hover:no-underline",
+                                    activeFilter === "Coords" && "text-[#E7A3B0]")}
                             >
                                 Coords
                             </AccordionTrigger>
@@ -130,10 +126,10 @@ export default function CatalogSidebar({ activeFilter, sortBy, onFilterChange, o
                                     <button
                                         key={subcategory}
                                         onClick={() => handleFilterChange(subcategory)}
-                                        className={cn("text-left text-lg font-montserrat px-3 py-1 font-bold rounded-md transition-colors w-full cursor-pointer",
+                                        className={cn("text-left text-sm font-montserrat py-1 transition-colors w-full cursor-pointer hover:text-[#E7A3B0]",
                                         activeFilter === subcategory 
-                                            ? "bg-[#E7A3B0] text-black font-bold" // Pink Active State
-                                            : "text-gray-500 hover:text-black")}
+                                            ? "text-[#E7A3B0] font-bold" 
+                                            : "text-gray-500")}
                                     >
                                         {subcategory}
                                     </button>
@@ -142,9 +138,9 @@ export default function CatalogSidebar({ activeFilter, sortBy, onFilterChange, o
                         </AccordionItem>
 
                         {/**Seasonal */}
-                        <AccordionItem value="item-4" >
-                            <AccordionTrigger className={cn("font-montserrat text-lg font-bold uppercase tracking-wide cursor-pointer",
-                                    activeFilter === "Seasonal" && "text-[#E679A3]")}
+                        <AccordionItem value="item-4" className="border-none">
+                            <AccordionTrigger className={cn("font-montserrat text-base font-medium tracking-wide cursor-pointer py-2 hover:text-[#E7A3B0] hover:no-underline",
+                                    activeFilter === "Seasonal" && "text-[#E7A3B0]")}
                             >
                                 Seasonal
                             </AccordionTrigger>
@@ -154,10 +150,10 @@ export default function CatalogSidebar({ activeFilter, sortBy, onFilterChange, o
                                     <button
                                         key={subcategory}
                                         onClick={() => handleFilterChange(subcategory)}
-                                        className={cn("text-left text-lg font-montserrat px-3 py-1 font-bold rounded-md transition-colors w-full cursor-pointer",
+                                        className={cn("text-left text-sm font-montserrat py-1 transition-colors w-full cursor-pointer hover:text-[#E7A3B0]",
                                         activeFilter === subcategory 
-                                            ? "bg-[#E7A3B0] text-black font-bold" // Pink Active State
-                                            : "text-gray-500 hover:text-black")}
+                                            ? "text-[#E7A3B0] font-bold" 
+                                            : "text-gray-500")}
                                     >
                                         {subcategory}
                                     </button>
@@ -168,23 +164,23 @@ export default function CatalogSidebar({ activeFilter, sortBy, onFilterChange, o
                 </div>
 
                 {/**Sort by */}
-                <div className="space-y-3">
-                    <h3 className="font-oswald text-2xl font-bold tracking-wide uppercase">
-                        Sort by:
+                <div className="space-y-3 pt-6 border-t border-gray-100">
+                    <h3 className="font-playfair-display text-xl font-bold tracking-wider uppercase border-b border-[#E7A3B0]/30 pb-2">
+                        Sort by
                     </h3>
                 </div>
                 <Select value={sortBy} onValueChange={handleSortChange}>
-                    <SelectTrigger className="w-full bg-gray-100 border-none rounded-md font-montserrat text-sm focus:ring-0 text-black">
+                    <SelectTrigger className="w-full bg-white border border-gray-200 rounded-none font-montserrat text-sm focus:ring-1 focus:ring-[#E7A3B0] text-black h-10">
                         <SelectValue placeholder="Sort option" />
                     </SelectTrigger>
                     <SelectContent>
-                        <SelectItem value="newest">
+                        <SelectItem value="newest" className="font-montserrat">
                             Newest Arrivals
                         </SelectItem>
-                        <SelectItem value="price-low">
+                        <SelectItem value="price-low" className="font-montserrat">
                             Price: Low to High
                         </SelectItem>
-                        <SelectItem value="price-high">
+                        <SelectItem value="price-high" className="font-montserrat">
                             Price: High to Low
                         </SelectItem>
                     </SelectContent>

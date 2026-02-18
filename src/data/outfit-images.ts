@@ -23,7 +23,7 @@ export const images: ImageProps[] = [
     {
         imagePath: sweatshirtBaggyJeans,
         alt: "Sweatshirt with Baggy Jeans",
-    },
+    },  
     {
         imagePath: allBlackFit,
         alt: "All Black Fit",

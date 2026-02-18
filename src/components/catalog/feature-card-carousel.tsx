@@ -22,7 +22,7 @@ import { useEffect, useState, useRef }from "react";
 import Autoplay from "embla-carousel-autoplay";
 import {type CarouselApi} from "@/components/ui/carousel";
 import { useProducts } from "@/contexts/ProductContext";
-import { Product } from "@/data/product-test-data";
+import { Product } from "@/types/types";
 import Image from "next/image";
 
 interface FeatureCardCarouselProps {
@@ -126,24 +126,26 @@ export default function FeatureCardCarousel({ onProductClick }: FeatureCardCarou
                         <div className="p-1">
                             <div className="feature-card-inner transition-transform duration-0 ease-out">
                                 <Card 
-                                    className="border-0 shadow-md group overflow-hidden bg-muted/20 cursor-pointer"
+                                    className="border-0 shadow-none group bg-transparent cursor-pointer flex flex-col gap-3"
                                     onClick={() => onProductClick?.(product)}
                                 >
-                                    <CardContent className="flex aspect-square items-center justify-center p-0 relative 
-                                        text-mute-foreground/50 hover:text-primary/80 transition-colors">
-                                        <div className="h-full w-full bg-primary/20 flex items-center justify-center relative overflow-hidden">
-                                            <Image
-                                                src={product.images[0] || "/placeholder.png"}
-                                                alt={product.name}
-                                                fill
-                                                className="object-cover group-hover:scale-110 transition-transform duration-300"
-                                            />
-                                            <div className="absolute bottom-0 left-0 right-0 bg-[#e7a3b0ed] p-3">
-                                                <p className="text-sm font-bold text-black/90 line-clamp-1">{product.name}</p>
-                                                <p className="text-xs text-black/80 font-oswald">₱{product.price.toFixed(2)}</p>
-                                            </div>
-                                        </div>
-                                    </CardContent>
+                                    <div className="aspect-3/4 w-full bg-[#f5f5f5] rounded-xl relative overflow-hidden group-hover:shadow-lg transition-shadow duration-300">
+                                        <Image
+                                            src={product.images[0] || "/placeholder.png"}
+                                            alt={product.name}
+                                            fill
+                                            className="object-cover group-hover:scale-105 transition-transform duration-700 ease-out"
+                                        />
+                                    </div>
+
+                                    <div className="flex flex-col items-center text-center gap-1">
+                                        <p className="font-playfair-display font-medium text-lg text-[#121212] line-clamp-1">
+                                            {product.name}
+                                        </p>
+                                        <p className="font-oswald text-base text-[#E7A3B0] tracking-wide">
+                                            ₱{product.price.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                        </p>
+                                    </div>
                                 </Card>
                             </div>
                         </div>
