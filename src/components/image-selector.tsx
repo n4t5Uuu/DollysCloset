@@ -13,7 +13,9 @@ export default function ImageSelector({
   onFilesAdd,
   onFileRemove,
 }: ImageSelectorProps) {
+  // limits the files to 5
   const canAddMore = stagedFiles.length < 5;
+
   const handleDrag = (e: React.DragEvent) => {
     e.preventDefault();
     e.stopPropagation();
@@ -58,7 +60,7 @@ export default function ImageSelector({
           onDragLeave={handleDrag}
           onDragOver={handleDrag}
           onDrop={handleDrop}
-          className="border-2 border-dashed rounded-lg p-6 text-center cursor-pointer transition border-gray-300 bg-gray-50 hover:border-pink-500 hover:bg-pink-50"
+          className="border-2 border-black rounded-lg p-6 text-center cursor-pointer transition bg-gray-50 hover:border-pink-500 hover:bg-pink-50"
         >
           <input
             type="file"
@@ -83,7 +85,7 @@ export default function ImageSelector({
           {stagedFiles.map((file, index) => (
             <div
               key={`${file.name}-${index}`}
-              className="relative group border border-gray-200 rounded-lg overflow-hidden bg-gray-100"
+              className="relative group border border-black rounded-lg overflow-hidden bg-gray-100"
             >
               <img
                 src={URL.createObjectURL(file)}

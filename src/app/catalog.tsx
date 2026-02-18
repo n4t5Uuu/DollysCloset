@@ -10,6 +10,7 @@ import ProductCard from "@/components/catalog/product-card";
 import ProductModal from "@/components/catalog/product-modal";
 import { useProducts } from "@/contexts/ProductContext";
 import { Product } from "@/types/types";
+import { InfiniteSlider } from "@/components/motion-primitives/infinite-slider";
 
 export default function CatalogPage() {
     const { productList, catalogStatus } = useProducts();
@@ -58,9 +59,13 @@ export default function CatalogPage() {
 
             {/* For the Announcements */}
             <div className="w-full py-3 bg-[#E7A3B0] flex items-center justify-center">
-                <h2 className="font-oswald font-medium text-sm tracking-[0.2em] text-[#121212] uppercase">
-                    Free shipping on orders over ₱2,000  •  New arrivals every friday
-                </h2>
+                <InfiniteSlider className="w-full h-full">
+                    {Array.from({ length: 6 }).map((_, i) => (
+                        <h2 key={i} className="font-oswald font-medium text-sm tracking-[0.2em] text-[#121212] uppercase whitespace-nowrap">
+                            Free shipping on orders over ₱2,000  •  New arrivals every friday  • 
+                        </h2>
+                    ))}
+                </InfiniteSlider>
             </div>
 
             {/* For the Featured Collection Carousel*/}

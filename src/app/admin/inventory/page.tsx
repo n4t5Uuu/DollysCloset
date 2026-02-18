@@ -5,6 +5,7 @@ import { Plus, Trash, Loader2, AlertTriangle, Search, Eye, Pencil, Trash2, X } f
 import { browserSupabase } from "@/lib/supabase/browser";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import ProductImageUpload from "@/components/product-image-upload";
 import ImageSelector from "@/components/image-selector";
 import {
@@ -101,7 +102,7 @@ export default function AdminInventoryPage() {
     fetchCategories();
   }, []);
 
-   async function fetchProducts() {
+  async function fetchProducts() {
     try {
       setLoading(true);
       setError(null);
@@ -727,7 +728,9 @@ export default function AdminInventoryPage() {
           <Card className="bg-white w-full max-w-2xl max-h-[90vh] overflow-y-auto p-0">
             <CardHeader className="flex flex-row items-center justify-between border-b p-6 space-y-0 text-gray-900">
               <CardTitle className="text-gray-900">{editingProduct ? "Edit Product" : "Add Product"}</CardTitle>
-              <button onClick={closeModal} className="text-gray-400 hover:text-gray-600"><X className="w-5 h-5" /></button>
+              <button onClick={closeModal} className="text-gray-400 hover:text-gray-600 cursor-pointer">
+                <X className="w-5 h-5" />
+              </button>
             </CardHeader>
 
             <form onSubmit={handleAddProduct}>
@@ -739,7 +742,7 @@ export default function AdminInventoryPage() {
                     value={formData.product_name}
                     onChange={(e) => setFormData({ ...formData, product_name: e.target.value })}
                     required
-                    className="border-gray-300 text-gray-900 bg-white"
+                    className="border-gray-300 text-gray-900 bg-white placeholder:text-gray-800"
                   />
                 </div>
 
@@ -747,10 +750,10 @@ export default function AdminInventoryPage() {
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">Category <span className="text-red-500">*</span></label>
                     <Select value={formData.category_id} onValueChange={(value) => setFormData({ ...formData, category_id: value })}>
-                      <SelectTrigger className="border-gray-300 text-gray-900 bg-white">
+                      <SelectTrigger className="border-black text-black bg-white data-[placeholder]:text-black">
                         <SelectValue placeholder="Select category" />
                       </SelectTrigger>
-                      <SelectContent className="bg-white text-gray-900 z-[60]">
+                      <SelectContent className="bg-white text-black z-60">
                         {categories.length === 0 ? (
                           <SelectItem value="none" disabled>No categories found</SelectItem>
                         ) : (
@@ -771,7 +774,7 @@ export default function AdminInventoryPage() {
                       value={formData.product_price}
                       onChange={(e) => setFormData({ ...formData, product_price: e.target.value })}
                       required
-                      className="border-gray-300 text-gray-900 bg-white"
+                      className="border-gray-300 text-gray-900 bg-white placeholder:text-gray-800"
                     />
                   </div>
                 </div>
@@ -783,7 +786,7 @@ export default function AdminInventoryPage() {
                       placeholder="e.g., Gucci"
                       value={formData.product_brand}
                       onChange={(e) => setFormData({ ...formData, product_brand: e.target.value })}
-                      className="border-gray-300 text-gray-900 bg-white"
+                      className="border-gray-300 text-gray-900 bg-white placeholder:text-gray-800"
                     />
                   </div>
 
@@ -794,7 +797,7 @@ export default function AdminInventoryPage() {
                       placeholder="0"
                       value={formData.product_stock}
                       onChange={(e) => setFormData({ ...formData, product_stock: e.target.value })}
-                      className="border-gray-300 text-gray-900 bg-white"
+                      className="border-gray-300 text-gray-900 bg-white placeholder:text-gray-800"
                     />
                   </div>
                 </div>
@@ -806,22 +809,24 @@ export default function AdminInventoryPage() {
                       placeholder="e.g., One Size, M, L"
                       value={formData.size_label}
                       onChange={(e) => setFormData({ ...formData, size_label: e.target.value })}
-                      className="border-gray-300 text-gray-900 bg-white"
+                      className="border-gray-300 text-gray-900 bg-white placeholder:text-gray-800"
                     />
                   </div>
 
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">Condition</label>
                     <Select value={formData.product_condition} onValueChange={(value) => setFormData({ ...formData, product_condition: value })}>
-                      <SelectTrigger className="border-gray-300 text-gray-900 bg-white">
+                      <SelectTrigger className="border-gray-300 text-gray-900 bg-white data-[placeholder]:text-gray-800">
                         <SelectValue />
                       </SelectTrigger>
+
                       <SelectContent className="bg-white text-gray-900 z-[60]">
                         <SelectItem value="New">New</SelectItem>
                         <SelectItem value="Like New">Like New</SelectItem>
                         <SelectItem value="Good">Good</SelectItem>
                         <SelectItem value="Fair">Fair</SelectItem>
                       </SelectContent>
+                      
                     </Select>
                   </div>
                 </div>
@@ -843,11 +848,11 @@ export default function AdminInventoryPage() {
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">Description</label>
-                  <textarea
+                  <Textarea
                     placeholder="Enter product description"
                     value={formData.product_description}
                     onChange={(e) => setFormData({ ...formData, product_description: e.target.value })}
-                    className="w-full border border-gray-300 rounded px-3 py-2 min-h-[80px] focus:outline-none focus:ring-2 focus:ring-pink-500 bg-white text-gray-900"
+                    className="w-full border border-gray-300 rounded px-3 py-2 min-h-[80px] focus:outline-none focus:ring-2 focus:ring-pink-500 bg-white text-gray-900 placeholder:text-gray-800 resize-none"
                   />
                 </div>
 
@@ -866,8 +871,8 @@ export default function AdminInventoryPage() {
               </CardContent>
 
               <CardFooter className="flex gap-3 p-6 border-t bg-gray-50">
-                <Button type="button" variant="outline" onClick={closeModal} className="flex-1">Cancel</Button>
-                <Button type="submit" className="flex-1 bg-[#E7A3B0] hover:bg-[#ca8c98] text-white" disabled={actionLoading}>
+                <Button type="button" variant="outline" onClick={closeModal} className="flex-1 border-gray-300 text-gray-700 bg-white hover:bg-white hover:text-black transition-all duration-300 hover:scale-105 hover:shadow-md hover:border-gray-400 active:scale-95">Cancel</Button>
+                <Button type="submit" className="flex-1 bg-[#E7A3B0] hover:bg-[#ca8c98] text-white transition-all duration-300 hover:scale-[1.03] active:scale-95 shadow-sm hover:shadow-md" disabled={actionLoading}>
                   {actionLoading ? ( <>
                     <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                     Saving...

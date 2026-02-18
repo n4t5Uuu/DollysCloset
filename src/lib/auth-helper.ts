@@ -2,7 +2,6 @@ import { browserSupabase } from "./supabase/browser";
 
 export const authHelper = {
     async signIn(email: string, password: string) {
-
         const {data, error} = await browserSupabase.auth.signInWithPassword({
             email, 
             password
