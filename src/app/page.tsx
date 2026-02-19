@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { authHelper } from "@/lib/auth-helper";
 
 import { Eye, EyeOff } from "lucide-react";
+import { toast } from "sonner";
 
 export default function Home() {
   const router = useRouter();
@@ -13,7 +14,6 @@ export default function Home() {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
   // Sign out any existing sessions when accessing the login page
   useEffect(() => {
@@ -42,32 +42,34 @@ export default function Home() {
    */
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    setError(null);
     setLoading(true);
 
+    const trimmedEmail = email.trim();
+    const trimmedPassword = password.trim();
+
     // Basic client-side validation
-    if (!email.trim() || !password.trim()) {
-      setError("Please enter both email and password.");
+    if (!trimmedEmail || !trimmedPassword) {
+      toast.error("Please enter both email and password.");
       setLoading(false);
       return;
     }
 
     // Email format validation
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
-      // Clear the input fields as requested
-      setEmail(" ");
-      setPassword(" ");
-      setError("Please enter a valid email address.");
+    if (!emailRegex.test(trimmedEmail)) {
+      toast.error("Please enter a valid email address.");
+      // Reset inputs on error as requested
+      setEmail("");
+      setPassword("");
       setLoading(false);
       return;
     }
 
     try {
-      console.log("Attempting login for:", email);
+      console.log("Attempting login for:", trimmedEmail);
       
       // Attempt generic login with Supabase
-      const { data, error: signInError } = await authHelper.signIn(email, password);
+      const { data, error: signInError } = await authHelper.signIn(trimmedEmail, trimmedPassword);
 
       // Handle Supabase auth errors
       if (signInError) {
@@ -75,14 +77,17 @@ export default function Home() {
         
         // Map backend errors to friendly user messages
         if (signInError.message.includes("Invalid login credentials")) {
-          setError("Invalid email or password.");
+          toast.error("Invalid email or password.");
         } else if (signInError.message.includes("Email not confirmed")) {
-          setError("Please confirm your email address.");
+          toast.error("Please confirm your email address.");
         } else {
           // Fallback for other backend errors (e.g. rate limits, network)
-          setError("Unable to log in. Please try again later.");
+          toast.error("Unable to log in. Please try again later.");
         }
         
+        // Reset inputs on error as requested
+        setEmail("");
+        setPassword("");
         setLoading(false);
         return;
       }
@@ -90,19 +95,24 @@ export default function Home() {
       // Verify user data was returned
       if (!data?.user) {
         console.error("System Error: Login successful but no user returned");
-        setError("An unexpected error occurred. Please try again.");
+        toast.error("An unexpected error occurred. Please try again.");
+        setEmail("");
+        setPassword("");
         setLoading(false);
         return;
       }
 
       console.log("Login successful, redirecting to dashboard...");
+      toast.success("Login successful. Redirecting to dashboard...");
       router.push('/dashboard');
       // Note: We don't set loading to false here to prevent button re-enable during redirect
 
     } catch (err: unknown) {
       console.error("Unexpected error in handleSubmit:", err);
       // Show generic message for unexpected system errors
-      setError("An unexpected error occurred. Please try again.");
+      toast.error("An unexpected error occurred. Please try again.");
+      setEmail("");
+      setPassword("");
       setLoading(false);
     }
   }
@@ -117,12 +127,6 @@ export default function Home() {
         </h1>
 
         <form onSubmit={handleSubmit} className="space-y-8">
-          {/* Error Message */}
-          {error && (
-            <div className="mb-4 rounded-lg bg-red-50 p-4 text-sm text-red-600 border border-red-100 text-center animate-pulse">
-              {error}
-            </div>
-          )}
 
           {/* Username/Email Input - Floating Label */}
           <div className="relative group animate-in slide-in-from-bottom-4 fade-in duration-700 delay-200 fill-mode-both">

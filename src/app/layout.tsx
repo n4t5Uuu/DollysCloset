@@ -8,6 +8,7 @@ import {
 import "./globals.css";
 import {ConditionalFooter, ConditionalNavbar } from "@/components/conditional-footer-and-header";
 import { ProductProvider } from "@/contexts/ProductContext";
+import { Toaster } from "@/components/ui/sonner";
 
 const oswald = Oswald({
   subsets: ["latin"],
@@ -55,6 +56,7 @@ export default function RootLayout({
           <ConditionalNavbar />
           {children}
           <ConditionalFooter />
+          <Toaster duration={3000} />
         </ProductProvider>
       </body>
     </html>
