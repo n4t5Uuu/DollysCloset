@@ -11,6 +11,8 @@ import ProductModal from "@/components/catalog/product-modal";
 import { useProducts } from "@/contexts/ProductContext";
 import { Product } from "@/types/product.types";
 import { InfiniteSlider } from "@/components/motion-primitives/infinite-slider";
+import { TextEffect } from "@/components/motion-primitives/text-effect";
+import { InView } from "@/components/motion-primitives/in-view";
 
 export default function CatalogPage() {
     const { productList, catalogStatus } = useProducts();
@@ -55,7 +57,7 @@ export default function CatalogPage() {
     };
 
     return (
-        <main className="space-y-12 w-full flex flex-col items-center">
+        <main className="w-full flex flex-col items-center">
 
             {/* For the Announcements */}
             <div className="w-full py-3 bg-[#E7A3B0] flex items-center justify-center">
@@ -69,39 +71,68 @@ export default function CatalogPage() {
             </div>
 
             {/* For the Featured Collection Carousel*/}
-            <div className="w-full flex items-center justify-center flex-col py-12 bg-linear-to-b from-white to-[#fff0f5]/50">
+            <InView 
+                variants={{
+                    hidden: { opacity: 0, y: 30 },
+                    visible: { opacity: 1, y: 0 }
+                }}
+                transition={{ duration: 0.8, ease: "easeOut" }}
+                className="w-full flex items-center justify-center flex-col py-12 bg-linear-to-b from-white to-[#fff0f5]/50"
+            >
                 <div className="text-center mb-10 space-y-3">
                     <p className="font-oswald text-xs font-bold tracking-[0.3em] text-[#E7A3B0] uppercase">
-                        Curated For You
+                        <TextEffect as="span" per="word" preset="fade">Curated For You</TextEffect>
                     </p>
                     <h3 className="text-[#121212] font-playfair-display text-5xl mb-4">
-                        Featured Collection
+                        <TextEffect as="span" per="char" preset="fade-in-blur">Featured Collection</TextEffect>
                     </h3>
                 </div>
                 <FeatureCardCarousel onProductClick={handleProductClick} />
-            </div>
+            </InView>
 
             {/* For the Collections */}
             <div className="w-full flex flex-col items-center">
                 <div className="sticky top-[80px] z-30 w-full bg-[#fffcfd]/95 backdrop-blur-md border-b border-[#E7A3B0]/30 shadow-sm py-6 transition-all duration-300">
                     <div className="w-full px-8 md:px-12 flex flex-col md:flex-row justify-between items-end gap-6">
-                        <div className="space-y-1">
+                        <InView 
+                            variants={{
+                                hidden: { opacity: 0, x: -20 },
+                                visible: { opacity: 1, x: 0 }
+                            }}
+                            transition={{ duration: 0.6 }}
+                            className="space-y-1"
+                        >
                             <p className="font-oswald text-xs font-bold tracking-[0.3em] text-[#E7A3B0] uppercase mb-1">
-                                Explore
+                                <TextEffect as="span" per="word" preset="fade">Explore</TextEffect>
                             </p>
                             <h2 className="font-playfair-display text-5xl text-[#121212]">
-                                Our Collections
+                                <TextEffect as="span" per="char" preset="fade-in-blur" delay={0.2}>Our Collections</TextEffect>
                             </h2>
-                        </div>
-                        <div className="w-full md:w-auto pb-1">
+                        </InView>
+                        <InView 
+                            variants={{
+                                hidden: { opacity: 0, x: 20 },
+                                visible: { opacity: 1, x: 0 }
+                            }}
+                            transition={{ duration: 0.6, delay: 0.2 }}
+                            className="w-full md:w-auto pb-1"
+                        >
                             <SearchBar />
-                        </div>
+                        </InView>
                     </div>
                 </div>
 
                 <div className="w-full px-8 md:px-12 py-12 pb-24 grid grid-cols-1 lg:grid-cols-[260px_1fr] gap-12">
                     <div className="hidden lg:block h-fit sticky top-[240px]">
-                        <CatalogSidebar activeFilter={activeFilter} sortBy={sortBy} onFilterChange={setActiveFilter} onSortChange={setSortBy} />
+                        <InView
+                            variants={{
+                                hidden: { opacity: 0, x: -30 },
+                                visible: { opacity: 1, x: 0 }
+                            }}
+                            transition={{ duration: 0.8, delay: 0.3 }}
+                        >
+                            <CatalogSidebar activeFilter={activeFilter} sortBy={sortBy} onFilterChange={setActiveFilter} onSortChange={setSortBy} />
+                        </InView>
                     </div>
                     
                     <div className="w-full">
@@ -114,7 +145,14 @@ export default function CatalogPage() {
                         </div>
 
                         {publishedProducts.length > 0 ? (
-                            <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-5 2xl:grid-cols-6 gap-x-6 gap-y-12">
+                            <InView
+                                variants={{
+                                    hidden: { opacity: 0, y: 30 },
+                                    visible: { opacity: 1, y: 0 }
+                                }}
+                                transition={{ duration: 0.8, delay: 0.4 }}
+                                className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-5 2xl:grid-cols-6 gap-x-6 gap-y-12"
+                            >
                                 {publishedProducts.map((product) => (
                                     <ProductCard 
                                         key={product.id} 
@@ -122,7 +160,7 @@ export default function CatalogPage() {
                                         onClick={() => handleProductClick(product)}
                                     />
                                 ))}
-                            </div>
+                            </InView>
                         ) : (
                             <div className="w-full py-20 flex flex-col items-center justify-center text-gray-400">
                                 <p className="font-playfair-display text-xl italic">No products found</p>

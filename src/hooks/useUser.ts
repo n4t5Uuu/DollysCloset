@@ -4,16 +4,35 @@ import { authHelper } from "@/lib/auth-helper";
 import { dataHelper } from "@/lib/data-helper";
 import { User } from "@supabase/supabase-js";
 
+/**
+ * Custom hook to manage user authentication and role-based access control.
+ * 
+ * This hook serves as the central point for:
+ * 1. Tracking the current authenticated user session
+ * 2. Asynchronously fetching and managing the user's role (admin/employee)
+ * 3. Handling authentication state changes (login/logout) via Supabase realtime subscriptions
+ * 
+ * @returns An object containing:
+ * - user: The current Supabase user object or null
+ * - userRole: The role of the user ('admin' | 'employee') for permission checking
+ * - loading: Boolean indicating if auth state is still being determined
+ * - signOut: Helper function to securely sign out the user
+ */ 
 export function useUser() {
     const [user, setUser] = useState<User | null>(null);
     const [userRole, setUserRole] = useState<'admin' | 'employee' | null>(null);
     const [loading, setLoading] = useState(true);
 
+    /**
+     * Fetches the user's role from the 'tbl_users' table.
+     * This is critical for determining if the user should see the Admin or Employee dashboard.
+     */
     async function fetchUserRole(userId: string) {
         const { data } = await authHelper.getUserRole(userId);
         setUserRole(data?.role || null);
     }
 
+    // Initialize user state and set up realtime auth listener
     useEffect(() => {
         async function getUser() {
             try {
@@ -56,6 +75,10 @@ export function useUser() {
         return () => subscription.unsubscribe();
     }, []);
 
+    /**
+     * Signs out the current user and clears local state.
+     * Redirects are typically handled by the component calling this or the auth listener.
+     */
     const signOut = async () => {
         await authHelper.signOut();
         setUser(null);
