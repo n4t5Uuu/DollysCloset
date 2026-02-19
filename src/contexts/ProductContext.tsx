@@ -1,12 +1,12 @@
 "use client";
 
 import React, { createContext, useContext, useState, useEffect } from "react";
+import { Product } from "@/types/product.types";
 import { 
-  Product, 
   CatalogStatus, 
   ActivityLog, 
   FieldChange 
-} from "@/types/product.types";
+} from "@/types/logs.types";
 import { products as initialProducts } from "@/data/product-test-data";
 import { useUser } from "@/hooks/useUser";
 

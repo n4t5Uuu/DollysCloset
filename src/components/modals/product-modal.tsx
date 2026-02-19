@@ -1,6 +1,6 @@
 "use client";
 
-import { Product } from "@/data/product-test-data";
+import { Product } from "@/types/product.types";
 import Image from "next/image";
 import { useState } from "react";
 import { X } from "lucide-react";

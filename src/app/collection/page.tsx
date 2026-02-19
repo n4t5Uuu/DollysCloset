@@ -1,5 +1,4 @@
-import Image from "next/image";
-import CatalogPage from "@/app/catalog"
+import Catalog from "@/app/catalog"
 
 export const metadata = {
     title: "Dolly's Closet",
@@ -8,6 +7,6 @@ export const metadata = {
 
 export default function CollectionPage() {
     return (
-        <CatalogPage />
+        <Catalog />
     );
 }

@@ -7,14 +7,14 @@ import FeatureCardCarousel from "@/components/catalog/feature-card-carousel";
 import SearchBar from "@/components/search-bar";
 import CatalogSidebar from "@/components/catalog/catalog-sidebar";
 import ProductCard from "@/components/catalog/product-card";
-import ProductModal from "@/components/catalog/product-modal";
+import ProductModal from "@/components/modals/product-modal";
 import { useProducts } from "@/contexts/ProductContext";
 import { Product } from "@/types/product.types";
 import { InfiniteSlider } from "@/components/motion-primitives/infinite-slider";
 import { TextEffect } from "@/components/motion-primitives/text-effect";
 import { InView } from "@/components/motion-primitives/in-view";
 
-export default function CatalogPage() {
+export default function Catalog() {
     const { productList, catalogStatus } = useProducts();
     const [activeFilter, setActiveFilter] = useState("All Products");
     const [sortBy, setSortBy] = useState("newest");
