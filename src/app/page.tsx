@@ -29,45 +29,86 @@ export default function Home() {
     signOutExistingUser();
   }, [])
 
+  /**
+   * Handles the form submission for user login.
+   * 
+   * This function manages the authentication process including:
+   * 1. Validating form inputs
+   * 2. Sending login request to Supabase via authHelper
+   * 3. Managing loading and error states
+   * 4. Redirecting to the dashboard upon successful login
+   * 
+   * @param e - The form submission event
+   */
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
     setLoading(true);
 
+    // Basic client-side validation
+    if (!email.trim() || !password.trim()) {
+      setError("Please enter both email and password.");
+      setLoading(false);
+      return;
+    }
+
+    // Email format validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      // Clear the input fields as requested
+      setEmail(" ");
+      setPassword(" ");
+      setError("Please enter a valid email address.");
+      setLoading(false);
+      return;
+    }
+
     try {
       console.log("Attempting login for:", email);
       
-      // Login with Supabase Auth
-      const { data: authData, error: loginError } = await authHelper.signIn(email, password);
+      // Attempt generic login with Supabase
+      const { data, error: signInError } = await authHelper.signIn(email, password);
 
-      if (loginError) {
-        console.error("Login error:", loginError);
-        setError(loginError.message);
+      // Handle Supabase auth errors
+      if (signInError) {
+        console.error("Backend Login Error:", signInError);
+        
+        // Map backend errors to friendly user messages
+        if (signInError.message.includes("Invalid login credentials")) {
+          setError("Invalid email or password.");
+        } else if (signInError.message.includes("Email not confirmed")) {
+          setError("Please confirm your email address.");
+        } else {
+          // Fallback for other backend errors (e.g. rate limits, network)
+          setError("Unable to log in. Please try again later.");
+        }
+        
         setLoading(false);
         return;
       }
 
-      if (!authData?.user) {
-        console.error("Login successful but no user returned");
-        setError("Login failed - no user returned");
+      // Verify user data was returned
+      if (!data?.user) {
+        console.error("System Error: Login successful but no user returned");
+        setError("An unexpected error occurred. Please try again.");
         setLoading(false);
         return;
       }
 
       console.log("Login successful, redirecting to dashboard...");
       router.push('/dashboard');
+      // Note: We don't set loading to false here to prevent button re-enable during redirect
 
     } catch (err: unknown) {
       console.error("Unexpected error in handleSubmit:", err);
-      const message = err instanceof Error ? err.message : "Login failed. Please try again.";
-      setError(message);
+      // Show generic message for unexpected system errors
+      setError("An unexpected error occurred. Please try again.");
       setLoading(false);
     }
   }
 
   return (
     <div className="min-h-screen w-full flex items-center justify-center bg-white font-montserrat p-4">
-      {/* Background decoration or nice subtle gradient could be added here if requested, keeping it simple white/gray for now */}
       
       <div className="w-full max-w-[500px] bg-[#F2F2F2] rounded-[30px] shadow-[0_10px_40px_-10px_rgba(0,0,0,0.1)] p-8 md:p-12 animate-in fade-in zoom-in-95 duration-700">
         
@@ -88,7 +129,7 @@ export default function Home() {
             <input 
               type="text" 
               id="email"
-              placeholder=" " // Required for peer-placeholder-shown to work
+              placeholder=" " 
               className="peer w-full px-5 py-3.5 rounded-xl border-2 border-[#E7A3B0]/40 bg-white text-black placeholder-transparent focus:border-[#E7A3B0] focus:outline-none focus:shadow-[0_0_0_4px_rgba(231,163,176,0.1)] transition-all duration-300 hover:border-[#E7A3B0]/70"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
@@ -120,8 +161,8 @@ export default function Home() {
             <label 
               htmlFor="password"
               className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 text-sm transition-all duration-300 cursor-text pointer-events-none bg-white px-1
-                         peer-focus:top-0 peer-focus:-translate-y-1/2 peer-focus:text-xs peer-focus:text-[#E7A3B0] peer-focus:font-bold
-                         peer-[:not(:placeholder-shown)]:top-0 peer-[:not(:placeholder-shown)]:-translate-y-1/2 peer-[:not(:placeholder-shown)]:text-xs peer-[:not(:placeholder-shown)]:text-[#E7A3B0]/80"
+                        peer-focus:top-0 peer-focus:-translate-y-1/2 peer-focus:text-xs peer-focus:text-[#E7A3B0] peer-focus:font-bold
+                        peer-[:not(:placeholder-shown)]:top-0 peer-[:not(:placeholder-shown)]:-translate-y-1/2 peer-[:not(:placeholder-shown)]:text-xs peer-[:not(:placeholder-shown)]:text-[#E7A3B0]/80"
             >
               Password
             </label>

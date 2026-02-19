@@ -33,5 +33,4 @@ export interface InventoryAuditLog {
     id: string;
     timestamp: string;
     action: "added" | "edited" | "deleted" | "status_changed" | "viewed" | "opened_edit";
-    // Add other fields if needed, similar to logs.types.ts but maybe specific for inventory if different
 }
