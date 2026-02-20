@@ -39,15 +39,16 @@ export const dataHelper = {
     // logs the activity of the user
     async logActivity({actionType, productId = null, description = "", editor = null, user_id = null, supabase = null}: LogActivityProps) {
         const client = supabase || await createServerSupabase()
-        const {error} = await client.from("tbl_activity_logs")
-            .insert({
-                action_type: actionType,
-                product_id: productId,
-                description: description,
-                editor: editor,
-                user_id: user_id,
-                created_at: new Date().toISOString(),
-            })
+        const payload = {
+            action_type: actionType,
+            product_id: productId,
+            description: description,
+            editor: editor,
+            user_id: user_id,
+            created_at: new Date().toISOString(),
+        }
+
+        const { error } = await client.from("tbl_activity_log").insert(payload)
         
             // returns false if it encountered an error
             if (error) {

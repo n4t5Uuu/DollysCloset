@@ -5,6 +5,7 @@ import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Loader2, AlertTriangle, Search, X } from "lucide-react";
+import { browserSupabase } from "@/lib/supabase/browser";
 
 interface ActivityLog {
   log_id: number;
@@ -48,6 +49,12 @@ const actionColors: Record<string, string> = {
   reorder_images: "bg-indigo-100 text-indigo-800",
 };
 
+const employeeManagementActions = new Set([
+  "create_employee",
+  "edit_employee",
+  "delete_employee",
+]);
+
 export default function ActivityLogsPage() {
   const [logs, setLogs] = useState<ActivityLog[]>([]);
   const [loading, setLoading] = useState(true);
@@ -66,18 +73,26 @@ export default function ActivityLogsPage() {
       setLoading(true);
       setError(null);
 
-      const response = await fetch('/api/admin/fetch-logs');
+      const { data: { session } } = await browserSupabase.auth.getSession();
+      if (!session) throw new Error('Not authenticated');
+
+      const response = await fetch('/api/admin/fetch-logs', {
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+        },
+      });
       
       if (!response.ok) {
-        throw new Error('Failed to fetch logs');
+        const data = await response.json();
+        throw new Error(data.error || 'Failed to fetch logs');
       }
       
       const result = await response.json();
       setLogs(result.data || []);
 
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Error fetching logs:', err);
-      setError(err.message || 'Failed to load activity logs');
+      setError(err instanceof Error ? err.message : 'Failed to load activity logs');
     } finally {
       setLoading(false);
     }
@@ -111,8 +126,14 @@ export default function ActivityLogsPage() {
   const handleResetLogs = async () => {
     if (confirm("Are you sure you want to delete all activity logs? This cannot be undone.")) {
       try {
+        const { data: { session } } = await browserSupabase.auth.getSession();
+        if (!session) throw new Error('Not authenticated');
+
         const response = await fetch('/api/admin/reset-activity-logs', {
           method: 'POST',
+          headers: {
+            Authorization: `Bearer ${session.access_token}`,
+          },
         });
 
         if (!response.ok) {
@@ -121,8 +142,8 @@ export default function ActivityLogsPage() {
         }
 
         setLogs([]);
-      } catch (err: any) {
-        setError(err.message || 'Failed to reset logs');
+      } catch (err: unknown) {
+        setError(err instanceof Error ? err.message : 'Failed to reset logs');
       }
     }
   };
@@ -217,7 +238,7 @@ export default function ActivityLogsPage() {
                   {log.product_id || "—"}
                 </div>
                 <div className="text-sm text-gray-900">
-                  {log.user_id || "—"}
+                  {employeeManagementActions.has(log.action_type) ? (log.user_id || "—") : "—"}
                 </div>
                 <div className="text-sm text-gray-600">
                   {log.description || "—"}

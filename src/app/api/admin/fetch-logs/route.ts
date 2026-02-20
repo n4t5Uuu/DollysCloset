@@ -1,16 +1,35 @@
 import { createServerSupabase } from '@/lib/supabase/server';
-import { NextResponse } from 'next/server'
+import { admin } from '@/lib/supabase/admin';
+import { authHelper } from '@/lib/auth-helper';
+import { NextRequest, NextResponse } from 'next/server'
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
     const supabase = await createServerSupabase();
-    
-    // Optional: Add auth check
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
-    if (authError || !user) {
+
+    const authHeader = request.headers.get('authorization');
+    let userId: string | null = null;
+
+    if (authHeader) {
+      const token = authHeader.replace('Bearer ', '');
+      const { data: { user }, error: tokenError } = await admin.auth.getUser(token);
+      if (tokenError || !user) {
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      }
+      userId = user.id;
+    } else {
+      const { data: { user }, error: authError } = await supabase.auth.getUser();
+      if (authError || !user) {
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      }
+      userId = user.id;
+    }
+
+    const { data: userData, error: roleError } = await authHelper.getUserRole(userId, admin);
+    if (roleError || !['admin', 'employee'].includes(userData?.role || '')) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
-    
+
     const { data, error } = await supabase
       .from('tbl_activity_log')
       .select('*')
@@ -26,10 +45,10 @@ export async function GET() {
     
     return NextResponse.json({ data: data || [] })
     
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error('Unexpected error:', err)
     return NextResponse.json(
-      { error: 'Failed to fetch logs' },
+      { error: err instanceof Error ? err.message : 'Failed to fetch logs' },
       { status: 500 }
     )
   }
