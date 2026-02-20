@@ -18,8 +18,8 @@ export async function PUT(request: NextRequest) {
     }
 
     const roleResponse = await authHelper.getUserRole(user.id, admin);
-    if (roleResponse.error || roleResponse.data?.role !== "admin") {
-      return NextResponse.json({ error: "Admin access required" }, { status: 403 });
+    if (roleResponse.error || !["admin", "employee"].includes(roleResponse.data?.role || "")) {
+      return NextResponse.json({ error: "Inventory access required" }, { status: 403 });
     }
 
     const { image_id, product_id } = await request.json();

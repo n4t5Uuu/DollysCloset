@@ -41,6 +41,7 @@ export default function AdminInventoryPage() {
   const [showCategoryModal, setShowCategoryModal] = useState(false);
   const [viewProduct, setViewProduct] = useState<Product | null>(null);
   const [viewImages, setViewImages] = useState<ProductImage[]>([]);
+  const [selectedViewImage, setSelectedViewImage] = useState<string | null>(null);
 
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
 
@@ -149,17 +150,23 @@ export default function AdminInventoryPage() {
 
   const handleViewProduct = async (product: Product) => {
     setViewProduct(product);
+    setSelectedViewImage(null);
     try {
       const response = await fetch(`/api/admin/fetch-images?product_id=${product.product_id}`);
       if (response.ok) {
         const result = await response.json();
-        setViewImages(result.data || []);
+        const images: ProductImage[] = result.data || [];
+        setViewImages(images);
+        const primaryImage = images.find((img) => img.is_primary) || images[0];
+        setSelectedViewImage(primaryImage?.image_url || null);
       } else {
         setViewImages([]);
+        setSelectedViewImage(null);
       }
     } catch (err) {
       console.error("Error fetching view images:", err);
       setViewImages([]);
+      setSelectedViewImage(null);
     }
   };
 
@@ -217,6 +224,11 @@ export default function AdminInventoryPage() {
       setActionLoading(false);
     }
   };
+
+  const orderedViewImages = [...viewImages].sort((a, b) => {
+    if (a.is_primary === b.is_primary) return a.display_order - b.display_order;
+    return a.is_primary ? -1 : 1;
+  });
 
   if (loading) return (
     <div className="flex items-center justify-center min-h-screen">
@@ -428,6 +440,7 @@ export default function AdminInventoryPage() {
                   onClick={() => {
                     setViewProduct(null);
                     setViewImages([]);
+                    setSelectedViewImage(null);
                   }}
                 className="inline-flex h-9 w-9 items-center justify-center rounded-full text-gray-400 hover:text-gray-600"
                 aria-label="Close product details"
@@ -438,11 +451,37 @@ export default function AdminInventoryPage() {
             <CardContent className="space-y-4 p-6 text-gray-900">
               <div className="w-full">
                 {viewImages.length > 0 ? (
-                  <img
-                    src={(viewImages.find((img) => img.is_primary) || viewImages[0]).image_url}
-                    alt={`${viewProduct.product_name} primary`}
-                    className="w-full h-64 object-cover rounded-lg border"
-                  />
+                  <>
+                    <div className="w-full h-72 rounded-lg border bg-gray-50 flex items-center justify-center p-2">
+                      <img
+                        src={selectedViewImage || orderedViewImages[0].image_url}
+                        alt={viewProduct.product_name}
+                        className="w-full h-full object-contain rounded-md"
+                      />
+                    </div>
+                    {orderedViewImages.length > 1 && (
+                      <div className="mt-3 flex gap-2 overflow-x-auto pb-1">
+                        {orderedViewImages.map((image) => {
+                          const isSelected = (selectedViewImage || orderedViewImages[0].image_url) === image.image_url;
+                          return (
+                            <button
+                              key={image.image_id}
+                              type="button"
+                              onClick={() => setSelectedViewImage(image.image_url)}
+                              className={`h-16 w-16 flex-shrink-0 overflow-hidden rounded-md border-2 ${isSelected ? "border-pink-400" : "border-transparent"}`}
+                              aria-label="Select product image"
+                            >
+                              <img
+                                src={image.image_url}
+                                alt={`${viewProduct.product_name} thumbnail`}
+                                className="h-full w-full object-cover"
+                              />
+                            </button>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </>
                 ) : (
                   <div className="w-full h-64 rounded-lg border bg-gray-50 flex items-center justify-center text-gray-400 text-sm">
                     No image available
@@ -482,6 +521,7 @@ export default function AdminInventoryPage() {
                 onClick={() => {
                   setViewProduct(null);
                   setViewImages([]);
+                  setSelectedViewImage(null);
                 }}
               >
                 Close

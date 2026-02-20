@@ -18,8 +18,8 @@ export async function POST(request: NextRequest) {
     }
 
     const roleResponse = await authHelper.getUserRole(user.id, admin);
-    if (roleResponse.error || roleResponse.data?.role !== "admin") {
-      return NextResponse.json({ error: "Admin access required" }, { status: 403 });
+    if (roleResponse.error || !["admin", "employee"].includes(roleResponse.data?.role || "")) {
+      return NextResponse.json({ error: "Inventory access required" }, { status: 403 });
     }
 
     const formData = await request.formData();
@@ -55,7 +55,7 @@ export async function POST(request: NextRequest) {
     const fileName = `${productId}/${Date.now()}-${file.name}`;
     const fileBuffer = Buffer.from(await file.arrayBuffer());
 
-    const { data: uploadData, error: uploadError } = await admin.storage
+    const { error: uploadError } = await admin.storage
       .from("product-images")
       .upload(fileName, fileBuffer, {
         contentType: file.type,
