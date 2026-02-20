@@ -14,7 +14,7 @@ export default function LogoutButton() {
         setIsLoggingOut(true);
         await signOut();
         router.refresh();
-        router.push('/login');
+        router.push('/');
     };
 
     if (loading || !user) {
