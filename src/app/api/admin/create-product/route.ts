@@ -18,11 +18,11 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Check if user is admin
+    // Check if user can manage inventory
     const { data: userData, error: userError } = await authHelper.getUserRole(user.id, admin);
 
-    if (userError || userData?.role !== 'admin') {
-      return NextResponse.json({ error: 'Forbidden: Admin access required' }, { status: 403 });
+    if (userError || !['admin', 'employee'].includes(userData?.role || '')) {
+      return NextResponse.json({ error: 'Forbidden: Inventory access required' }, { status: 403 });
     }
 
     const editor = user.email || user.user_metadata?.username || 'Unknown';
@@ -76,8 +76,8 @@ export async function POST(request: NextRequest) {
       product: product?.[0]
     });
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error creating product:', error);
-    return NextResponse.json({ error: error.message || 'Internal server error' }, { status: 500 });
+    return NextResponse.json({ error: error instanceof Error ? error.message : 'Internal server error' }, { status: 500 });
   }
 }
