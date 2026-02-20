@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Loader2, X, AlertTriangle } from "lucide-react";
+import { Loader2, X } from "lucide-react";
 import { browserSupabase } from "@/lib/supabase/browser";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -33,8 +33,44 @@ interface AddProductProps {
     onClose: () => void;
     categories: Category[];
     productToEdit?: Product | null;
-    onProductSaved: () => void;
+    onProductSaved: () => void | Promise<void>;
 }
+
+interface SessionWithAccessToken {
+    access_token: string;
+}
+
+const conditionOptions = ["New", "Like New", "Good", "Fair"] as const;
+
+const normalizeCategoryId = (value: unknown) => {
+    if (value === null || value === undefined) return "";
+    const raw = String(value).trim();
+    if (!raw) return "";
+
+    const numericId = Number.parseInt(raw, 10);
+    if (!Number.isNaN(numericId)) {
+        return String(numericId);
+    }
+
+    return raw;
+};
+
+const normalizeCondition = (value: unknown) => {
+    if (value === null || value === undefined) return "New";
+    const raw = String(value).trim();
+    if (!raw) return "New";
+
+    const exact = conditionOptions.find((option) => option === raw);
+    if (exact) return exact;
+
+    const lowered = raw.toLowerCase();
+    if (lowered === "new") return "New";
+    if (lowered === "like new" || lowered === "likenew") return "Like New";
+    if (lowered === "good") return "Good";
+    if (lowered === "fair") return "Fair";
+
+    return raw;
+};
 
 export default function AddProduct({ isOpen, onClose, categories, productToEdit, onProductSaved }: AddProductProps) {
     const [actionLoading, setActionLoading] = useState(false);
@@ -60,12 +96,12 @@ export default function AddProduct({ isOpen, onClose, categories, productToEdit,
             if (productToEdit) {
                 setFormData({
                     product_name: productToEdit.product_name,
-                    category_id: productToEdit.category_id.toString(),
+                    category_id: normalizeCategoryId(productToEdit.category_id),
                     product_price: productToEdit.product_price.toString(),
                     product_brand: productToEdit.product_brand,
                     product_description: productToEdit.product_description,
                     product_stock: productToEdit.product_stock.toString(),
-                    product_condition: productToEdit.product_condition,
+                    product_condition: normalizeCondition(productToEdit.product_condition),
                     size_label: productToEdit.size_label,
                     show_in_catalog: productToEdit.show_in_catalog,
                     image_id: productToEdit.image_id || "",
@@ -108,42 +144,45 @@ export default function AddProduct({ isOpen, onClose, categories, productToEdit,
     };
 
     const addStagedFiles = (files: File[]) => {
-        setStagedFiles([...stagedFiles, ...files]);
+        setStagedFiles((prev) => [...prev, ...files]);
     };
 
     const removeStagedFile = (index: number) => {
-        setStagedFiles(stagedFiles.filter((_, i) => i !== index));
+        setStagedFiles((prev) => prev.filter((_, i) => i !== index));
     };
 
-    const uploadStagedImages = async (productId: string, session: any) => {
-        if (stagedFiles.length === 0) return;
+    const uploadStagedImages = async (productId: string, session: SessionWithAccessToken) => {
+        if (stagedFiles.length === 0) return { failedFiles: [] as string[] };
 
-        try {
-            for (const file of stagedFiles) {
-                const formData = new FormData();
-                formData.append("file", file);
-                formData.append("product_id", productId);
+        const uploadResults = await Promise.all(
+            stagedFiles.map(async (file) => {
+                const imageFormData = new FormData();
+                imageFormData.append("file", file);
+                imageFormData.append("product_id", productId);
 
                 const response = await fetch("/api/admin/upload-image", {
                     method: "POST",
                     headers: {
                         Authorization: `Bearer ${session.access_token}`,
                     },
-                    body: formData,
+                    body: imageFormData,
                 });
 
                 if (!response.ok) {
-                    const error = await response.json();
-                    const message = error.details
-                        ? `${error.error}: ${error.details}`
-                        : (error.error || "Image upload failed");
-                    throw new Error(message);
+                    return file.name;
                 }
-            }
+
+                return null;
+            })
+        );
+
+        const failedFiles = uploadResults.filter((fileName): fileName is string => Boolean(fileName));
+
+        if (failedFiles.length === 0) {
             setStagedFiles([]);
-        } catch (err) {
-            throw err;
         }
+
+        return { failedFiles };
     };
 
     const handleSaveProduct = async (e: React.FormEvent) => {
@@ -159,6 +198,11 @@ export default function AddProduct({ isOpen, onClose, categories, productToEdit,
 
             const endpoint = productToEdit ? '/api/admin/edit-product' : '/api/admin/create-product';
             const method = productToEdit ? 'PUT' : 'POST';
+            const parsedCategoryId = Number.parseInt(formData.category_id, 10);
+
+            if (Number.isNaN(parsedCategoryId)) {
+                throw new Error('Invalid category. Please select a category.');
+            }
 
             const response = await fetch(endpoint, {
                 method,
@@ -169,7 +213,7 @@ export default function AddProduct({ isOpen, onClose, categories, productToEdit,
                 body: JSON.stringify({
                     ...(productToEdit && { product_id: productToEdit.product_id }),
                     product_name: formData.product_name,
-                    category_id: parseInt(formData.category_id),
+                    category_id: parsedCategoryId,
                     product_price: formData.product_price,
                     product_brand: formData.product_brand || "Dolly's Closet",
                     product_description: formData.product_description,
@@ -184,27 +228,39 @@ export default function AddProduct({ isOpen, onClose, categories, productToEdit,
             const data = await response.json();
             if (!response.ok) throw new Error(data.error || 'Failed to save product');
 
+            let failedUploads: string[] = [];
+
             // Upload staged images if this was a new product
             if (!productToEdit && data.product?.product_id && stagedFiles.length > 0) {
-                await uploadStagedImages(data.product.product_id, session);
-            } else if (productToEdit) {
-                // If editing, refreshing images might be handled by the parent or separate logic
-                // usually ImageUpload component handles its own uploads visually, but staged files need handling
-                // For this refactor, we assume staged files are for NEW products mainly, or editing existing calls ImageUpload
-                // The original code passed 'loading={actionLoading}' to ProductImageUpload which suggests it might need it
-                await fetchProductImages(productToEdit.product_id);
+                const uploadResult = await uploadStagedImages(data.product.product_id, session as SessionWithAccessToken);
+                failedUploads = uploadResult.failedFiles;
             }
 
-            onProductSaved();
-            onClose();
-        } catch (err: any) {
-            setError(err.message || 'Failed to save product');
+            await onProductSaved();
+            if (failedUploads.length > 0) {
+                window.alert(`Product saved, but ${failedUploads.length} image(s) failed to upload. You can re-open Edit Product and upload again.`);
+            }
+        } catch (err: unknown) {
+            setError(err instanceof Error ? err.message : 'Failed to save product');
         } finally {
             setActionLoading(false);
         }
     };
 
     if (!isOpen) return null;
+
+    const normalizedCategories = categories.map((cat) => ({
+        ...cat,
+        normalizedId: normalizeCategoryId(cat.category_id),
+    }));
+
+    const normalizedSelectedCategory = normalizeCategoryId(formData.category_id);
+
+    const hasSelectedCategory = normalizedCategories.some(
+        (cat) => cat.normalizedId === normalizedSelectedCategory
+    );
+    const selectedCondition = normalizeCondition(formData.product_condition);
+    const hasSelectedCondition = conditionOptions.includes(selectedCondition as (typeof conditionOptions)[number]);
 
     return (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
@@ -237,16 +293,25 @@ export default function AddProduct({ isOpen, onClose, categories, productToEdit,
                         <div className="grid grid-cols-2 gap-4">
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-2">Category <span className="text-red-500">*</span></label>
-                                <Select value={formData.category_id} onValueChange={(value) => setFormData({ ...formData, category_id: value })}>
+                                <Select
+                                    key={`category-${productToEdit?.product_id || "new"}-${normalizedSelectedCategory}-${normalizedCategories.length}`}
+                                    value={normalizedSelectedCategory}
+                                    onValueChange={(value) => setFormData({ ...formData, category_id: normalizeCategoryId(value) })}
+                                >
                                     <SelectTrigger className="border-black text-black bg-white data-placeholder:text-black">
                                         <SelectValue placeholder="Select category" />
                                     </SelectTrigger>
                                     <SelectContent className="bg-white text-black z-60">
+                                        {normalizedSelectedCategory && !hasSelectedCategory && (
+                                            <SelectItem value={normalizedSelectedCategory}>
+                                                Current Category (ID: {normalizedSelectedCategory})
+                                            </SelectItem>
+                                        )}
                                         {categories.length === 0 ? (
                                             <SelectItem value="none" disabled>No categories found</SelectItem>
                                         ) : (
-                                            categories.map((cat) => (
-                                                <SelectItem key={cat.category_id} value={cat.category_id.toString()}>{cat.category_name}</SelectItem>
+                                            normalizedCategories.map((cat) => (
+                                                <SelectItem key={cat.category_id} value={cat.normalizedId}>{cat.category_name}</SelectItem>
                                             ))
                                         )}
                                     </SelectContent>
@@ -303,12 +368,15 @@ export default function AddProduct({ isOpen, onClose, categories, productToEdit,
 
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-2">Condition</label>
-                                <Select value={formData.product_condition} onValueChange={(value) => setFormData({ ...formData, product_condition: value })}>
-                                    <SelectTrigger className="border-gray-300 text-gray-900 bg-white data-placeholder:text-gray-800">
-                                        <SelectValue />
+                                <Select value={selectedCondition} onValueChange={(value) => setFormData({ ...formData, product_condition: normalizeCondition(value) })}>
+                                    <SelectTrigger className="w-full border-gray-300 text-gray-900 bg-white data-placeholder:text-gray-800">
+                                        <SelectValue placeholder="Select condition" />
                                     </SelectTrigger>
 
                                     <SelectContent className="bg-white text-gray-900 z-60">
+                                        {!hasSelectedCondition && selectedCondition && (
+                                            <SelectItem value={selectedCondition}>{selectedCondition}</SelectItem>
+                                        )}
                                         <SelectItem value="New">New</SelectItem>
                                         <SelectItem value="Like New">Like New</SelectItem>
                                         <SelectItem value="Good">Good</SelectItem>

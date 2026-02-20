@@ -57,7 +57,7 @@ export default function AdminInventoryPage() {
       setLoading(true);
       setError(null);
 
-      const response = await fetch('/api/admin/fetch-products');
+      const response = await fetch('/api/admin/fetch-products', { cache: 'no-store' });
       
       if (!response.ok) {
         throw new Error('Failed to fetch products');
@@ -65,10 +65,12 @@ export default function AdminInventoryPage() {
       
       const result = await response.json();
       setProducts(result.data || []);
+      return true;
 
     } catch (err: any) {
       console.error('Error fetching products:', err);
       setError(err.message);
+      return false;
     } finally {
       setLoading(false);
     }
@@ -76,7 +78,7 @@ export default function AdminInventoryPage() {
 
   async function fetchCategories() {
     try {
-      const response = await fetch('/api/admin/fetch-categories');
+      const response = await fetch('/api/admin/fetch-categories', { cache: 'no-store' });
       
       if (!response.ok) {
         throw new Error('Failed to fetch categories');
@@ -509,6 +511,18 @@ export default function AdminInventoryPage() {
                   <p className="text-sm font-medium text-gray-500">Stock</p>
                   <p className="font-medium">{viewProduct.product_stock}</p>
                 </div>
+                <div>
+                  <p className="text-sm font-medium text-gray-500">Condition</p>
+                  <p className="font-medium">{viewProduct.product_condition}</p>
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-gray-500">Size</p>
+                  <p className="font-medium">{viewProduct.size_label}</p>
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-gray-500">Visibility</p>
+                  <p className="font-medium">{viewProduct.show_in_catalog ? "Listed" : "Hidden"}</p>
+                </div>
               </div>
               <div>
                 <p className="text-sm font-medium text-gray-500">Description</p>
@@ -536,8 +550,11 @@ export default function AdminInventoryPage() {
         onClose={closeModal}
         categories={categories}
         productToEdit={editingProduct}
-        onProductSaved={() => {
-          fetchProducts();
+        onProductSaved={async () => {
+          const refreshed = await fetchProducts();
+          if (!refreshed) {
+            throw new Error('Saved, but failed to refresh products. Please try again.');
+          }
           closeModal();
         }}
       />
