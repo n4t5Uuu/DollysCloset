@@ -8,7 +8,8 @@ import {
   BarChart3,
   Users,
   Activity,
-  Package
+  Package,
+  FileText
 } from "lucide-react";
 import {
   Sidebar,
@@ -31,6 +32,7 @@ export default function AdminSidebar() {
     { href: "/admin/employees", label: "Manage Employees", icon: Users },
     { href: "/admin/activity-logs", label: "Activity Logs", icon: Activity },
     { href: "/admin/inventory", label: "Manage Inventory", icon: Package },
+    { href: "/admin/manage-details", label: "Manage Details", icon: FileText },
   ];
 
 

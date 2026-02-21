@@ -31,6 +31,8 @@ const actionLabels: Record<string, string> = {
   set_primary_image: "Updated Image",
   delete_image: "Deleted Image",
   reorder_images: "Reordered Images",
+  edit_contact_details: "Updated Contact Details",
+  edit_about_details: "Updated About Details",
 };
 
 const actionColors: Record<string, string> = {
@@ -47,6 +49,8 @@ const actionColors: Record<string, string> = {
   set_primary_image: "bg-blue-100 text-blue-800",
   delete_image: "bg-red-100 text-red-800",
   reorder_images: "bg-indigo-100 text-indigo-800",
+  edit_contact_details: "bg-amber-100 text-amber-800",
+  edit_about_details: "bg-violet-100 text-violet-800",
 };
 
 const employeeManagementActions = new Set([
