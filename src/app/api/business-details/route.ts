@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServerSupabase } from "@/lib/supabase/server";
-import { CONTACT_SLUG, buildContactAggregate } from "@/lib/business-details";
+import { ABOUT_SLUG, CONTACT_SLUG, buildAboutAggregate, buildContactAggregate } from "../../../lib/business-details";
 
 const BUSINESS_DETAILS_TABLES = ["tbl_business_details", "business_details"] as const;
 
@@ -25,7 +25,7 @@ export async function GET(request: NextRequest) {
     for (const tableName of BUSINESS_DETAILS_TABLES) {
       const result = await supabase
         .from(tableName)
-        .select("*")
+        .select("slug, title, body, updated_at")
         .eq("slug", slug)
         .order("updated_at", { ascending: false, nullsFirst: false });
 
@@ -34,6 +34,10 @@ export async function GET(request: NextRequest) {
 
         if (slug === CONTACT_SLUG) {
           return NextResponse.json({ data: buildContactAggregate(rows) });
+        }
+
+        if (slug === ABOUT_SLUG) {
+          return NextResponse.json({ data: buildAboutAggregate(rows) });
         }
 
         return NextResponse.json({ data: rows[0] || null });

@@ -9,13 +9,18 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   ABOUT_SLUG,
+  ABOUT_SECTION_FIELD_CONFIG,
   CONTACT_FIELD_CONFIG,
   CONTACT_SLUG,
+  AboutDetailsPayload,
+  AboutFieldKey,
   ContactFieldKey,
   ContactDetailsPayload,
+  defaultAboutDetails,
   defaultContactDetails,
+  parseAboutBody,
   parseContactBody,
-} from "@/lib/business-details";
+} from "../../../lib/business-details";
 
 export default function ManageDetailsPage() {
   const inputClassName = "border-gray-200 bg-white text-gray-900 placeholder:text-gray-400 focus-visible:border-[#E7A3B0] focus-visible:ring-[#E7A3B0]";
@@ -23,13 +28,13 @@ export default function ManageDetailsPage() {
 
   const [activeSection, setActiveSection] = useState<"contact" | "about">("contact");
   const [details, setDetails] = useState<ContactDetailsPayload>(defaultContactDetails);
-  const [aboutTitle, setAboutTitle] = useState("About Us");
-  const [aboutBody, setAboutBody] = useState("");
+  const [aboutDetails, setAboutDetails] = useState<AboutDetailsPayload>(defaultAboutDetails);
 
   const [loadingContact, setLoadingContact] = useState(true);
   const [loadingAbout, setLoadingAbout] = useState(false);
   const [hasLoadedAbout, setHasLoadedAbout] = useState(false);
-  const [savingAbout, setSavingAbout] = useState(false);
+  const [savingAboutField, setSavingAboutField] = useState<AboutFieldKey | null>(null);
+  const [aboutPage, setAboutPage] = useState<1 | 2 | 3>(1);
   const [savingField, setSavingField] = useState<ContactFieldKey | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
@@ -60,6 +65,7 @@ export default function ManageDetailsPage() {
 
       const token = await getAuthToken();
       const response = await fetch(`/api/admin/business-details?slug=${CONTACT_SLUG}`, {
+        cache: "no-store",
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -85,6 +91,7 @@ export default function ManageDetailsPage() {
 
       const token = await getAuthToken();
       const response = await fetch(`/api/admin/business-details?slug=${ABOUT_SLUG}`, {
+        cache: "no-store",
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -95,8 +102,7 @@ export default function ManageDetailsPage() {
         throw new Error(result.error || "Failed to fetch about details");
       }
 
-      setAboutTitle(result.data?.title || "About Us");
-      setAboutBody(typeof result.data?.body === "string" ? result.data.body : "");
+      setAboutDetails(parseAboutBody(result.data?.body));
       setHasLoadedAbout(true);
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Failed to fetch about details");
@@ -149,9 +155,9 @@ export default function ManageDetailsPage() {
     }
   }
 
-  async function handleSaveAbout() {
+  async function handleSaveAboutField(fieldKey: AboutFieldKey, label: string) {
     try {
-      setSavingAbout(true);
+      setSavingAboutField(fieldKey);
       setError(null);
       setSuccess(null);
 
@@ -165,8 +171,8 @@ export default function ManageDetailsPage() {
         },
         body: JSON.stringify({
           slug: ABOUT_SLUG,
-          title: aboutTitle,
-          body: aboutBody,
+          title: label,
+          body: aboutDetails[fieldKey],
         }),
       });
 
@@ -175,18 +181,23 @@ export default function ManageDetailsPage() {
         throw new Error(result.error || "Failed to save about details");
       }
 
-      setAboutTitle(result.data?.title || "About Us");
-      setAboutBody(typeof result.data?.body === "string" ? result.data.body : "");
-      setSuccess("About details saved.");
+      setSuccess(`${label} saved.`);
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Failed to save about details");
     } finally {
-      setSavingAbout(false);
+      setSavingAboutField(null);
     }
   }
 
   function updateDetails(key: ContactFieldKey, value: string) {
     setDetails((prev) => ({
+      ...prev,
+      [key]: value,
+    }));
+  }
+
+  function updateAboutDetails(key: AboutFieldKey, value: string) {
+    setAboutDetails((prev) => ({
       ...prev,
       [key]: value,
     }));
@@ -227,6 +238,7 @@ export default function ManageDetailsPage() {
           type="button"
           onClick={() => {
             setActiveSection("about");
+            setAboutPage(1);
             setSuccess(null);
             setError(null);
           }}
@@ -337,25 +349,157 @@ export default function ManageDetailsPage() {
               </div>
             ) : (
               <>
-                <div>
-                  <p className="mb-2 text-sm font-medium text-gray-700">About Title</p>
-                  <Input value={aboutTitle} onChange={(e) => setAboutTitle(e.target.value)} className={inputClassName} />
-                </div>
-                <div>
-                  <p className="mb-2 text-sm font-medium text-gray-700">About Body</p>
-                  <Textarea value={aboutBody} onChange={(e) => setAboutBody(e.target.value)} className={`min-h-[260px] ${textareaClassName}`} />
-                </div>
-                <div className="flex justify-end">
-                  <Button onClick={handleSaveAbout} disabled={savingAbout} className="bg-[#cc7f8f] text-white hover:bg-[#b96f80]">
-                    {savingAbout ? (
-                      <span className="inline-flex items-center gap-2">
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                        Saving...
-                      </span>
-                    ) : (
-                      "Save About"
-                    )}
-                  </Button>
+                <p className="text-sm text-gray-600">Only body content is editable for About and History. FAQ question and answer fields also save independently.</p>
+
+                {aboutPage === 1 && (
+                  <div className="space-y-6">
+                    <h3 className="text-base font-semibold text-gray-900">About Section Bodies</h3>
+                    <div className="grid grid-cols-1 gap-4">
+                      {ABOUT_SECTION_FIELD_CONFIG.map((field) => (
+                        <div key={field.key} className="space-y-2">
+                          <p className="text-sm font-medium text-gray-700">{field.label}</p>
+                          <Textarea
+                            value={aboutDetails[field.key]}
+                            onChange={(e) => updateAboutDetails(field.key, e.target.value)}
+                            className={`${field.minHeightClassName || "min-h-[90px]"} ${textareaClassName}`}
+                          />
+                          <div className="flex justify-end">
+                            <Button
+                              type="button"
+                              onClick={() => handleSaveAboutField(field.key, field.label)}
+                              disabled={savingAboutField !== null}
+                              className="bg-[#cc7f8f] text-white hover:bg-[#b96f80]"
+                            >
+                              {savingAboutField === field.key ? (
+                                <span className="inline-flex items-center gap-2">
+                                  <Loader2 className="h-4 w-4 animate-spin" />
+                                  Saving
+                                </span>
+                              ) : (
+                                "Save"
+                              )}
+                            </Button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {(aboutPage === 2 || aboutPage === 3) && (
+                  <div className="space-y-6">
+                    <h3 className="text-base font-semibold text-gray-900">FAQ (8 Items)</h3>
+                    <p className="text-sm text-gray-600">Showing items {aboutPage === 2 ? "1-4" : "5-8"}.</p>
+                    <div className="grid grid-cols-1 gap-4">
+                      {Array.from({ length: 4 }, (_, index) => {
+                        const number = (aboutPage === 2 ? 0 : 4) + index + 1;
+                      const questionKey = `question${number}` as AboutFieldKey;
+                      const answerKey = `answer${number}` as AboutFieldKey;
+                      const questionLabel = `Question ${number}`;
+                      const answerLabel = `Answer ${number}`;
+
+                      return (
+                        <div key={number} className="space-y-3 rounded-lg border border-gray-200 p-4">
+                          <div className="space-y-2">
+                            <p className="text-sm font-medium text-gray-700">{questionLabel}</p>
+                            <div className="flex flex-col gap-2 md:flex-row">
+                              <Input
+                                value={aboutDetails[questionKey]}
+                                onChange={(e) => updateAboutDetails(questionKey, e.target.value)}
+                                className={inputClassName}
+                              />
+                              <Button
+                                type="button"
+                                onClick={() => handleSaveAboutField(questionKey, questionLabel)}
+                                disabled={savingAboutField !== null}
+                                className="bg-[#cc7f8f] text-white hover:bg-[#b96f80] md:min-w-28"
+                              >
+                                {savingAboutField === questionKey ? (
+                                  <span className="inline-flex items-center gap-2">
+                                    <Loader2 className="h-4 w-4 animate-spin" />
+                                    Saving
+                                  </span>
+                                ) : (
+                                  "Save"
+                                )}
+                              </Button>
+                            </div>
+                          </div>
+
+                          <div className="space-y-2">
+                            <p className="text-sm font-medium text-gray-700">{answerLabel}</p>
+                            <Textarea
+                              value={aboutDetails[answerKey]}
+                              onChange={(e) => updateAboutDetails(answerKey, e.target.value)}
+                              className={`min-h-[90px] ${textareaClassName}`}
+                            />
+                            <div className="flex justify-end">
+                              <Button
+                                type="button"
+                                onClick={() => handleSaveAboutField(answerKey, answerLabel)}
+                                disabled={savingAboutField !== null}
+                                className="bg-[#cc7f8f] text-white hover:bg-[#b96f80]"
+                              >
+                                {savingAboutField === answerKey ? (
+                                  <span className="inline-flex items-center gap-2">
+                                    <Loader2 className="h-4 w-4 animate-spin" />
+                                    Saving
+                                  </span>
+                                ) : (
+                                  "Save"
+                                )}
+                              </Button>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                <div className="flex justify-center pt-2">
+                  <div className="flex items-center gap-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setAboutPage((prev) => (prev === 1 ? 1 : ((prev - 1) as 1 | 2 | 3)))}
+                      disabled={aboutPage === 1 || savingAboutField !== null}
+                      className="border-gray-400 text-gray-800 hover:bg-gray-100"
+                    >
+                      &lt;
+                    </Button>
+
+                    {[1, 2, 3].map((pageNum) => (
+                      <Button
+                        key={pageNum}
+                        type="button"
+                        variant={aboutPage === pageNum ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => setAboutPage(pageNum as 1 | 2 | 3)}
+                        disabled={savingAboutField !== null}
+                        className={
+                          aboutPage === pageNum
+                            ? "bg-[#cc7f8f] text-white hover:bg-[#b96f80]"
+                            : "border-gray-400 text-gray-800 hover:bg-gray-100"
+                        }
+                      >
+                        {pageNum}
+                      </Button>
+                    ))}
+
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setAboutPage((prev) => (prev === 3 ? 3 : ((prev + 1) as 1 | 2 | 3)))}
+                      disabled={aboutPage === 3 || savingAboutField !== null}
+                      className="border-gray-400 text-gray-800 hover:bg-gray-100"
+                    >
+                      &gt;
+                    </Button>
+                  </div>
                 </div>
               </>
             )}

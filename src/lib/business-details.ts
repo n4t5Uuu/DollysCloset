@@ -68,6 +68,113 @@ export const CONTACT_FIELD_CONFIG: ContactFieldConfig[] = [
   { key: "address", label: CONTACT_LABEL_BY_KEY.address, type: "textarea", minHeightClassName: "min-h-[90px]" },
 ];
 
+export type AboutFieldKey =
+  | "aboutBody"
+  | "historyBody"
+  | "question1"
+  | "answer1"
+  | "question2"
+  | "answer2"
+  | "question3"
+  | "answer3"
+  | "question4"
+  | "answer4"
+  | "question5"
+  | "answer5"
+  | "question6"
+  | "answer6"
+  | "question7"
+  | "answer7"
+  | "question8"
+  | "answer8";
+
+export type AboutDetailsPayload = Record<AboutFieldKey, string>;
+
+export const ABOUT_LABEL_BY_KEY: Record<AboutFieldKey, string> = {
+  aboutBody: "About Dolly's Closet Body",
+  historyBody: "History Body",
+  question1: "Question 1",
+  answer1: "Answer 1",
+  question2: "Question 2",
+  answer2: "Answer 2",
+  question3: "Question 3",
+  answer3: "Answer 3",
+  question4: "Question 4",
+  answer4: "Answer 4",
+  question5: "Question 5",
+  answer5: "Answer 5",
+  question6: "Question 6",
+  answer6: "Answer 6",
+  question7: "Question 7",
+  answer7: "Answer 7",
+  question8: "Question 8",
+  answer8: "Answer 8",
+};
+
+const defaultAboutParagraph1 =
+  "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Phasellus feugiat, nisi sed posuere laoreet, lacus risus pretium nunc, vitae luctus sapien tortor nec justo. Aenean vitae velit nec lorem laoreet tempor. Curabitur sed nibh in enim pretium viverra. Fusce nec ex vel arcu vulputate dignissim. Suspendisse potenti. Nulla facilisi.";
+
+const defaultAboutParagraph2 =
+  "Vivamus tristique justo in nibh fermentum, id pulvinar elit feugiat. Integer facilisis mauris ut neque tincidunt, nec interdum magna ultricies. Etiam vel diam vel risus cursus accumsan. Mauris ut massa ac elit iaculis tristique vitae vitae odio.";
+
+export const defaultAboutDetails: AboutDetailsPayload = {
+  aboutBody: `${defaultAboutParagraph1}\n\n${defaultAboutParagraph2}`,
+  historyBody: `${defaultAboutParagraph1}\n\n${defaultAboutParagraph2}`,
+  question1: "Is everything on Dolly's Closet authentic?",
+  answer1:
+    "Yes! We carefully inspect and verify every item before listing it. We pride ourselves on selling only authentic vintage and branded pieces.",
+  question2: "Do you ship nationwide?",
+  answer2:
+    "We currently ship to all major cities across the country. Shipping rates vary based on your location and the weight of your package.",
+  question3: "Can I try order an item and pick it up at the store?",
+  answer3:
+    "Absolutely! We support 'Buy Online, Pick Up In-Store'. Just select the 'Store Pickup' option at checkout.",
+  question4: "What is your return policy?",
+  answer4:
+    "Since most of our items are vintage or pre-loved, all sales are generally final. However, if there was a major flaw we missed in the description, please contact us within 48 hours of receiving your order.",
+  question5: "How do I know if an item will fit me?",
+  answer5:
+    "We provide detailed measurements for every item in the description. We recommend comparing these measurements to a piece of clothing you already own that fits you well.",
+  question6: "Do you wash the clothes before selling?",
+  answer6: "Yes, all items are washed, steamed, and sanitized before being photographed and listed.",
+  question7: "How long does shipping take?",
+  answer7:
+    "Metro Manila orders usually arrive within 1-3 business days. Provincial orders take 3-7 business days depending on the courier.",
+  question8: "Can I reserve an item?",
+  answer8: "We do not offer reservations. Our items are sold on a first-come, first-served basis.",
+};
+
+export type AboutFieldConfig = {
+  key: AboutFieldKey;
+  label: string;
+  type: "input" | "textarea";
+  minHeightClassName?: string;
+};
+
+export const ABOUT_SECTION_FIELD_CONFIG: AboutFieldConfig[] = [
+  { key: "aboutBody", label: "About Dolly's Closet Body", type: "textarea", minHeightClassName: "min-h-[180px]" },
+  { key: "historyBody", label: "History Body", type: "textarea", minHeightClassName: "min-h-[180px]" },
+];
+
+export const FAQ_FIELD_CONFIG: AboutFieldConfig[] = [
+  { key: "question1", label: "Question 1", type: "input" },
+  { key: "answer1", label: "Answer 1", type: "textarea", minHeightClassName: "min-h-[90px]" },
+  { key: "question2", label: "Question 2", type: "input" },
+  { key: "answer2", label: "Answer 2", type: "textarea", minHeightClassName: "min-h-[90px]" },
+  { key: "question3", label: "Question 3", type: "input" },
+  { key: "answer3", label: "Answer 3", type: "textarea", minHeightClassName: "min-h-[90px]" },
+  { key: "question4", label: "Question 4", type: "input" },
+  { key: "answer4", label: "Answer 4", type: "textarea", minHeightClassName: "min-h-[90px]" },
+  { key: "question5", label: "Question 5", type: "input" },
+  { key: "answer5", label: "Answer 5", type: "textarea", minHeightClassName: "min-h-[90px]" },
+  { key: "question6", label: "Question 6", type: "input" },
+  { key: "answer6", label: "Answer 6", type: "textarea", minHeightClassName: "min-h-[90px]" },
+  { key: "question7", label: "Question 7", type: "input" },
+  { key: "answer7", label: "Answer 7", type: "textarea", minHeightClassName: "min-h-[90px]" },
+  { key: "question8", label: "Question 8", type: "input" },
+  { key: "answer8", label: "Answer 8", type: "textarea", minHeightClassName: "min-h-[90px]" },
+];
+
 export type BusinessDetailsRowLike = {
   title?: string | null;
   body?: string | null;
@@ -87,6 +194,18 @@ export function resolveContactKey(value: string): ContactFieldKey | null {
   const normalized = normalizeTitle(value);
 
   for (const [key, label] of Object.entries(CONTACT_LABEL_BY_KEY) as Array<[ContactFieldKey, string]>) {
+    if (normalized === normalizeTitle(key) || normalized === normalizeTitle(label)) {
+      return key;
+    }
+  }
+
+  return null;
+}
+
+export function resolveAboutKey(value: string): AboutFieldKey | null {
+  const normalized = normalizeTitle(value);
+
+  for (const [key, label] of Object.entries(ABOUT_LABEL_BY_KEY) as Array<[AboutFieldKey, string]>) {
     if (normalized === normalizeTitle(key) || normalized === normalizeTitle(label)) {
       return key;
     }
@@ -119,6 +238,33 @@ export function parseContactBody(rawBody: unknown): ContactDetailsPayload {
     };
   } catch {
     return defaultContactDetails;
+  }
+}
+
+export function parseAboutBody(rawBody: unknown): AboutDetailsPayload {
+  if (!rawBody) {
+    return defaultAboutDetails;
+  }
+
+  if (typeof rawBody === "object") {
+    return {
+      ...defaultAboutDetails,
+      ...(rawBody as Partial<AboutDetailsPayload>),
+    };
+  }
+
+  if (typeof rawBody !== "string") {
+    return defaultAboutDetails;
+  }
+
+  try {
+    const parsed = JSON.parse(rawBody) as Partial<AboutDetailsPayload>;
+    return {
+      ...defaultAboutDetails,
+      ...parsed,
+    };
+  } catch {
+    return defaultAboutDetails;
   }
 }
 
@@ -165,6 +311,45 @@ export function buildContactAggregate(rows: BusinessDetailsRowLike[]) {
     title,
     body: {
       ...defaultContactDetails,
+      ...body,
+    },
+  };
+}
+
+export function buildAboutAggregate(rows: BusinessDetailsRowLike[]) {
+  const body: Partial<AboutDetailsPayload> = {};
+  const capturedKeys = new Set<AboutFieldKey>();
+
+  for (const row of rows) {
+    const rowTitle = toText(row.title);
+    const rowBody = toText(row.body);
+    const key = resolveAboutKey(rowTitle);
+
+    if (key && !capturedKeys.has(key)) {
+      body[key] = rowBody;
+      capturedKeys.add(key);
+      continue;
+    }
+
+    try {
+      const parsed = JSON.parse(rowBody) as Record<string, unknown>;
+      if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
+        for (const keyName of Object.keys(ABOUT_LABEL_BY_KEY) as AboutFieldKey[]) {
+          if (!capturedKeys.has(keyName) && parsed[keyName] !== undefined && parsed[keyName] !== null) {
+            body[keyName] = toText(parsed[keyName]);
+            capturedKeys.add(keyName);
+          }
+        }
+      }
+    } catch {
+    }
+  }
+
+  return {
+    slug: ABOUT_SLUG,
+    title: "About Us",
+    body: {
+      ...defaultAboutDetails,
       ...body,
     },
   };

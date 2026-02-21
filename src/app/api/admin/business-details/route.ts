@@ -4,15 +4,19 @@ import { authHelper } from "@/lib/auth-helper";
 import { dataHelper } from "@/lib/data-helper";
 import {
   ABOUT_SLUG,
+  ABOUT_LABEL_BY_KEY,
   CONTACT_LABEL_BY_KEY,
   CONTACT_SLUG,
+  buildAboutAggregate,
   buildContactAggregate,
   normalizeTitle,
+  resolveAboutKey,
   resolveContactKey,
   toText,
-} from "@/lib/business-details";
+} from "../../../../lib/business-details";
 
 const BUSINESS_DETAILS_TABLES = ["tbl_business_details", "business_details"] as const;
+let cachedBusinessDetailsTable: string | null = null;
 
 type BusinessDetailsRow = {
   slug?: string | null;
@@ -46,10 +50,15 @@ function getRowIdColumn(row: BusinessDetailsRow): "business_details_id" | "busin
 }
 
 async function resolveTableName() {
+  if (cachedBusinessDetailsTable) {
+    return { tableName: cachedBusinessDetailsTable, error: null as Error | null };
+  }
+
   for (const tableName of BUSINESS_DETAILS_TABLES) {
     const result = await admin.from(tableName).select("slug").limit(1);
 
     if (!result.error) {
+      cachedBusinessDetailsTable = tableName;
       return { tableName, error: null as Error | null };
     }
 
@@ -144,6 +153,15 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ data: buildContactAggregate(contactRows.data) });
     }
 
+    if (slug === ABOUT_SLUG) {
+      const aboutRows = await findAllBySlug(tableResult.tableName, slug);
+      if (aboutRows.error) {
+        return NextResponse.json({ error: aboutRows.error.message }, { status: 500 });
+      }
+
+      return NextResponse.json({ data: buildAboutAggregate(aboutRows.data) });
+    }
+
     const latest = await findLatestBySlug(tableResult.tableName, slug);
     if (latest.error) {
       return NextResponse.json({ error: latest.error.message }, { status: 500 });
@@ -182,72 +200,60 @@ export async function PUT(request: NextRequest) {
     const tableName = tableResult.tableName;
     const now = new Date().toISOString();
 
-    if (slug === CONTACT_SLUG) {
+    if (slug === CONTACT_SLUG || slug === ABOUT_SLUG) {
+      const isContact = slug === CONTACT_SLUG;
       const updates: Array<{ label: string; value: string }> = [];
 
       if (body && typeof body === "object" && !Array.isArray(body)) {
         for (const [incomingKey, incomingValue] of Object.entries(body)) {
-          const contactKey = resolveContactKey(incomingKey);
-          if (!contactKey) continue;
+          const resolvedKey = isContact ? resolveContactKey(incomingKey) : resolveAboutKey(incomingKey);
+          if (!resolvedKey) continue;
 
           updates.push({
-            label: CONTACT_LABEL_BY_KEY[contactKey],
+            label: isContact
+              ? CONTACT_LABEL_BY_KEY[resolvedKey as keyof typeof CONTACT_LABEL_BY_KEY]
+              : ABOUT_LABEL_BY_KEY[resolvedKey as keyof typeof ABOUT_LABEL_BY_KEY],
             value: toText(incomingValue),
           });
         }
       } else {
-        const contactKey = resolveContactKey(title || "");
-        if (!contactKey) {
-          return NextResponse.json({ error: "Invalid contact field title" }, { status: 400 });
+        const resolvedKey = isContact ? resolveContactKey(title || "") : resolveAboutKey(title || "");
+        if (!resolvedKey) {
+          return NextResponse.json({ error: isContact ? "Invalid contact field title" : "Invalid about field title" }, { status: 400 });
         }
 
         updates.push({
-          label: CONTACT_LABEL_BY_KEY[contactKey],
+          label: isContact
+            ? CONTACT_LABEL_BY_KEY[resolvedKey as keyof typeof CONTACT_LABEL_BY_KEY]
+            : ABOUT_LABEL_BY_KEY[resolvedKey as keyof typeof ABOUT_LABEL_BY_KEY],
           value: toText(body),
         });
       }
 
       if (updates.length === 0) {
-        return NextResponse.json({ error: "No contact fields to update" }, { status: 400 });
+        return NextResponse.json({ error: isContact ? "No contact fields to update" : "No about fields to update" }, { status: 400 });
       }
 
       for (const updateItem of updates) {
-        const existingResult = await admin
+        const updateResult = await admin
           .from(tableName)
-          .select("*")
-          .eq("slug", CONTACT_SLUG)
+          .update({
+            slug,
+            title: updateItem.label,
+            body: updateItem.value,
+            updated_at: now,
+          })
+          .eq("slug", slug)
           .eq("title", updateItem.label)
-          .order("updated_at", { ascending: false, nullsFirst: false })
-          .limit(1)
-          .maybeSingle();
+          .select("title");
 
-        if (existingResult.error) {
-          return NextResponse.json({ error: existingResult.error.message }, { status: 500 });
+        if (updateResult.error) {
+          return NextResponse.json({ error: updateResult.error.message }, { status: 500 });
         }
 
-        const existing = existingResult.data as BusinessDetailsRow | null;
-
-        if (existing) {
-          const idColumn = getRowIdColumn(existing);
-          const query = admin
-            .from(tableName)
-            .update({
-              slug: CONTACT_SLUG,
-              title: updateItem.label,
-              body: updateItem.value,
-              updated_at: now,
-            });
-
-          const executeUpdate = idColumn
-            ? await query.eq(idColumn, existing[idColumn])
-            : await query.eq("slug", CONTACT_SLUG).eq("title", updateItem.label);
-
-          if (executeUpdate.error) {
-            return NextResponse.json({ error: executeUpdate.error.message }, { status: 500 });
-          }
-        } else {
+        if (!updateResult.data || updateResult.data.length === 0) {
           const insertResult = await admin.from(tableName).insert({
-            slug: CONTACT_SLUG,
+            slug,
             title: updateItem.label,
             body: updateItem.value,
             updated_at: now,
@@ -262,18 +268,18 @@ export async function PUT(request: NextRequest) {
       const changedLabels = updates.map((item) => item.label);
 
       await dataHelper.logActivity({
-        actionType: "edit_contact_details",
+        actionType: isContact ? "edit_contact_details" : "edit_about_details",
         productId: null,
         description:
           changedLabels.length === 1
-            ? `Updated contact detail: ${changedLabels[0]}`
-            : `Updated contact details: ${changedLabels.join(", ")}`,
+            ? `Updated ${isContact ? "contact" : "about"} detail: ${changedLabels[0]}`
+            : `Updated ${isContact ? "contact" : "about"} details: ${changedLabels.join(", ")}`,
         editor: user.email || String(user.user_metadata?.username || "Unknown"),
         user_id: user.id,
         supabase: admin,
       });
 
-      return NextResponse.json({ data: { slug: CONTACT_SLUG, updated: updates } });
+      return NextResponse.json({ data: { slug, updated: updates } });
     }
 
     const serializedBody = toText(body);

@@ -1,7 +1,7 @@
 // app/admin/activity-logs/page.tsx
 "use client";
 
-import { useState, useEffect } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Loader2, AlertTriangle, Search, X } from "lucide-react";
@@ -67,22 +67,38 @@ export default function ActivityLogsPage() {
   const [sortOrder, setSortOrder] = useState<"desc" | "asc">("desc");
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
+  const authTokenRef = useRef<string | null>(null);
 
-  useEffect(() => {
-    fetchLogs();
+  const getAuthToken = useCallback(async () => {
+    if (authTokenRef.current) {
+      return authTokenRef.current;
+    }
+
+    const {
+      data: { session },
+    } = await browserSupabase.auth.getSession();
+
+    if (!session?.access_token) {
+      throw new Error("Not authenticated");
+    }
+
+    authTokenRef.current = session.access_token;
+    return session.access_token;
   }, []);
 
-  async function fetchLogs() {
+  const fetchLogs = useCallback(async (isBackground = false) => {
     try {
-      setLoading(true);
+      if (!isBackground) {
+        setLoading(true);
+      }
       setError(null);
 
-      const { data: { session } } = await browserSupabase.auth.getSession();
-      if (!session) throw new Error('Not authenticated');
+      const token = await getAuthToken();
 
       const response = await fetch('/api/admin/fetch-logs', {
+        cache: 'no-store',
         headers: {
-          Authorization: `Bearer ${session.access_token}`,
+          Authorization: `Bearer ${token}`,
         },
       });
       
@@ -98,45 +114,77 @@ export default function ActivityLogsPage() {
       console.error('Error fetching logs:', err);
       setError(err instanceof Error ? err.message : 'Failed to load activity logs');
     } finally {
-      setLoading(false);
+      if (!isBackground) {
+        setLoading(false);
+      }
     }
-  }
+  }, [getAuthToken]);
 
-  const filteredLogs = logs.filter((log) =>
-    log.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    log.action_type?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    log.product_id?.toString().includes(searchQuery) ||
-    log.editor?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    log.user_id?.toString().includes(searchQuery)
-  );
+  useEffect(() => {
+    fetchLogs();
+  }, [fetchLogs]);
+
+  useEffect(() => {
+    const refreshInterval = window.setInterval(() => {
+      fetchLogs(true);
+    }, 15000);
+
+    const onFocus = () => {
+      fetchLogs(true);
+    };
+
+    window.addEventListener("focus", onFocus);
+
+    return () => {
+      window.clearInterval(refreshInterval);
+      window.removeEventListener("focus", onFocus);
+    };
+  }, [fetchLogs]);
+
+  const filteredLogs = useMemo(() => {
+    const query = searchQuery.trim().toLowerCase();
+    if (!query) return logs;
+
+    return logs.filter((log) =>
+      log.description?.toLowerCase().includes(query) ||
+      log.action_type?.toLowerCase().includes(query) ||
+      log.product_id?.toString().includes(query) ||
+      log.editor?.toLowerCase().includes(query) ||
+      log.user_id?.toString().includes(query)
+    );
+  }, [logs, searchQuery]);
 
   useEffect(() => {
     setCurrentPage(1);
   }, [searchQuery, sortOrder, logs.length]);
 
-  const sortedLogs = [...filteredLogs].sort((a, b) => {
-    const timeA = new Date(a.created_at).getTime();
-    const timeB = new Date(b.created_at).getTime();
-    return sortOrder === "desc" ? timeB - timeA : timeA - timeB;
-  });
+  const sortedLogs = useMemo(() => {
+    return [...filteredLogs].sort((a, b) => {
+      const timeA = new Date(a.created_at).getTime();
+      const timeB = new Date(b.created_at).getTime();
+      return sortOrder === "desc" ? timeB - timeA : timeA - timeB;
+    });
+  }, [filteredLogs, sortOrder]);
 
   const totalPages = Math.max(1, Math.ceil(sortedLogs.length / itemsPerPage));
   const safePage = Math.min(currentPage, totalPages);
   const startIndex = (safePage - 1) * itemsPerPage;
   const endIndex = startIndex + itemsPerPage;
-  const paginatedLogs = sortedLogs.slice(startIndex, endIndex);
+  const paginatedLogs = useMemo(
+    () => sortedLogs.slice(startIndex, endIndex),
+    [sortedLogs, startIndex, endIndex]
+  );
 
 
   const handleResetLogs = async () => {
     if (confirm("Are you sure you want to delete all activity logs? This cannot be undone.")) {
       try {
-        const { data: { session } } = await browserSupabase.auth.getSession();
-        if (!session) throw new Error('Not authenticated');
+        const token = await getAuthToken();
 
         const response = await fetch('/api/admin/reset-activity-logs', {
           method: 'POST',
           headers: {
-            Authorization: `Bearer ${session.access_token}`,
+            Authorization: `Bearer ${token}`,
           },
         });
 
