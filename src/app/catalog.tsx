@@ -3,11 +3,11 @@
 import { useState } from "react";
 import Image from "next/image";
 
-import FeatureCardCarousel from "@/components/catalog/feature-card-carousel";
-import SearchBar from "@/components/search-bar";
-import CatalogSidebar from "@/components/catalog/catalog-sidebar";
-import ProductCard from "@/components/catalog/product-card";
-import ProductModal from "@/components/modals/product-modal";
+import FeatureCardCarousel from "@/components/catalog/FeatureCardCarousel";
+import SearchBar from "@/components/general-components/SearchBar";
+import CatalogSidebar from "@/components/sidebar/CatalogSidebar";
+import ProductCard from "@/components/catalog/ProductCard";
+import ProductModal from "@/components/modals/ProductModal";
 import { useProducts } from "@/contexts/ProductContext";
 import { Product } from "@/types/product.types";
 import { InfiniteSlider } from "@/components/motion-primitives/infinite-slider";

@@ -6,7 +6,7 @@ import {
   Great_Vibes
 } from "next/font/google"; 
 import "./globals.css";
-import {ConditionalFooter, ConditionalNavbar } from "@/components/conditional-footer-and-header";
+import {ConditionalFooter, ConditionalNavbar } from "@/components/general-components/ConditionalFooterAndHeader";
 import { ProductProvider } from "@/contexts/ProductContext";
 import { Toaster } from "@/components/ui/sonner";
 

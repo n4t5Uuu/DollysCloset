@@ -13,11 +13,15 @@ export default function LogoutButton() {
     const handleLogout = async () => {
         setIsLoggingOut(true);
         await signOut();
-        router.push('/');
+
+        // Redirects to the login page after logging out 
+        // overwrites the browser history to prevent going back to the dashboard
+        router.replace('/');
     };
 
+    // Don't render anything if loading or not logged in
     if (loading || !user) {
-        return null; // Don't render anything if loading or not logged in
+        return null;
     }
 
     return (

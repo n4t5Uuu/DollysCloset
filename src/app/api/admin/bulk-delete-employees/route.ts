@@ -55,21 +55,15 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ error: deleteUserError.message }, { status: 500 });
     }
 
-    return NextResponse.json({ 
-      success: true, 
-      message: `Successfully deleted ${employee_ids.length} employee(s)`,
-      failed_count: failures.length
-    });
-
-    // Log activity
+    // this logs the activity if the user is valid
     if (user) {
-      const editor = user.email || user.user_metadata?.username || 'Unknown';
+      const editor = user?.email || user?.user_metadata?.username || 'Unknown';
       await dataHelper.logActivity({
         actionType: 'delete_employee',
         productId: null,
         description: `Bulk deleted ${employee_ids.length} employee(s)`,
         editor: editor,
-        user_id: user.id,
+        user_id: user?.id,
         supabase: admin
       });
     }

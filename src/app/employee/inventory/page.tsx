@@ -20,7 +20,9 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import AddProduct from "@/components/modals/AddProduct";
+import { InventoryTable } from "@/components/tables/InventoryTable";
 import { InventoryProduct as Product, InventoryCategory as Category, InventoryProductImage as ProductImage } from "@/types/inventory.types";
 
 export default function EmployeeInventoryPage() {
@@ -330,79 +332,17 @@ export default function EmployeeInventoryPage() {
         </div>
       </div>
 
-      <div className="bg-white rounded-lg border overflow-x-auto">
-        <table className="w-full">
-          <thead className="border-b bg-gray-50">
-            <tr>
-              <th className="p-4 text-left w-12">
-                <Checkbox
-                  checked={selectedProducts.size === currentProducts.length && currentProducts.length > 0}
-                  onCheckedChange={toggleSelectAll}
-                />
-              </th>
-              <th className="p-4 text-left font-bold">Product Name</th>
-              <th className="p-4 text-left font-bold">Category</th>
-              <th className="p-4 text-center font-bold">Stock</th>
-              <th className="p-4 text-right font-bold">Price</th>
-              <th className="p-4 text-center font-bold">Status</th>
-              <th className="p-4 text-center font-bold w-[200px]">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {currentProducts.length > 0 ? (
-              currentProducts.map((product) => (
-                <tr key={product.product_id} className="border-b hover:bg-gray-50">
-                  <td className="p-4">
-                    <Checkbox
-                      checked={selectedProducts.has(product.product_id)}
-                      onCheckedChange={() => toggleSelectProduct(product.product_id)}
-                    />
-                  </td>
-                  <td className="p-4 font-medium">{product.product_name}</td>
-                  <td className="p-4 text-gray-600">{getCategoryName(product.category_id)}</td>
-                  <td className="p-4 text-center">
-                    <span className={product.product_stock < 10 ? "text-orange-600 font-medium" : ""}>
-                      {product.product_stock}
-                    </span>
-                    {product.product_stock < 10 && (
-                      <div className="text-xs text-orange-600 mt-1">⚠ Low</div>
-                    )}
-                  </td>
-                  <td className="p-4 text-right font-medium">
-                    ₱{product.product_price.toFixed(2)}
-                  </td>
-                  <td className="p-4 text-center">
-                    <span className={`px-3 py-1 rounded text-sm font-medium ${
-                      product.show_in_catalog ? "bg-green-100 text-green-800" : "bg-gray-100 text-gray-800"
-                    }`}>
-                      {product.show_in_catalog ? "Listed" : "Hidden"}
-                    </span>
-                  </td>
-                  <td className="p-4">
-                    <div className="flex gap-2 justify-center flex-wrap">
-                      <Button size="icon" variant="outline" className="border-pink-200 text-pink-600 bg-pink-50 hover:bg-pink-200 hover:text-pink-700 hover:border-pink-300" onClick={() => handleViewProduct(product)}>
-                        <Eye className="h-4 w-4" />
-                      </Button>
-                      <Button size="icon" variant="outline" className="border-blue-200 text-blue-600 bg-blue-50 hover:bg-blue-200 hover:text-blue-700 hover:border-blue-300" onClick={() => handleEditProduct(product)}>
-                        <Pencil className="h-4 w-4" />
-                      </Button>
-                      <Button size="icon" variant="outline" className="border-red-200 text-red-600 bg-red-50 hover:bg-red-200 hover:text-red-700 hover:border-red-300" onClick={() => handleDeleteProduct(product.product_id)} disabled={actionLoading}>
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </td>
-                </tr>
-              ))
-            ) : (
-              <tr>
-                <td colSpan={7} className="p-8 text-center text-gray-500">
-                  No products found
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-      </div>
+      <InventoryTable
+        currentProducts={currentProducts}
+        selectedProducts={selectedProducts}
+        toggleSelectAll={() => toggleSelectAll(selectedProducts.size !== currentProducts.length || currentProducts.length === 0)}
+        toggleSelectProduct={toggleSelectProduct}
+        getCategoryName={getCategoryName}
+        handleViewProduct={handleViewProduct}
+        handleEditProduct={handleEditProduct}
+        handleDeleteProduct={handleDeleteProduct}
+        actionLoading={actionLoading}
+      />
 
       {totalPages > 1 && (
         <div className="flex justify-center items-center gap-2 mt-6">

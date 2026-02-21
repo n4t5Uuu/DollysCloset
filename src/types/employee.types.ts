@@ -1,8 +1,8 @@
 export interface Employee {
-    user_key: string; // Used for UI key mainly
-    id: string; // Sometimes this is used as key
-    user_id: string; // The UUID
-    username: string; // Email
+    user_key: string;
+    id: string;
+    user_id: string;
+    username: string;
     first_name: string;
     last_name: string;
     role: string;

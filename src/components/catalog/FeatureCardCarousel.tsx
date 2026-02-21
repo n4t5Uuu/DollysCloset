@@ -36,7 +36,7 @@ export default function FeatureCardCarousel({ onProductClick }: FeatureCardCarou
     const featuredProducts = productList.filter(
         product => catalogStatus[product.id] === "featured"
     );
-
+    
     // Track the Embla API instance
     const [api, setApi] = useState<CarouselApi | null>(null);
     const [current, setCurrent] = useState(0);

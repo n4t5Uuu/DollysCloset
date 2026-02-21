@@ -2,11 +2,12 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Plus, Edit2, Trash2, Eye, Search, ChevronUp, ChevronDown, X, AlertTriangle, Trash, Loader2 } from "lucide-react";
+import { Plus, Edit2, Trash2, Eye, Search, ChevronUp, ChevronDown, X, AlertTriangle, Trash, Loader2, Pencil } from "lucide-react";
 import { browserSupabase } from "@/lib/supabase/browser";
 import { useRouter } from "next/navigation";
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from "@/components/ui/card";
 import AddEmployee from "@/components/modals/AddEmployee";
+import { EmployeeTable } from "@/components/tables/EmployeeTable";
 import { Employee } from "@/types/employee.types";
 
 export default function EmployeesPage() {
@@ -89,10 +90,10 @@ export default function EmployeesPage() {
   };
 
   const toggleSelectAll = () => {
-    if (selectedRows.size === sortedEmployees.length) {
+    if (selectedRows.size === sortedEmployees.length && sortedEmployees.length > 0) {
       setSelectedRows(new Set());
     } else {
-      setSelectedRows(new Set(sortedEmployees.map((e) => e.id)));
+      setSelectedRows(new Set(sortedEmployees.map((e) => e.user_id)));
     }
   };
 
@@ -179,50 +180,50 @@ export default function EmployeesPage() {
   };
 
 
-  // Bulk delete handler (DISABLED FOR NOW)
-  // const handleBulkDelete = async () => {
-  //   setActionLoading(true);
-  //   setError(null);
+  // Bulk delete handler
+  const handleBulkDelete = async () => {
+    setActionLoading(true);
+    setError(null);
 
-  //   try {
-  //     const idsToDelete = Array.from(selectedRows);
+    try {
+      const idsToDelete = Array.from(selectedRows);
 
-  //     // Get current session token
-  //     const { data: { session } } = await browserSupabase.auth.getSession();
+      // Get current session token
+      const { data: { session } } = await browserSupabase.auth.getSession();
       
-  //     if (!session) {
-  //       throw new Error('Not authenticated');
-  //     }
+      if (!session) {
+        throw new Error('Not authenticated');
+      }
 
-  //     // Call the API route
-  //     const response = await fetch('/api/admin/bulk-delete-employees', {
-  //       method: 'DELETE',
-  //       headers: {
-  //         'Content-Type': 'application/json',
-  //         'Authorization': `Bearer ${session.access_token}`
-  //       },
-  //       body: JSON.stringify({
-  //         employee_ids: idsToDelete,
-  //       })
-  //     });
+      // Call the API route
+      const response = await fetch('/api/admin/bulk-delete-employees', {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`
+        },
+        body: JSON.stringify({
+          employee_ids: idsToDelete,
+        })
+      });
 
-  //     const data = await response.json();
+      const data = await response.json();
 
-  //     if (!response.ok) {
-  //       throw new Error(data.error || 'Failed to delete employees');
-  //     }
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to delete employees');
+      }
 
-  //     // Refresh employee list
-  //     await fetchEmployees();
-  //     setSelectedRows(new Set());
-  //     setShowBulkDeleteModal(false);
-  //   } catch (err: any) {
-  //     console.error('Error bulk deleting employees:', err);
-  //     setError(err.message || 'Failed to delete employees');
-  //   } finally {
-  //     setActionLoading(false);
-  //   }
-  // };
+      // Refresh employee list
+      await fetchEmployees();
+      setSelectedRows(new Set());
+      setShowBulkDeleteModal(false);
+    } catch (err: any) {
+      console.error('Error bulk deleting employees:', err);
+      setError(err.message || 'Failed to delete employees');
+    } finally {
+      setActionLoading(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -236,8 +237,8 @@ export default function EmployeesPage() {
   }
 
   return (
-    <div className="min-h-screen bg-linear-to-br from-[#faf8f8] via-white to-[#f5f0f0]">
-      <div className="max-w-7xl mx-auto">
+    <div className="p-6 min-h-screen bg-linear-to-br from-[#faf8f8] via-white to-[#f5f0f0]">
+      <div className="w-full space-y-6">
         {/* Header */}
         <div className="mb-8">
           <div className="flex items-center justify-between mb-2">
@@ -308,130 +309,32 @@ export default function EmployeesPage() {
         </div>
 
         {/* Table Container */}
-        <div className="bg-white rounded-2xl shadow-lg border border-[#E7A3B0]/10 overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="bg-linear-to-r from-[#faf8f8] to-white border-b border-[#E7A3B0]/10">
-
-                {/* Checkbox column for bulk selection (DISABLED FOR NOW) */}
-                  {/* <th className="px-6 py-4 text-left">
-                    <input
-                      type="checkbox"
-                      checked={selectedRows.size === sortedEmployees.length && sortedEmployees.length > 0}
-                      onChange={toggleSelectAll}
-                      className="w-4 h-4 rounded border-[#E7A3B0]/30 cursor-pointer"
-                    />
-                  </th> */}
-                  <SortableHeader label="User ID" sortKey="user_key" sortConfig={sortConfig} onSort={toggleSort} />
-                  <SortableHeader label="Username" sortKey="username" sortConfig={sortConfig} onSort={toggleSort} />
-                  <SortableHeader label="First Name" sortKey="first_name" sortConfig={sortConfig} onSort={toggleSort} />
-                  <SortableHeader label="Last Name" sortKey="last_name" sortConfig={sortConfig} onSort={toggleSort} />
-                  <SortableHeader label="Joined" sortKey="created_at" sortConfig={sortConfig} onSort={toggleSort} />
-                  <SortableHeader label="Last Updated" sortKey="updated_at" sortConfig={sortConfig} onSort={toggleSort} />
-                  <th className="px-6 py-4 text-right text-gray-600 font-semibold text-sm">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {sortedEmployees.length > 0 ? (
-                  sortedEmployees.map((employee, idx) => (
-                    <tr
-                      key={employee.user_key}
-                      className={`border-b border-[#E7A3B0]/10 transition-all duration-200 hover:bg-[#E7A3B0]/3 ${
-                        idx % 2 === 0 ? "bg-white" : "bg-[#faf8f8]"
-                      } ${selectedRows.has(employee.user_key) ? "bg-[#E7A3B0]/5" : ""}`}
-                    >
-                      {/*  Checkbox column for bulk selection (DISABLED FOR NOW) */}
-                      {/* <td className="px-6 py-4">
-                        <input
-                          type="checkbox"
-                          checked={selectedRows.has(employee.user_key)}
-                          onChange={() => toggleSelectRow(employee.user_key)}
-                          className="w-4 h-4 rounded border-[#E7A3B0]/30 cursor-pointer"
-                        />
-                      </td> */}
-                      <td className="px-6 py-4">
-                        <span className="font-medium text-gray-900">{employee.user_key}</span>
-                      </td>
-                      <td className="px-6 py-4">
-                        <span className="font-medium text-gray-900">{employee.username}</span>
-                      </td>
-                      <td className="px-6 py-4 text-gray-700">{employee.first_name}</td>
-                      <td className="px-6 py-4 text-gray-700">{employee.last_name}</td>
-                      <td className="px-6 py-4 text-gray-600 text-sm">
-                        {new Date(employee.created_at).toLocaleDateString("en-US", {
-                          month: "short",
-                          day: "numeric",
-                          year: "numeric",
-                        })}
-                      </td>
-                      <td className="px-6 py-4 text-gray-600 text-sm">
-                        {new Date(employee.updated_at).toLocaleDateString("en-US", {
-                          month: "short",
-                          day: "numeric",
-                          year: "numeric",
-                        })}
-                      </td>
-                      <td className="px-6 py-4">
-                        <div className="flex items-center justify-end gap-2">
-                          <button
-                            onClick={() => openViewModal(employee)}
-                            title="View"
-                            className="p-2 hover:bg-[#E7A3B0]/10 rounded-lg transition-all duration-200 text-[#E7A3B0] hover:scale-110 cursor-pointer"
-                          >
-                            <Eye size={18} />
-                          </button>
-                          <button
-                            onClick={() => openEditModal(employee)}
-                            title="Edit"
-                            className="p-2 hover:bg-blue-50 rounded-lg transition-all duration-200 text-blue-600 hover:scale-110 cursor-pointer"
-                          >
-                            <Edit2 size={18} />
-                          </button>
-                          <button
-                            onClick={() => openDeleteModal(employee)}
-                            title="Delete"
-                            className="p-2 hover:bg-red-50 rounded-lg transition-all duration-200 text-red-600 hover:scale-110 cursor-pointer"
-                          >
-                            <Trash2 size={18} />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))
-                ) : (
-                  <tr>
-                    <td colSpan={7} className="px-6 py-12 text-center">
-                      <div className="flex flex-col items-center gap-2">
-                        <Search className="w-10 h-10 text-[#E7A3B0]/30" />
-                        <p className="text-gray-600 font-medium">No employees found</p>
-                        <p className="text-gray-400 text-sm">Try adjusting your search terms</p>
-                      </div>
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
+        <EmployeeTable
+          sortedEmployees={sortedEmployees}
+          selectedRows={selectedRows}
+          toggleSelectAll={toggleSelectAll}
+          toggleSelectRow={toggleSelectRow}
+          sortConfig={sortConfig}
+          toggleSort={toggleSort}
+          openViewModal={openViewModal}
+          openEditModal={openEditModal}
+          openDeleteModal={openDeleteModal}
+        />
+        {/* Footer Stats */}
+        <div className="p-4 bg-gray-50 border border-[#E7A3B0]/20 rounded-xl flex items-center justify-between text-sm text-gray-600">
+          <div>
+            {selectedRows.size > 0 && (
+              <span className="text-[#E7A3B0] font-medium">
+                {selectedRows.size} employee{selectedRows.size !== 1 ? "s" : ""} selected
+              </span>
+            )}
           </div>
-
-          {/* Footer Stats */}
-          <div className="px-6 py-4 bg-linear-to-r from-[#faf8f8] to-white border-t border-[#E7A3B0]/10 flex items-center justify-between text-sm text-gray-600">
-            <div>
-              {selectedRows.size > 0 && (
-                <span className="text-[#E7A3B0] font-medium">
-                  {selectedRows.size} employee{selectedRows.size !== 1 ? "s" : ""} selected
-                </span>
-              )}
-            </div>
-            <span>
-              Showing {sortedEmployees.length} of {employees.length} employees
-            </span>
-          </div>
+          <span>
+            Showing {sortedEmployees.length} of {employees.length} employees
+          </span>
         </div>
       </div>
 
-      {/* Add Employee Modal */}
-      {/* Add Employee Modal */}
       {/* Add Employee Modal */}
       <AddEmployee 
         isOpen={showAddModal} 
@@ -559,8 +462,8 @@ export default function EmployeesPage() {
         </Modal>
       )}
 
-      {/* Bulk Delete Confirmation Modal (DISABLED) */}
-      {/* {showBulkDeleteModal && (
+      {/* Bulk Delete Confirmation Modal */}
+      {showBulkDeleteModal && (
         <Modal onClose={() => setShowBulkDeleteModal(false)} title="Delete Multiple Employees">
           <div className="space-y-5">
             {error && (
@@ -570,7 +473,7 @@ export default function EmployeesPage() {
             )}
 
             <div className="flex items-center gap-4 p-4 bg-red-50 rounded-xl border border-red-200">
-              <div className="w-12 h-12 rounded-full bg-red-100 flex items-center justify-center flex-shrink-0">
+              <div className="w-12 h-12 rounded-full bg-red-100 flex items-center justify-center shrink-0">
                 <AlertTriangle className="w-6 h-6 text-red-600" />
               </div>
               <div>
@@ -591,7 +494,7 @@ export default function EmployeesPage() {
                 Cancel
               </button>
               <button
-                // onClick={handleBulkDelete}
+                onClick={handleBulkDelete}
                 disabled={actionLoading}
                 className="flex-1 px-4 py-3 bg-gradient-to-r from-red-500 to-red-600 text-white rounded-xl hover:from-red-600 hover:to-red-700 font-medium transition-all shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
               >
@@ -607,7 +510,7 @@ export default function EmployeesPage() {
             </div>
           </div>
         </Modal>
-      )} */}
+      )}
     </div>
   );
 }
@@ -632,26 +535,5 @@ function Modal({ children, onClose, title }: { children: React.ReactNode; onClos
         <div className="px-6 py-6">{children}</div>
       </div>
     </div>
-  );
-}
-
-// Sortable Column Header Component
-function SortableHeader({ label, sortKey, sortConfig, onSort }: any) {
-  const isActive = sortConfig.key === sortKey;
-
-  return (
-    <th
-      onClick={() => onSort(sortKey)}
-      className="px-6 py-4 text-left text-gray-600 font-semibold text-sm cursor-pointer hover:text-[#E7A3B0] transition-colors duration-200 select-none"
-    >
-      <div className="flex items-center gap-2">
-        {label}
-        {isActive && (
-          <span className="text-[#E7A3B0]">
-            {sortConfig.direction === "asc" ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
-          </span>
-        )}
-      </div>
-    </th>
   );
 }
