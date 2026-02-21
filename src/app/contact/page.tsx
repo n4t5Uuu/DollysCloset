@@ -1,19 +1,85 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { motion } from "motion/react";
-import { MapPin, Send, Loader2, CheckCircle2, XCircle, X } from "lucide-react";
+import { MapPin, Send, Loader2, CheckCircle2, XCircle, X, Facebook, Instagram, MessageCircle, Phone } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-
-import { contactMethods } from "@/data/contact-methods";
 
 import { TextEffect } from "@/components/motion-primitives/text-effect";
 import { Spotlight } from "@/components/motion-primitives/spotlight";
 import { InView } from "@/components/motion-primitives/in-view";
 
+type ContactDetailsPayload = {
+  introText: string;
+  facebookName: string;
+  facebookLink: string;
+  instagramHandle: string;
+  instagramLink: string;
+  viberName: string;
+  viberLink: string;
+  contactNumberDisplay: string;
+  contactNumberLink: string;
+  address: string;
+  weekdaysHours: string;
+  weekendHours: string;
+};
+
+const defaultContactDetails: ContactDetailsPayload = {
+  introText: "We would love to hear from you! Whether you have a question about our collection, need assistance, or just want to say hello.",
+  facebookName: "Dolly's Closet",
+  facebookLink: "#",
+  instagramHandle: "@dollyscloset",
+  instagramLink: "#",
+  viberName: "Shierly Gonzales",
+  viberLink: "#",
+  contactNumberDisplay: "+63 912 1234 123",
+  contactNumberLink: "tel:+639121234123",
+  address: "04 Admiral, Talon Tres, Las Piñas City",
+  weekdaysHours: "9:00 AM - 6:00 PM",
+  weekendHours: "10:00 AM - 5:00 PM",
+};
+
+function normalizeUrl(url: string): string {
+  const trimmed = url.trim();
+  if (!trimmed || trimmed === "#") return "#";
+  if (trimmed.startsWith("http://") || trimmed.startsWith("https://") || trimmed.startsWith("tel:") || trimmed.startsWith("mailto:")) {
+    return trimmed;
+  }
+  return `https://${trimmed}`;
+}
+
+function parseContactBody(rawBody: unknown): ContactDetailsPayload {
+  if (!rawBody) {
+    return defaultContactDetails;
+  }
+
+  if (typeof rawBody === "object") {
+    return {
+      ...defaultContactDetails,
+      ...(rawBody as Partial<ContactDetailsPayload>),
+    };
+  }
+
+  if (typeof rawBody !== "string") {
+    return defaultContactDetails;
+  }
+
+  try {
+    const parsed = JSON.parse(rawBody) as Partial<ContactDetailsPayload>;
+    return {
+      ...defaultContactDetails,
+      ...parsed,
+    };
+  } catch {
+    return defaultContactDetails;
+  }
+}
+
 export default function Contact() {
+  const [pageTitle, setPageTitle] = useState("Get In Touch");
+  const [details, setDetails] = useState<ContactDetailsPayload>(defaultContactDetails);
   const [formData, setFormData] = useState({
     email: "",
     subject: "",
@@ -23,6 +89,55 @@ export default function Contact() {
   // 'idle' | 'submitting' | 'success' | 'error'
   const [status, setStatus] = useState("idle");
   const [errorMessage, setErrorMessage] = useState("");
+
+  useEffect(() => {
+    const fetchContactDetails = async () => {
+      try {
+        const response = await fetch("/api/business-details?slug=contact", { cache: "no-store" });
+        if (!response.ok) return;
+
+        const result = await response.json();
+        if (!result?.data) return;
+
+        setPageTitle(result.data.title || "Get In Touch");
+        setDetails(parseContactBody(result.data.body));
+      } catch {
+      }
+    };
+
+    fetchContactDetails();
+  }, []);
+
+  const contactMethods = [
+    {
+      icon: Facebook,
+      label: "Facebook",
+      value: details.facebookName,
+      link: normalizeUrl(details.facebookLink),
+      color: "from-blue-500 to-blue-600",
+    },
+    {
+      icon: Instagram,
+      label: "Instagram",
+      value: details.instagramHandle,
+      link: normalizeUrl(details.instagramLink),
+      color: "from-pink-500 to-purple-600",
+    },
+    {
+      icon: MessageCircle,
+      label: "Viber",
+      value: details.viberName,
+      link: normalizeUrl(details.viberLink),
+      color: "from-purple-500 to-purple-600",
+    },
+    {
+      icon: Phone,
+      label: "Contact Number",
+      value: details.contactNumberDisplay,
+      link: details.contactNumberLink || "#",
+      color: "from-green-500 to-green-600",
+    },
+  ];
 
   const onSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -151,7 +266,7 @@ export default function Contact() {
             preset="blur" 
             className="font-great-vibes text-6xl text-[#E7A3B0] mb-2 inline-block"
           >
-            Get In Touch
+            {pageTitle}
           </TextEffect>
           <InView
             variants={{
@@ -161,8 +276,7 @@ export default function Contact() {
             viewOptions={{ once: true }}
           >
             <p className="font-montserrat text-gray-600 text-lg max-w-2xl mx-auto">
-                We would love to hear from you! Whether you have a question about
-                our collection, need assistance, or just want to say hello.
+              {details.introText}
             </p>
           </InView>
         </div>
@@ -276,7 +390,7 @@ export default function Contact() {
                     <p className="font-montserrat text-gray-700">
                         <span className="font-bold text-[#E7A3B0]">Address:</span>
                         <br />
-                        04 Admiral, Talon Tres, Las Piñas City
+                      {details.address}
                     </p>
                     </div>
 
@@ -287,7 +401,7 @@ export default function Contact() {
                         Mon - Fri
                         </p>
                         <p className="font-semibold text-gray-800 mt-1">
-                        9:00 AM - 6:00 PM
+                        {details.weekdaysHours}
                         </p>
                     </div>
                     <div className="bg-gray-50 rounded-lg p-3">
@@ -295,7 +409,7 @@ export default function Contact() {
                         Weekends
                         </p>
                         <p className="font-semibold text-gray-800 mt-1">
-                        10:00 AM - 5:00 PM
+                        {details.weekendHours}
                         </p>
                     </div>
                     </div>
@@ -331,6 +445,9 @@ export default function Contact() {
                   <p className="font-montserrat text-sm text-gray-600 mt-1">
                     We will get back to you within 24 hours
                   </p>
+                  <p className="font-montserrat text-xs text-gray-500 mt-1">
+                    Direct email: dollysclosetwebsite@gmail.com
+                  </p>
                 </div>
               </div>
 
@@ -342,7 +459,7 @@ export default function Contact() {
                   <Input
                     type="email"
                     name="email"
-                    placeholder="hello@example.com"
+                    placeholder="dollysclosetwebsite@gmail.com"
                     value={formData.email}
                     onChange={(e) =>
                       setFormData({ ...formData, email: e.target.value })
