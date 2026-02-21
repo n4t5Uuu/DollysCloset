@@ -40,8 +40,6 @@ interface SessionWithAccessToken {
     access_token: string;
 }
 
-const conditionOptions = ["New", "Like New", "Good", "Fair"] as const;
-
 const normalizeCategoryId = (value: unknown) => {
     if (value === null || value === undefined) return "";
     const raw = String(value).trim();
@@ -51,23 +49,6 @@ const normalizeCategoryId = (value: unknown) => {
     if (!Number.isNaN(numericId)) {
         return String(numericId);
     }
-
-    return raw;
-};
-
-const normalizeCondition = (value: unknown) => {
-    if (value === null || value === undefined) return "New";
-    const raw = String(value).trim();
-    if (!raw) return "New";
-
-    const exact = conditionOptions.find((option) => option === raw);
-    if (exact) return exact;
-
-    const lowered = raw.toLowerCase();
-    if (lowered === "new") return "New";
-    if (lowered === "like new" || lowered === "likenew") return "Like New";
-    if (lowered === "good") return "Good";
-    if (lowered === "fair") return "Fair";
 
     return raw;
 };
@@ -101,7 +82,7 @@ export default function AddProduct({ isOpen, onClose, categories, productToEdit,
                     product_brand: productToEdit.product_brand,
                     product_description: productToEdit.product_description,
                     product_stock: productToEdit.product_stock.toString(),
-                    product_condition: normalizeCondition(productToEdit.product_condition),
+                    product_condition: productToEdit.product_condition || "New",
                     size_label: productToEdit.size_label,
                     show_in_catalog: productToEdit.show_in_catalog,
                     image_id: productToEdit.image_id || "",
@@ -249,9 +230,49 @@ export default function AddProduct({ isOpen, onClose, categories, productToEdit,
 
     if (!isOpen) return null;
 
-    const normalizedCategories = categories.map((cat) => ({
+    const categoryById = new Map(
+        categories.map((category) => [Number(category.category_id), category])
+    );
+
+    const buildCategoryPathLabel = (category: Category) => {
+        const path: string[] = [category.category_name];
+        let parentId = category.parent_category;
+        const visited = new Set<number>([Number(category.category_id)]);
+
+        while (parentId !== null) {
+            if (visited.has(parentId)) break;
+            visited.add(parentId);
+
+            const parent = categoryById.get(parentId);
+            if (!parent) break;
+
+            path.unshift(parent.category_name);
+            parentId = parent.parent_category;
+        }
+
+        return path.join(" > ");
+    };
+
+    const categoriesWithChildren = new Set(
+        categories
+            .map((category) => category.parent_category)
+            .filter((parentId): parentId is number => parentId !== null)
+    );
+
+    const selectableCategories = categories.filter((category) => {
+        const categoryId = Number(category.category_id);
+        const hasChildren = categoriesWithChildren.has(categoryId);
+        const isRootCategory = category.parent_category === null;
+
+        return !hasChildren && !isRootCategory;
+    });
+
+    const normalizedCategories = [...selectableCategories]
+        .sort((a, b) => Number(a.category_id) - Number(b.category_id))
+        .map((cat) => ({
         ...cat,
         normalizedId: normalizeCategoryId(cat.category_id),
+        displayLabel: buildCategoryPathLabel(cat),
     }));
 
     const normalizedSelectedCategory = normalizeCategoryId(formData.category_id);
@@ -259,9 +280,6 @@ export default function AddProduct({ isOpen, onClose, categories, productToEdit,
     const hasSelectedCategory = normalizedCategories.some(
         (cat) => cat.normalizedId === normalizedSelectedCategory
     );
-    const selectedCondition = normalizeCondition(formData.product_condition);
-    const hasSelectedCondition = conditionOptions.includes(selectedCondition as (typeof conditionOptions)[number]);
-
     return (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
             <Card className="bg-white w-full max-w-2xl max-h-[90vh] overflow-y-auto p-0">
@@ -307,11 +325,11 @@ export default function AddProduct({ isOpen, onClose, categories, productToEdit,
                                                 Current Category (ID: {normalizedSelectedCategory})
                                             </SelectItem>
                                         )}
-                                        {categories.length === 0 ? (
+                                        {normalizedCategories.length === 0 ? (
                                             <SelectItem value="none" disabled>No categories found</SelectItem>
                                         ) : (
                                             normalizedCategories.map((cat) => (
-                                                <SelectItem key={cat.category_id} value={cat.normalizedId}>{cat.category_name}</SelectItem>
+                                                <SelectItem key={cat.category_id} value={cat.normalizedId}>{cat.displayLabel}</SelectItem>
                                             ))
                                         )}
                                     </SelectContent>
@@ -368,22 +386,12 @@ export default function AddProduct({ isOpen, onClose, categories, productToEdit,
 
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-2">Condition</label>
-                                <Select value={selectedCondition} onValueChange={(value) => setFormData({ ...formData, product_condition: normalizeCondition(value) })}>
-                                    <SelectTrigger className="w-full border-gray-300 text-gray-900 bg-white data-placeholder:text-gray-800">
-                                        <SelectValue placeholder="Select condition" />
-                                    </SelectTrigger>
-
-                                    <SelectContent className="bg-white text-gray-900 z-60">
-                                        {!hasSelectedCondition && selectedCondition && (
-                                            <SelectItem value={selectedCondition}>{selectedCondition}</SelectItem>
-                                        )}
-                                        <SelectItem value="New">New</SelectItem>
-                                        <SelectItem value="Like New">Like New</SelectItem>
-                                        <SelectItem value="Good">Good</SelectItem>
-                                        <SelectItem value="Fair">Fair</SelectItem>
-                                    </SelectContent>
-
-                                </Select>
+                                <Input
+                                    placeholder="e.g., New, Good, 9/10"
+                                    value={formData.product_condition}
+                                    onChange={(e) => setFormData({ ...formData, product_condition: e.target.value })}
+                                    className="border-gray-300 text-gray-900 bg-white placeholder:text-gray-800"
+                                />
                             </div>
                         </div>
 

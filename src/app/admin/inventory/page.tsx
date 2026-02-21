@@ -113,7 +113,49 @@ export default function AdminInventoryPage() {
   const endIndex = startIndex + itemsPerPage;
   const currentProducts = filteredProducts.slice(startIndex, endIndex);
 
-  const getCategoryName = (id: number) => categories.find(c => c.category_id === id)?.category_name || 'Unknown';
+  const categoryById = new Map(
+    categories.map((category) => [Number(category.category_id), category])
+  );
+
+  const categoriesWithChildren = new Set(
+    categories
+      .map((category) => category.parent_category)
+      .filter((parentId): parentId is number => parentId !== null)
+  );
+
+  const selectableCategories = categories.filter((category) => {
+    const categoryId = Number(category.category_id);
+    const hasChildren = categoriesWithChildren.has(categoryId);
+    const isRootCategory = category.parent_category === null;
+
+    return !hasChildren && !isRootCategory;
+  });
+
+  const getCategoryName = (id: number) => {
+    const category = categoryById.get(id);
+    if (!category) return 'Unknown';
+
+    const path: string[] = [category.category_name];
+    let parentId = category.parent_category;
+    const visited = new Set<number>([id]);
+
+    while (parentId !== null) {
+      if (visited.has(parentId)) break;
+      visited.add(parentId);
+
+      const parent = categoryById.get(parentId);
+      if (!parent) break;
+
+      path.unshift(parent.category_name);
+      parentId = parent.parent_category;
+    }
+
+    return path.join(" > ");
+  };
+
+  const sortedCategories = [...selectableCategories].sort(
+    (a, b) => Number(a.category_id) - Number(b.category_id)
+  );
 
   const openAddModal = () => {
     setEditingProduct(null);
@@ -300,12 +342,12 @@ export default function AdminInventoryPage() {
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All Categories</SelectItem>
-            {categories.length === 0 ? (
+            {sortedCategories.length === 0 ? (
               <SelectItem value="none" disabled>No categories found</SelectItem>
             ) : (
-              categories.map((cat) => (
+              sortedCategories.map((cat) => (
                 <SelectItem key={cat.category_id} value={cat.category_id.toString()}>
-                  {cat.category_name}
+                  {getCategoryName(Number(cat.category_id))}
                 </SelectItem>
               ))
             )}

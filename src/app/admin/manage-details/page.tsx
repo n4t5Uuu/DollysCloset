@@ -466,7 +466,7 @@ export default function ManageDetailsPage() {
                       size="sm"
                       onClick={() => setAboutPage((prev) => (prev === 1 ? 1 : ((prev - 1) as 1 | 2 | 3)))}
                       disabled={aboutPage === 1 || savingAboutField !== null}
-                      className="border-gray-400 text-gray-800 hover:bg-gray-100"
+                      className="border-gray-400 text-gray-800 hover:bg-[#f5e3e8] hover:text-gray-900"
                     >
                       &lt;
                     </Button>
@@ -481,8 +481,8 @@ export default function ManageDetailsPage() {
                         disabled={savingAboutField !== null}
                         className={
                           aboutPage === pageNum
-                            ? "bg-[#cc7f8f] text-white hover:bg-[#b96f80]"
-                            : "border-gray-400 text-gray-800 hover:bg-gray-100"
+                              ? ""
+                            : "border-gray-400 text-gray-800 hover:bg-[#f5e3e8] hover:text-gray-900"
                         }
                       >
                         {pageNum}
@@ -495,7 +495,7 @@ export default function ManageDetailsPage() {
                       size="sm"
                       onClick={() => setAboutPage((prev) => (prev === 3 ? 3 : ((prev + 1) as 1 | 2 | 3)))}
                       disabled={aboutPage === 3 || savingAboutField !== null}
-                      className="border-gray-400 text-gray-800 hover:bg-gray-100"
+                      className="border-gray-400 text-gray-800 hover:bg-[#f5e3e8] hover:text-gray-900"
                     >
                       &gt;
                     </Button>
