@@ -8,6 +8,14 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
+  Pagination,
+  PaginationContent,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from "@/components/ui/pagination";
+import {
   ABOUT_SLUG,
   ABOUT_SECTION_FIELD_CONFIG,
   CONTACT_FIELD_CONFIG,
@@ -228,7 +236,7 @@ export default function ManageDetailsPage() {
           }}
           className={
             activeSection === "contact"
-              ? "bg-gradient-to-r from-[#E7A3B0] to-[#f0b8c3] text-white hover:from-[#d891a0] hover:to-[#E7A3B0]"
+              ? "bg-linear-to-r from-[#E7A3B0] to-[#f0b8c3] text-white hover:from-[#d891a0] hover:to-[#E7A3B0]"
               : "bg-white border border-[#E7A3B0]/40 text-[#cc7f8f] hover:bg-[#fff5f7]"
           }
         >
@@ -244,7 +252,7 @@ export default function ManageDetailsPage() {
           }}
           className={
             activeSection === "about"
-              ? "bg-gradient-to-r from-[#E7A3B0] to-[#f0b8c3] text-white hover:from-[#d891a0] hover:to-[#E7A3B0]"
+              ? "bg-linear-to-r from-[#E7A3B0] to-[#f0b8c3] text-white hover:from-[#d891a0] hover:to-[#E7A3B0]"
               : "bg-white border border-[#E7A3B0]/40 text-[#cc7f8f] hover:bg-[#fff5f7]"
           }
         >
@@ -254,14 +262,14 @@ export default function ManageDetailsPage() {
 
       {error && (
         <div className="flex items-start gap-3 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-red-700">
-          <AlertTriangle className="mt-0.5 h-5 w-5 flex-shrink-0" />
+          <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0" />
           <p className="text-sm">{error}</p>
         </div>
       )}
 
       {success && (
         <div className="flex items-start gap-3 rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-green-700">
-          <CheckCircle2 className="mt-0.5 h-5 w-5 flex-shrink-0" />
+          <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0" />
           <p className="text-sm">{success}</p>
         </div>
       )}
@@ -458,49 +466,47 @@ export default function ManageDetailsPage() {
                   </div>
                 )}
 
-                <div className="flex justify-center pt-2">
-                  <div className="flex items-center gap-2">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setAboutPage((prev) => (prev === 1 ? 1 : ((prev - 1) as 1 | 2 | 3)))}
-                      disabled={aboutPage === 1 || savingAboutField !== null}
-                      className="border-gray-400 text-gray-800 hover:bg-[#f5e3e8] hover:text-gray-900"
-                    >
-                      &lt;
-                    </Button>
-
+                <Pagination className="mt-4 pb-2">
+                  <PaginationContent>
+                    <PaginationItem>
+                      <PaginationPrevious 
+                        href="#" 
+                        onClick={(e) => {
+                          e.preventDefault();
+                          setAboutPage((prev) => (prev === 1 ? 1 : ((prev - 1) as 1 | 2 | 3)));
+                        }} 
+                        className={aboutPage === 1 || savingAboutField !== null ? "pointer-events-none opacity-50" : "cursor-pointer"} 
+                      />
+                    </PaginationItem>
+                    
                     {[1, 2, 3].map((pageNum) => (
-                      <Button
-                        key={pageNum}
-                        type="button"
-                        variant={aboutPage === pageNum ? "default" : "outline"}
-                        size="sm"
-                        onClick={() => setAboutPage(pageNum as 1 | 2 | 3)}
-                        disabled={savingAboutField !== null}
-                        className={
-                          aboutPage === pageNum
-                              ? ""
-                            : "border-gray-400 text-gray-800 hover:bg-[#f5e3e8] hover:text-gray-900"
-                        }
-                      >
-                        {pageNum}
-                      </Button>
+                      <PaginationItem key={pageNum}>
+                        <PaginationLink 
+                          href="#"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            setAboutPage(pageNum as 1 | 2 | 3);
+                          }}
+                          isActive={aboutPage === pageNum}
+                          className={savingAboutField !== null && aboutPage !== pageNum ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                        >
+                          {pageNum}
+                        </PaginationLink>
+                      </PaginationItem>
                     ))}
 
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setAboutPage((prev) => (prev === 3 ? 3 : ((prev + 1) as 1 | 2 | 3)))}
-                      disabled={aboutPage === 3 || savingAboutField !== null}
-                      className="border-gray-400 text-gray-800 hover:bg-[#f5e3e8] hover:text-gray-900"
-                    >
-                      &gt;
-                    </Button>
-                  </div>
-                </div>
+                    <PaginationItem>
+                      <PaginationNext 
+                        href="#"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          setAboutPage((prev) => (prev === 3 ? 3 : ((prev + 1) as 1 | 2 | 3)));
+                        }} 
+                        className={aboutPage === 3 || savingAboutField !== null ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                      />
+                    </PaginationItem>
+                  </PaginationContent>
+                </Pagination>
               </>
             )}
           </CardContent>

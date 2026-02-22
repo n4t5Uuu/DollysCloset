@@ -6,6 +6,15 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Loader2, AlertTriangle, Search, X } from "lucide-react";
 import { browserSupabase } from "@/lib/supabase/browser";
+import {
+  Pagination,
+  PaginationContent,
+  PaginationEllipsis,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from "@/components/ui/pagination";
 
 interface ActivityLog {
   log_id: number;
@@ -226,7 +235,7 @@ export default function ActivityLogsPage() {
 
       {error && (
         <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg flex items-start gap-3">
-          <AlertTriangle className="w-5 h-5 mt-0.5 flex-shrink-0" />
+          <AlertTriangle className="w-5 h-5 mt-0.5 shrink-0" />
           <div>
             <p className="font-medium">Error</p>
             <p className="text-sm">{error}</p>
@@ -304,46 +313,56 @@ export default function ActivityLogsPage() {
         </div>
       )}
 
-      {filteredLogs.length > 0 && totalPages > 1 && (
-        <div className="flex justify-center items-center gap-2 mt-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
-            disabled={safePage === 1}
-          >
-            &lt;
-          </Button>
-          {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-            const pageNum = totalPages <= 5
-              ? i + 1
-              : safePage <= 3
+      {filteredLogs.length > 0 && (
+        <Pagination className="mt-4">
+          <PaginationContent>
+            <PaginationItem>
+              <PaginationPrevious 
+                href="#" 
+                onClick={(e) => {
+                  e.preventDefault();
+                  if (safePage > 1) setCurrentPage((prev) => Math.max(1, prev - 1));
+                }} 
+                className={safePage === 1 ? "pointer-events-none opacity-50" : "cursor-pointer"} 
+              />
+            </PaginationItem>
+            {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+              const pageNum = totalPages <= 5
                 ? i + 1
-                : safePage >= totalPages - 2
-                  ? totalPages - 4 + i
-                  : safePage - 2 + i;
+                : safePage <= 3
+                  ? i + 1
+                  : safePage >= totalPages - 2
+                    ? totalPages - 4 + i
+                    : safePage - 2 + i;
 
-            return (
-              <Button
-                key={pageNum}
-                variant={safePage === pageNum ? "default" : "outline"}
-                size="sm"
-                onClick={() => setCurrentPage(pageNum)}
-                className={safePage === pageNum ? "bg-[#E7A3B0] hover:bg-[#ca8c98]" : ""}
-              >
-                {pageNum}
-              </Button>
-            );
-          })}
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))}
-            disabled={safePage === totalPages}
-          >
-            &gt;
-          </Button>
-        </div>
+              return (
+                <PaginationItem key={pageNum}>
+                  <PaginationLink 
+                    href="#"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      setCurrentPage(pageNum);
+                    }}
+                    isActive={safePage === pageNum}
+                    className="cursor-pointer"
+                  >
+                    {pageNum}
+                  </PaginationLink>
+                </PaginationItem>
+              );
+            })}
+            <PaginationItem>
+              <PaginationNext 
+                href="#"
+                onClick={(e) => {
+                  e.preventDefault();
+                  if (safePage < totalPages) setCurrentPage((prev) => Math.min(totalPages, prev + 1));
+                }} 
+                className={safePage === totalPages ? "pointer-events-none opacity-50" : "cursor-pointer"}
+              />
+            </PaginationItem>
+          </PaginationContent>
+        </Pagination>
       )}
     </div>
   );

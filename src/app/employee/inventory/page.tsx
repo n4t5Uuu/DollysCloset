@@ -24,6 +24,15 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import AddProduct from "@/components/modals/AddProduct";
 import { InventoryTable } from "@/components/tables/InventoryTable";
 import { InventoryProduct as Product, InventoryCategory as Category, InventoryProductImage as ProductImage } from "@/types/inventory.types";
+import {
+  Pagination,
+  PaginationContent,
+  PaginationEllipsis,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from "@/components/ui/pagination";
 
 export default function EmployeeInventoryPage() {
   const [products, setProducts] = useState<Product[]>([]);
@@ -243,7 +252,7 @@ export default function EmployeeInventoryPage() {
 
       {error && (
         <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg flex items-start gap-3">
-          <AlertTriangle className="w-5 h-5 mt-0.5 flex-shrink-0" />
+          <AlertTriangle className="w-5 h-5 mt-0.5 shrink-0" />
           <div>
             <p className="font-medium">Error</p>
             <p className="text-sm">{error}</p>
@@ -307,7 +316,7 @@ export default function EmployeeInventoryPage() {
         </Select>
       </div>
 
-      <div className="flex items-center justify-between flex-wrap gap-4">
+      <div className="flex items-center justify-between flex-wrap gap-4 mb-4">
         <div className="text-sm text-gray-600">
           Showing {filteredProducts.length > 0 ? startIndex + 1 : 0}-{Math.min(endIndex, filteredProducts.length)} of {filteredProducts.length} items
         </div>
@@ -344,20 +353,51 @@ export default function EmployeeInventoryPage() {
         actionLoading={actionLoading}
       />
 
-      {totalPages > 1 && (
-        <div className="flex justify-center items-center gap-2 mt-6">
-          <Button variant="outline" size="sm" onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))} disabled={currentPage === 1}>&lt;</Button>
-          {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-            const pageNum = totalPages <= 5 ? i + 1 : currentPage <= 3 ? i + 1 : currentPage >= totalPages - 2 ? totalPages - 4 + i : currentPage - 2 + i;
-            return (
-              <Button key={pageNum} variant={currentPage === pageNum ? "default" : "outline"} size="sm" onClick={() => setCurrentPage(pageNum)} className={currentPage === pageNum ? "bg-[#E7A3B0] hover:bg-[#ca8c98]" : ""}>
-                {pageNum}
-              </Button>
-            );
-          })}
-          <Button variant="outline" size="sm" onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))} disabled={currentPage === totalPages}>&gt;</Button>
-        </div>
-      )}
+      {/* Footer Stats & Pagination */}
+      <div className="flex flex-col gap-4 mt-2">
+        <Pagination>
+            <PaginationContent>
+              <PaginationItem>
+                <PaginationPrevious 
+                  href="#" 
+                  onClick={(e) => {
+                    e.preventDefault();
+                    if (currentPage > 1) setCurrentPage((prev) => Math.max(1, prev - 1));
+                  }} 
+                  className={currentPage === 1 ? "pointer-events-none opacity-50" : "cursor-pointer"} 
+                />
+              </PaginationItem>
+              {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                let pageNum = totalPages <= 5 ? i + 1 : currentPage <= 3 ? i + 1 : currentPage >= totalPages - 2 ? totalPages - 4 + i : currentPage - 2 + i;
+                return (
+                  <PaginationItem key={pageNum}>
+                    <PaginationLink 
+                      href="#"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        setCurrentPage(pageNum);
+                      }}
+                      isActive={currentPage === pageNum}
+                      className="cursor-pointer"
+                    >
+                      {pageNum}
+                    </PaginationLink>
+                  </PaginationItem>
+                );
+              })}
+              <PaginationItem>
+                <PaginationNext 
+                  href="#"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    if (currentPage < totalPages) setCurrentPage((prev) => Math.min(totalPages, prev + 1));
+                  }} 
+                  className={currentPage === totalPages ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                />
+              </PaginationItem>
+            </PaginationContent>
+          </Pagination>
+      </div>
 
       {viewProduct && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
@@ -397,7 +437,7 @@ export default function EmployeeInventoryPage() {
                               key={image.image_id}
                               type="button"
                               onClick={() => setSelectedViewImage(image.image_url)}
-                              className={`h-16 w-16 flex-shrink-0 overflow-hidden rounded-md border-2 ${isSelected ? "border-pink-400" : "border-transparent"}`}
+                              className={`h-16 w-16 shrink-0 overflow-hidden rounded-md border-2 ${isSelected ? "border-pink-400" : "border-transparent"}`}
                               aria-label="Select product image"
                             >
                               <img

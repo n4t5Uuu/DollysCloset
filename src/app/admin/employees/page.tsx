@@ -9,6 +9,14 @@ import { Card, CardHeader, CardTitle, CardContent, CardFooter } from "@/componen
 import AddEmployee from "@/components/modals/AddEmployee";
 import { EmployeeTable } from "@/components/tables/EmployeeTable";
 import { Employee } from "@/types/employee.types";
+import {
+  Pagination,
+  PaginationContent,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from "@/components/ui/pagination";
 
 export default function EmployeesPage() {
   const router = useRouter();
@@ -17,6 +25,8 @@ export default function EmployeesPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [sortConfig, setSortConfig] = useState({ key: "user_key", direction: "asc" });
   const [selectedRows, setSelectedRows] = useState<Set<string>>(new Set());
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
 
   // Modal states
   const [showAddModal, setShowAddModal] = useState(false);
@@ -82,6 +92,16 @@ export default function EmployeesPage() {
     return 0;
   });
 
+  const totalPages = Math.max(1, Math.ceil(sortedEmployees.length / itemsPerPage));
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const currentEmployees = sortedEmployees.slice(startIndex, endIndex);
+
+  // Reset page when search or sort changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, sortConfig]);
+
   const toggleSort = (key: string) => {
     setSortConfig({
       key,
@@ -90,10 +110,10 @@ export default function EmployeesPage() {
   };
 
   const toggleSelectAll = () => {
-    if (selectedRows.size === sortedEmployees.length && sortedEmployees.length > 0) {
+    if (selectedRows.size === currentEmployees.length && currentEmployees.length > 0) {
       setSelectedRows(new Set());
     } else {
-      setSelectedRows(new Set(sortedEmployees.map((e) => e.user_id)));
+      setSelectedRows(new Set(currentEmployees.map((e) => e.user_id)));
     }
   };
 
@@ -307,10 +327,16 @@ export default function EmployeesPage() {
             />
           </div>
         </div>
+        
+        <div className="flex items-center justify-between flex-wrap gap-4 mb-4">
+          <div className="text-sm text-gray-600">
+            Showing {currentEmployees.length > 0 ? startIndex + 1 : 0}-{Math.min(endIndex, sortedEmployees.length)} of {sortedEmployees.length} employees
+          </div>
+        </div>
 
         {/* Table Container */}
         <EmployeeTable
-          sortedEmployees={sortedEmployees}
+          sortedEmployees={currentEmployees}
           selectedRows={selectedRows}
           toggleSelectAll={toggleSelectAll}
           toggleSelectRow={toggleSelectRow}
@@ -320,18 +346,65 @@ export default function EmployeesPage() {
           openEditModal={openEditModal}
           openDeleteModal={openDeleteModal}
         />
-        {/* Footer Stats */}
-        <div className="p-4 bg-gray-50 border border-[#E7A3B0]/20 rounded-xl flex items-center justify-between text-sm text-gray-600">
-          <div>
-            {selectedRows.size > 0 && (
+        
+        {/* Footer Stats & Pagination */}
+        <div className="flex flex-col gap-4 mt-2">
+          {selectedRows.size > 0 && (
+            <div className="p-4 bg-gray-50 border border-[#E7A3B0]/20 rounded-xl flex items-center justify-between text-sm text-gray-600">
               <span className="text-[#E7A3B0] font-medium">
                 {selectedRows.size} employee{selectedRows.size !== 1 ? "s" : ""} selected
               </span>
-            )}
-          </div>
-          <span>
-            Showing {sortedEmployees.length} of {employees.length} employees
-          </span>
+            </div>
+          )}
+          
+          <Pagination>
+              <PaginationContent>
+                <PaginationItem>
+                  <PaginationPrevious 
+                    href="#" 
+                    onClick={(e) => {
+                      e.preventDefault();
+                      if (currentPage > 1) setCurrentPage((prev) => Math.max(1, prev - 1));
+                    }} 
+                    className={currentPage === 1 ? "pointer-events-none opacity-50" : "cursor-pointer"} 
+                  />
+                </PaginationItem>
+                {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                  const pageNum = totalPages <= 5 
+                    ? i + 1 
+                    : currentPage <= 3 
+                      ? i + 1 
+                      : currentPage >= totalPages - 2 
+                        ? totalPages - 4 + i 
+                        : currentPage - 2 + i;
+                  return (
+                    <PaginationItem key={pageNum}>
+                      <PaginationLink 
+                        href="#"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          setCurrentPage(pageNum);
+                        }}
+                        isActive={currentPage === pageNum}
+                        className="cursor-pointer"
+                      >
+                        {pageNum}
+                      </PaginationLink>
+                    </PaginationItem>
+                  );
+                })}
+                <PaginationItem>
+                  <PaginationNext 
+                    href="#"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      if (currentPage < totalPages) setCurrentPage((prev) => Math.min(totalPages, prev + 1));
+                    }} 
+                    className={currentPage === totalPages ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                  />
+                </PaginationItem>
+              </PaginationContent>
+            </Pagination>
         </div>
       </div>
 
@@ -496,7 +569,7 @@ export default function EmployeesPage() {
               <button
                 onClick={handleBulkDelete}
                 disabled={actionLoading}
-                className="flex-1 px-4 py-3 bg-gradient-to-r from-red-500 to-red-600 text-white rounded-xl hover:from-red-600 hover:to-red-700 font-medium transition-all shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                className="flex-1 px-4 py-3 bg-linear-to-r from-red-500 to-red-600 text-white rounded-xl hover:from-red-600 hover:to-red-700 font-medium transition-all shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
               >
                 {actionLoading ? (
                   <>
