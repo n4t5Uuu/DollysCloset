@@ -21,21 +21,15 @@ import {
 import { useEffect, useState, useRef }from "react";
 import Autoplay from "embla-carousel-autoplay";
 import {type CarouselApi} from "@/components/ui/carousel";
-import { useProducts } from "@/contexts/ProductContext";
 import { Product } from "@/types/product.types";
 import Image from "next/image";
 
 interface FeatureCardCarouselProps {
     onProductClick?: (product: Product) => void;
+    featuredProducts: Product[];
 }
 
-export default function FeatureCardCarousel({ onProductClick }: FeatureCardCarouselProps) {
-    const { productList, catalogStatus } = useProducts();
-    
-    // Get only featured products
-    const featuredProducts = productList.filter(
-        product => catalogStatus[product.id] === "featured"
-    );
+export default function FeatureCardCarousel({ onProductClick, featuredProducts }: FeatureCardCarouselProps) {
     
     // Track the Embla API instance
     const [api, setApi] = useState<CarouselApi | null>(null);

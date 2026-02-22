@@ -47,7 +47,7 @@ export default function CatalogSidebar({ activeFilter, sortBy, onFilterChange, o
                 <div className="flex flex-col gap-3 pl-1">
                     <button 
                         onClick={() => handleFilterChange("All Products")}
-                        className={cn("text-left font-montserrat text-base font-medium tracking-wide transition-colors duration-200 hover:text-[#E7A3B0]", 
+                        className={cn("text-left font-montserrat text-base font-medium tracking-wide transition-colors duration-200 hover:text-[#E7A3B0] hover:cursor-pointer", 
                                 activeFilter === "All Products" ? "text-[#E7A3B0] font-bold" : "text-gray-600")}
                     >
                         All Products
@@ -55,7 +55,7 @@ export default function CatalogSidebar({ activeFilter, sortBy, onFilterChange, o
 
                     <button 
                         onClick={() => handleFilterChange("New Arrivals")}
-                        className={cn("text-left font-montserrat text-base font-medium tracking-wide transition-colors duration-200 hover:text-[#E7A3B0]", 
+                        className={cn("text-left font-montserrat text-base font-medium tracking-wide transition-colors duration-200 hover:text-[#E7A3B0] hover:cursor-pointer", 
                                 activeFilter === "New Arrivals" ? "text-[#E7A3B0] font-bold" : "text-gray-600")}
                     
                     >
@@ -63,11 +63,13 @@ export default function CatalogSidebar({ activeFilter, sortBy, onFilterChange, o
                     </button>
 
                     {/**Expandable Items */}
-                    <Accordion type="single" collapsible className="w-full -ml-1" defaultValue="item-1">
+                    <Accordion type="single" collapsible className="w-full -ml-1">
 
                         {/**Men Tops */}
                         <AccordionItem value="item-1" className="border-none" >
-                            <AccordionTrigger className={cn("font-montserrat text-base font-medium tracking-wide cursor-pointer py-2 hover:text-[#E7A3B0] hover:no-underline",
+                            <AccordionTrigger 
+                                onClick={() => handleFilterChange("Men's Top")}
+                                className={cn("font-montserrat text-base font-medium tracking-wide cursor-pointer py-2 hover:text-[#E7A3B0] hover:no-underline",
                                     activeFilter === "Men's Top" && "text-[#E7A3B0]")}
                             >
                                 Men Tops
@@ -91,7 +93,9 @@ export default function CatalogSidebar({ activeFilter, sortBy, onFilterChange, o
 
                         {/**Women Tops */}
                         <AccordionItem value="item-2" className="border-none">
-                            <AccordionTrigger className={cn("font-montserrat text-base font-medium tracking-wide cursor-pointer py-2 hover:text-[#E7A3B0] hover:no-underline",
+                            <AccordionTrigger 
+                                onClick={() => handleFilterChange("Women's Top")}
+                                className={cn("font-montserrat text-base font-medium tracking-wide cursor-pointer py-2 hover:text-[#E7A3B0] hover:no-underline",
                                     activeFilter === "Women's Top" && "text-[#E7A3B0]")}
                             >
                                 Women Tops
@@ -115,7 +119,9 @@ export default function CatalogSidebar({ activeFilter, sortBy, onFilterChange, o
                         
                         {/**Coords */}
                         <AccordionItem value="item-3" className="border-none">
-                            <AccordionTrigger className={cn("font-montserrat text-base font-medium tracking-wide cursor-pointer py-2 hover:text-[#E7A3B0] hover:no-underline",
+                            <AccordionTrigger 
+                                onClick={() => handleFilterChange("Coords")}
+                                className={cn("font-montserrat text-base font-medium tracking-wide cursor-pointer py-2 hover:text-[#E7A3B0] hover:no-underline",
                                     activeFilter === "Coords" && "text-[#E7A3B0]")}
                             >
                                 Coords
@@ -139,7 +145,9 @@ export default function CatalogSidebar({ activeFilter, sortBy, onFilterChange, o
 
                         {/**Seasonal */}
                         <AccordionItem value="item-4" className="border-none">
-                            <AccordionTrigger className={cn("font-montserrat text-base font-medium tracking-wide cursor-pointer py-2 hover:text-[#E7A3B0] hover:no-underline",
+                            <AccordionTrigger 
+                                onClick={() => handleFilterChange("Seasonal")}
+                                className={cn("font-montserrat text-base font-medium tracking-wide cursor-pointer py-2 hover:text-[#E7A3B0] hover:no-underline",
                                     activeFilter === "Seasonal" && "text-[#E7A3B0]")}
                             >
                                 Seasonal

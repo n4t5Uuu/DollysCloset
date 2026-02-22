@@ -7,8 +7,9 @@ import {
   ActivityLog, 
   FieldChange 
 } from "@/types/logs.types";
-import { products as initialProducts } from "@/data/product-test-data";
 import { useUser } from "@/hooks/useUser";
+
+const initialProducts: Product[] = [];
 
 interface ProductContextType {
   productList: Product[];

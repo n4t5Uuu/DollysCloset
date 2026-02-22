@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Image from "next/image";
 
 import FeatureCardCarousel from "@/components/catalog/FeatureCardCarousel";
@@ -8,41 +8,88 @@ import SearchBar from "@/components/general-components/SearchBar";
 import CatalogSidebar from "@/components/sidebar/CatalogSidebar";
 import ProductCard from "@/components/catalog/ProductCard";
 import ProductModal from "@/components/modals/ProductModal";
-import { useProducts } from "@/contexts/ProductContext";
 import { Product } from "@/types/product.types";
 import { InfiniteSlider } from "@/components/motion-primitives/infinite-slider";
 import { TextEffect } from "@/components/motion-primitives/text-effect";
 import { InView } from "@/components/motion-primitives/in-view";
 
 export default function Catalog() {
-    const { productList, catalogStatus } = useProducts();
+    const [publishedProducts, setPublishedProducts] = useState<Product[]>([]);
+    const [loading, setLoading] = useState(true);
+
     const [activeFilter, setActiveFilter] = useState("All Products");
     const [sortBy, setSortBy] = useState("newest");
     const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
     const [isModalOpen, setIsModalOpen] = useState(false);
     
-    // Get only published products (featured and standard, exclude unlisted)
-    let publishedProducts = productList.filter(
-        product => catalogStatus[product.id] !== "unlisted"
-    );
+    useEffect(() => {
+        const fetchCatalog = async () => {
+            try {
+                setLoading(true);
+                const res = await fetch("/api/catalog");
+                const result = await res.json();
+
+                const mappedProducts: Product[] = (result.data || []).map((dbProduct: any) => {
+                    const images = dbProduct.tbl_product_image || [];
+                    const primaryImg = images.find((img: any) => img.is_primary) || images[0];
+                    const imageUrl = primaryImg ? primaryImg.image_url : "/images/placeholder.jpg"; 
+
+                    return {
+                        id: dbProduct.product_id,
+                        name: dbProduct.product_name,
+                        category: dbProduct.tbl_category?.category_name || dbProduct.category_id?.toString() || "Uncategorized", 
+                        type: dbProduct.product_brand || "General",
+                        price: dbProduct.product_price,
+                        originalPrice: dbProduct.product_price, 
+                        size: dbProduct.size_label || "OS", 
+                        brand: dbProduct.product_brand || "No Brand",
+                        stock: dbProduct.product_stock,
+                        description: dbProduct.product_description || "No description provided.",
+                        isNewArrival: false, 
+                        images: [imageUrl], 
+                    };
+                });
+
+                setPublishedProducts(mappedProducts);
+            } catch (err) {
+                console.error("Error fetching catalog", err);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchCatalog();
+    }, []);
+
+    let displayedProducts = [...publishedProducts];
 
     // Apply category/type filtering
     if (activeFilter === "New Arrivals") {
-        publishedProducts = publishedProducts.filter(product => product.isNewArrival);
+        displayedProducts = displayedProducts.filter(product => product.isNewArrival);
     } else if (activeFilter !== "All Products") {
-        // Check if it's a main category (Men Tops, Women Tops, etc.) or a subcategory (Teenagers, Long Sleeves, etc.)
-        publishedProducts = publishedProducts.filter(product => 
-            product.category === activeFilter || product.type === activeFilter
+        // Map main categories to their subcategories to allow inclusive filtering
+        const categoryTree: Record<string, string[]> = {
+            "Men's Top": ["Men's Top", "Teenagers", "Long Sleeves", "Polo"],
+            "Women's Top": ["Women's Top", "Blouses", "Tees"],
+            "Coords": ["Coords", "Hoodies", "Training"],
+            "Seasonal": ["Seasonal", "Jackets", "Raincoat"]
+        };
+
+        const validCategories = categoryTree[activeFilter] || [activeFilter];
+
+        // Check if it's a main category (which includes subcategories) or a direct match
+        displayedProducts = displayedProducts.filter(product => 
+            validCategories.includes(product.category) || product.type === activeFilter
         );
     }
 
     // Apply sorting
     if (sortBy === "price-low") {
-        publishedProducts.sort((a, b) => a.price - b.price);
+        displayedProducts.sort((a, b) => a.price - b.price);
     } else if (sortBy === "price-high") {
-        publishedProducts.sort((a, b) => b.price - a.price);
+        displayedProducts.sort((a, b) => b.price - a.price);
     } else if (sortBy === "newest") {
-        publishedProducts.sort((a, b) => Number(b.id) - Number(a.id));
+        displayedProducts.sort((a, b) => Number(b.id) - Number(a.id));
     }
 
     const handleProductClick = (product: Product) => {
@@ -87,7 +134,7 @@ export default function Catalog() {
                         <TextEffect as="span" per="char" preset="fade-in-blur">Featured Collection</TextEffect>
                     </h3>
                 </div>
-                <FeatureCardCarousel onProductClick={handleProductClick} />
+                <FeatureCardCarousel onProductClick={handleProductClick} featuredProducts={publishedProducts.slice(0, 5)} />
             </InView>
 
             {/* For the Collections */}
@@ -138,13 +185,13 @@ export default function Catalog() {
                     <div className="w-full">
                         <div className="mb-6 flex items-center justify-between">
                             <div className="text-xs font-bold tracking-widest text-[#E7A3B0] font-oswald uppercase">
-                                {publishedProducts.length} Items Found
+                                {displayedProducts.length} Items Found
                             </div>
                             
                             {/* Mobile Filter Toggle could go here */}
                         </div>
 
-                        {publishedProducts.length > 0 ? (
+                        {displayedProducts.length > 0 ? (
                             <InView
                                 variants={{
                                     hidden: { opacity: 0, y: 30 },
@@ -153,7 +200,7 @@ export default function Catalog() {
                                 transition={{ duration: 0.8, delay: 0.4 }}
                                 className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-5 2xl:grid-cols-6 gap-x-6 gap-y-12"
                             >
-                                {publishedProducts.map((product) => (
+                                {displayedProducts.map((product) => (
                                     <ProductCard 
                                         key={product.id} 
                                         product={product}
