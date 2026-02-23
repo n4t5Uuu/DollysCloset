@@ -6,13 +6,23 @@ import {Search} from "lucide-react"
 
 import {useState} from "react";
 
-export default function SearchBar() {
+interface SearchBarProps {
+    onSearch?: (query: string) => void;
+}
+
+export default function SearchBar({ onSearch }: SearchBarProps) {
     const [query, setQuery] = useState("");
 
     const handleSearch = (e: React.FormEvent) => {
         e.preventDefault();
+        onSearch?.(query);
+    }
 
-        console.log("Searching for: ",query);
+    const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const value = e.target.value;
+        setQuery(value);
+        // Optional: live search as the user types
+        onSearch?.(value);
     }
 
     return (
@@ -26,7 +36,7 @@ export default function SearchBar() {
                     placeholder="Search Products"
                     className="w-80 h-9 pl-4 rounded-2xl borderborder-black bg-white placeholder:text-black placeholder:font-montserrat"
                     value={query}
-                    onChange={(e) => setQuery(e.target.value)}
+                    onChange={handleChange}
                 />
 
                 <div className="absolute right-10 top-1/2 -translate-y-1/2 h-9 w-px bg-black"></div>

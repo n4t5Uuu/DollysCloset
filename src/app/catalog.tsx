@@ -21,6 +21,7 @@ export default function Catalog() {
     const [sortBy, setSortBy] = useState("newest");
     const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
     const [isModalOpen, setIsModalOpen] = useState(false);
+    const [searchQuery, setSearchQuery] = useState("");
     
     useEffect(() => {
         const fetchCatalog = async () => {
@@ -90,6 +91,16 @@ export default function Catalog() {
         displayedProducts.sort((a, b) => b.price - a.price);
     } else if (sortBy === "newest") {
         displayedProducts.sort((a, b) => Number(b.id) - Number(a.id));
+    }
+
+    // Apply text search
+    if (searchQuery.trim() !== "") {
+        const lowerCaseQuery = searchQuery.toLowerCase();
+        displayedProducts = displayedProducts.filter(product => 
+            product.name.toLowerCase().includes(lowerCaseQuery) ||
+            product.description.toLowerCase().includes(lowerCaseQuery) ||
+            product.brand.toLowerCase().includes(lowerCaseQuery)
+        );
     }
 
     const handleProductClick = (product: Product) => {
@@ -164,7 +175,7 @@ export default function Catalog() {
                             transition={{ duration: 0.6, delay: 0.2 }}
                             className="w-full md:w-auto pb-1"
                         >
-                            <SearchBar />
+                            <SearchBar onSearch={setSearchQuery} />
                         </InView>
                     </div>
                 </div>
