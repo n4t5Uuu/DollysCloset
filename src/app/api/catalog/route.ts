@@ -6,7 +6,7 @@ export async function GET(request: NextRequest) {
         const supabase = await createServerSupabase();
 
         const {data, error} = await supabase.from("tbl_product")
-            .select("*, tbl_category (category_name), tbl_product_image (image_url, is_primary)")
+            .select("*, tbl_category (category_name), tbl_product_image:tbl_product_image!tbl_product_image_product_id_fkey (image_url, is_primary)")
             .eq("show_in_catalog", true);
 
         if(error){
