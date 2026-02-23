@@ -46,6 +46,40 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ error: "Invalid product_id" }, { status: 400 });
     }
 
+    const { data: remainingBeforeDelete, error: remainingBeforeDeleteError } = await admin
+      .from("tbl_product_image")
+      .select("image_id, is_primary, display_order")
+      .eq("product_id", productIdValue)
+      .neq("image_id", imageId)
+      .order("display_order", { ascending: true });
+
+    if (remainingBeforeDeleteError) {
+      return NextResponse.json({ error: remainingBeforeDeleteError.message }, { status: 500 });
+    }
+
+    const preferredNextImage = (remainingBeforeDelete || []).find((img) => img.is_primary) || (remainingBeforeDelete || [])[0] || null;
+
+    const { data: productRow, error: productFetchError } = await admin
+      .from("tbl_product")
+      .select("image_id")
+      .eq("product_id", productIdValue)
+      .single();
+
+    if (productFetchError) {
+      return NextResponse.json({ error: productFetchError.message }, { status: 500 });
+    }
+
+    if (productRow?.image_id === imageId) {
+      const { error: rebindProductError } = await admin
+        .from("tbl_product")
+        .update({ image_id: preferredNextImage?.image_id || null })
+        .eq("product_id", productIdValue);
+
+      if (rebindProductError) {
+        return NextResponse.json({ error: rebindProductError.message }, { status: 500 });
+      }
+    }
+
     // Delete from Supabase Storage
     const fileName = image_url.split("/").slice(-2).join("/");
     await admin.storage.from("product-images").remove([fileName]);
@@ -58,46 +92,52 @@ export async function DELETE(request: NextRequest) {
 
     if (deleteError) throw deleteError;
 
-    // If deleted image was primary, set next highest display_order as primary
-    if (is_primary) {
-      const { data: nextImages } = await admin
-        .from("tbl_product_image")
-        .select("*")
-        .eq("product_id", product_id)
-        .order("display_order", { ascending: true });
+    const { data: remainingImages, error: remainingImagesError } = await admin
+      .from("tbl_product_image")
+      .select("*")
+      .eq("product_id", productIdValue)
+      .order("display_order", { ascending: true });
 
-      if (nextImages && nextImages.length > 0) {
-        // Update first remaining image as primary
-        await admin
-          .from("tbl_product_image")
-          .update({ is_primary: true })
-          .eq("image_id", nextImages[0].image_id);
+    if (remainingImagesError) {
+      return NextResponse.json({ error: remainingImagesError.message }, { status: 500 });
+    }
 
-        await admin
-          .from("tbl_product")
-          .update({ image_id: nextImages[0].image_id })
-          .eq("product_id", productIdValue);
-      } else {
-        await admin
-          .from("tbl_product")
-          .update({ image_id: null })
-          .eq("product_id", productIdValue);
+    if (!remainingImages || remainingImages.length === 0) {
+      const { error: clearProductImageError } = await admin
+        .from("tbl_product")
+        .update({ image_id: null })
+        .eq("product_id", productIdValue);
+
+      if (clearProductImageError) {
+        return NextResponse.json({ error: clearProductImageError.message }, { status: 500 });
       }
     } else {
-      // If deleted image was not primary, renumber display_order
-      const { data: images } = await admin
-        .from("tbl_product_image")
-        .select("*")
-        .eq("product_id", product_id)
-        .order("display_order", { ascending: true });
+      const normalizedPrimaryId = preferredNextImage?.image_id || remainingImages[0].image_id;
 
-      if (images) {
-        for (let i = 0; i < images.length; i++) {
-          await admin
-            .from("tbl_product_image")
-            .update({ display_order: i + 1 })
-            .eq("image_id", images[i].image_id);
-        }
+      // Batch normalize remaining images for performance
+      const normalizePromises = remainingImages.map((currentImage, index) =>
+        admin
+          .from("tbl_product_image")
+          .update({
+            display_order: index + 1,
+            is_primary: currentImage.image_id === normalizedPrimaryId,
+          })
+          .eq("image_id", currentImage.image_id)
+      );
+      
+      const normalizeResults = await Promise.all(normalizePromises);
+      const normalizeError = normalizeResults.find(result => result.error)?.error;
+      if (normalizeError) {
+        return NextResponse.json({ error: normalizeError.message }, { status: 500 });
+      }
+
+      const { error: setProductImageError } = await admin
+        .from("tbl_product")
+        .update({ image_id: normalizedPrimaryId })
+        .eq("product_id", productIdValue);
+
+      if (setProductImageError) {
+        return NextResponse.json({ error: setProductImageError.message }, { status: 500 });
       }
     }
 
@@ -106,7 +146,7 @@ export async function DELETE(request: NextRequest) {
     await dataHelper.logActivity({
       actionType: "delete_image",
       productId: productIdValue,
-      description: `Deleted image (was displaying as #${display_order})`,
+      description: `Deleted image (was displaying as #${display_order}${is_primary ? ", primary" : ""})`,
       editor: editor,
       user_id: user.id,
       supabase: admin

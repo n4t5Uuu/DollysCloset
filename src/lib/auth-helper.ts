@@ -10,9 +10,6 @@ export const authHelper = {
         if (error) {
             console.error("Error Signing In: ", error)
             return {data: null, error}
-        } else {
-            console.log("User Signed In: ", data);
-
         }
 
         return { data, error };
@@ -28,7 +25,6 @@ export const authHelper = {
         }
 
         if (!session?.user) {
-            console.log("No User Found");
             return { user: null, error: null };
         }
 
@@ -45,12 +41,6 @@ export const authHelper = {
 
             if(error)
                 throw error
-        
-        if (error) {
-            console.error("Error Fetching User Role: ", error)
-        } else {
-            console.log("User Role: ", data);
-        }
 
         return { data, error };
     },
@@ -64,7 +54,6 @@ export const authHelper = {
             return { success: false, error };
         }
         
-        console.log("User Signed Out");
         return { success: true, error: null };
     }
 }

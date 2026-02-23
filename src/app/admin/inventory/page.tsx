@@ -22,7 +22,6 @@ import {
 } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import AddProduct from "@/components/modals/AddProduct";
-import AddCategory from "@/components/modals/AddCategory";
 import { InventoryTable } from "@/components/tables/InventoryTable";
 import { InventoryProduct as Product, InventoryCategory as Category, InventoryProductImage as ProductImage } from "@/types/inventory.types";
 
@@ -37,10 +36,10 @@ export default function AdminInventoryPage() {
   const [visibilityFilter, setVisibilityFilter] = useState("all");
   const [availabilityFilter, setAvailabilityFilter] = useState("all");
   const [categoryFilter, setCategoryFilter] = useState("all");
+  const [dateSort, setDateSort] = useState<"newest" | "oldest">("newest");
   const [selectedProducts, setSelectedProducts] = useState<Set<string>>(new Set());
   const [currentPage, setCurrentPage] = useState(1);
   const [showAddModal, setShowAddModal] = useState(false);
-  const [showCategoryModal, setShowCategoryModal] = useState(false);
   const [viewProduct, setViewProduct] = useState<Product | null>(null);
   const [viewImages, setViewImages] = useState<ProductImage[]>([]);
   const [selectedViewImage, setSelectedViewImage] = useState<string | null>(null);
@@ -48,6 +47,7 @@ export default function AdminInventoryPage() {
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
 
   const itemsPerPage = 10;
+  const dateSortLabel = dateSort === "oldest" ? "Oldest (Ascending)" : "Newest (Descending)";
 
   useEffect(() => {
     fetchProducts();
@@ -96,17 +96,28 @@ export default function AdminInventoryPage() {
     }
   }
 
-  const filteredProducts = products.filter((product) => {
-    const matchesSearch = product.product_name.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesCategory = categoryFilter === "all" || product.category_id === parseInt(categoryFilter);
-    const matchesAvailability = availabilityFilter === "all" || 
-      (availabilityFilter === "in-stock" && product.product_stock > 0) ||
-      (availabilityFilter === "no-stock" && product.product_stock === 0);
-    const matchesVisibility = visibilityFilter === "all" || 
-      (visibilityFilter === "published" && product.show_in_catalog) ||
-      (visibilityFilter === "unpublished" && !product.show_in_catalog);
-    return matchesSearch && matchesCategory && matchesAvailability && matchesVisibility;
-  });
+  const filteredProducts = products
+    .filter((product) => {
+      const matchesSearch = product.product_name.toLowerCase().includes(searchQuery.toLowerCase());
+      const matchesCategory = categoryFilter === "all" || product.category_id === parseInt(categoryFilter);
+      const matchesAvailability = availabilityFilter === "all" || 
+        (availabilityFilter === "in-stock" && product.product_stock > 0) ||
+        (availabilityFilter === "no-stock" && product.product_stock === 0);
+      const matchesVisibility = visibilityFilter === "all" || 
+        (visibilityFilter === "published" && product.show_in_catalog) ||
+        (visibilityFilter === "unpublished" && !product.show_in_catalog);
+      return matchesSearch && matchesCategory && matchesAvailability && matchesVisibility;
+    })
+    .sort((firstProduct, secondProduct) => {
+      const firstDateValue = new Date(firstProduct.created_at || 0).getTime();
+      const secondDateValue = new Date(secondProduct.created_at || 0).getTime();
+
+      if (dateSort === "oldest") {
+        return firstDateValue - secondDateValue;
+      }
+
+      return secondDateValue - firstDateValue;
+    });
 
   const totalPages = Math.ceil(filteredProducts.length / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
@@ -165,10 +176,6 @@ export default function AdminInventoryPage() {
   const closeModal = () => {
     setShowAddModal(false);
     setEditingProduct(null);
-  };
-
-  const closeCategoryModal = () => {
-    setShowCategoryModal(false);
   };
 
   const toggleSelectAll = (checked: boolean) => {
@@ -353,20 +360,24 @@ export default function AdminInventoryPage() {
             )}
           </SelectContent>
         </Select>
+
+        <Select value={dateSort} onValueChange={(value) => setDateSort(value as "newest" | "oldest")}>
+          <SelectTrigger className="w-[180px] text-gray-900 bg-white">
+            <SelectValue placeholder="Sort Date" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="newest">Newest (Descending)</SelectItem>
+            <SelectItem value="oldest">Oldest (Ascending)</SelectItem>
+          </SelectContent>
+        </Select>
       </div>
 
       <div className="flex items-center justify-between flex-wrap gap-4">
         <div className="text-sm text-gray-600">
           Showing {filteredProducts.length > 0 ? startIndex + 1 : 0}-{Math.min(endIndex, filteredProducts.length)} of {filteredProducts.length} items
+          <span className="ml-2 text-gray-500">• Date Sort: {dateSortLabel}</span>
         </div>
         <div className="flex gap-3">
-          <Button 
-            className="bg-purple-500 hover:bg-purple-600 text-white"
-            onClick={() => setShowCategoryModal(true)}
-          >
-            <Plus className="w-4 h-4 mr-2" />
-            Add Category
-          </Button>
           {selectedProducts.size > 0 && (
             <Button 
               className="bg-red-500 hover:bg-red-600 text-white"
@@ -538,16 +549,6 @@ export default function AdminInventoryPage() {
             throw new Error('Saved, but failed to refresh products. Please try again.');
           }
           closeModal();
-        }}
-      />
-
-      <AddCategory
-        isOpen={showCategoryModal}
-        onClose={closeCategoryModal}
-        categories={categories}
-        onCategoryAdded={(newCategory) => {
-          setCategories([...categories, newCategory]);
-          closeCategoryModal();
         }}
       />
     </div>

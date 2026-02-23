@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import { Upload, X, Star } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { InventoryProductImage as ProductImage } from "@/types/inventory.types";
 
 interface ProductImageUploadProps {
@@ -78,6 +77,8 @@ export default function ProductImageUpload({
         throw new Error("Not authenticated");
       }
 
+      let updatedImages = [...images];
+
       for (const file of files) {
         const formData = new FormData();
         formData.append("file", file);
@@ -100,7 +101,8 @@ export default function ProductImageUpload({
         }
 
         const newImage = await response.json();
-        onImagesChange([...images, newImage]);
+        updatedImages = [...updatedImages, newImage];
+        onImagesChange(updatedImages);
       }
     } catch (error) {
       alert(`Upload failed: ${(error as Error).message}`);
@@ -132,43 +134,20 @@ export default function ProductImageUpload({
         throw new Error(error.error || "Delete failed");
       }
 
-      onImagesChange(images.filter((img) => img.image_id !== imageId));
+      const refreshResponse = await fetch(`/api/admin/fetch-images?product_id=${productId}`);
+      if (refreshResponse.ok) {
+        const result = await refreshResponse.json();
+        onImagesChange(result.data || []);
+      } else {
+        onImagesChange(images.filter((img) => img.image_id !== imageId));
+      }
     } catch (error) {
       alert(`Delete failed: ${(error as Error).message}`);
     }
   };
 
-  const setPrimaryImage = async (imageId: string) => {
-    try {
-      const { browserSupabase } = await import("@/lib/supabase/browser");
-      const { data: { session } } = await browserSupabase.auth.getSession();
-      
-      if (!session) {
-        throw new Error("Not authenticated");
-      }
-
-      const response = await fetch("/api/admin/set-primary-image", {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${session.access_token}`,
-        },
-        body: JSON.stringify({ image_id: imageId, product_id: productId }),
-      });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || "Failed to set primary");
-      }
-
-      const updatedImages = await response.json();
-      onImagesChange(updatedImages);
-    } catch (error) {
-      alert(`Failed to set primary: ${(error as Error).message}`);
-    }
-  };
-
   const sortedImages = [...images].sort((a, b) => a.display_order - b.display_order);
+  const primaryImageId = sortedImages.find((image) => image.is_primary)?.image_id || sortedImages[0]?.image_id;
 
   return (
     <div className="space-y-4">
@@ -227,16 +206,8 @@ export default function ProductImageUpload({
               {/* Overlay */}
               <div className="absolute inset-0 bg-black/0 group-hover:bg-black/50 transition flex items-center justify-center gap-2">
                 <div className="hidden group-hover:flex gap-2">
-                  {!image.is_primary && (
-                    <button
-                      onClick={() => setPrimaryImage(image.image_id)}
-                      title="Set as primary"
-                      className="p-2 bg-yellow-500 hover:bg-yellow-600 text-white rounded transition"
-                    >
-                      <Star className="w-4 h-4" />
-                    </button>
-                  )}
                   <button
+                    type="button"
                     onClick={() => deleteImage(image.image_id)}
                     title="Delete image"
                     className="p-2 bg-red-500 hover:bg-red-600 text-white rounded transition"
@@ -247,7 +218,7 @@ export default function ProductImageUpload({
               </div>
 
               {/* Badge */}
-              {image.is_primary && (
+              {image.image_id === primaryImageId && (
                 <div className="absolute top-2 left-2 bg-yellow-500 text-white px-2 py-1 rounded text-xs font-semibold flex items-center gap-1">
                   <Star className="w-3 h-3" /> Primary
                 </div>

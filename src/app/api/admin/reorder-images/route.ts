@@ -28,13 +28,14 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json({ error: "Missing product_id or orderedImageIds" }, { status: 400 });
     }
 
-    // Update display_order for each image based on new order
-    for (let i = 0; i < orderedImageIds.length; i++) {
-        await admin
-          .from("tbl_product_image")
-        .update({ display_order: i + 1 })
-        .eq("image_id", orderedImageIds[i]);
-    }
+    // Update display_order for each image based on new order (batched for performance)
+    const updatePromises = orderedImageIds.map((imageId, index) =>
+      admin
+        .from("tbl_product_image")
+        .update({ display_order: index + 1 })
+        .eq("image_id", imageId)
+    );
+    await Promise.all(updatePromises);
 
     // Get updated images
     const { data: updatedImages } = await admin

@@ -95,6 +95,7 @@ export default function ImageSelector({
 
               <div className="absolute inset-0 bg-black/0 group-hover:bg-black/50 transition flex items-center justify-center">
                 <button
+                  type="button"
                   onClick={() => onFileRemove(index)}
                   className="hidden group-hover:flex p-2 bg-red-500 hover:bg-red-600 text-white rounded"
                   title="Remove image"

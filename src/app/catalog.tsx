@@ -1,53 +1,170 @@
 "use client";
 
-import { useState } from "react";
-import Image from "next/image";
+import { useEffect, useMemo, useState } from "react";
 
 import FeatureCardCarousel from "@/components/catalog/FeatureCardCarousel";
 import SearchBar from "@/components/general-components/SearchBar";
 import CatalogSidebar from "@/components/sidebar/CatalogSidebar";
 import ProductCard from "@/components/catalog/ProductCard";
 import ProductModal from "@/components/modals/ProductModal";
-import { useProducts } from "@/contexts/ProductContext";
 import { Product } from "@/types/product.types";
 import { InfiniteSlider } from "@/components/motion-primitives/infinite-slider";
 import { TextEffect } from "@/components/motion-primitives/text-effect";
 import { InView } from "@/components/motion-primitives/in-view";
+import { Button } from "@/components/ui/button";
+
+type CatalogCategory = {
+    category_id: number;
+    category_name: string;
+    parent_category: number | null;
+};
+
+type CatalogApiProduct = {
+    id: string;
+    name: string;
+    categoryId: number;
+    categoryName: string;
+    categoryPath: string;
+    price: number;
+    brand: string;
+    size: string;
+    condition: string;
+    description: string;
+    stock: number;
+    isNewArrival: boolean;
+    images: string[];
+    createdAt: string;
+};
+
+function toViewProduct(product: CatalogApiProduct): Product {
+    return {
+        id: product.id,
+        name: product.name,
+        category: product.categoryPath,
+        type: product.categoryName,
+        price: product.price,
+        brand: product.brand,
+        size: product.size,
+        condition: product.condition,
+        description: product.description,
+        stock: product.stock,
+        isNewArrival: product.isNewArrival,
+        images: product.images,
+    };
+}
 
 export default function Catalog() {
-    const { productList, catalogStatus } = useProducts();
-    const [activeFilter, setActiveFilter] = useState("All Products");
+    const [activeFilter, setActiveFilter] = useState("all");
     const [sortBy, setSortBy] = useState("newest");
+    const [currentPage, setCurrentPage] = useState(1);
     const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
     const [isModalOpen, setIsModalOpen] = useState(false);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
+
+    const [categories, setCategories] = useState<CatalogCategory[]>([]);
+    const [products, setProducts] = useState<CatalogApiProduct[]>([]);
+    const [featuredProducts, setFeaturedProducts] = useState<CatalogApiProduct[]>([]);
+
+    const itemsPerPage = 12;
+
+    useEffect(() => {
+        const fetchCatalog = async () => {
+            try {
+                setLoading(true);
+                setError(null);
+
+                const response = await fetch("/api/catalog", { cache: "no-store" });
+                const result = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(result.error || "Failed to fetch catalog");
+                }
+
+                setCategories(result.data?.categories || []);
+                setProducts(result.data?.products || []);
+                setFeaturedProducts(result.data?.featuredProducts || []);
+            } catch (err: unknown) {
+                setError(err instanceof Error ? err.message : "Failed to fetch catalog");
+                setCategories([]);
+                setProducts([]);
+                setFeaturedProducts([]);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchCatalog();
+    }, []);
+
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [activeFilter, sortBy]);
+
+    const childrenByParent = useMemo(() => {
+        return categories.reduce<Map<number, number[]>>((acc, category) => {
+            if (category.parent_category === null) return acc;
+
+            const parentId = Number(category.parent_category);
+            const currentChildren = acc.get(parentId) || [];
+            currentChildren.push(Number(category.category_id));
+            acc.set(parentId, currentChildren);
+            return acc;
+        }, new Map<number, number[]>());
+    }, [categories]);
+
+    const collectDescendantCategoryIds = (categoryId: number) => {
+        const visited = new Set<number>();
+        const stack: number[] = [categoryId];
+
+        while (stack.length > 0) {
+            const currentId = stack.pop();
+            if (currentId === undefined || visited.has(currentId)) continue;
+
+            visited.add(currentId);
+            const children = childrenByParent.get(currentId) || [];
+            for (const childId of children) {
+                if (!visited.has(childId)) {
+                    stack.push(childId);
+                }
+            }
+        }
+
+        return visited;
+    };
     
-    // Get only published products (featured and standard, exclude unlisted)
-    let publishedProducts = productList.filter(
-        product => catalogStatus[product.id] !== "unlisted"
+    const filteredProducts = useMemo(() => {
+        let list = [...products];
+
+        if (activeFilter === "new") {
+            list = list.filter((product) => product.isNewArrival);
+        } else if (activeFilter.startsWith("category-")) {
+            const categoryId = Number(activeFilter.replace("category-", ""));
+            const validCategoryIds = collectDescendantCategoryIds(categoryId);
+            list = list.filter((product) => validCategoryIds.has(product.categoryId));
+        }
+
+        if (sortBy === "price-low") {
+            list.sort((a, b) => a.price - b.price);
+        } else if (sortBy === "price-high") {
+            list.sort((a, b) => b.price - a.price);
+        } else {
+            list.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+        }
+
+        return list;
+    }, [products, activeFilter, sortBy, childrenByParent]);
+
+    const totalPages = Math.max(1, Math.ceil(filteredProducts.length / itemsPerPage));
+    const paginatedProducts = filteredProducts.slice(
+        (currentPage - 1) * itemsPerPage,
+        currentPage * itemsPerPage
     );
 
-    // Apply category/type filtering
-    if (activeFilter === "New Arrivals") {
-        publishedProducts = publishedProducts.filter(product => product.isNewArrival);
-    } else if (activeFilter !== "All Products") {
-        // Check if it's a main category (Men Tops, Women Tops, etc.) or a subcategory (Teenagers, Long Sleeves, etc.)
-        publishedProducts = publishedProducts.filter(product => 
-            product.category === activeFilter || product.type === activeFilter
-        );
-    }
-
-    // Apply sorting
-    if (sortBy === "price-low") {
-        publishedProducts.sort((a, b) => a.price - b.price);
-    } else if (sortBy === "price-high") {
-        publishedProducts.sort((a, b) => b.price - a.price);
-    } else if (sortBy === "newest") {
-        publishedProducts.sort((a, b) => Number(b.id) - Number(a.id));
-    }
+    const featuredViewProducts = featuredProducts.map(toViewProduct);
 
     const handleProductClick = (product: Product) => {
         setSelectedProduct(product);
-        console.log("Selected Product: ", product)
         setIsModalOpen(true);
     };
 
@@ -87,7 +204,7 @@ export default function Catalog() {
                         <TextEffect as="span" per="char" preset="fade-in-blur">Featured Collection</TextEffect>
                     </h3>
                 </div>
-                <FeatureCardCarousel onProductClick={handleProductClick} />
+                <FeatureCardCarousel products={featuredViewProducts} onProductClick={handleProductClick} />
             </InView>
 
             {/* For the Collections */}
@@ -131,20 +248,34 @@ export default function Catalog() {
                             }}
                             transition={{ duration: 0.8, delay: 0.3 }}
                         >
-                            <CatalogSidebar activeFilter={activeFilter} sortBy={sortBy} onFilterChange={setActiveFilter} onSortChange={setSortBy} />
+                            <CatalogSidebar
+                                categories={categories}
+                                activeFilter={activeFilter}
+                                sortBy={sortBy}
+                                onFilterChange={setActiveFilter}
+                                onSortChange={setSortBy}
+                            />
                         </InView>
                     </div>
                     
                     <div className="w-full">
                         <div className="mb-6 flex items-center justify-between">
                             <div className="text-xs font-bold tracking-widest text-[#E7A3B0] font-oswald uppercase">
-                                {publishedProducts.length} Items Found
+                                {filteredProducts.length} Items Found
                             </div>
                             
                             {/* Mobile Filter Toggle could go here */}
                         </div>
 
-                        {publishedProducts.length > 0 ? (
+                        {loading ? (
+                            <div className="w-full py-20 flex flex-col items-center justify-center text-gray-500">
+                                <p className="font-playfair-display text-xl italic">Loading products...</p>
+                            </div>
+                        ) : error ? (
+                            <div className="w-full py-20 flex flex-col items-center justify-center text-red-500">
+                                <p className="font-playfair-display text-xl italic">{error}</p>
+                            </div>
+                        ) : paginatedProducts.length > 0 ? (
                             <InView
                                 variants={{
                                     hidden: { opacity: 0, y: 30 },
@@ -153,11 +284,11 @@ export default function Catalog() {
                                 transition={{ duration: 0.8, delay: 0.4 }}
                                 className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-5 2xl:grid-cols-6 gap-x-6 gap-y-12"
                             >
-                                {publishedProducts.map((product) => (
+                                {paginatedProducts.map((product) => (
                                     <ProductCard 
                                         key={product.id} 
-                                        product={product}
-                                        onClick={() => handleProductClick(product)}
+                                        product={toViewProduct(product)}
+                                        onClick={() => handleProductClick(toViewProduct(product))}
                                     />
                                 ))}
                             </InView>
@@ -167,11 +298,45 @@ export default function Catalog() {
                             </div>
                         )}
 
-                        <div className="mt-20 flex justify-center">
-                            <button className="px-10 py-4 bg-white border border-[#E7A3B0] text-[#E7A3B0] hover:bg-[#E7A3B0] hover:text-white transition-all duration-300 font-oswald text-sm tracking-[0.2em] rounded-none uppercase">
-                                Load More Products
-                            </button>
-                        </div>
+                        {totalPages > 1 && (
+                            <div className="mt-16 flex items-center justify-center gap-2">
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
+                                    disabled={currentPage === 1}
+                                    className="border-[#E7A3B0]/50 text-[#cc7f8f] hover:bg-[#fff0f5]"
+                                >
+                                    Prev
+                                </Button>
+
+                                {Array.from({ length: totalPages }, (_, index) => index + 1).map((page) => (
+                                    <Button
+                                        key={page}
+                                        type="button"
+                                        variant={currentPage === page ? "default" : "outline"}
+                                        onClick={() => setCurrentPage(page)}
+                                        className={
+                                            currentPage === page
+                                                ? "bg-[#E7A3B0] text-white hover:bg-[#d891a0]"
+                                                : "border-[#E7A3B0]/50 text-[#cc7f8f] hover:bg-[#fff0f5]"
+                                        }
+                                    >
+                                        {page}
+                                    </Button>
+                                ))}
+
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))}
+                                    disabled={currentPage === totalPages}
+                                    className="border-[#E7A3B0]/50 text-[#cc7f8f] hover:bg-[#fff0f5]"
+                                >
+                                    Next
+                                </Button>
+                            </div>
+                        )}
                     </div>
                 </div>
             </div>

@@ -1,102 +1,51 @@
 "use client"
-
-// UI Components
-import {
-    Carousel, 
-    CarouselContent,
-    CarouselItem,
-    CarouselNext,
-    CarouselPrevious,
-} from "@/components/ui/carousel"
-import {
-    Card,
-    CardAction,
-    CardContent,
-    CardDescription,
-    CardFooter,
-    CardHeader,
-    CardTitle,
-} from "@/components/ui/card"
-
-import { useEffect, useState, useRef }from "react";
-import Autoplay from "embla-carousel-autoplay";
-import {type CarouselApi} from "@/components/ui/carousel";
-import { useProducts } from "@/contexts/ProductContext";
+import { useEffect, useMemo, useState } from "react";
 import { Product } from "@/types/product.types";
 import Image from "next/image";
+import { motion, AnimatePresence } from "motion/react";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 
 interface FeatureCardCarouselProps {
+    products: Product[];
     onProductClick?: (product: Product) => void;
 }
 
-export default function FeatureCardCarousel({ onProductClick }: FeatureCardCarouselProps) {
-    const { productList, catalogStatus } = useProducts();
-    
-    // Get only featured products
-    const featuredProducts = productList.filter(
-        product => catalogStatus[product.id] === "featured"
-    );
-    
-    // Track the Embla API instance
-    const [api, setApi] = useState<CarouselApi | null>(null);
-    const [current, setCurrent] = useState(0);
+export default function FeatureCardCarousel({ products, onProductClick }: FeatureCardCarouselProps) {
+    const [centerIndex, setCenterIndex] = useState(0);
 
-    // Initialize the Autoplay plugin
-    const plugin = useRef(
-        Autoplay({
-            delay: 3000,
-            stopOnInteraction: true,
-        })
-    );
-
+    const featuredProducts = useMemo(() => products.slice(0, 5), [products]);
 
     useEffect(() => {
-        // If the api has no value, then return nothing
-        if (!api)
-            return;
+        if (featuredProducts.length <= 1) return;
 
-        const onScroll = () => {
-            const scrollProgress = api.scrollProgress();
-            const snaps = api.scrollSnapList();
+        const interval = setInterval(() => {
+            setCenterIndex((prev) => (prev + 1) % featuredProducts.length);
+        }, 3200);
 
-            api.slideNodes().forEach((node, index) => {
-                // It calculates the distance of this slide from the center
-                // Embla gives a value between 0 and 1 for the progress
-                const snap = snaps[index];
-                const distance = Math.abs(scrollProgress - snap);
+        return () => clearInterval(interval);
+    }, [featuredProducts.length]);
 
-                // This lets the slides scale down as it gets further away from the center
-                // 1 is the full size and 0.2 is the scaling factor
-                // Slides that are very close to the distance of 0 will have a scale of 1
-                let scale = 1 - distance * 0.1;
+    useEffect(() => {
+        setCenterIndex(0);
+    }, [featuredProducts.length]);
 
-                // This clamps the scale so it doesn't get too small
-                scale = Math.max(0.7, scale);
+    const getSafeProduct = (index: number) => {
+        const length = featuredProducts.length;
+        if (length === 0) return null;
+        return featuredProducts[(index + length) % length];
+    };
 
-                // It applies the style directly for smooth performance and it look for he inner
-                // card/container to transform
-                const innerContent = node.querySelector('.feature-card-inner') as HTMLElement;
-                if(innerContent) {
-                    innerContent.style.transform = `scale(${scale})`;
-                }
-            });
-        }
+    const previousProduct = getSafeProduct(centerIndex - 1);
+    const centerProduct = getSafeProduct(centerIndex);
+    const nextProduct = getSafeProduct(centerIndex + 1);
 
-        // Listens anything relate to scroll events
-        api.on("scroll", onScroll);
-        api.on("reInit", onScroll);
-        api.on("settle", onScroll); // Trigger when movement stops
-        api.on("select", onScroll); // Trigger when a new slide is selected
+    const goPrevious = () => {
+        setCenterIndex((prev) => (prev - 1 + featuredProducts.length) % featuredProducts.length);
+    };
 
-        // Runs to function to set the initial state
-        onScroll();
-
-        // Cleanup function
-        return () => {
-            api.off("scroll", onScroll);
-            api.off("reInit", onScroll);
-        }
-    }, [api]);
+    const goNext = () => {
+        setCenterIndex((prev) => (prev + 1) % featuredProducts.length);
+    };
 
     // If no featured products, show placeholder message
     if (featuredProducts.length === 0) {
@@ -107,53 +56,72 @@ export default function FeatureCardCarousel({ onProductClick }: FeatureCardCarou
         );
     }
 
+    const cardsToRender = [
+        { slot: "left", product: previousProduct, opacity: 0.45, scale: 0.9 },
+        { slot: "center", product: centerProduct, opacity: 1, scale: 1 },
+        { slot: "right", product: nextProduct, opacity: 0.45, scale: 0.9 },
+    ] as const;
+
     return (
-        <Carousel
-            setApi={setApi}
-            plugins={[plugin.current]}
-            className="w-full max-w-[1400px] mx-auto"
-            opts={{
-                align: "center",
-                loop: featuredProducts.length > 1
-            }}
-        >
-            <CarouselContent className="ml-4">
-                {featuredProducts.map((product) => (
-                    <CarouselItem 
-                        key={product.id}
-                        className="pl-4 basis-1/2 md:basis-1/5"
-                    >
-                        <div className="p-1">
-                            <div className="feature-card-inner transition-transform duration-0 ease-out">
-                                <Card 
-                                    className="border-0 shadow-none group bg-transparent cursor-pointer flex flex-col gap-3"
-                                    onClick={() => onProductClick?.(product)}
+        <div className="w-full max-w-[1400px] mx-auto px-6">
+            <div className="flex items-center justify-center gap-6 md:gap-8">
+                <button
+                    type="button"
+                    onClick={goPrevious}
+                    className="h-10 w-10 rounded-full border border-[#E7A3B0]/50 text-[#cc7f8f] hover:bg-[#fff0f5] transition-colors cursor-pointer"
+                    aria-label="Previous featured product"
+                >
+                    <ChevronLeft className="h-5 w-5 mx-auto" />
+                </button>
+
+                <div className="grid grid-cols-3 items-center gap-4 md:gap-8 w-full max-w-[1050px]">
+                    {cardsToRender.map((item) => {
+                        if (!item.product) return <div key={item.slot} className="h-[300px]" />;
+
+                        return (
+                            <AnimatePresence key={item.slot} mode="wait">
+                                <motion.button
+                                    key={`${item.slot}-${item.product.id}-${centerIndex}`}
+                                    type="button"
+                                    onClick={() => onProductClick?.(item.product)}
+                                    initial={{ opacity: 0, x: item.slot === "left" ? -20 : item.slot === "right" ? 20 : 0 }}
+                                    animate={{ opacity: item.opacity, x: 0, scale: item.scale }}
+                                    exit={{ opacity: 0, x: item.slot === "left" ? 20 : item.slot === "right" ? -20 : 0 }}
+                                    transition={{ duration: 0.45, ease: "easeInOut" }}
+                                    className={`text-left ${item.slot === "center" ? "cursor-pointer" : "cursor-default"}`}
                                 >
-                                    <div className="aspect-3/4 w-full bg-[#f5f5f5] rounded-xl relative overflow-hidden group-hover:shadow-lg transition-shadow duration-300">
+                                    <div className="aspect-3/4 w-full bg-[#f5f5f5] rounded-xl relative overflow-hidden shadow-sm hover:shadow-lg transition-shadow duration-300">
                                         <Image
-                                            src={product.images[0] || "/placeholder.png"}
-                                            alt={product.name}
+                                            src={item.product.images[0] || "/placeholder.png"}
+                                            alt={item.product.name}
                                             fill
-                                            className="object-cover group-hover:scale-105 transition-transform duration-700 ease-out"
+                                            className="object-cover"
                                         />
                                     </div>
 
-                                    <div className="flex flex-col items-center text-center gap-1">
-                                        <p className="font-playfair-display font-medium text-lg text-[#121212] line-clamp-1">
-                                            {product.name}
+                                    <div className="mt-3 flex flex-col items-center text-center gap-1">
+                                        <p className="font-playfair-display font-medium text-base md:text-lg text-[#121212] line-clamp-1">
+                                            {item.product.name}
                                         </p>
-                                        <p className="font-oswald text-base text-[#E7A3B0] tracking-wide">
-                                            ₱{product.price.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                        <p className="font-oswald text-sm md:text-base text-[#E7A3B0] tracking-wide">
+                                            ₱{item.product.price.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                         </p>
                                     </div>
-                                </Card>
-                            </div>
-                        </div>
-                    </CarouselItem>
-                ))}
-            </CarouselContent>
-            <CarouselPrevious className="cursor-pointer hover:bg-[#E679A3]"/>
-            <CarouselNext className="cursor-pointer hover:bg-[#E679A3]"/>
-        </Carousel>
+                                </motion.button>
+                            </AnimatePresence>
+                        );
+                    })}
+                </div>
+
+                <button
+                    type="button"
+                    onClick={goNext}
+                    className="h-10 w-10 rounded-full border border-[#E7A3B0]/50 text-[#cc7f8f] hover:bg-[#fff0f5] transition-colors cursor-pointer"
+                    aria-label="Next featured product"
+                >
+                    <ChevronRight className="h-5 w-5 mx-auto" />
+                </button>
+            </div>
+        </div>
     )
 }

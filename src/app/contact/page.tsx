@@ -317,11 +317,14 @@ export default function Contact() {
               >
                 {contactMethods.map((method, index) => {
                   const Icon = method.icon;
+                  const shouldOpenInNewTab = method.link.startsWith("http://") || method.link.startsWith("https://");
 
                   return (
                     <motion.a
                       key={index}
                       href={method.link}
+                      target={shouldOpenInNewTab ? "_blank" : undefined}
+                      rel={shouldOpenInNewTab ? "noopener noreferrer" : undefined}
                       variants={{
                         hidden: { opacity: 0, y: 20 },
                         visible: {

@@ -18,7 +18,21 @@ export async function GET(request: NextRequest) {
 
     if (error) throw error;
 
-    return NextResponse.json({ data: images || [] });
+    const normalizedImages = (images || []).map((image) => ({
+      ...image,
+      is_primary: Boolean(image.is_primary),
+    }));
+
+    const effectivePrimaryId =
+      normalizedImages.find((image) => image.is_primary)?.image_id ||
+      normalizedImages[0]?.image_id;
+
+    const singlePrimaryImages = normalizedImages.map((image) => ({
+      ...image,
+      is_primary: image.image_id === effectivePrimaryId,
+    }));
+
+    return NextResponse.json({ data: singlePrimaryImages });
   } catch (error) {
     console.error("Fetch images error:", error);
     return NextResponse.json(

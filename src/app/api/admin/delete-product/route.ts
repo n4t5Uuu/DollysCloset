@@ -51,6 +51,16 @@ export async function DELETE(request: NextRequest) {
     }
 
     if (images && images.length > 0) {
+      const { error: clearImageReferenceError } = await admin
+        .from('tbl_product')
+        .update({ image_id: null })
+        .eq('product_id', productIdValue);
+
+      if (clearImageReferenceError) {
+        console.error('Clear image reference error:', clearImageReferenceError);
+        return NextResponse.json({ error: clearImageReferenceError.message }, { status: 500 });
+      }
+
       const filePaths = images
         .map((img) => img.image_url?.split('/').slice(-2).join('/'))
         .filter((path) => path);
