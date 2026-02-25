@@ -16,22 +16,126 @@ import {
 } from "@/components/ui/select";
 import {cn} from "@/lib/utils";
 
-import Link from "next/link";
+type CatalogCategory = {
+    category_id: number;
+    category_name: string;
+    parent_category: number | null;
+};
 
 interface CatalogSidebarProps {
+    categories: CatalogCategory[];
     activeFilter: string;
     sortBy: string;
     onFilterChange: (filter: string) => void;
     onSortChange: (sort: string) => void;
 }
 
-export default function CatalogSidebar({ activeFilter, sortBy, onFilterChange, onSortChange }: CatalogSidebarProps) {
+export default function CatalogSidebar({ categories, activeFilter, sortBy, onFilterChange, onSortChange }: CatalogSidebarProps) {
     const handleFilterChange = (filter: string) => {
         onFilterChange(filter);
     };
 
     const handleSortChange = (sort: string) => {
         onSortChange(sort);
+    };
+
+    const categoryById = new Map(
+        categories.map((category) => [Number(category.category_id), category])
+    );
+
+    const childrenByParent = categories.reduce<Map<number | null, CatalogCategory[]>>((acc, category) => {
+        const parent = category.parent_category;
+        const current = acc.get(parent) || [];
+        current.push(category);
+        acc.set(parent, current);
+        return acc;
+    }, new Map<number | null, CatalogCategory[]>());
+
+    const rootCategories = [...(childrenByParent.get(null) || [])].sort(
+        (a, b) => Number(a.category_id) - Number(b.category_id)
+    );
+
+    const makeFilterValue = (categoryId: number) => `category-${categoryId}`;
+
+    const getCategoryPath = (categoryId: number) => {
+        const category = categoryById.get(categoryId);
+        if (!category) return "Unknown";
+
+        const path: string[] = [category.category_name];
+        let parentId = category.parent_category;
+        const visited = new Set<number>([categoryId]);
+
+        while (parentId !== null) {
+            if (visited.has(parentId)) break;
+            visited.add(parentId);
+
+            const parent = categoryById.get(parentId);
+            if (!parent) break;
+
+            path.unshift(parent.category_name);
+            parentId = parent.parent_category;
+        }
+
+        return path.join(" > ");
+    };
+
+    const renderCategoryNode = (category: CatalogCategory, depth = 0) => {
+        const children = [...(childrenByParent.get(Number(category.category_id)) || [])].sort(
+            (a, b) => Number(a.category_id) - Number(b.category_id)
+        );
+
+        const filterValue = makeFilterValue(Number(category.category_id));
+        const hasChildren = children.length > 0;
+
+        if (!hasChildren) {
+            return (
+                <button
+                    key={category.category_id}
+                    onClick={() => handleFilterChange(filterValue)}
+                    className={cn(
+                        "text-left font-montserrat transition-colors duration-200 hover:text-[#E7A3B0]",
+                        depth === 0 ? "text-base font-medium tracking-wide py-1" : "text-sm py-1",
+                        activeFilter === filterValue ? "text-[#E7A3B0] font-bold" : "text-gray-600"
+                    )}
+                    style={{ paddingLeft: `${depth * 12}px` }}
+                    title={getCategoryPath(Number(category.category_id))}
+                >
+                    {category.category_name}
+                </button>
+            );
+        }
+
+        return (
+            <AccordionItem value={`item-${category.category_id}-${depth}`} key={`${category.category_id}-${depth}`} className="border-none">
+                <AccordionTrigger
+                    className={cn(
+                        "font-montserrat cursor-pointer py-2 hover:text-[#E7A3B0] hover:no-underline text-gray-600",
+                        depth === 0 ? "text-base font-medium tracking-wide" : "text-sm"
+                    )}
+                    style={{ paddingLeft: `${depth * 12}px` }}
+                >
+                    {category.category_name}
+                </AccordionTrigger>
+
+                <AccordionContent className="flex flex-col gap-1 pt-1 pb-2">
+                    <button
+                        onClick={() => handleFilterChange(filterValue)}
+                        className={cn(
+                            "text-left text-sm font-montserrat py-1 transition-colors w-full cursor-pointer hover:text-[#E7A3B0]",
+                            activeFilter === filterValue ? "text-[#E7A3B0] font-bold" : "text-gray-500"
+                        )}
+                        style={{ paddingLeft: `${(depth + 1) * 12}px` }}
+                        title={getCategoryPath(Number(category.category_id))}
+                    >
+                        All {category.category_name}
+                    </button>
+
+                    <Accordion type="single" collapsible className="w-full">
+                        {children.map((childCategory) => renderCategoryNode(childCategory, depth + 1))}
+                    </Accordion>
+                </AccordionContent>
+            </AccordionItem>
+        );
     };
 
     return(
@@ -46,17 +150,17 @@ export default function CatalogSidebar({ activeFilter, sortBy, onFilterChange, o
                 {/**Static Items */}
                 <div className="flex flex-col gap-3 pl-1">
                     <button 
-                        onClick={() => handleFilterChange("All Products")}
-                        className={cn("text-left font-montserrat text-base font-medium tracking-wide transition-colors duration-200 hover:text-[#E7A3B0] hover:cursor-pointer", 
-                                activeFilter === "All Products" ? "text-[#E7A3B0] font-bold" : "text-gray-600")}
+                        onClick={() => handleFilterChange("all")}
+                        className={cn("text-left font-montserrat text-base font-medium tracking-wide transition-colors duration-200 hover:text-[#E7A3B0]", 
+                                activeFilter === "all" ? "text-[#E7A3B0] font-bold" : "text-gray-600")}
                     >
                         All Products
                     </button>
 
                     <button 
-                        onClick={() => handleFilterChange("New Arrivals")}
-                        className={cn("text-left font-montserrat text-base font-medium tracking-wide transition-colors duration-200 hover:text-[#E7A3B0] hover:cursor-pointer", 
-                                activeFilter === "New Arrivals" ? "text-[#E7A3B0] font-bold" : "text-gray-600")}
+                        onClick={() => handleFilterChange("new")}
+                        className={cn("text-left font-montserrat text-base font-medium tracking-wide transition-colors duration-200 hover:text-[#E7A3B0]", 
+                                activeFilter === "new" ? "text-[#E7A3B0] font-bold" : "text-gray-600")}
                     
                     >
                         New Arrivals
@@ -64,110 +168,7 @@ export default function CatalogSidebar({ activeFilter, sortBy, onFilterChange, o
 
                     {/**Expandable Items */}
                     <Accordion type="single" collapsible className="w-full -ml-1">
-
-                        {/**Men Tops */}
-                        <AccordionItem value="item-1" className="border-none" >
-                            <AccordionTrigger 
-                                onClick={() => handleFilterChange("Men's Top")}
-                                className={cn("font-montserrat text-base font-medium tracking-wide cursor-pointer py-2 hover:text-[#E7A3B0] hover:no-underline",
-                                    activeFilter === "Men's Top" && "text-[#E7A3B0]")}
-                            >
-                                Men Tops
-                            </AccordionTrigger>
-
-                            <AccordionContent className="flex flex-col gap-2 pl-4 pt-1 pb-2">
-                                {["Teenagers", "Long Sleeves", "Polo"].map((subcategory) => (
-                                    <button
-                                        key={subcategory}
-                                        onClick={() => handleFilterChange(subcategory)}
-                                        className={cn("text-left text-sm font-montserrat py-1 transition-colors w-full cursor-pointer hover:text-[#E7A3B0]",
-                                        activeFilter === subcategory 
-                                            ? "text-[#E7A3B0] font-bold" 
-                                            : "text-gray-500")}
-                                    >
-                                        {subcategory}
-                                    </button>
-                                ))}
-                            </AccordionContent>
-                        </AccordionItem>
-
-                        {/**Women Tops */}
-                        <AccordionItem value="item-2" className="border-none">
-                            <AccordionTrigger 
-                                onClick={() => handleFilterChange("Women's Top")}
-                                className={cn("font-montserrat text-base font-medium tracking-wide cursor-pointer py-2 hover:text-[#E7A3B0] hover:no-underline",
-                                    activeFilter === "Women's Top" && "text-[#E7A3B0]")}
-                            >
-                                Women Tops
-                            </AccordionTrigger>
-
-                            <AccordionContent className="flex flex-col gap-2 pl-4 pt-1 pb-2">
-                                {["Blouses", "Tees"].map((subcategory) => (
-                                    <button
-                                        key={subcategory}
-                                        onClick={() => handleFilterChange(subcategory)}
-                                        className={cn("text-left text-sm font-montserrat py-1 transition-colors w-full cursor-pointer hover:text-[#E7A3B0]",
-                                        activeFilter === subcategory 
-                                            ? "text-[#E7A3B0] font-bold" 
-                                            : "text-gray-500")}
-                                    >
-                                        {subcategory}
-                                    </button>
-                                ))}
-                            </AccordionContent>
-                        </AccordionItem>
-                        
-                        {/**Coords */}
-                        <AccordionItem value="item-3" className="border-none">
-                            <AccordionTrigger 
-                                onClick={() => handleFilterChange("Coords")}
-                                className={cn("font-montserrat text-base font-medium tracking-wide cursor-pointer py-2 hover:text-[#E7A3B0] hover:no-underline",
-                                    activeFilter === "Coords" && "text-[#E7A3B0]")}
-                            >
-                                Coords
-                            </AccordionTrigger>
-
-                            <AccordionContent className="flex flex-col gap-2 pl-4 pt-1 pb-2">
-                                {["Hoodies", "Training"].map((subcategory) => (
-                                    <button
-                                        key={subcategory}
-                                        onClick={() => handleFilterChange(subcategory)}
-                                        className={cn("text-left text-sm font-montserrat py-1 transition-colors w-full cursor-pointer hover:text-[#E7A3B0]",
-                                        activeFilter === subcategory 
-                                            ? "text-[#E7A3B0] font-bold" 
-                                            : "text-gray-500")}
-                                    >
-                                        {subcategory}
-                                    </button>
-                                ))}
-                            </AccordionContent>
-                        </AccordionItem>
-
-                        {/**Seasonal */}
-                        <AccordionItem value="item-4" className="border-none">
-                            <AccordionTrigger 
-                                onClick={() => handleFilterChange("Seasonal")}
-                                className={cn("font-montserrat text-base font-medium tracking-wide cursor-pointer py-2 hover:text-[#E7A3B0] hover:no-underline",
-                                    activeFilter === "Seasonal" && "text-[#E7A3B0]")}
-                            >
-                                Seasonal
-                            </AccordionTrigger>
-
-                            <AccordionContent className="flex flex-col gap-2 pl-4 pt-1 pb-2">
-                                {["Jackets", "Raincoat"].map((subcategory) => (
-                                    <button
-                                        key={subcategory}
-                                        onClick={() => handleFilterChange(subcategory)}
-                                        className={cn("text-left text-sm font-montserrat py-1 transition-colors w-full cursor-pointer hover:text-[#E7A3B0]",
-                                        activeFilter === subcategory 
-                                            ? "text-[#E7A3B0] font-bold" 
-                                            : "text-gray-500")}
-                                    >
-                                        {subcategory}
-                                    </button>
-                                ))}
-                            </AccordionContent>
-                        </AccordionItem>
+                        {rootCategories.map((rootCategory) => renderCategoryNode(rootCategory, 0))}
                     </Accordion>
                 </div>
 

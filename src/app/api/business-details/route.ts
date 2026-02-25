@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createServerSupabase } from "@/lib/supabase/server";
+import { admin } from "@/lib/supabase/admin";
 import { ABOUT_SLUG, CONTACT_SLUG, buildAboutAggregate, buildContactAggregate } from "../../../lib/business-details";
 
 const BUSINESS_DETAILS_TABLES = ["tbl_business_details", "business_details"] as const;
@@ -20,10 +20,8 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "Missing slug" }, { status: 400 });
     }
 
-    const supabase = await createServerSupabase();
-
     for (const tableName of BUSINESS_DETAILS_TABLES) {
-      const result = await supabase
+      const result = await admin
         .from(tableName)
         .select("slug, title, body, updated_at")
         .eq("slug", slug)

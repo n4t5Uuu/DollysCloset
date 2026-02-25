@@ -18,10 +18,8 @@ export default function Home() {
   // Sign out any existing sessions when accessing the login page
   useEffect(() => {
     async function signOutExistingUser() {
-        console.log("Checking for existing session...");
         const { user } = await authHelper.getUser();
         if (user) {
-            console.log("Signing out existing user:", user.email);
             await authHelper.signOut();
         }
     }

@@ -190,12 +190,67 @@ export function toText(value: unknown) {
   return String(value);
 }
 
+function looksLikeExternalLink(value: string) {
+  const trimmed = value.trim().toLowerCase();
+  if (!trimmed || trimmed === "#") return false;
+  return trimmed.startsWith("http://") || trimmed.startsWith("https://") || trimmed.startsWith("www.");
+}
+
+function looksLikePhoneLink(value: string) {
+  const trimmed = value.trim().toLowerCase();
+  if (!trimmed) return false;
+  return trimmed.startsWith("tel:") || /^\+?[\d\s\-()]{7,}$/.test(trimmed);
+}
+
+function normalizeResolvedContactKey(key: ContactFieldKey | null, value: string): ContactFieldKey | null {
+  if (!key) return null;
+
+  if (key === "facebookName" && looksLikeExternalLink(value)) {
+    return "facebookLink";
+  }
+
+  if (key === "instagramHandle" && looksLikeExternalLink(value)) {
+    return "instagramLink";
+  }
+
+  if (key === "viberName" && looksLikeExternalLink(value)) {
+    return "viberLink";
+  }
+
+  if (key === "contactNumberDisplay" && looksLikePhoneLink(value)) {
+    return "contactNumberLink";
+  }
+
+  return key;
+}
+
 export function resolveContactKey(value: string): ContactFieldKey | null {
   const normalized = normalizeTitle(value);
+
+  const aliasMap: Array<{ key: ContactFieldKey; aliases: string[] }> = [
+    { key: "introText", aliases: ["intro", "intro text", "contact intro", "contact intro text"] },
+    { key: "facebookName", aliases: ["facebook", "facebook name", "fb name", "facebook page"] },
+    { key: "facebookLink", aliases: ["facebook link", "fb link", "facebook url", "fb url", "facebook page link"] },
+    { key: "instagramHandle", aliases: ["instagram", "instagram handle", "ig", "ig handle", "instagram name"] },
+    { key: "instagramLink", aliases: ["instagram link", "ig link", "instagram url", "ig url"] },
+    { key: "viberName", aliases: ["viber", "viber name", "viber account"] },
+    { key: "viberLink", aliases: ["viber link", "viber url"] },
+    { key: "contactNumberDisplay", aliases: ["contact", "contact number", "phone", "phone number", "mobile number"] },
+    { key: "contactNumberLink", aliases: ["contact number link", "phone link", "tel", "telephone link", "phone url"] },
+    { key: "address", aliases: ["store address", "business address", "location", "shop address"] },
+    { key: "weekdaysHours", aliases: ["weekday hours", "weekdays", "mon - fri", "mon-fri", "monday to friday"] },
+    { key: "weekendHours", aliases: ["weekend hours", "weekends", "sat - sun", "sat-sun", "saturday to sunday"] },
+  ];
 
   for (const [key, label] of Object.entries(CONTACT_LABEL_BY_KEY) as Array<[ContactFieldKey, string]>) {
     if (normalized === normalizeTitle(key) || normalized === normalizeTitle(label)) {
       return key;
+    }
+  }
+
+  for (const aliasEntry of aliasMap) {
+    if (aliasEntry.aliases.some((alias) => normalized === normalizeTitle(alias))) {
+      return aliasEntry.key;
     }
   }
 
@@ -276,7 +331,7 @@ export function buildContactAggregate(rows: BusinessDetailsRowLike[]) {
   for (const row of rows) {
     const rowTitle = toText(row.title);
     const rowBody = toText(row.body);
-    const key = resolveContactKey(rowTitle);
+    const key = normalizeResolvedContactKey(resolveContactKey(rowTitle), rowBody);
 
     if (key && !capturedKeys.has(key)) {
       body[key] = rowBody;
@@ -287,6 +342,16 @@ export function buildContactAggregate(rows: BusinessDetailsRowLike[]) {
     try {
       const parsed = JSON.parse(rowBody) as Record<string, unknown>;
       if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
+        for (const [rawKey, rawValue] of Object.entries(parsed)) {
+          if (rawValue === undefined || rawValue === null) continue;
+
+          const normalizedKey = normalizeResolvedContactKey(resolveContactKey(rawKey), toText(rawValue));
+          if (!normalizedKey || capturedKeys.has(normalizedKey)) continue;
+
+          body[normalizedKey] = toText(rawValue);
+          capturedKeys.add(normalizedKey);
+        }
+
         for (const keyName of Object.keys(CONTACT_LABEL_BY_KEY) as ContactFieldKey[]) {
           if (!capturedKeys.has(keyName) && parsed[keyName] !== undefined && parsed[keyName] !== null) {
             body[keyName] = toText(parsed[keyName]);

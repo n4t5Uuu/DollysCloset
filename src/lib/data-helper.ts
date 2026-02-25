@@ -10,7 +10,7 @@ export const dataHelper = {
             .eq("role", "Employee"); // check if ganto yung role mismo sa databases
 
             if (error) {
-                console.log("Error Fetching Employees: ", error)
+                console.error("Error Fetching Employees: ", error)
                 return {data: null, error}
             }
 
@@ -23,7 +23,7 @@ export const dataHelper = {
             .select("*")
 
             if (error) {
-                console.log("Error Fetching Products: ", error)
+                console.error("Error Fetching Products: ", error)
                 return {data: null, error}
             }
 
