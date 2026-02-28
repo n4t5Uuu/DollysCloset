@@ -27,7 +27,6 @@ import { InventoryProduct as Product, InventoryCategory as Category, InventoryPr
 import {
   Pagination,
   PaginationContent,
-  PaginationEllipsis,
   PaginationItem,
   PaginationLink,
   PaginationNext,
@@ -45,6 +44,7 @@ export default function EmployeeInventoryPage() {
   const [visibilityFilter, setVisibilityFilter] = useState("all");
   const [availabilityFilter, setAvailabilityFilter] = useState("all");
   const [categoryFilter, setCategoryFilter] = useState("all");
+  const [dateSort, setDateSort] = useState<"newest" | "oldest">("newest");
   const [selectedProducts, setSelectedProducts] = useState<Set<string>>(new Set());
   const [currentPage, setCurrentPage] = useState(1);
   const [showAddModal, setShowAddModal] = useState(false);
@@ -55,15 +55,23 @@ export default function EmployeeInventoryPage() {
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
 
   const itemsPerPage = 10;
+  const dateSortLabel = dateSort === "oldest" ? "Oldest (Ascending)" : "Newest (Descending)";
 
   useEffect(() => {
-    fetchProducts();
-    fetchCategories();
+    const initializeInventory = async () => {
+      setLoading(true);
+      await Promise.all([fetchProducts(true), fetchCategories()]);
+      setLoading(false);
+    };
+
+    initializeInventory();
   }, []);
 
-  async function fetchProducts() {
+  async function fetchProducts(showGlobalLoader = false) {
     try {
-      setLoading(true);
+      if (showGlobalLoader) {
+        setLoading(true);
+      }
       setError(null);
 
       const response = await fetch('/api/admin/fetch-products', { cache: 'no-store' });
@@ -81,7 +89,9 @@ export default function EmployeeInventoryPage() {
       setError(err instanceof Error ? err.message : 'Failed to fetch products');
       return false;
     } finally {
-      setLoading(false);
+      if (showGlobalLoader) {
+        setLoading(false);
+      }
     }
   }
 
@@ -103,24 +113,77 @@ export default function EmployeeInventoryPage() {
     }
   }
 
-  const filteredProducts = products.filter((product) => {
-    const matchesSearch = product.product_name.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesCategory = categoryFilter === "all" || product.category_id === parseInt(categoryFilter);
-    const matchesAvailability = availabilityFilter === "all" ||
-      (availabilityFilter === "in-stock" && product.product_stock > 0) ||
-      (availabilityFilter === "no-stock" && product.product_stock === 0);
-    const matchesVisibility = visibilityFilter === "all" ||
-      (visibilityFilter === "published" && product.show_in_catalog) ||
-      (visibilityFilter === "unpublished" && !product.show_in_catalog);
-    return matchesSearch && matchesCategory && matchesAvailability && matchesVisibility;
-  });
+  const filteredProducts = products
+    .filter((product) => {
+      const matchesSearch = product.product_name.toLowerCase().includes(searchQuery.toLowerCase());
+      const matchesCategory = categoryFilter === "all" || product.category_id === parseInt(categoryFilter);
+      const matchesAvailability = availabilityFilter === "all" ||
+        (availabilityFilter === "in-stock" && product.product_stock > 0) ||
+        (availabilityFilter === "no-stock" && product.product_stock === 0);
+      const matchesVisibility = visibilityFilter === "all" ||
+        (visibilityFilter === "published" && product.show_in_catalog) ||
+        (visibilityFilter === "unpublished" && !product.show_in_catalog);
+      return matchesSearch && matchesCategory && matchesAvailability && matchesVisibility;
+    })
+    .sort((firstProduct, secondProduct) => {
+      const firstDateValue = new Date(firstProduct.created_at || 0).getTime();
+      const secondDateValue = new Date(secondProduct.created_at || 0).getTime();
+
+      if (dateSort === "oldest") {
+        return firstDateValue - secondDateValue;
+      }
+
+      return secondDateValue - firstDateValue;
+    });
 
   const totalPages = Math.ceil(filteredProducts.length / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
   const endIndex = startIndex + itemsPerPage;
   const currentProducts = filteredProducts.slice(startIndex, endIndex);
 
-  const getCategoryName = (id: number) => categories.find(c => c.category_id === id)?.category_name || 'Unknown';
+  const categoryById = new Map(
+    categories.map((category) => [Number(category.category_id), category])
+  );
+
+  const categoriesWithChildren = new Set(
+    categories
+      .map((category) => category.parent_category)
+      .filter((parentId): parentId is number => parentId !== null)
+  );
+
+  const selectableCategories = categories.filter((category) => {
+    const categoryId = Number(category.category_id);
+    const hasChildren = categoriesWithChildren.has(categoryId);
+    const isRootCategory = category.parent_category === null;
+
+    return !hasChildren && !isRootCategory;
+  });
+
+  const getCategoryName = (id: number) => {
+    const category = categoryById.get(id);
+    if (!category) return 'Unknown';
+
+    const path: string[] = [category.category_name];
+    let parentId = category.parent_category;
+    const visited = new Set<number>([id]);
+
+    while (parentId !== null) {
+      if (visited.has(parentId)) break;
+      visited.add(parentId);
+
+      const parent = categoryById.get(parentId);
+      if (!parent) break;
+
+      path.unshift(parent.category_name);
+      parentId = parent.parent_category;
+    }
+
+    return path.join(" > ");
+  };
+
+  const sortedCategories = [...selectableCategories].sort(
+    (a, b) => Number(a.category_id) - Number(b.category_id)
+  );
 
   const openAddModal = () => {
     setEditingProduct(null);
@@ -303,15 +366,25 @@ export default function EmployeeInventoryPage() {
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All Categories</SelectItem>
-            {categories.length === 0 ? (
+            {sortedCategories.length === 0 ? (
               <SelectItem value="none" disabled>No categories found</SelectItem>
             ) : (
-              categories.map((cat) => (
+              sortedCategories.map((cat) => (
                 <SelectItem key={cat.category_id} value={cat.category_id.toString()}>
-                  {cat.category_name}
+                  {getCategoryName(Number(cat.category_id))}
                 </SelectItem>
               ))
             )}
+          </SelectContent>
+        </Select>
+
+        <Select value={dateSort} onValueChange={(value) => setDateSort(value as "newest" | "oldest")}>
+          <SelectTrigger className="w-[180px] text-gray-900 bg-white">
+            <SelectValue placeholder="Sort Date" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="newest">Newest (Descending)</SelectItem>
+            <SelectItem value="oldest">Oldest (Ascending)</SelectItem>
           </SelectContent>
         </Select>
       </div>
@@ -319,6 +392,7 @@ export default function EmployeeInventoryPage() {
       <div className="flex items-center justify-between flex-wrap gap-4 mb-4">
         <div className="text-sm text-gray-600">
           Showing {filteredProducts.length > 0 ? startIndex + 1 : 0}-{Math.min(endIndex, filteredProducts.length)} of {filteredProducts.length} items
+          <span className="ml-2 text-gray-500">• Date Sort: {dateSortLabel}</span>
         </div>
         <div className="flex gap-3">
           {selectedProducts.size > 0 && (
@@ -518,7 +592,7 @@ export default function EmployeeInventoryPage() {
         categories={categories}
         productToEdit={editingProduct}
         onProductSaved={async () => {
-          const refreshed = await fetchProducts();
+          const refreshed = await fetchProducts(false);
           if (!refreshed) {
             throw new Error('Saved, but failed to refresh products. Please try again.');
           }
