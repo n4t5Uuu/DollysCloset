@@ -1,5 +1,8 @@
 export const CONTACT_SLUG = "contact";
 export const ABOUT_SLUG = "about";
+export const ANNOUNCEMENT_SLUG = "announcement";
+export const ANNOUNCEMENT_TITLE = "Announcement Text";
+export const defaultAnnouncementText = "Free shipping on orders over ₱2,000  •  New arrivals every friday  •";
 
 export type ContactFieldKey =
   | "introText"

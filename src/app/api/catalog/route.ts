@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { admin } from "@/lib/supabase/admin";
 import { InventoryCategory, InventoryProduct, InventoryProductImage } from "@/types/inventory.types";
+import { resolveProductPlaceholder } from "@/lib/product-placeholder";
 
 type CatalogProduct = {
   id: string;
@@ -75,7 +76,7 @@ function mapProducts(
       ? orderedImages
       : fallbackPrimary
         ? [fallbackPrimary]
-        : ["/placeholder.png"];
+        : [resolveProductPlaceholder(buildCategoryPath(Number(product.category_id), categoryMap))];
 
     return {
       id: productId,
@@ -89,7 +90,7 @@ function mapProducts(
       condition: product.product_condition || "N/A",
       description: product.product_description || "",
       stock: Number(product.product_stock || 0),
-      isNewArrival: Boolean(product.created_at && (Date.now() - new Date(product.created_at).getTime()) / (1000 * 60 * 60 * 24) <= 14),
+      isNewArrival: Boolean(product.created_at && (Date.now() - new Date(product.created_at).getTime()) / (1000 * 60 * 60 * 24) <= 7),
       images: imagesWithFallback,
       createdAt: product.created_at || new Date(0).toISOString(),
     };

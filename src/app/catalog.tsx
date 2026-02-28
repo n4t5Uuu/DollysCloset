@@ -12,6 +12,7 @@ import { InfiniteSlider } from "@/components/motion-primitives/infinite-slider";
 import { TextEffect } from "@/components/motion-primitives/text-effect";
 import { InView } from "@/components/motion-primitives/in-view";
 import { Button } from "@/components/ui/button";
+import { ANNOUNCEMENT_SLUG, defaultAnnouncementText } from "@/lib/business-details";
 
 type CatalogCategory = {
     category_id: number;
@@ -62,6 +63,7 @@ export default function Catalog() {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const [announcementText, setAnnouncementText] = useState(defaultAnnouncementText);
 
     const [categories, setCategories] = useState<CatalogCategory[]>([]);
     const [products, setProducts] = useState<CatalogApiProduct[]>([]);
@@ -96,6 +98,27 @@ export default function Catalog() {
         };
 
         fetchCatalog();
+    }, []);
+
+    useEffect(() => {
+        const fetchAnnouncement = async () => {
+            try {
+                const response = await fetch(`/api/business-details?slug=${ANNOUNCEMENT_SLUG}`, { cache: "no-store" });
+                const result = await response.json();
+
+                if (!response.ok) {
+                    return;
+                }
+
+                const rawAnnouncement = result?.data?.body;
+                if (typeof rawAnnouncement === "string" && rawAnnouncement.trim()) {
+                    setAnnouncementText(rawAnnouncement.trim());
+                }
+            } catch {
+            }
+        };
+
+        fetchAnnouncement();
     }, []);
 
     useEffect(() => {
@@ -138,11 +161,15 @@ export default function Catalog() {
         let list = [...products];
 
         if (searchQuery.trim() !== "") {
-            const query = searchQuery.toLowerCase();
+            const query = searchQuery.trim().toLowerCase();
             list = list.filter(
                 (product) =>
                     product.name.toLowerCase().includes(query) ||
                     product.brand.toLowerCase().includes(query) ||
+                    product.categoryName.toLowerCase().includes(query) ||
+                    product.categoryPath.toLowerCase().includes(query) ||
+                    product.size.toLowerCase().includes(query) ||
+                    product.condition.toLowerCase().includes(query) ||
                     (product.description && product.description.toLowerCase().includes(query))
             );
         }
@@ -192,7 +219,7 @@ export default function Catalog() {
                 <InfiniteSlider className="w-full h-full">
                     {Array.from({ length: 6 }).map((_, i) => (
                         <h2 key={i} className="font-oswald font-medium text-sm tracking-[0.2em] text-[#121212] uppercase whitespace-nowrap">
-                            Free shipping on orders over ₱2,000  •  New arrivals every friday  • 
+                            {announcementText}
                         </h2>
                     ))}
                 </InfiniteSlider>

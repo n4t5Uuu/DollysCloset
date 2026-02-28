@@ -1,7 +1,6 @@
 "use client"
 
 import {Input} from "@/components/ui/input"
-import {Button} from "@/components/ui/button"
 import {Search} from "lucide-react"
 
 import {useState} from "react";
@@ -34,7 +33,7 @@ export default function SearchBar({ onSearch }: SearchBarProps) {
                 <Input 
                     type="text"
                     placeholder="Search Products"
-                    className="w-80 h-9 pl-4 rounded-2xl borderborder-black bg-white placeholder:text-black placeholder:font-montserrat"
+                    className="w-80 h-9 pl-4 rounded-2xl border-black bg-white placeholder:text-black placeholder:font-montserrat"
                     value={query}
                     onChange={handleChange}
                 />

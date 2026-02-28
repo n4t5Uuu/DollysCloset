@@ -5,6 +5,7 @@ import Image from "next/image";
 import { useState } from "react";
 import { X } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
+import { resolveProductPlaceholder } from "@/lib/product-placeholder";
 
 interface ProductModalProps {
   product: Product;
@@ -37,7 +38,7 @@ export default function ProductModal({ product, isOpen, onClose }: ProductModalP
             {/* Main Image */}
             <div className="aspect-[3/4] bg-gray-200 rounded-lg overflow-hidden relative">
               <Image
-                src={product.images[selectedImage] || "/placeholder.png"}
+                src={product.images[selectedImage] || resolveProductPlaceholder(product.category)}
                 alt={product.name}
                 fill
                 className="object-cover"

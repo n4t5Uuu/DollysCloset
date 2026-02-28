@@ -6,7 +6,7 @@ import {
 
 import Image from "next/image"
 import { Product } from "@/types/product.types"
-import { Heart } from "lucide-react"
+import { resolveProductPlaceholder } from "@/lib/product-placeholder"
 
 interface ProductCardProps {
     product?: Product;
@@ -34,7 +34,7 @@ export default function ProductCard({ product, onClick }: ProductCardProps) {
             {/**Image Area */}
             <div className="bg-[#f5f5f5] aspect-3/4 w-full flex items-center justify-center flex-col relative overflow-hidden rounded-xl group-hover:shadow-lg transition-shadow duration-300">
                 <Image
-                    src={product.images[0] || "/placeholder.png"}
+                    src={product.images[0] || resolveProductPlaceholder(product.category)}
                     alt={product.name}
                     fill
                     className="object-cover group-hover:scale-105 transition-transform duration-700 ease-out"
@@ -53,24 +53,17 @@ export default function ProductCard({ product, onClick }: ProductCardProps) {
                     <CardTitle className="font-playfair-display font-medium text-lg leading-tight text-[#121212] line-clamp-2 w-full">
                         {product.name}
                     </CardTitle>
-                    <button 
-                        className="text-gray-400 hover:text-[#E7A3B0] transition-colors"
-                        onClick={(e) => {
-                            e.stopPropagation();
-                            // Add to wishlist logic here
-                        }}
-                    >
-                        <Heart className="w-5 h-5" />
-                    </button>
+                    <div className="text-xs font-oswald font-semibold uppercase tracking-wider text-gray-600 whitespace-nowrap">
+                        {product.size || "N/A"}
+                    </div>
                 </div>
                 
                 <div className="w-full flex items-center justify-between mt-1">
                     <div className="font-oswald text-lg font-medium tracking-wide text-[#E7A3B0]">
                         ₱{product.price.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                     </div>
-                    {/* Optional: Rating stars or other metadata */}
-                    <div className="flex gap-0.5 text-[#E7A3B0] text-xs">
-                        {"★".repeat(5)}
+                    <div className="text-xs font-oswald font-semibold uppercase tracking-wider text-gray-600 whitespace-nowrap">
+                        {product.condition || "N/A"}
                     </div>
                 </div>
             </CardFooter>

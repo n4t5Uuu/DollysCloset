@@ -4,6 +4,7 @@ import { Product } from "@/types/product.types";
 import Image from "next/image";
 import { motion, AnimatePresence } from "motion/react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
+import { resolveProductPlaceholder } from "@/lib/product-placeholder";
 
 interface FeatureCardCarouselProps {
     products: Product[];
@@ -93,7 +94,7 @@ export default function FeatureCardCarousel({ products, onProductClick }: Featur
                                 >
                                     <div className="aspect-3/4 w-full bg-[#f5f5f5] rounded-xl relative overflow-hidden shadow-sm hover:shadow-lg transition-shadow duration-300">
                                         <Image
-                                            src={item.product.images[0] || "/placeholder.png"}
+                                            src={item.product.images[0] || resolveProductPlaceholder(item.product.category)}
                                             alt={item.product.name}
                                             fill
                                             className="object-cover"

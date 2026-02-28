@@ -168,6 +168,7 @@ export default function AddProduct({ isOpen, onClose, categories, productToEdit,
 
     const handleSaveProduct = async (e: React.FormEvent) => {
         e.preventDefault();
+        if (actionLoading) return;
         setActionLoading(true);
         setError(null);
         try {
@@ -185,6 +186,17 @@ export default function AddProduct({ isOpen, onClose, categories, productToEdit,
                 throw new Error('Invalid category. Please select a category.');
             }
 
+            const parsedPrice = Number.parseFloat(formData.product_price);
+            const parsedStock = Number.parseInt(formData.product_stock || "0", 10);
+
+            if (Number.isNaN(parsedPrice) || parsedPrice < 0) {
+                throw new Error('Invalid price. Please enter a valid amount.');
+            }
+
+            if (Number.isNaN(parsedStock) || parsedStock < 0) {
+                throw new Error('Invalid stock. Please enter 0 or a positive number.');
+            }
+
             const response = await fetch(endpoint, {
                 method,
                 headers: {
@@ -193,14 +205,14 @@ export default function AddProduct({ isOpen, onClose, categories, productToEdit,
                 },
                 body: JSON.stringify({
                     ...(productToEdit && { product_id: productToEdit.product_id }),
-                    product_name: formData.product_name,
+                    product_name: formData.product_name.trim(),
                     category_id: parsedCategoryId,
-                    product_price: formData.product_price,
-                    product_brand: formData.product_brand || "Dolly's Closet",
-                    product_description: formData.product_description,
-                    product_stock: formData.product_stock,
-                    product_condition: formData.product_condition,
-                    size_label: formData.size_label,
+                    product_price: parsedPrice,
+                    product_brand: formData.product_brand.trim() || "Dolly's Closet",
+                    product_description: formData.product_description.trim(),
+                    product_stock: parsedStock,
+                    product_condition: formData.product_condition.trim() || "New",
+                    size_label: formData.size_label.trim() || "One Size",
                     show_in_catalog: formData.show_in_catalog,
                     image_id: formData.image_id || null,
                 })
@@ -285,7 +297,7 @@ export default function AddProduct({ isOpen, onClose, categories, productToEdit,
             <Card className="bg-white w-full max-w-2xl max-h-[90vh] overflow-y-auto p-0">
                 <CardHeader className="flex flex-row items-center justify-between border-b p-6 space-y-0 text-gray-900">
                     <CardTitle className="text-gray-900">{productToEdit ? "Edit Product" : "Add Product"}</CardTitle>
-                    <button onClick={onClose} className="text-gray-400 hover:text-gray-600 cursor-pointer">
+                    <button onClick={onClose} disabled={actionLoading} className="text-gray-400 hover:text-gray-600 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed">
                         <X className="w-5 h-5" />
                     </button>
                 </CardHeader>
@@ -435,7 +447,7 @@ export default function AddProduct({ isOpen, onClose, categories, productToEdit,
                     </CardContent>
 
                     <CardFooter className="flex gap-3 p-6 border-t bg-gray-50">
-                        <Button type="button" variant="outline" onClick={onClose} className="flex-1 border-gray-300 text-gray-700 bg-white hover:bg-white hover:text-black transition-all duration-300 hover:scale-105 hover:shadow-md hover:border-gray-400 active:scale-95">Cancel</Button>
+                        <Button type="button" variant="outline" onClick={onClose} disabled={actionLoading} className="flex-1 border-gray-300 text-gray-700 bg-white hover:bg-white hover:text-black transition-all duration-300 hover:scale-105 hover:shadow-md hover:border-gray-400 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 disabled:hover:shadow-none">Cancel</Button>
                         <Button type="submit" className="flex-1 bg-[#E7A3B0] hover:bg-[#ca8c98] text-white transition-all duration-300 hover:scale-[1.03] active:scale-95 shadow-sm hover:shadow-md" disabled={actionLoading}>
                             {actionLoading ? (<>
                                 <Loader2 className="w-4 h-4 mr-2 animate-spin" />

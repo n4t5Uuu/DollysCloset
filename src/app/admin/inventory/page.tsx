@@ -27,7 +27,6 @@ import { InventoryProduct as Product, InventoryCategory as Category, InventoryPr
 import {
   Pagination,
   PaginationContent,
-  PaginationEllipsis,
   PaginationItem,
   PaginationLink,
   PaginationNext,
@@ -59,13 +58,20 @@ export default function AdminInventoryPage() {
   const dateSortLabel = dateSort === "oldest" ? "Oldest (Ascending)" : "Newest (Descending)";
 
   useEffect(() => {
-    fetchProducts();
-    fetchCategories();
+    const initializeInventory = async () => {
+      setLoading(true);
+      await Promise.all([fetchProducts(true), fetchCategories()]);
+      setLoading(false);
+    };
+
+    initializeInventory();
   }, []);
 
-  async function fetchProducts() {
+  async function fetchProducts(showGlobalLoader = false) {
     try {
-      setLoading(true);
+      if (showGlobalLoader) {
+        setLoading(true);
+      }
       setError(null);
 
       const response = await fetch('/api/admin/fetch-products', { cache: 'no-store' });
@@ -78,12 +84,14 @@ export default function AdminInventoryPage() {
       setProducts(result.data || []);
       return true;
 
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Error fetching products:', err);
-      setError(err.message);
+      setError(err instanceof Error ? err.message : 'Failed to fetch products');
       return false;
     } finally {
-      setLoading(false);
+      if (showGlobalLoader) {
+        setLoading(false);
+      }
     }
   }
 
@@ -98,10 +106,10 @@ export default function AdminInventoryPage() {
       const result = await response.json();
       setCategories(result.data || []);
 
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Error fetching categories:', err);
       setCategories([]);
-      setError(err.message || 'Failed to load categories');
+      setError(err instanceof Error ? err.message : 'Failed to load categories');
     }
   }
 
@@ -250,8 +258,8 @@ export default function AdminInventoryPage() {
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || 'Failed to delete product');
       await fetchProducts();
-    } catch (err: any) {
-      setError(err.message || 'Failed to delete product');
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Failed to delete product');
     } finally {
       setActionLoading(false);
     }
@@ -280,8 +288,8 @@ export default function AdminInventoryPage() {
       if (!response.ok) throw new Error(data.error || 'Failed to delete products');
       setSelectedProducts(new Set());
       await fetchProducts();
-    } catch (err: any) {
-      setError(err.message || 'Failed to delete products');
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Failed to delete products');
     } finally {
       setActionLoading(false);
     }
@@ -584,7 +592,7 @@ export default function AdminInventoryPage() {
         categories={categories}
         productToEdit={editingProduct}
         onProductSaved={async () => {
-          const refreshed = await fetchProducts();
+          const refreshed = await fetchProducts(false);
           if (!refreshed) {
             throw new Error('Saved, but failed to refresh products. Please try again.');
           }

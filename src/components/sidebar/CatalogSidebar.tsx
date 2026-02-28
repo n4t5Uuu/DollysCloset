@@ -184,7 +184,7 @@ export default function CatalogSidebar({ categories, activeFilter, sortBy, onFil
                     </SelectTrigger>
                     <SelectContent>
                         <SelectItem value="newest" className="font-montserrat">
-                            Newest Arrivals
+                            Newest First
                         </SelectItem>
                         <SelectItem value="price-low" className="font-montserrat">
                             Price: Low to High

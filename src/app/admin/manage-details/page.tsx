@@ -16,6 +16,8 @@ import {
   PaginationPrevious,
 } from "@/components/ui/pagination";
 import {
+  ANNOUNCEMENT_SLUG,
+  ANNOUNCEMENT_TITLE,
   ABOUT_SLUG,
   ABOUT_SECTION_FIELD_CONFIG,
   CONTACT_FIELD_CONFIG,
@@ -24,6 +26,7 @@ import {
   AboutFieldKey,
   ContactFieldKey,
   ContactDetailsPayload,
+  defaultAnnouncementText,
   defaultAboutDetails,
   defaultContactDetails,
   parseAboutBody,
@@ -34,10 +37,14 @@ export default function ManageDetailsPage() {
   const inputClassName = "border-gray-200 bg-white text-gray-900 placeholder:text-gray-400 focus-visible:border-[#E7A3B0] focus-visible:ring-[#E7A3B0]";
   const textareaClassName = "border-gray-200 bg-white text-gray-900 placeholder:text-gray-400 focus-visible:border-[#E7A3B0] focus-visible:ring-[#E7A3B0]";
 
-  const [activeSection, setActiveSection] = useState<"contact" | "about">("contact");
+  const [activeSection, setActiveSection] = useState<"announcement" | "contact" | "about">("announcement");
+  const [announcementText, setAnnouncementText] = useState(defaultAnnouncementText);
   const [details, setDetails] = useState<ContactDetailsPayload>(defaultContactDetails);
   const [aboutDetails, setAboutDetails] = useState<AboutDetailsPayload>(defaultAboutDetails);
 
+  const [loadingAnnouncement, setLoadingAnnouncement] = useState(false);
+  const [hasLoadedAnnouncement, setHasLoadedAnnouncement] = useState(false);
+  const [savingAnnouncement, setSavingAnnouncement] = useState(false);
   const [loadingContact, setLoadingContact] = useState(true);
   const [loadingAbout, setLoadingAbout] = useState(false);
   const [hasLoadedAbout, setHasLoadedAbout] = useState(false);
@@ -92,6 +99,33 @@ export default function ManageDetailsPage() {
     }
   }, [getAuthToken]);
 
+  const fetchAnnouncementDetails = useCallback(async () => {
+    try {
+      setLoadingAnnouncement(true);
+      setError(null);
+
+      const token = await getAuthToken();
+      const response = await fetch(`/api/admin/business-details?slug=${ANNOUNCEMENT_SLUG}`, {
+        cache: "no-store",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      const result = await response.json();
+      if (!response.ok) {
+        throw new Error(result.error || "Failed to fetch announcement");
+      }
+
+      setAnnouncementText((result.data?.body || defaultAnnouncementText) as string);
+      setHasLoadedAnnouncement(true);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Failed to fetch announcement");
+    } finally {
+      setLoadingAnnouncement(false);
+    }
+  }, [getAuthToken]);
+
   const fetchAboutDetails = useCallback(async () => {
     try {
       setLoadingAbout(true);
@@ -122,6 +156,12 @@ export default function ManageDetailsPage() {
   useEffect(() => {
     fetchContactDetails();
   }, [fetchContactDetails]);
+
+  useEffect(() => {
+    if (activeSection === "announcement" && !hasLoadedAnnouncement) {
+      fetchAnnouncementDetails();
+    }
+  }, [activeSection, hasLoadedAnnouncement, fetchAnnouncementDetails]);
 
   useEffect(() => {
     if (activeSection === "about" && !hasLoadedAbout) {
@@ -197,6 +237,40 @@ export default function ManageDetailsPage() {
     }
   }
 
+  async function handleSaveAnnouncement() {
+    try {
+      setSavingAnnouncement(true);
+      setError(null);
+      setSuccess(null);
+
+      const token = await getAuthToken();
+
+      const response = await fetch("/api/admin/business-details", {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          slug: ANNOUNCEMENT_SLUG,
+          title: ANNOUNCEMENT_TITLE,
+          body: announcementText,
+        }),
+      });
+
+      const result = await response.json();
+      if (!response.ok) {
+        throw new Error(result.error || "Failed to save announcement");
+      }
+
+      setSuccess("Announcement saved.");
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Failed to save announcement");
+    } finally {
+      setSavingAnnouncement(false);
+    }
+  }
+
   function updateDetails(key: ContactFieldKey, value: string) {
     setDetails((prev) => ({
       ...prev,
@@ -227,6 +301,21 @@ export default function ManageDetailsPage() {
       </div>
 
       <div className="flex flex-wrap gap-3">
+        <Button
+          type="button"
+          onClick={() => {
+            setActiveSection("announcement");
+            setSuccess(null);
+            setError(null);
+          }}
+          className={
+            activeSection === "announcement"
+              ? "bg-linear-to-r from-[#E7A3B0] to-[#f0b8c3] text-white hover:from-[#d891a0] hover:to-[#E7A3B0]"
+              : "bg-white border border-[#E7A3B0]/40 text-[#cc7f8f] hover:bg-[#fff5f7]"
+          }
+        >
+          Edit Announcement
+        </Button>
         <Button
           type="button"
           onClick={() => {
@@ -341,6 +430,50 @@ export default function ManageDetailsPage() {
                 </div>
               ))}
             </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {activeSection === "announcement" && (
+        <Card className="border border-[#E7A3B0]/30 bg-white shadow-sm">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-xl font-semibold text-gray-900">Announcement Banner</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            {loadingAnnouncement ? (
+              <div className="flex min-h-[220px] items-center justify-center">
+                <Loader2 className="h-6 w-6 animate-spin text-[#cc7f8f]" />
+              </div>
+            ) : (
+              <>
+                <p className="text-sm text-gray-600">This text appears in the scrolling banner above the collections section.</p>
+                <div className="space-y-2">
+                  <p className="text-sm font-medium text-gray-700">Banner Text</p>
+                  <Textarea
+                    value={announcementText}
+                    onChange={(e) => setAnnouncementText(e.target.value)}
+                    className={`min-h-[120px] ${textareaClassName}`}
+                  />
+                  <div className="flex justify-end">
+                    <Button
+                      type="button"
+                      onClick={handleSaveAnnouncement}
+                      disabled={savingAnnouncement}
+                      className="bg-[#cc7f8f] text-white hover:bg-[#b96f80]"
+                    >
+                      {savingAnnouncement ? (
+                        <span className="inline-flex items-center gap-2">
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                          Saving
+                        </span>
+                      ) : (
+                        "Save"
+                      )}
+                    </Button>
+                  </div>
+                </div>
+              </>
+            )}
           </CardContent>
         </Card>
       )}

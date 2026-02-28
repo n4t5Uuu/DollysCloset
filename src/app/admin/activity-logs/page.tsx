@@ -42,6 +42,7 @@ const actionLabels: Record<string, string> = {
   reorder_images: "Reordered Images",
   edit_contact_details: "Updated Contact Details",
   edit_about_details: "Updated About Details",
+  edit_announcement: "Edited Announcement",
 };
 
 const actionColors: Record<string, string> = {
@@ -60,6 +61,7 @@ const actionColors: Record<string, string> = {
   reorder_images: "bg-indigo-100 text-indigo-800",
   edit_contact_details: "bg-amber-100 text-amber-800",
   edit_about_details: "bg-violet-100 text-violet-800",
+  edit_announcement: "bg-pink-100 text-pink-800",
 };
 
 const employeeManagementActions = new Set([

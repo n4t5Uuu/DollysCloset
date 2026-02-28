@@ -3,6 +3,7 @@ import { admin } from "@/lib/supabase/admin";
 import { authHelper } from "@/lib/auth-helper";
 import { dataHelper } from "@/lib/data-helper";
 import {
+  ANNOUNCEMENT_SLUG,
   ABOUT_SLUG,
   ABOUT_LABEL_BY_KEY,
   CONTACT_LABEL_BY_KEY,
@@ -289,6 +290,7 @@ export async function PUT(request: NextRequest) {
     }
 
     if (latest.data) {
+      const isAnnouncement = slug === ANNOUNCEMENT_SLUG;
       const idColumn = getRowIdColumn(latest.data);
       const updateQuery = admin
         .from(tableName)
@@ -314,12 +316,14 @@ export async function PUT(request: NextRequest) {
       if (previousBody !== serializedBody) changedParts.push("body");
 
       await dataHelper.logActivity({
-        actionType: slug === ABOUT_SLUG ? "edit_about_details" : "edit_contact_details",
+        actionType: isAnnouncement ? "edit_announcement" : slug === ABOUT_SLUG ? "edit_about_details" : "edit_contact_details",
         productId: null,
         description:
-          changedParts.length === 0
-            ? `Updated ${slug} details`
-            : `Updated ${slug} details: ${changedParts.join(", ")}`,
+          isAnnouncement
+            ? "Edited announcement"
+            : changedParts.length === 0
+              ? `Updated ${slug} details`
+              : `Updated ${slug} details: ${changedParts.join(", ")}`,
         editor: user.email || String(user.user_metadata?.username || "Unknown"),
         user_id: user.id,
         supabase: admin,
@@ -349,9 +353,14 @@ export async function PUT(request: NextRequest) {
     }
 
     await dataHelper.logActivity({
-      actionType: slug === ABOUT_SLUG ? "edit_about_details" : "edit_contact_details",
+      actionType: slug === ANNOUNCEMENT_SLUG ? "edit_announcement" : slug === ABOUT_SLUG ? "edit_about_details" : "edit_contact_details",
       productId: null,
-      description: slug === ABOUT_SLUG ? "Created about details" : "Created contact details",
+      description:
+        slug === ANNOUNCEMENT_SLUG
+          ? "Edited announcement"
+          : slug === ABOUT_SLUG
+            ? "Created about details"
+            : "Created contact details",
       editor: user.email || String(user.user_metadata?.username || "Unknown"),
       user_id: user.id,
       supabase: admin,
