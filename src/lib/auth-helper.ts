@@ -8,7 +8,7 @@ export const authHelper = {
         })
 
         if (error) {
-            console.error("Error Signing In: ", error)
+            console.warn("Error Signing In: ", error)
             return {data: null, error}
         }
 
@@ -20,7 +20,17 @@ export const authHelper = {
         const { data: { session }, error: sessionError } = await browserSupabase.auth.getSession();
 
         if (sessionError) {
-            console.error("Error Getting Session: ", sessionError)
+            console.warn("Error Getting Session: ", sessionError)
+            if (sessionError.message.includes('Invalid Refresh Token') || sessionError.message.includes('Refresh Token Not Found')) {
+                // Clear the defective token automatically so the user isn't stuck
+                await browserSupabase.auth.signOut().catch(() => {});
+                // Optional: also clear localStorage directly just in case signOut fails
+                if (typeof window !== 'undefined') {
+                    for (const key of Object.keys(localStorage)) {
+                        if (key.startsWith('supabase-auth-token')) localStorage.removeItem(key);
+                    }
+                }
+            }
             return { user: null, error: sessionError };
         }
 
@@ -50,7 +60,7 @@ export const authHelper = {
         const { error } = await browserSupabase.auth.signOut();
 
         if (error) {
-            console.error("Error Signing Out: ", error);
+            console.warn("Error Signing Out: ", error);
             return { success: false, error };
         }
         

@@ -10,9 +10,11 @@ export default function LogoutButton() {
     const { user, loading, signOut } = useUser();
     const [isLoggingOut, setIsLoggingOut] = useState(false);
 
-    const handleLogout = async () => {
+    const handleLogout = () => {
         setIsLoggingOut(true);
-        await signOut();
+        
+        // Run signout in the background to avoid blocking the UI with network requests
+        signOut().catch(() => {});
 
         // Redirects to the login page after logging out 
         // overwrites the browser history to prevent going back to the dashboard
