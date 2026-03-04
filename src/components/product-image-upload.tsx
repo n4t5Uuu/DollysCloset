@@ -11,6 +11,8 @@ interface ProductImageUploadProps {
   loading?: boolean;
 }
 
+const isImageFile = (file: File) => file.type.startsWith("image/");
+
 export default function ProductImageUpload({
   productId,
   images,
@@ -21,6 +23,7 @@ export default function ProductImageUpload({
   const [dragActive, setDragActive] = useState(false);
 
   const canUploadMore = images.length < 5;
+  const remainingSlots = Math.max(0, 5 - images.length);
 
   const handleDrag = (e: React.DragEvent) => {
     e.preventDefault();
@@ -45,9 +48,13 @@ export default function ProductImageUpload({
       return;
     }
 
-    const files = Array.from(e.dataTransfer.files).filter((file) =>
-      file.type.startsWith("image/")
-    );
+    const files = Array.from(e.dataTransfer.files)
+      .filter((file) => isImageFile(file))
+      .slice(0, remainingSlots);
+
+    if (e.dataTransfer.files.length > files.length) {
+      alert(`Only ${remainingSlots} more image(s) can be uploaded.`);
+    }
 
     if (files.length > 0) {
       uploadFiles(files);
@@ -61,12 +68,39 @@ export default function ProductImageUpload({
     }
 
     const files = Array.from(e.target.files || []);
-    if (files.length > 0) {
-      uploadFiles(files);
+    const imageFiles = files.filter(isImageFile);
+    const limitedImageFiles = imageFiles.slice(0, remainingSlots);
+
+    if (files.length > 0 && imageFiles.length === 0) {
+      alert("Only image files are allowed.");
     }
+
+    if (files.length > imageFiles.length) {
+      alert("Some files were skipped because only image files are allowed.");
+    }
+
+    if (imageFiles.length > limitedImageFiles.length) {
+      alert(`Only ${remainingSlots} more image(s) can be uploaded.`);
+    }
+
+    if (limitedImageFiles.length > 0) {
+      uploadFiles(limitedImageFiles);
+    }
+
+    e.target.value = "";
   };
 
   const uploadFiles = async (files: File[]) => {
+    if (!files.every(isImageFile)) {
+      alert("Only image files are allowed.");
+      return;
+    }
+
+    if (files.length > remainingSlots) {
+      alert(`Only ${remainingSlots} more image(s) can be uploaded.`);
+      return;
+    }
+
     setUploading(true);
 
     try {
@@ -77,7 +111,7 @@ export default function ProductImageUpload({
         throw new Error("Not authenticated");
       }
 
-      let updatedImages = [...images];
+      const uploadedImages: ProductImage[] = [];
 
       for (const file of files) {
         const formData = new FormData();
@@ -101,8 +135,21 @@ export default function ProductImageUpload({
         }
 
         const newImage = await response.json();
-        updatedImages = [...updatedImages, newImage];
-        onImagesChange(updatedImages);
+        uploadedImages.push(newImage);
+      }
+
+      if (uploadedImages.length > 0) {
+        const refreshResponse = await fetch(`/api/admin/fetch-images?product_id=${encodeURIComponent(String(productId))}`);
+
+        if (refreshResponse.ok) {
+          const result = await refreshResponse.json();
+          onImagesChange(result.data || []);
+        } else {
+          const mergedImages = [...images, ...uploadedImages].sort(
+            (a, b) => a.display_order - b.display_order
+          );
+          onImagesChange(mergedImages);
+        }
       }
     } catch (error) {
       alert(`Upload failed: ${(error as Error).message}`);
@@ -122,7 +169,7 @@ export default function ProductImageUpload({
         throw new Error("Not authenticated");
       }
 
-      const response = await fetch(`/api/admin/delete-image?image_id=${imageId}`, {
+      const response = await fetch(`/api/admin/delete-image?image_id=${encodeURIComponent(imageId)}`, {
         method: "DELETE",
         headers: {
           Authorization: `Bearer ${session.access_token}`,
@@ -131,10 +178,13 @@ export default function ProductImageUpload({
 
       if (!response.ok) {
         const error = await response.json();
-        throw new Error(error.error || "Delete failed");
+        const message = error.details
+          ? `${error.error}: ${error.details}`
+          : (error.error || "Delete failed");
+        throw new Error(message);
       }
 
-      const refreshResponse = await fetch(`/api/admin/fetch-images?product_id=${productId}`);
+      const refreshResponse = await fetch(`/api/admin/fetch-images?product_id=${encodeURIComponent(String(productId))}`);
       if (refreshResponse.ok) {
         const result = await refreshResponse.json();
         onImagesChange(result.data || []);
@@ -204,18 +254,15 @@ export default function ProductImageUpload({
               />
 
               {/* Overlay */}
-              <div className="absolute inset-0 bg-black/0 group-hover:bg-black/50 transition flex items-center justify-center gap-2">
-                <div className="hidden group-hover:flex gap-2">
-                  <button
-                    type="button"
-                    onClick={() => deleteImage(image.image_id)}
-                    title="Delete image"
-                    className="p-2 bg-red-500 hover:bg-red-600 text-white rounded transition"
-                  >
-                    <X className="w-4 h-4" />
-                  </button>
-                </div>
-              </div>
+              <div className="absolute inset-0 bg-black/0 group-hover:bg-black/35 transition" />
+              <button
+                type="button"
+                onClick={() => deleteImage(image.image_id)}
+                title="Delete image"
+                className="absolute top-2 right-2 p-2 bg-red-500/95 hover:bg-red-600 text-white rounded transition opacity-90 group-hover:opacity-100 shadow-sm"
+              >
+                <X className="w-4 h-4" />
+              </button>
 
               {/* Badge */}
               {image.image_id === primaryImageId && (

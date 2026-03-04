@@ -3,6 +3,8 @@ import { authHelper } from "@/lib/auth-helper";
 import { dataHelper } from "@/lib/data-helper";
 import { admin } from "@/lib/supabase/admin";
 
+const MAX_META_LENGTH = 9;
+
 export async function PUT(request: NextRequest) {
   try {
     // Verify the requesting user is an admin
@@ -29,6 +31,8 @@ export async function PUT(request: NextRequest) {
 
     // Get product data from request
     const { product_id, product_name, category_id, product_price, product_brand, product_description, product_stock, product_condition, size_label, show_in_catalog, image_id } = await request.json();
+    const normalizedCondition = String(product_condition || 'New').trim().slice(0, MAX_META_LENGTH);
+    const normalizedSizeLabel = String(size_label || 'One Size').trim().slice(0, MAX_META_LENGTH);
 
     // Validate required fields
     if (!product_id || !product_name || !category_id || product_price === undefined) {
@@ -51,9 +55,28 @@ export async function PUT(request: NextRequest) {
       if (currentProduct.product_brand !== (product_brand || 'Dolly\'s Closet')) changes.push(`brand: ${currentProduct.product_brand} → ${product_brand || 'Dolly\'s Closet'}`);
       if (currentProduct.product_description !== (product_description || '')) changes.push(`description updated`);
       if (currentProduct.product_stock !== parseInt(product_stock)) changes.push(`stock: ${currentProduct.product_stock} → ${product_stock}`);
-      if (currentProduct.product_condition !== product_condition) changes.push(`condition: ${currentProduct.product_condition} → ${product_condition}`);
-      if (currentProduct.size_label !== size_label) changes.push(`size: ${currentProduct.size_label} → ${size_label}`);
+      if (currentProduct.product_condition !== normalizedCondition) changes.push(`condition: ${currentProduct.product_condition} → ${normalizedCondition}`);
+      if (currentProduct.size_label !== normalizedSizeLabel) changes.push(`size: ${currentProduct.size_label} → ${normalizedSizeLabel}`);
       if (currentProduct.show_in_catalog !== (show_in_catalog !== false)) changes.push(`visibility: ${currentProduct.show_in_catalog ? 'shown' : 'hidden'} → ${show_in_catalog !== false ? 'shown' : 'hidden'}`);
+    }
+
+    let normalizedImageId: string | number | null = null;
+    if (image_id !== null && image_id !== undefined && String(image_id).trim() !== '') {
+      const parsedImageId = Number.parseInt(String(image_id), 10);
+      const imageIdValue = Number.isNaN(parsedImageId) ? String(image_id).trim() : parsedImageId;
+
+      const { data: linkedImage, error: linkedImageError } = await admin
+        .from('tbl_product_image')
+        .select('image_id')
+        .eq('image_id', imageIdValue)
+        .eq('product_id', product_id)
+        .maybeSingle();
+
+      if (linkedImageError) {
+        return NextResponse.json({ error: linkedImageError.message }, { status: 500 });
+      }
+
+      normalizedImageId = linkedImage?.image_id ?? null;
     }
 
     // Update tbl_product
@@ -66,10 +89,10 @@ export async function PUT(request: NextRequest) {
         product_brand: product_brand || 'Dolly\'s Closet',
         product_description: product_description || '',
         product_stock: parseInt(product_stock) || 0,
-        product_condition: product_condition || 'New',
-        size_label: size_label || 'One Size',
+        product_condition: normalizedCondition || 'New',
+        size_label: normalizedSizeLabel || 'One Size',
         show_in_catalog: show_in_catalog !== false,
-        image_id: image_id || null,
+        image_id: normalizedImageId,
       })
       .eq('product_id', product_id);
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { Plus, Trash, Loader2, AlertTriangle, Search, Eye, Pencil, Trash2, X } from "lucide-react";
 import { browserSupabase } from "@/lib/supabase/browser";
 import { Button } from "@/components/ui/button";
@@ -12,6 +12,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import CategoryCascadingFilter from "@/components/filters/CategoryCascadingFilter";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
   Card,
@@ -55,19 +56,10 @@ export default function EmployeeInventoryPage() {
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
 
   const itemsPerPage = 10;
-  const dateSortLabel = dateSort === "oldest" ? "Oldest (Ascending)" : "Newest (Descending)";
+  const lowStockThreshold = 10;
+  const dateSortLabel = dateSort === "oldest" ? "Oldest" : "Newest";
 
-  useEffect(() => {
-    const initializeInventory = async () => {
-      setLoading(true);
-      await Promise.all([fetchProducts(true), fetchCategories()]);
-      setLoading(false);
-    };
-
-    initializeInventory();
-  }, []);
-
-  async function fetchProducts(showGlobalLoader = false) {
+  const fetchProducts = useCallback(async (showGlobalLoader = false) => {
     try {
       if (showGlobalLoader) {
         setLoading(true);
@@ -93,9 +85,9 @@ export default function EmployeeInventoryPage() {
         setLoading(false);
       }
     }
-  }
+  }, []);
 
-  async function fetchCategories() {
+  const fetchCategories = useCallback(async () => {
     try {
       const response = await fetch('/api/admin/fetch-categories', { cache: 'no-store' });
 
@@ -111,55 +103,55 @@ export default function EmployeeInventoryPage() {
       setCategories([]);
       setError(err instanceof Error ? err.message : 'Failed to load categories');
     }
-  }
+  }, []);
 
-  const filteredProducts = products
-    .filter((product) => {
-      const matchesSearch = product.product_name.toLowerCase().includes(searchQuery.toLowerCase());
-      const matchesCategory = categoryFilter === "all" || product.category_id === parseInt(categoryFilter);
-      const matchesAvailability = availabilityFilter === "all" ||
-        (availabilityFilter === "in-stock" && product.product_stock > 0) ||
-        (availabilityFilter === "no-stock" && product.product_stock === 0);
-      const matchesVisibility = visibilityFilter === "all" ||
-        (visibilityFilter === "published" && product.show_in_catalog) ||
-        (visibilityFilter === "unpublished" && !product.show_in_catalog);
-      return matchesSearch && matchesCategory && matchesAvailability && matchesVisibility;
-    })
-    .sort((firstProduct, secondProduct) => {
-      const firstDateValue = new Date(firstProduct.created_at || 0).getTime();
-      const secondDateValue = new Date(secondProduct.created_at || 0).getTime();
+  useEffect(() => {
+    const initializeInventory = async () => {
+      setLoading(true);
+      await Promise.all([fetchProducts(false), fetchCategories()]);
+      setLoading(false);
+    };
 
-      if (dateSort === "oldest") {
-        return firstDateValue - secondDateValue;
-      }
+    initializeInventory();
+  }, [fetchProducts, fetchCategories]);
 
-      return secondDateValue - firstDateValue;
-    });
+  const filteredProducts = useMemo(() => {
+    return products
+      .filter((product) => {
+        const matchesSearch = product.product_name.toLowerCase().includes(searchQuery.toLowerCase());
+        const matchesCategory = categoryFilter === "all" || product.category_id === parseInt(categoryFilter);
+        const matchesAvailability = availabilityFilter === "all" ||
+          (availabilityFilter === "in-stock" && product.product_stock >= lowStockThreshold) ||
+          (availabilityFilter === "low-stock" && product.product_stock > 0 && product.product_stock < lowStockThreshold) ||
+          (availabilityFilter === "out-of-stock" && product.product_stock === 0);
+        const matchesVisibility = visibilityFilter === "all" ||
+          (visibilityFilter === "published" && product.show_in_catalog) ||
+          (visibilityFilter === "unpublished" && !product.show_in_catalog);
+        return matchesSearch && matchesCategory && matchesAvailability && matchesVisibility;
+      })
+      .sort((firstProduct, secondProduct) => {
+        const firstDateValue = new Date(firstProduct.created_at || 0).getTime();
+        const secondDateValue = new Date(secondProduct.created_at || 0).getTime();
 
-  const totalPages = Math.ceil(filteredProducts.length / itemsPerPage);
+        if (dateSort === "oldest") {
+          return firstDateValue - secondDateValue;
+        }
+
+        return secondDateValue - firstDateValue;
+      });
+  }, [products, searchQuery, categoryFilter, availabilityFilter, visibilityFilter, dateSort, lowStockThreshold]);
+
+  const totalPages = Math.max(1, Math.ceil(filteredProducts.length / itemsPerPage));
   const startIndex = (currentPage - 1) * itemsPerPage;
   const endIndex = startIndex + itemsPerPage;
   const currentProducts = filteredProducts.slice(startIndex, endIndex);
 
-  const categoryById = new Map(
-    categories.map((category) => [Number(category.category_id), category])
+  const categoryById = useMemo(
+    () => new Map(categories.map((category) => [Number(category.category_id), category])),
+    [categories]
   );
 
-  const categoriesWithChildren = new Set(
-    categories
-      .map((category) => category.parent_category)
-      .filter((parentId): parentId is number => parentId !== null)
-  );
-
-  const selectableCategories = categories.filter((category) => {
-    const categoryId = Number(category.category_id);
-    const hasChildren = categoriesWithChildren.has(categoryId);
-    const isRootCategory = category.parent_category === null;
-
-    return !hasChildren && !isRootCategory;
-  });
-
-  const getCategoryName = (id: number) => {
+  const getCategoryName = useCallback((id: number) => {
     const category = categoryById.get(id);
     if (!category) return 'Unknown';
 
@@ -179,11 +171,7 @@ export default function EmployeeInventoryPage() {
     }
 
     return path.join(" > ");
-  };
-
-  const sortedCategories = [...selectableCategories].sort(
-    (a, b) => Number(a.category_id) - Number(b.category_id)
-  );
+  }, [categoryById]);
 
   const openAddModal = () => {
     setEditingProduct(null);
@@ -356,35 +344,24 @@ export default function EmployeeInventoryPage() {
           <SelectContent>
             <SelectItem value="all">All</SelectItem>
             <SelectItem value="in-stock">In Stock</SelectItem>
-            <SelectItem value="no-stock">No Stock</SelectItem>
+            <SelectItem value="low-stock">Low Stock</SelectItem>
+            <SelectItem value="out-of-stock">Out of Stock</SelectItem>
           </SelectContent>
         </Select>
 
-        <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-          <SelectTrigger className="w-[180px] text-gray-900 bg-white">
-            <SelectValue placeholder="Category" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Categories</SelectItem>
-            {sortedCategories.length === 0 ? (
-              <SelectItem value="none" disabled>No categories found</SelectItem>
-            ) : (
-              sortedCategories.map((cat) => (
-                <SelectItem key={cat.category_id} value={cat.category_id.toString()}>
-                  {getCategoryName(Number(cat.category_id))}
-                </SelectItem>
-              ))
-            )}
-          </SelectContent>
-        </Select>
+        <CategoryCascadingFilter
+          categories={categories}
+          value={categoryFilter}
+          onValueChange={setCategoryFilter}
+        />
 
         <Select value={dateSort} onValueChange={(value) => setDateSort(value as "newest" | "oldest")}>
           <SelectTrigger className="w-[180px] text-gray-900 bg-white">
             <SelectValue placeholder="Sort Date" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="newest">Newest (Descending)</SelectItem>
-            <SelectItem value="oldest">Oldest (Ascending)</SelectItem>
+            <SelectItem value="newest">Newest</SelectItem>
+            <SelectItem value="oldest">Oldest</SelectItem>
           </SelectContent>
         </Select>
       </div>
@@ -592,11 +569,11 @@ export default function EmployeeInventoryPage() {
         categories={categories}
         productToEdit={editingProduct}
         onProductSaved={async () => {
+          closeModal();
           const refreshed = await fetchProducts(false);
           if (!refreshed) {
-            throw new Error('Saved, but failed to refresh products. Please try again.');
+            setError('Saved successfully, but refresh was delayed. Data will update shortly.');
           }
-          closeModal();
         }}
       />
     </div>

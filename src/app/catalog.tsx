@@ -55,6 +55,8 @@ function toViewProduct(product: CatalogApiProduct): Product {
 }
 
 export default function Catalog() {
+    const normalizeCategoryName = (value: string) => value.trim().toLowerCase();
+
     const [activeFilter, setActiveFilter] = useState("all");
     const [sortBy, setSortBy] = useState("newest");
     const [currentPage, setCurrentPage] = useState(1);
@@ -137,6 +139,19 @@ export default function Catalog() {
         }, new Map<number, number[]>());
     }, [categories]);
 
+    const rootCategoryIdsByName = useMemo(() => {
+        return categories.reduce<Map<string, number[]>>((acc, category) => {
+            if (category.parent_category !== null) return acc;
+
+            const normalizedName = normalizeCategoryName(category.category_name);
+            const existingIds = acc.get(normalizedName) || [];
+            existingIds.push(Number(category.category_id));
+            acc.set(normalizedName, existingIds);
+
+            return acc;
+        }, new Map<string, number[]>());
+    }, [categories]);
+
     const collectDescendantCategoryIds = (categoryId: number) => {
         const visited = new Set<number>();
         const stack: number[] = [categoryId];
@@ -176,6 +191,17 @@ export default function Catalog() {
 
         if (activeFilter === "new") {
             list = list.filter((product) => product.isNewArrival);
+        } else if (activeFilter.startsWith("root-")) {
+            const normalizedRootName = activeFilter.replace("root-", "");
+            const rootCategoryIds = rootCategoryIdsByName.get(normalizedRootName) || [];
+            const validCategoryIds = new Set<number>();
+
+            rootCategoryIds.forEach((rootCategoryId) => {
+                const descendantIds = collectDescendantCategoryIds(rootCategoryId);
+                descendantIds.forEach((descendantId) => validCategoryIds.add(descendantId));
+            });
+
+            list = list.filter((product) => validCategoryIds.has(product.categoryId));
         } else if (activeFilter.startsWith("category-")) {
             const categoryId = Number(activeFilter.replace("category-", ""));
             const validCategoryIds = collectDescendantCategoryIds(categoryId);
@@ -191,7 +217,7 @@ export default function Catalog() {
         }
 
         return list;
-    }, [products, activeFilter, sortBy, childrenByParent, searchQuery]);
+    }, [products, activeFilter, sortBy, childrenByParent, rootCategoryIdsByName, searchQuery]);
 
     const totalPages = Math.max(1, Math.ceil(filteredProducts.length / itemsPerPage));
     const paginatedProducts = filteredProducts.slice(

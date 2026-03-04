@@ -102,7 +102,7 @@ export default function AddEmployee({ isOpen, onClose, employeeToEdit, onEmploye
             <Card className="bg-white w-full max-w-md p-0">
                 <CardHeader className="flex flex-row items-center justify-between border-b p-6 space-y-0 text-gray-900">
                     <CardTitle>{employeeToEdit ? "Edit Employee" : "Add New Employee"}</CardTitle>
-                    <button onClick={onClose} className="text-gray-400 hover:text-gray-600"><X className="w-5 h-5" /></button>
+                    <button onClick={onClose} className="text-[#cc7f8f] hover:text-[#b96d7d] rounded-md p-1 hover:bg-[#fff5f7]"><X className="w-5 h-5" /></button>
                 </CardHeader>
 
                 <form onSubmit={handleSaveEmployee}>
@@ -173,7 +173,7 @@ export default function AddEmployee({ isOpen, onClose, employeeToEdit, onEmploye
                     </CardContent>
 
                     <CardFooter className="flex gap-3 p-6 border-t bg-gray-50">
-                        <Button type="button" variant="outline" onClick={onClose} className="flex-1">Cancel</Button>
+                        <Button type="button" variant="outline" onClick={onClose} className="flex-1 border-[#E7A3B0]/40 text-[#cc7f8f] hover:bg-[#fff5f7] hover:text-[#b96d7d]">Cancel</Button>
                         <Button
                             type="submit"
                             className="flex-1 bg-linear-to-r from-[#E7A3B0] to-[#f0b8c3] text-white hover:from-[#d891a0] hover:to-[#E7A3B0]"

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Loader2, X } from "lucide-react";
 import { browserSupabase } from "@/lib/supabase/browser";
 import { Button } from "@/components/ui/button";
@@ -39,6 +39,10 @@ interface AddProductProps {
 interface SessionWithAccessToken {
     access_token: string;
 }
+
+const MAX_META_LENGTH = 9;
+
+const clampMetaText = (value: string) => value.trim().slice(0, MAX_META_LENGTH);
 
 const normalizeCategoryId = (value: unknown) => {
     if (value === null || value === undefined) return "";
@@ -82,8 +86,8 @@ export default function AddProduct({ isOpen, onClose, categories, productToEdit,
                     product_brand: productToEdit.product_brand,
                     product_description: productToEdit.product_description,
                     product_stock: productToEdit.product_stock.toString(),
-                    product_condition: productToEdit.product_condition || "New",
-                    size_label: productToEdit.size_label,
+                    product_condition: (productToEdit.product_condition || "New").slice(0, MAX_META_LENGTH),
+                    size_label: (productToEdit.size_label || "One Size").slice(0, MAX_META_LENGTH),
                     show_in_catalog: productToEdit.show_in_catalog,
                     image_id: productToEdit.image_id || "",
                 });
@@ -93,6 +97,29 @@ export default function AddProduct({ isOpen, onClose, categories, productToEdit,
             }
         }
     }, [isOpen, productToEdit]);
+
+    useEffect(() => {
+        if (!productToEdit) return;
+
+        setFormData((prev) => {
+            const availableIds = new Set(productImages.map((image) => String(image.image_id)));
+            const currentImageId = String(prev.image_id || "");
+
+            if (currentImageId && availableIds.has(currentImageId)) {
+                return prev;
+            }
+
+            const fallbackImageId =
+                productImages.find((image) => image.is_primary)?.image_id ||
+                productImages[0]?.image_id ||
+                "";
+
+            return {
+                ...prev,
+                image_id: fallbackImageId ? String(fallbackImageId) : "",
+            };
+        });
+    }, [productImages, productToEdit]);
 
     const resetForm = () => {
         setFormData({
@@ -211,8 +238,8 @@ export default function AddProduct({ isOpen, onClose, categories, productToEdit,
                     product_brand: formData.product_brand.trim() || "Dolly's Closet",
                     product_description: formData.product_description.trim(),
                     product_stock: parsedStock,
-                    product_condition: formData.product_condition.trim() || "New",
-                    size_label: formData.size_label.trim() || "One Size",
+                    product_condition: clampMetaText(formData.product_condition) || "New",
+                    size_label: clampMetaText(formData.size_label) || "One Size",
                     show_in_catalog: formData.show_in_catalog,
                     image_id: formData.image_id || null,
                 })
@@ -240,10 +267,9 @@ export default function AddProduct({ isOpen, onClose, categories, productToEdit,
         }
     };
 
-    if (!isOpen) return null;
-
-    const categoryById = new Map(
-        categories.map((category) => [Number(category.category_id), category])
+    const categoryById = useMemo(
+        () => new Map(categories.map((category) => [Number(category.category_id), category])),
+        [categories]
     );
 
     const buildCategoryPathLabel = (category: Category) => {
@@ -265,33 +291,39 @@ export default function AddProduct({ isOpen, onClose, categories, productToEdit,
         return path.join(" > ");
     };
 
-    const categoriesWithChildren = new Set(
-        categories
-            .map((category) => category.parent_category)
-            .filter((parentId): parentId is number => parentId !== null)
+    const categoriesWithChildren = useMemo(
+        () => new Set(
+            categories
+                .map((category) => category.parent_category)
+                .filter((parentId): parentId is number => parentId !== null)
+        ),
+        [categories]
     );
 
-    const selectableCategories = categories.filter((category) => {
+    const selectableCategories = useMemo(() => categories.filter((category) => {
         const categoryId = Number(category.category_id);
         const hasChildren = categoriesWithChildren.has(categoryId);
         const isRootCategory = category.parent_category === null;
 
         return !hasChildren && !isRootCategory;
-    });
+    }), [categories, categoriesWithChildren]);
 
-    const normalizedCategories = [...selectableCategories]
+    const normalizedCategories = useMemo(() => [...selectableCategories]
         .sort((a, b) => Number(a.category_id) - Number(b.category_id))
         .map((cat) => ({
-        ...cat,
-        normalizedId: normalizeCategoryId(cat.category_id),
-        displayLabel: buildCategoryPathLabel(cat),
-    }));
+            ...cat,
+            normalizedId: normalizeCategoryId(cat.category_id),
+            displayLabel: buildCategoryPathLabel(cat),
+        })), [selectableCategories]);
 
     const normalizedSelectedCategory = normalizeCategoryId(formData.category_id);
 
     const hasSelectedCategory = normalizedCategories.some(
         (cat) => cat.normalizedId === normalizedSelectedCategory
     );
+
+    if (!isOpen) return null;
+
     return (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
             <Card className="bg-white w-full max-w-2xl max-h-[90vh] overflow-y-auto p-0">
@@ -391,7 +423,8 @@ export default function AddProduct({ isOpen, onClose, categories, productToEdit,
                                 <Input
                                     placeholder="e.g., One Size, M, L"
                                     value={formData.size_label}
-                                    onChange={(e) => setFormData({ ...formData, size_label: e.target.value })}
+                                    onChange={(e) => setFormData({ ...formData, size_label: e.target.value.slice(0, MAX_META_LENGTH) })}
+                                    maxLength={MAX_META_LENGTH}
                                     className="border-gray-300 text-gray-900 bg-white placeholder:text-gray-800"
                                 />
                             </div>
@@ -401,7 +434,8 @@ export default function AddProduct({ isOpen, onClose, categories, productToEdit,
                                 <Input
                                     placeholder="e.g., New, Good, 9/10"
                                     value={formData.product_condition}
-                                    onChange={(e) => setFormData({ ...formData, product_condition: e.target.value })}
+                                    onChange={(e) => setFormData({ ...formData, product_condition: e.target.value.slice(0, MAX_META_LENGTH) })}
+                                    maxLength={MAX_META_LENGTH}
                                     className="border-gray-300 text-gray-900 bg-white placeholder:text-gray-800"
                                 />
                             </div>

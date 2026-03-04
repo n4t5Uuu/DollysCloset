@@ -137,6 +137,15 @@ html, body {
   padding: 0;
 }
 
+html {
+  scrollbar-gutter: stable;
+}
+
+body:has([data-slot="select-content"][data-state="open"]) {
+  overflow-y: scroll !important;
+  padding-right: 0 !important;
+}
+
 main {
   margin-top: 80px;
 }

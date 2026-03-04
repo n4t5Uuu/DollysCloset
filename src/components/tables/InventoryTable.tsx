@@ -27,6 +27,17 @@ export function InventoryTable({
     handleDeleteProduct,
     actionLoading = false,
 }: InventoryTableProps) {
+    const formatPublishedDate = (value: string) => {
+        const publishedDate = new Date(value);
+        if (Number.isNaN(publishedDate.getTime())) return "—";
+
+        return publishedDate.toLocaleDateString("en-US", {
+            month: "short",
+            day: "numeric",
+            year: "numeric",
+        });
+    };
+
     return (
         <div className="bg-white rounded-lg border overflow-x-auto">
         <Table className="w-full">
@@ -56,7 +67,10 @@ export function InventoryTable({
                         onCheckedChange={() => toggleSelectProduct(product.product_id)}
                     />
                     </TableCell>
-                    <TableCell className="p-4 font-medium">{product.product_name}</TableCell>
+                                        <TableCell className="p-4">
+                                            <div className="font-medium">{product.product_name}</div>
+                                            <div className="text-xs text-gray-500 mt-1">Published {formatPublishedDate(product.created_at)}</div>
+                                        </TableCell>
                     <TableCell className="p-4 text-gray-600">{getCategoryName(product.category_id)}</TableCell>
                     <TableCell className="p-4 text-center">
                     <span className={product.product_stock < 10 ? "text-orange-600 font-medium" : ""}>

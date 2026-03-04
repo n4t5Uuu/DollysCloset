@@ -8,6 +8,8 @@ interface ImageSelectorProps {
   onFileRemove: (index: number) => void;
 }
 
+const isImageFile = (file: File) => file.type.startsWith("image/");
+
 export default function ImageSelector({
   stagedFiles,
   onFilesAdd,
@@ -31,7 +33,7 @@ export default function ImageSelector({
     }
 
     const files = Array.from(e.dataTransfer.files).filter((file) =>
-      file.type.startsWith("image/")
+      isImageFile(file)
     );
 
     if (files.length > 0) {
@@ -40,10 +42,22 @@ export default function ImageSelector({
   };
 
   const handleFileInput = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(e.target.files || []);
-    if (files.length > 0) {
-      onFilesAdd(files);
+    const selectedFiles = Array.from(e.target.files || []);
+    const imageFiles = selectedFiles.filter(isImageFile);
+
+    if (selectedFiles.length > 0 && imageFiles.length === 0) {
+      alert("Only image files are allowed.");
     }
+
+    if (selectedFiles.length > imageFiles.length) {
+      alert("Some files were skipped because only image files are allowed.");
+    }
+
+    if (imageFiles.length > 0) {
+      onFilesAdd(imageFiles);
+    }
+
+    e.target.value = "";
   };
 
   return (

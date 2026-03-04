@@ -3,6 +3,22 @@ import { admin } from "@/lib/supabase/admin";
 import { authHelper } from "@/lib/auth-helper";
 import { dataHelper } from "@/lib/data-helper";
 
+function getStorageObjectPath(imageUrl: string) {
+  try {
+    const decodedUrl = decodeURIComponent(imageUrl);
+    const bucketSegment = "/product-images/";
+    const bucketIndex = decodedUrl.indexOf(bucketSegment);
+
+    if (bucketIndex >= 0) {
+      return decodedUrl.slice(bucketIndex + bucketSegment.length);
+    }
+
+    return decodedUrl.split("/").slice(-2).join("/");
+  } catch {
+    return imageUrl.split("/").slice(-2).join("/");
+  }
+}
+
 export async function DELETE(request: NextRequest) {
   try {
     const authorization = request.headers.get("authorization");
@@ -23,17 +39,20 @@ export async function DELETE(request: NextRequest) {
     }
 
     const { searchParams } = new URL(request.url);
-    const imageId = searchParams.get("image_id");
+    const imageIdRaw = searchParams.get("image_id")?.trim();
 
-    if (!imageId) {
+    if (!imageIdRaw) {
       return NextResponse.json({ error: "Missing image_id" }, { status: 400 });
     }
+
+    const parsedImageId = Number.parseInt(imageIdRaw, 10);
+    const imageIdValue = Number.isNaN(parsedImageId) ? imageIdRaw : parsedImageId;
 
     // Get image details
     const { data: image, error: fetchError } = await admin
       .from("tbl_product_image")
       .select("*")
-      .eq("image_id", imageId)
+      .eq("image_id", imageIdValue)
       .single();
 
     if (fetchError || !image) {
@@ -41,16 +60,13 @@ export async function DELETE(request: NextRequest) {
     }
 
     const { product_id, is_primary, display_order, image_url } = image;
-    const productIdValue = Number.parseInt(String(product_id), 10);
-    if (Number.isNaN(productIdValue)) {
-      return NextResponse.json({ error: "Invalid product_id" }, { status: 400 });
-    }
+    const productIdValue = product_id;
 
     const { data: remainingBeforeDelete, error: remainingBeforeDeleteError } = await admin
       .from("tbl_product_image")
       .select("image_id, is_primary, display_order")
       .eq("product_id", productIdValue)
-      .neq("image_id", imageId)
+      .neq("image_id", imageIdValue)
       .order("display_order", { ascending: true });
 
     if (remainingBeforeDeleteError) {
@@ -63,13 +79,18 @@ export async function DELETE(request: NextRequest) {
       .from("tbl_product")
       .select("image_id")
       .eq("product_id", productIdValue)
-      .single();
+      .maybeSingle();
 
-    if (productFetchError) {
+    if (productFetchError && productFetchError.code !== "PGRST116") {
       return NextResponse.json({ error: productFetchError.message }, { status: 500 });
     }
 
-    if (productRow?.image_id === imageId) {
+    const isProductUsingDeletedImage =
+      productRow?.image_id !== null &&
+      productRow?.image_id !== undefined &&
+      String(productRow.image_id) === String(imageIdValue);
+
+    if (isProductUsingDeletedImage) {
       const { error: rebindProductError } = await admin
         .from("tbl_product")
         .update({ image_id: preferredNextImage?.image_id || null })
@@ -81,14 +102,22 @@ export async function DELETE(request: NextRequest) {
     }
 
     // Delete from Supabase Storage
-    const fileName = image_url.split("/").slice(-2).join("/");
-    await admin.storage.from("product-images").remove([fileName]);
+    const storageObjectPath = getStorageObjectPath(String(image_url || ""));
+    if (storageObjectPath) {
+      const { error: storageDeleteError } = await admin.storage
+        .from("product-images")
+        .remove([storageObjectPath]);
+
+      if (storageDeleteError) {
+        console.warn("Storage delete warning:", storageDeleteError.message);
+      }
+    }
 
     // Delete from database
     const { error: deleteError } = await admin
       .from("tbl_product_image")
       .delete()
-      .eq("image_id", imageId);
+      .eq("image_id", imageIdValue);
 
     if (deleteError) throw deleteError;
 
@@ -141,11 +170,13 @@ export async function DELETE(request: NextRequest) {
       }
     }
 
+    const parsedProductIdForLog = Number.parseInt(String(productIdValue), 10);
+
     // Log activity
     const editor = user.email || user.user_metadata?.username || "Unknown";
     await dataHelper.logActivity({
       actionType: "delete_image",
-      productId: productIdValue,
+      productId: Number.isNaN(parsedProductIdForLog) ? null : parsedProductIdForLog,
       description: `Deleted image (was displaying as #${display_order}${is_primary ? ", primary" : ""})`,
       editor: editor,
       user_id: user.id,

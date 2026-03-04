@@ -366,7 +366,7 @@ export default function EmployeesPage() {
                       e.preventDefault();
                       if (currentPage > 1) setCurrentPage((prev) => Math.max(1, prev - 1));
                     }} 
-                    className={currentPage === 1 ? "pointer-events-none opacity-50" : "cursor-pointer"} 
+                    className={currentPage === 1 ? "pointer-events-none opacity-50 border border-[#E7A3B0]/40 text-[#cc7f8f]" : "cursor-pointer border border-[#E7A3B0]/40 text-[#cc7f8f] hover:bg-[#fff5f7]"} 
                   />
                 </PaginationItem>
                 {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
@@ -386,7 +386,11 @@ export default function EmployeesPage() {
                           setCurrentPage(pageNum);
                         }}
                         isActive={currentPage === pageNum}
-                        className="cursor-pointer"
+                        className={
+                          currentPage === pageNum
+                            ? "cursor-pointer bg-[#E7A3B0] text-white hover:bg-[#d891a0] border border-[#E7A3B0]"
+                            : "cursor-pointer border border-[#E7A3B0]/40 text-[#cc7f8f] hover:bg-[#fff5f7]"
+                        }
                       >
                         {pageNum}
                       </PaginationLink>
@@ -400,7 +404,7 @@ export default function EmployeesPage() {
                       e.preventDefault();
                       if (currentPage < totalPages) setCurrentPage((prev) => Math.min(totalPages, prev + 1));
                     }} 
-                    className={currentPage === totalPages ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                    className={currentPage === totalPages ? "pointer-events-none opacity-50 border border-[#E7A3B0]/40 text-[#cc7f8f]" : "cursor-pointer border border-[#E7A3B0]/40 text-[#cc7f8f] hover:bg-[#fff5f7]"}
                   />
                 </PaginationItem>
               </PaginationContent>
@@ -512,7 +516,7 @@ export default function EmployeesPage() {
               <button
                 onClick={() => setShowDeleteModal(false)}
                 disabled={actionLoading}
-                className="flex-1 px-4 py-3 border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                className="flex-1 px-4 py-3 border border-[#E7A3B0]/40 text-[#cc7f8f] rounded-xl hover:bg-[#fff5f7] hover:text-[#b96d7d] font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Cancel
               </button>
@@ -562,7 +566,7 @@ export default function EmployeesPage() {
               <button
                 onClick={() => setShowBulkDeleteModal(false)}
                 disabled={actionLoading}
-                className="flex-1 px-4 py-3 border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                className="flex-1 px-4 py-3 border border-[#E7A3B0]/40 text-[#cc7f8f] rounded-xl hover:bg-[#fff5f7] hover:text-[#b96d7d] font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Cancel
               </button>

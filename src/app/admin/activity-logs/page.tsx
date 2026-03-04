@@ -78,13 +78,10 @@ export default function ActivityLogsPage() {
   const [sortOrder, setSortOrder] = useState<"desc" | "asc">("desc");
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
-  const authTokenRef = useRef<string | null>(null);
+  const isFetchingRef = useRef(false);
+  const isMountedRef = useRef(true);
 
   const getAuthToken = useCallback(async () => {
-    if (authTokenRef.current) {
-      return authTokenRef.current;
-    }
-
     const {
       data: { session },
     } = await browserSupabase.auth.getSession();
@@ -93,11 +90,22 @@ export default function ActivityLogsPage() {
       throw new Error("Not authenticated");
     }
 
-    authTokenRef.current = session.access_token;
     return session.access_token;
   }, []);
 
+  const fetchLogsWithToken = useCallback(async (token: string) => {
+    return fetch('/api/admin/fetch-logs', {
+      cache: 'no-store',
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+  }, []);
+
   const fetchLogs = useCallback(async (isBackground = false) => {
+    if (isFetchingRef.current) return;
+    isFetchingRef.current = true;
+
     try {
       if (!isBackground) {
         setLoading(true);
@@ -105,13 +113,17 @@ export default function ActivityLogsPage() {
       setError(null);
 
       const token = await getAuthToken();
+      let response = await fetchLogsWithToken(token);
 
-      const response = await fetch('/api/admin/fetch-logs', {
-        cache: 'no-store',
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
+      if (response.status === 401) {
+        const { data: refreshData, error: refreshError } = await browserSupabase.auth.refreshSession();
+
+        if (refreshError || !refreshData.session?.access_token) {
+          throw new Error("Session expired. Please sign in again.");
+        }
+
+        response = await fetchLogsWithToken(refreshData.session.access_token);
+      }
       
       if (!response.ok) {
         const data = await response.json();
@@ -119,26 +131,38 @@ export default function ActivityLogsPage() {
       }
       
       const result = await response.json();
-      setLogs(result.data || []);
+      if (isMountedRef.current) {
+        setLogs(result.data || []);
+      }
 
     } catch (err: unknown) {
       console.error('Error fetching logs:', err);
-      setError(err instanceof Error ? err.message : 'Failed to load activity logs');
+      if (isMountedRef.current) {
+        setError(err instanceof Error ? err.message : 'Failed to load activity logs');
+      }
     } finally {
+      isFetchingRef.current = false;
       if (!isBackground) {
-        setLoading(false);
+        if (isMountedRef.current) {
+          setLoading(false);
+        }
       }
     }
-  }, [getAuthToken]);
+  }, [fetchLogsWithToken, getAuthToken]);
 
   useEffect(() => {
+    isMountedRef.current = true;
     fetchLogs();
+
+    return () => {
+      isMountedRef.current = false;
+    };
   }, [fetchLogs]);
 
   useEffect(() => {
     const refreshInterval = window.setInterval(() => {
       fetchLogs(true);
-    }, 15000);
+    }, 30000);
 
     const onFocus = () => {
       fetchLogs(true);
@@ -325,7 +349,7 @@ export default function ActivityLogsPage() {
                   e.preventDefault();
                   if (safePage > 1) setCurrentPage((prev) => Math.max(1, prev - 1));
                 }} 
-                className={safePage === 1 ? "pointer-events-none opacity-50" : "cursor-pointer"} 
+                className={safePage === 1 ? "pointer-events-none opacity-50 border border-[#E7A3B0]/40 text-[#cc7f8f]" : "cursor-pointer border border-[#E7A3B0]/40 text-[#cc7f8f] hover:bg-[#fff5f7]"} 
               />
             </PaginationItem>
             {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
@@ -346,7 +370,11 @@ export default function ActivityLogsPage() {
                       setCurrentPage(pageNum);
                     }}
                     isActive={safePage === pageNum}
-                    className="cursor-pointer"
+                    className={
+                      safePage === pageNum
+                        ? "cursor-pointer bg-[#E7A3B0] text-white hover:bg-[#d891a0] border border-[#E7A3B0]"
+                        : "cursor-pointer border border-[#E7A3B0]/40 text-[#cc7f8f] hover:bg-[#fff5f7]"
+                    }
                   >
                     {pageNum}
                   </PaginationLink>
@@ -360,7 +388,7 @@ export default function ActivityLogsPage() {
                   e.preventDefault();
                   if (safePage < totalPages) setCurrentPage((prev) => Math.min(totalPages, prev + 1));
                 }} 
-                className={safePage === totalPages ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                className={safePage === totalPages ? "pointer-events-none opacity-50 border border-[#E7A3B0]/40 text-[#cc7f8f]" : "cursor-pointer border border-[#E7A3B0]/40 text-[#cc7f8f] hover:bg-[#fff5f7]"}
               />
             </PaginationItem>
           </PaginationContent>

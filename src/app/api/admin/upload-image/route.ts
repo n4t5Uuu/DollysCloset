@@ -3,6 +3,27 @@ import { admin } from "@/lib/supabase/admin";
 import { authHelper } from "@/lib/auth-helper";
 import { dataHelper } from "@/lib/data-helper";
 
+const ALLOWED_IMAGE_MIME_TYPES = new Set([
+  "image/jpeg",
+  "image/png",
+  "image/webp",
+  "image/gif",
+  "image/avif",
+  "image/svg+xml",
+]);
+
+const ALLOWED_IMAGE_EXTENSIONS = new Set(["jpg", "jpeg", "png", "webp", "gif", "avif", "svg"]);
+
+function isImageUpload(file: File) {
+  const normalizedMimeType = (file.type || "").toLowerCase();
+  if (normalizedMimeType && ALLOWED_IMAGE_MIME_TYPES.has(normalizedMimeType)) {
+    return true;
+  }
+
+  const extension = file.name.toLowerCase().split(".").pop() || "";
+  return ALLOWED_IMAGE_EXTENSIONS.has(extension);
+}
+
 export async function POST(request: NextRequest) {
   try {
     const authorization = request.headers.get("authorization");
@@ -28,6 +49,10 @@ export async function POST(request: NextRequest) {
 
     if (!file || !productId) {
       return NextResponse.json({ error: "Missing file or product_id" }, { status: 400 });
+    }
+
+    if (!isImageUpload(file)) {
+      return NextResponse.json({ error: "Only image files are allowed" }, { status: 400 });
     }
 
     const productIdValue = Number.parseInt(productId, 10);

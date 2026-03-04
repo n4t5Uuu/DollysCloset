@@ -1,24 +1,12 @@
 "use client";
 
-import { useEffect, useRef } from "react";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import Footer from "@/components/general-components/footer";
 import Navbar from "@/components/general-components/navbar";
 
 export function ConditionalNavbar() {
     const pathname = usePathname();
-    const router = useRouter();
-    const hasMountedRef = useRef(false);
     const hiddenNavbarPaths = ["/"];
-
-    useEffect(() => {
-        if (!hasMountedRef.current) {
-            hasMountedRef.current = true;
-            return;
-        }
-
-        router.refresh();
-    }, [pathname, router]);
 
     const shouldHideNavbar = hiddenNavbarPaths.includes(pathname);
 

@@ -608,7 +608,7 @@ export default function ManageDetailsPage() {
                           e.preventDefault();
                           setAboutPage((prev) => (prev === 1 ? 1 : ((prev - 1) as 1 | 2 | 3)));
                         }} 
-                        className={aboutPage === 1 || savingAboutField !== null ? "pointer-events-none opacity-50" : "cursor-pointer"} 
+                        className={aboutPage === 1 || savingAboutField !== null ? "pointer-events-none opacity-50 border border-[#E7A3B0]/40 text-[#cc7f8f]" : "cursor-pointer border border-[#E7A3B0]/40 text-[#cc7f8f] hover:bg-[#fff5f7]"} 
                       />
                     </PaginationItem>
                     
@@ -621,7 +621,13 @@ export default function ManageDetailsPage() {
                             setAboutPage(pageNum as 1 | 2 | 3);
                           }}
                           isActive={aboutPage === pageNum}
-                          className={savingAboutField !== null && aboutPage !== pageNum ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                          className={
+                            savingAboutField !== null && aboutPage !== pageNum
+                              ? "pointer-events-none opacity-50 border border-[#E7A3B0]/40 text-[#cc7f8f]"
+                              : aboutPage === pageNum
+                                ? "cursor-pointer bg-[#E7A3B0] text-white hover:bg-[#d891a0] border border-[#E7A3B0]"
+                                : "cursor-pointer border border-[#E7A3B0]/40 text-[#cc7f8f] hover:bg-[#fff5f7]"
+                          }
                         >
                           {pageNum}
                         </PaginationLink>
@@ -635,7 +641,7 @@ export default function ManageDetailsPage() {
                           e.preventDefault();
                           setAboutPage((prev) => (prev === 3 ? 3 : ((prev + 1) as 1 | 2 | 3)));
                         }} 
-                        className={aboutPage === 3 || savingAboutField !== null ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                        className={aboutPage === 3 || savingAboutField !== null ? "pointer-events-none opacity-50 border border-[#E7A3B0]/40 text-[#cc7f8f]" : "cursor-pointer border border-[#E7A3B0]/40 text-[#cc7f8f] hover:bg-[#fff5f7]"}
                       />
                     </PaginationItem>
                   </PaginationContent>
