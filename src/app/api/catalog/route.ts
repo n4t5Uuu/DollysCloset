@@ -20,6 +20,13 @@ type CatalogProduct = {
   createdAt: string;
 };
 
+/**
+ * Traverses parent-linked database category properties recursively formulating visual breadcrumb hierarchies natively.
+ * Evaluates a given category's parent lineage until capping on base unmapped layers.
+ * @param categoryId - Numeric key reflecting target classification natively.
+ * @param categoryMap - Internal logic mapped cache encompassing known DB tree elements.
+ * @returns A fully constructed UI string reflecting depth hierarchies natively.
+ */
 function buildCategoryPath(categoryId: number, categoryMap: Map<number, InventoryCategory>) {
   const category = categoryMap.get(categoryId);
   if (!category) return "Uncategorized";
@@ -42,6 +49,13 @@ function buildCategoryPath(categoryId: number, categoryMap: Map<number, Inventor
   return path.join(" > ");
 }
 
+/**
+ * Re-constructs complex un-managed array structures returned across varied generic DB elements binding images and properties onto uniform components structurally mapped across catalog definitions.
+ * @param products - Broad catalog mapping instances returned across arbitrary database ranges natively.
+ * @param categories - Internal class representations mapped to isolated catalog roots contextually.
+ * @param images - Gallery arrays matching targeted gallery views across products natively.
+ * @returns Formalized layout parameters natively rendering within frontend loops visually mapping all properties securely natively.
+ */
 function mapProducts(
   products: InventoryProduct[],
   categories: InventoryCategory[],
@@ -97,6 +111,12 @@ function mapProducts(
   });
 }
 
+/**
+ * Retrieves the compiled logic representing uniform catalog objects reflecting `show_in_catalog` states prominently.
+ * Parallelizes extensive fetches bridging category boundaries, gallery listings, and the products base logic efficiently natively.
+ * Public endpoint matching end-user catalog interface loops internally logically structured cleanly against types contexts.
+ * @returns A comprehensive response JSON packing categorized metadata bridging generic views alongside new release filters.
+ */
 export async function GET() {
   try {
     const [{ data: categories, error: categoriesError }, { data: products, error: productsError }, { data: images, error: imagesError }] = await Promise.all([

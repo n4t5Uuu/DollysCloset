@@ -3,6 +3,13 @@ import { authHelper } from "@/lib/auth-helper";
 import { dataHelper } from "@/lib/data-helper";
 import { admin } from "@/lib/supabase/admin";
 
+/**
+ * Registers a new employee user account and attaches initial authentication parameters.
+ * Validates the calling account currently holds an admin role.
+ * Links the newly minted Supabase Auth credential record to a metadata entry in `tbl_users` tagged with 'employee'.
+ * @param request - The Next.js request containing auth headers and the payload details matching an employee login footprint.
+ * @returns A JSON response displaying the `success: true` status alongside basic user credentials excluding exact passwords.
+ */
 export async function POST(request: NextRequest) {
   try {
     // Verify the requesting user is an admin

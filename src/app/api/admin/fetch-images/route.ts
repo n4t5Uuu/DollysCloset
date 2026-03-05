@@ -1,6 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { admin } from "@/lib/supabase/admin";
 
+/**
+ * Retrieves an order-sorted sequence of product image mappings tied to a specific `product_id`.
+ * Contains parsing cleanup to ensure `is_primary` strictly corresponds to boolean logic.
+ * Enforces rendering normalization so only one primary image stands out for UI presentation logic.
+ * @param request - The Next.js request holding `product_id` across URL search parameters.
+ * @returns JSON indicating product configurations encompassing arrays matching exact image mappings.
+ */
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);

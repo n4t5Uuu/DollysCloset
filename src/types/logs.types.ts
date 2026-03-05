@@ -1,3 +1,6 @@
+/**
+ * Outlines static constraints regulating acceptable product visibility strings across broader catalogs centrally.
+ */
 export type CatalogStatus = "featured" | "standard" | "unlisted";
 
 export type FieldChange = {
@@ -6,6 +9,9 @@ export type FieldChange = {
     newValue: any;
 };
 
+/**
+ * Details generic footprints written when tracing arbitrary `admin` / `employee` dashboard actions natively.
+ */
 export type ActivityLog = {
     id: string;
     timestamp: string;
@@ -20,6 +26,9 @@ export type ActivityLog = {
     actorRole?: "admin" | "employee" | "unknown";
 };
 
+/**
+ * Formalizes payload parameters routinely consumed across utility interfaces dynamically injecting activity traces directly to `tbl_activity_log`.
+ */
 export interface LogActivityProps {
     actionType: string;
     productId?: number | null;

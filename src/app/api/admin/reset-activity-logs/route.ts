@@ -3,6 +3,12 @@ import { authHelper } from "@/lib/auth-helper";
 import { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 
+/**
+ * Hard resets all underlying history tracked inside the `tbl_activity_log` component natively.
+ * Strictly checks that the initiating user possesses core administrative system privileges securely.
+ * @param request - Native Next.js Request executing via a valid generic POST request possessing a robust Bearer logic frame.
+ * @returns A JSON outcome conveying an empty execution code (200) signifying absolute system flush success.
+ */
 export async function POST(request: NextRequest) {
   try {
     const authHeader = request.headers.get('authorization');

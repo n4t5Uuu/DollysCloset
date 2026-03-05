@@ -1,3 +1,6 @@
+/**
+ * Standard baseline structure defining generic product references spanning UI layers strictly.
+ */
 export interface Product {
     id: string;
     name: string;

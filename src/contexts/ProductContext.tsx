@@ -27,6 +27,12 @@ interface ProductContextType {
 
 const ProductContext = createContext<ProductContextType | undefined>(undefined);
 
+/**
+ * Context Provider governing overarching logic sequences mapped to locally saved catalogs natively.
+ * Synchronizes browser `localStorage` loops across dynamic state configurations protecting memory losses externally.
+ * Injects catalog manipulation utility actions onto the React Context hierarchy alongside deep activity trail bindings.
+ * @param children - Standard nested React nodes rendering natively within scoped product domains.
+ */
 export function ProductProvider({ children }: { children: React.ReactNode }) {
   const [productList, setProductList] = useState<Product[]>([]);
   const [catalogStatus, setCatalogStatusState] = useState<{ [key: string]: CatalogStatus }>({});
@@ -264,6 +270,11 @@ export function ProductProvider({ children }: { children: React.ReactNode }) {
   );
 }
 
+/**
+ * Custom hook permitting seamless extraction of `ProductContext` bounds inside functional components securely.
+ * Will throw exceptions directly on runtime if invoked unexpectedly disconnected from parent layout providers.
+ * @returns Fully composed context matching predefined `ProductContextType` schemas globally.
+ */
 export function useProducts() {
   const context = useContext(ProductContext);
   if (context === undefined) {

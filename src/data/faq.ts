@@ -5,6 +5,9 @@ export interface FAQItem {
     category: "Ordering" | "Shipping" | "Returns" | "Products" | "General";
 }
 
+/**
+ * Static baseline mappings covering frequently asked questions internally routing responses over dynamic views globally.
+ */
 export const faqs: FAQItem[] = [
     {
         id: "1",

@@ -3,6 +3,13 @@ import { authHelper } from "@/lib/auth-helper";
 import { dataHelper } from "@/lib/data-helper";
 import { admin } from "@/lib/supabase/admin";
 
+/**
+ * Eradicates a single specified product from the catalog table alongside all assigned image bucket uploads.
+ * Restricts invocation strictly to profiles fulfilling 'admin' or matching 'employee' roles.
+ * Modifies Supabase storage recursively to dump related gallery items prior to tearing down row definitions.
+ * @param request - The Next.js Request carrying proper HTTP authorization logic and a JSON payload housing `product_id`.
+ * @returns JSON indicating positive completion metrics or an exception summary.
+ */
 export async function DELETE(request: NextRequest) {
   try {
     // Verify the requesting user is an admin

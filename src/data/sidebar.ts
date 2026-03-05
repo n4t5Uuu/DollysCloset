@@ -5,6 +5,9 @@ interface SidebarInterface {
     icon: LucideIcon
 }
 
+/**
+ * Dictates static sidebar tab properties restricted visually mapping over an `admin` domain environment inherently.
+ */
 export const adminSidebar: SidebarInterface[] = [
     {
         tabName: "Home",
@@ -29,6 +32,9 @@ export const adminSidebar: SidebarInterface[] = [
 
 ]
 
+/**
+ * Dictates static sidebar tab properties constrained to standard `employee` role limits natively.
+ */
 export const employeeSidebar: SidebarInterface[] = [
     {
         tabName: "Home",
