@@ -11,20 +11,7 @@ import { TextEffect } from "@/components/motion-primitives/text-effect";
 import { Spotlight } from "@/components/motion-primitives/spotlight";
 import { InView } from "@/components/motion-primitives/in-view";
 
-type ContactDetailsPayload = {
-  introText: string;
-  facebookName: string;
-  facebookLink: string;
-  instagramHandle: string;
-  instagramLink: string;
-  viberName: string;
-  viberLink: string;
-  contactNumberDisplay: string;
-  contactNumberLink: string;
-  address: string;
-  weekdaysHours: string;
-  weekendHours: string;
-};
+import { ContactDetailsPayload } from "@/types/business-details.types";
 
 const defaultContactDetails: ContactDetailsPayload = {
   introText: "We would love to hear from you! Whether you have a question about our collection, need assistance, or just want to say hello.",

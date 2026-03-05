@@ -1,9 +1,6 @@
 import {LucideIcon, Home, ChartArea, IdCardLanyard, Logs, Box} from "lucide-react"
 
-interface SidebarInterface {
-    tabName: string
-    icon: LucideIcon
-}
+import { SidebarInterface } from "@/types/ui.types";
 
 /**
  * Dictates static sidebar tab properties restricted visually mapping over an `admin` domain environment inherently.

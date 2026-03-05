@@ -12,10 +12,10 @@ import noBgLogo from "@/assets/images/logo/no-bg-logo.png";
 import { InView } from "@/components/motion-primitives/in-view";
 import {
   ABOUT_SLUG,
-  AboutDetailsPayload,
   buildAboutAggregate,
   defaultAboutDetails,
 } from "@/lib/business-details";
+import { AboutDetailsPayload } from "@/types/business-details.types";
 import { admin } from "@/lib/supabase/admin";
 
 export const dynamic = "force-dynamic";
@@ -23,12 +23,7 @@ export const revalidate = 0;
 
 const BUSINESS_DETAILS_TABLES = ["tbl_business_details", "business_details"] as const;
 
-type BusinessDetailsRow = {
-  slug?: string | null;
-  title?: string | null;
-  body?: string | null;
-  updated_at?: string | null;
-};
+import { BusinessDetailsRow } from "@/types/business-details.types";
 
 async function getAboutDetails(): Promise<AboutDetailsPayload> {
   noStore();

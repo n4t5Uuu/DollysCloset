@@ -18,11 +18,7 @@ import {
 } from "@/components/ui/select";
 import {cn} from "@/lib/utils";
 
-type CatalogCategory = {
-    category_id: number;
-    category_name: string;
-    parent_category: number | null;
-};
+import { CatalogCategory } from "@/types/product.types";
 
 interface CatalogSidebarProps {
     categories: CatalogCategory[];

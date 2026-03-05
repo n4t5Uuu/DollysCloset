@@ -4,15 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Loader2, BarChart3, Package, Activity } from "lucide-react";
 import { browserSupabase } from "@/lib/supabase/browser";
 
-type ActivityLog = {
-    log_id: number;
-    created_at: string;
-    action_type: string;
-    product_id: number | null;
-    description: string;
-    editor: string | null;
-    user_id: string | number | null;
-};
+import { ActivityLog } from "@/types/logs.types";
 
 const actionLabels: Record<string, string> = {
     create_product: "Created Product",

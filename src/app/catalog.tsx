@@ -14,28 +14,7 @@ import { InView } from "@/components/motion-primitives/in-view";
 import { Button } from "@/components/ui/button";
 import { ANNOUNCEMENT_SLUG, defaultAnnouncementText } from "@/lib/business-details";
 
-type CatalogCategory = {
-    category_id: number;
-    category_name: string;
-    parent_category: number | null;
-};
-
-type CatalogApiProduct = {
-    id: string;
-    name: string;
-    categoryId: number;
-    categoryName: string;
-    categoryPath: string;
-    price: number;
-    brand: string;
-    size: string;
-    condition: string;
-    description: string;
-    stock: number;
-    isNewArrival: boolean;
-    images: string[];
-    createdAt: string;
-};
+import { CatalogCategory, CatalogApiProduct } from "@/types/product.types";
 
 function toViewProduct(product: CatalogApiProduct): Product {
     return {

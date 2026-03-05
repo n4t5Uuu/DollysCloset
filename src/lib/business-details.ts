@@ -1,24 +1,16 @@
+import {
+  ContactFieldKey,
+  ContactDetailsPayload,
+  AboutFieldKey,
+  AboutDetailsPayload,
+  BusinessDetailsRowLike
+} from "@/types/business-details.types";
+
 export const CONTACT_SLUG = "contact";
 export const ABOUT_SLUG = "about";
 export const ANNOUNCEMENT_SLUG = "announcement";
 export const ANNOUNCEMENT_TITLE = "Announcement Text";
 export const defaultAnnouncementText = "Free shipping on orders over ₱2,000  •  New arrivals every friday  •";
-
-export type ContactFieldKey =
-  | "introText"
-  | "facebookName"
-  | "facebookLink"
-  | "instagramHandle"
-  | "instagramLink"
-  | "viberName"
-  | "viberLink"
-  | "contactNumberDisplay"
-  | "contactNumberLink"
-  | "address"
-  | "weekdaysHours"
-  | "weekendHours";
-
-export type ContactDetailsPayload = Record<ContactFieldKey, string>;
 
 export const CONTACT_LABEL_BY_KEY: Record<ContactFieldKey, string> = {
   introText: "Intro Text",
@@ -50,12 +42,7 @@ export const defaultContactDetails: ContactDetailsPayload = {
   weekendHours: "10:00 AM - 5:00 PM",
 };
 
-export type ContactFieldConfig = {
-  key: ContactFieldKey;
-  label: string;
-  type: "input" | "textarea";
-  minHeightClassName?: string;
-};
+import { ContactFieldConfig } from "@/types/business-details.types";
 
 export const CONTACT_FIELD_CONFIG: ContactFieldConfig[] = [
   { key: "facebookName", label: CONTACT_LABEL_BY_KEY.facebookName, type: "input" },
@@ -71,27 +58,7 @@ export const CONTACT_FIELD_CONFIG: ContactFieldConfig[] = [
   { key: "address", label: CONTACT_LABEL_BY_KEY.address, type: "textarea", minHeightClassName: "min-h-[90px]" },
 ];
 
-export type AboutFieldKey =
-  | "aboutBody"
-  | "historyBody"
-  | "question1"
-  | "answer1"
-  | "question2"
-  | "answer2"
-  | "question3"
-  | "answer3"
-  | "question4"
-  | "answer4"
-  | "question5"
-  | "answer5"
-  | "question6"
-  | "answer6"
-  | "question7"
-  | "answer7"
-  | "question8"
-  | "answer8";
-
-export type AboutDetailsPayload = Record<AboutFieldKey, string>;
+ 
 
 export const ABOUT_LABEL_BY_KEY: Record<AboutFieldKey, string> = {
   aboutBody: "About Dolly's Closet Body",
@@ -147,12 +114,7 @@ export const defaultAboutDetails: AboutDetailsPayload = {
   answer8: "We do not offer reservations. Our items are sold on a first-come, first-served basis.",
 };
 
-export type AboutFieldConfig = {
-  key: AboutFieldKey;
-  label: string;
-  type: "input" | "textarea";
-  minHeightClassName?: string;
-};
+import { AboutFieldConfig } from "@/types/business-details.types";
 
 export const ABOUT_SECTION_FIELD_CONFIG: AboutFieldConfig[] = [
   { key: "aboutBody", label: "About Dolly's Closet Body", type: "textarea", minHeightClassName: "min-h-[180px]" },
@@ -178,10 +140,7 @@ export const FAQ_FIELD_CONFIG: AboutFieldConfig[] = [
   { key: "answer8", label: "Answer 8", type: "textarea", minHeightClassName: "min-h-[90px]" },
 ];
 
-export type BusinessDetailsRowLike = {
-  title?: string | null;
-  body?: string | null;
-};
+ 
 
 /**
  * Normalizes a given text value by trimming whitespace and converting to lowercase.

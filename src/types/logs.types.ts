@@ -13,10 +13,19 @@ export type FieldChange = {
  * Details generic footprints written when tracing arbitrary `admin` / `employee` dashboard actions natively.
  */
 export type ActivityLog = {
-    id: string;
-    timestamp: string;
-    action: "added" | "edited" | "deleted" | "status_changed" | "viewed" | "opened_edit";
-    productId?: string;
+    log_id: number;
+    created_at: string;
+    action_type: string;
+    product_id: number | string | null;
+    description: string;
+    editor: string | null;
+    user_id: string | number | null;
+};
+
+export type ActivityLogExtended = ActivityLog & {
+    id?: string;
+    timestamp?: string;
+    action?: "added" | "edited" | "deleted" | "status_changed" | "viewed" | "opened_edit";
     productName?: string;
     statusFrom?: CatalogStatus;
     statusTo?: CatalogStatus;

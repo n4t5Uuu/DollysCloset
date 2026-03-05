@@ -4,12 +4,7 @@ import { ABOUT_SLUG, CONTACT_SLUG, buildAboutAggregate, buildContactAggregate } 
 
 const BUSINESS_DETAILS_TABLES = ["tbl_business_details", "business_details"] as const;
 
-type BusinessDetailsRow = {
-  slug?: string | null;
-  title?: string | null;
-  body?: string | null;
-  updated_at?: string | null;
-};
+import { BusinessDetailsRow } from "@/types/business-details.types";
 
 /**
  * Securely extracts active generic business configuration contexts aligned universally toward UI presentations.

@@ -19,30 +19,12 @@ import {
 const BUSINESS_DETAILS_TABLES = ["tbl_business_details", "business_details"] as const;
 let cachedBusinessDetailsTable: string | null = null;
 
-type BusinessDetailsRow = {
-  slug?: string | null;
-  title?: string | null;
-  body?: string | null;
-  updated_at?: string | null;
-  business_details_id?: number | string | null;
-  business_deta?: number | string | null;
-};
-
-type AdminValidationSuccess = {
-  ok: true;
-  user: {
-    id: string;
-    email?: string;
-    user_metadata?: Record<string, unknown>;
-  };
-};
-
-type AdminValidationFailure = {
-  ok: false;
-  response: NextResponse;
-};
-
-type AdminValidationResult = AdminValidationSuccess | AdminValidationFailure;
+import {
+  BusinessDetailsRow,
+  AdminValidationSuccess,
+  AdminValidationFailure,
+  AdminValidationResult
+} from "@/types/business-details.types";
 
 function getRowIdColumn(row: BusinessDetailsRow): "business_details_id" | "business_deta" | null {
   if (row.business_details_id !== undefined && row.business_details_id !== null) return "business_details_id";

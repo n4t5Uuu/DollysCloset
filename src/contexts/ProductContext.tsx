@@ -11,19 +11,7 @@ import { useUser } from "@/hooks/useUser";
 
 const initialProducts: Product[] = [];
 
-interface ProductContextType {
-  productList: Product[];
-  catalogStatus: { [key: string]: CatalogStatus };
-  previousCatalogStatus: { [key: string]: "featured" | "standard" };
-  activityLogs: ActivityLog[];
-  addProduct: (product: Product, status: CatalogStatus) => void;
-  updateProduct: (product: Product, status: CatalogStatus) => void;
-  deleteProduct: (productId: string) => void;
-  setCatalogStatus: (productId: string, status: CatalogStatus) => void;
-  togglePublishStatus: (productId: string) => void;
-  cycleCatalogStatus: (productId: string) => void;
-  logActivity: (log: Omit<ActivityLog, "id" | "timestamp" | "actorId" | "actorEmail" | "actorRole">) => void;
-}
+import { ProductContextType } from "@/types/context.types";
 
 const ProductContext = createContext<ProductContextType | undefined>(undefined);
 
