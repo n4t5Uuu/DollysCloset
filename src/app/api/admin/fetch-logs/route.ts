@@ -2,6 +2,13 @@ import { admin } from '@/lib/supabase/admin';
 import { authHelper } from '@/lib/auth-helper';
 import { NextRequest, NextResponse } from 'next/server'
 
+/**
+ * Queries the `tbl_activity_log` for tracking historical changes made via staff across the application.
+ * Rejects requests failing initial token authentication checks and role constraints (admin or employee roles).
+ * Organizes returns chronologically, newest logs rendered initially.
+ * @param request - Next.js Request populated naturally with Bearer authorization credentials protecting metrics.
+ * @returns Readily formed UI-bound list item tracking activity blocks matching exact historical inputs.
+ */
 export async function GET(request: NextRequest) {
   try {
     const authHeader = request.headers.get('authorization');

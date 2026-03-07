@@ -19,30 +19,10 @@ import {
 const BUSINESS_DETAILS_TABLES = ["tbl_business_details", "business_details"] as const;
 let cachedBusinessDetailsTable: string | null = null;
 
-type BusinessDetailsRow = {
-  slug?: string | null;
-  title?: string | null;
-  body?: string | null;
-  updated_at?: string | null;
-  business_details_id?: number | string | null;
-  business_deta?: number | string | null;
-};
-
-type AdminValidationSuccess = {
-  ok: true;
-  user: {
-    id: string;
-    email?: string;
-    user_metadata?: Record<string, unknown>;
-  };
-};
-
-type AdminValidationFailure = {
-  ok: false;
-  response: NextResponse;
-};
-
-type AdminValidationResult = AdminValidationSuccess | AdminValidationFailure;
+import {
+  BusinessDetailsRow,
+  AdminValidationResult
+} from "@/types/business-details.types";
 
 function getRowIdColumn(row: BusinessDetailsRow): "business_details_id" | "business_deta" | null {
   if (row.business_details_id !== undefined && row.business_details_id !== null) return "business_details_id";
@@ -128,6 +108,13 @@ async function validateAdmin(request: NextRequest): Promise<AdminValidationResul
   return { ok: true, user };
 }
 
+/**
+ * Retrieves the currently saved business details depending on the provided slug query parameter.
+ * Converts unstructured page data safely using predefined parsing configurations for Contact / About modes when specified.
+ * Validates the user making the request possesses admin authorization.
+ * @param request - The Next.js request object containing authorization headers and `slug` query parameter.
+ * @returns A JSON response comprising the parsed details mapped to the requested slug or an error message.
+ */
 export async function GET(request: NextRequest) {
   try {
     const authResult = await validateAdmin(request);
@@ -177,6 +164,13 @@ export async function GET(request: NextRequest) {
   }
 }
 
+/**
+ * Updates or creates new static page data sections (such as About, Contact, or Annoucements).
+ * Determines the target dataset using the `slug` and processes partial configurations safely.
+ * Logs backend action activities regarding the specific UI segments that the admin modified.
+ * @param request - The Next.js incoming request possessing the authorization token and the JSON body spanning slug, title, and form-bound body elements.
+ * @returns An updated representation confirming the data written to the database configurations.
+ */
 export async function PUT(request: NextRequest) {
   try {
     const authResult = await validateAdmin(request);

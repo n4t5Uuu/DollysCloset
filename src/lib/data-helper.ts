@@ -2,8 +2,14 @@ import { browserSupabase } from "./supabase/browser";
 import { createServerSupabase } from "./supabase/server";
 import { LogActivityProps } from "@/types/logs.types";
 
+/**
+ * A helper object containing methods to interface with database records like employees and products.
+ */
 export const dataHelper = {
-    // retrieves the employees from the database
+    /**
+     * Retrieves all users marked as "Employee" from the user table in the database.
+     * @returns An object containing the fetched employee data upon success, and null on error.
+     */
     async fetchEmployees() {
         const {data, error} = await browserSupabase.from("tbl_users")
             .select("*")
@@ -17,7 +23,10 @@ export const dataHelper = {
         return {data, error: null}
     },
 
-    // retrieves the products from the database
+    /**
+     * Retrieves all product records from the database's `tbl_products` table.
+     * @returns An object containing the fetched product data or an error.
+     */
     async getProducts() {
         const {data, error} = await browserSupabase.from("tbl_products")
             .select("*")
@@ -30,13 +39,22 @@ export const dataHelper = {
         return {data, error: null}
     }, 
 
+    /**
+     * Updates an existing product's data in the database.
+     * (Function is currently a placeholder to be implemented).
+     */
     async updateProduct() {
         
     },
 
     
 
-    // logs the activity of the user
+    /**
+     * Logs user activity such as modifying a product or performing an administrative action.
+     * This relies either on a given client or creates a server supabase client to interact with the database.
+     * @param options - Log options including action type, product affected, desc, editor, and user ID.
+     * @returns A boolean indicating whether inserting the log record was successful.
+     */
     async logActivity({actionType, productId = null, description = "", editor = null, user_id = null, supabase = null}: LogActivityProps) {
         const client = supabase || await createServerSupabase()
         const payload = {

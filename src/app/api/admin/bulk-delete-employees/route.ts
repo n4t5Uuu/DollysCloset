@@ -3,6 +3,14 @@ import { authHelper } from "@/lib/auth-helper";
 import { dataHelper } from "@/lib/data-helper";
 import { admin } from "@/lib/supabase/admin";
 
+/**
+ * Handles the bulk deletion of employee accounts.
+ * Requires admin privileges via Bearer token authorization.
+ * Both the Supabase Auth profile and the public `tbl_users` record are removed for each specified ID.
+ * Logs the deletion activity if successful.
+ * @param request - The Next.js request object containing the authorization headers and the payload with `employee_ids`.
+ * @returns A JSON response indicating the success status, number of deleted items, and failed items, or an error if invalid.
+ */
 export async function DELETE(request: NextRequest) {
   try {
     // Verify the requesting user is an admin
@@ -75,8 +83,8 @@ export async function DELETE(request: NextRequest) {
       failed_count: failures.length
     });
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error bulk deleting employees:', error);
-    return NextResponse.json({ error: error.message || 'Internal server error' }, { status: 500 });
+    return NextResponse.json({ error: error instanceof Error ? error.message : 'Internal server error' }, { status: 500 });
   }
 }

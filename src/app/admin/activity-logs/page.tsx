@@ -9,7 +9,6 @@ import { browserSupabase } from "@/lib/supabase/browser";
 import {
   Pagination,
   PaginationContent,
-  PaginationEllipsis,
   PaginationItem,
   PaginationLink,
   PaginationNext,

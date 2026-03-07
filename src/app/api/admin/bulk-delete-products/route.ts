@@ -3,6 +3,14 @@ import { authHelper } from "@/lib/auth-helper";
 import { dataHelper } from "@/lib/data-helper";
 import { admin } from "@/lib/supabase/admin";
 
+/**
+ * Handles the bulk deletion of products and their associated images.
+ * Requires admin or employee privileges via Bearer token authorization.
+ * Removes related images from `tbl_product_image`, the storage bucket, and subsequently deletes the product from `tbl_product`.
+ * Logs the deletion activity upon success.
+ * @param request - The Next.js request object containing authorization headers and the `product_ids` array payload.
+ * @returns A JSON response detailing whether the deletion for products was universally successful.
+ */
 export async function DELETE(request: NextRequest) {
   try {
     // Verify the requesting user is an admin

@@ -9,7 +9,6 @@ import { resolveProductPlaceholder } from "@/lib/product-placeholder";
 interface FeatureCardCarouselProps {
     products: Product[];
     onProductClick?: (product: Product) => void;
-    featuredProducts: Product[];
 }
 
 export default function FeatureCardCarousel({ products, onProductClick }: FeatureCardCarouselProps) {
@@ -27,9 +26,7 @@ export default function FeatureCardCarousel({ products, onProductClick }: Featur
         return () => clearInterval(interval);
     }, [featuredProducts.length]);
 
-    useEffect(() => {
-        setCenterIndex(0);
-    }, [featuredProducts.length]);
+
 
     const getSafeProduct = (index: number) => {
         const length = featuredProducts.length;
@@ -85,7 +82,7 @@ export default function FeatureCardCarousel({ products, onProductClick }: Featur
                                 <motion.button
                                     key={`${item.slot}-${item.product.id}-${centerIndex}`}
                                     type="button"
-                                    onClick={() => onProductClick?.(item?.product)}
+                                    onClick={() => item.product && onProductClick?.(item.product)}
                                     initial={{ opacity: 0, x: item.slot === "left" ? -20 : item.slot === "right" ? 20 : 0 }}
                                     animate={{ opacity: item.opacity, x: 0, scale: item.scale }}
                                     exit={{ opacity: 0, x: item.slot === "left" ? 20 : item.slot === "right" ? -20 : 0 }}

@@ -1,4 +1,5 @@
 "use client";
+/* eslint-disable react-hooks/set-state-in-effect */
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Check, ChevronDown, ChevronRight } from "lucide-react";
@@ -51,9 +52,8 @@ export default function CategoryCascadingFilter({
     [categories]
   );
 
-  const rootCategories = childrenByParent.get(null) || [];
-
   const rootCategoryGroups = useMemo(() => {
+    const rootCategories = childrenByParent.get(null) || [];
     const groupedRoots = new Map<
       string,
       { key: string; label: string; rootIds: number[] }
@@ -80,7 +80,7 @@ export default function CategoryCascadingFilter({
       ...group,
       rootIds: [...group.rootIds].sort((firstId, secondId) => firstId - secondId),
     }));
-  }, [rootCategories]);
+  }, [childrenByParent]);
 
   const rootGroupByRootId = useMemo(() => {
     const map = new Map<number, string>();

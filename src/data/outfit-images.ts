@@ -1,39 +1,17 @@
-import { StaticImageData } from "next/image";
-import laurenWolfe from "@/assets/images/outfits/4-laurenwolfe.jpg";
-import sweaterBrownLeatherShorts from "@/assets/images/outfits/Outfit-Sweater-Brown-Leather-Shorts.jpg";
-import sweatshirtBaggyJeans from "@/assets/images/outfits/Sweatshirt-With-Baggy-Jeans.jpg";
-import allBlackFit from "@/assets/images/outfits/all-black-fit.jpg";
-import shortsFit from "@/assets/images/outfits/shorts-fit.jpg";
-import baggyPantsTrench from "@/assets/images/outfits/women-with-baggy-pants-and-trench-coat.jpg";
+import img1 from "@/assets/images/outfits/4-laurenwolfe.jpg";
+import img2 from "@/assets/images/outfits/Outfit-Sweater-Brown-Leather-Shorts.jpg";
+import img3 from "@/assets/images/outfits/Sweatshirt-With-Baggy-Jeans.jpg";
+import img4 from "@/assets/images/outfits/all-black-fit.jpg";
+import img5 from "@/assets/images/outfits/shorts-fit.jpg";
+import img6 from "@/assets/images/outfits/women-with-baggy-pants-and-trench-coat.jpg";
 
-export interface ImageProps {
-    imagePath: StaticImageData;
-    alt: string;
-}
+import { OutfitImage } from "@/types/outfits.types";
 
-export const images: ImageProps[] = [
-    {
-        imagePath: laurenWolfe,
-        alt: "Lauren Wolfe Outfit",
-    },
-    {
-        imagePath: sweaterBrownLeatherShorts,
-        alt: "Sweater with Brown Leather Shorts",
-    },
-    {
-        imagePath: sweatshirtBaggyJeans,
-        alt: "Sweatshirt with Baggy Jeans",
-    },  
-    {
-        imagePath: allBlackFit,
-        alt: "All Black Fit",
-    },
-    {
-        imagePath: shortsFit,
-        alt: "Shorts Fit",
-    },
-    {
-        imagePath: baggyPantsTrench,
-        alt: "Baggy Pants with Trench Coat",
-    },
+export const images: OutfitImage[] = [
+    { id: 1, imagePath: img1, alt: "Lauren Wolfe Outfit" },
+    { id: 2, imagePath: img2, alt: "Sweater and Brown Leather Shorts" },
+    { id: 3, imagePath: img3, alt: "Sweatshirt with Baggy Jeans" },
+    { id: 4, imagePath: img4, alt: "All Black Fit" },
+    { id: 5, imagePath: img5, alt: "Shorts Fit" },
+    { id: 6, imagePath: img6, alt: "Women with Baggy Pants and Trench Coat" }
 ];

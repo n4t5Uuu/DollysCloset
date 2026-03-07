@@ -4,13 +4,15 @@ import { ABOUT_SLUG, CONTACT_SLUG, buildAboutAggregate, buildContactAggregate } 
 
 const BUSINESS_DETAILS_TABLES = ["tbl_business_details", "business_details"] as const;
 
-type BusinessDetailsRow = {
-  slug?: string | null;
-  title?: string | null;
-  body?: string | null;
-  updated_at?: string | null;
-};
+import { BusinessDetailsRow } from "@/types/business-details.types";
 
+/**
+ * Securely extracts active generic business configuration contexts aligned universally toward UI presentations.
+ * Resolves targeted queries via provided URL queries checking against known mapped UI configurations (Contact/About formats).
+ * Public endpoint; requires no distinct internal dashboard authorization.
+ * @param request - Baseline Next.js Request triggering endpoints across public channels fetching targeted `slug` configurations.
+ * @returns Consolidated API mappings outlining structured system text parameters formatted for React states natively.
+ */
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);

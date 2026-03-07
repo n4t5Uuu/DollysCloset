@@ -3,7 +3,7 @@ import AdminSidebar from "@/components/sidebar/AdminSidebar";
 import { redirect } from "next/navigation";
 import { authHelper } from "@/lib/auth-helper";
 import { createServerSupabase } from "@/lib/supabase/server";
-import { dataHelper } from "@/lib/data-helper";
+
 import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
 
 export const dynamic = "force-dynamic";

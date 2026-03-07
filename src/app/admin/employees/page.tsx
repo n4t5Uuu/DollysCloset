@@ -2,10 +2,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Plus, Edit2, Trash2, Eye, Search, ChevronUp, ChevronDown, X, AlertTriangle, Trash, Loader2, Pencil } from "lucide-react";
+import { Plus, Search, X, AlertTriangle, Trash, Loader2 } from "lucide-react";
 import { browserSupabase } from "@/lib/supabase/browser";
-import { useRouter } from "next/navigation";
-import { Card, CardHeader, CardTitle, CardContent, CardFooter } from "@/components/ui/card";
 import AddEmployee from "@/components/modals/AddEmployee";
 import { EmployeeTable } from "@/components/tables/EmployeeTable";
 import { Employee } from "@/types/employee.types";
@@ -19,7 +17,6 @@ import {
 } from "@/components/ui/pagination";
 
 export default function EmployeesPage() {
-  const router = useRouter();
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
@@ -60,9 +57,9 @@ export default function EmployeesPage() {
       console.log('fetch Data:', result.data)
       setEmployees(result.data)
 
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Error fetching employees:', err)
-      setError(err.message)
+      setError(err instanceof Error ? err.message : String(err))
     } finally {
       setLoading(false)
     }
@@ -191,9 +188,9 @@ export default function EmployeesPage() {
       setSelectedRows(new Set(selectedRows));
       setShowDeleteModal(false);
       setSelectedEmployee(null);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Error deleting employee:', err);
-      setError(err.message || 'Failed to delete employee');
+      setError(err instanceof Error ? err.message : 'Failed to delete employee');
     } finally {
       setActionLoading(false);
     }
@@ -237,9 +234,9 @@ export default function EmployeesPage() {
       await fetchEmployees();
       setSelectedRows(new Set());
       setShowBulkDeleteModal(false);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Error bulk deleting employees:', err);
-      setError(err.message || 'Failed to delete employees');
+      setError(err instanceof Error ? err.message : 'Failed to delete employees');
     } finally {
       setActionLoading(false);
     }

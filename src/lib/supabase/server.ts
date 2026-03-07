@@ -2,6 +2,10 @@
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 
+/**
+ * Generates an isolated internal secure Supabase API interface tailored explicitly for Next.js internal Server Components parsing cookies robustly natively.
+ * @returns Instantiated server mapping tracking internal cookie stores seamlessly.
+ */
 export async function createServerSupabase() {
   const cookieStore = await cookies();
 

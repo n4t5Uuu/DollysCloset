@@ -1,10 +1,8 @@
-export interface FAQItem {
-    id: string;
-    question: string;
-    answer: string;
-    category: "Ordering" | "Shipping" | "Returns" | "Products" | "General";
-}
+import { FAQItem } from "@/types/ui.types";
 
+/**
+ * Static baseline mappings covering frequently asked questions internally routing responses over dynamic views globally.
+ */
 export const faqs: FAQItem[] = [
     {
         id: "1",

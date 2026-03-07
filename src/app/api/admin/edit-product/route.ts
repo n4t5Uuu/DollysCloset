@@ -5,6 +5,13 @@ import { admin } from "@/lib/supabase/admin";
 
 const MAX_META_LENGTH = 9;
 
+/**
+ * Edits metadata properties corresponding to an existing catalog product record inside `tbl_product`.
+ * Normalizes input string parameters such as sizing layout parameters cleanly beneath predefined constants.
+ * Records the delta shift log comparing the initial status variables automatically onto the activity log table.
+ * @param request - Next.js Request dictating the targeted `product_id` within the JSON alongside updated state configurations.
+ * @returns Server response acknowledging database execution blocks or passing back system errors.
+ */
 export async function PUT(request: NextRequest) {
   try {
     // Verify the requesting user is an admin

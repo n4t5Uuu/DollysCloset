@@ -14,6 +14,11 @@ const ALLOWED_IMAGE_MIME_TYPES = new Set([
 
 const ALLOWED_IMAGE_EXTENSIONS = new Set(["jpg", "jpeg", "png", "webp", "gif", "avif", "svg"]);
 
+/**
+ * Evaluates whether an incoming multi-part file matches system-defined safe image MIME types and extensions.
+ * @param file - The raw file object queued for validation prior to bucket placement.
+ * @returns A boolean confirmation regarding whether the object conforms securely.
+ */
 function isImageUpload(file: File) {
   const normalizedMimeType = (file.type || "").toLowerCase();
   if (normalizedMimeType && ALLOWED_IMAGE_MIME_TYPES.has(normalizedMimeType)) {
@@ -24,6 +29,14 @@ function isImageUpload(file: File) {
   return ALLOWED_IMAGE_EXTENSIONS.has(extension);
 }
 
+/**
+ * Manages securely uploading media blobs assigned as product gallery photos.
+ * Implements rigid limits capping maximum assigned images natively (max 5 per product sequence).
+ * Assigns chronological order values logically and logs success paths onto the general activity board via data helper schemas.
+ * Requires administrative or localized employee clearance tokens.
+ * @param request - Standard Next.js Request conveying the payload wrapping a generic target `product_id` and the multi-part photo.
+ * @returns An updated gallery JSON record representing successful logic writes reflecting the active public Supabase URL payload.
+ */
 export async function POST(request: NextRequest) {
   try {
     const authorization = request.headers.get("authorization");

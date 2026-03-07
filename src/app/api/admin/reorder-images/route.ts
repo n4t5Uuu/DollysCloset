@@ -3,6 +3,14 @@ import { admin } from "@/lib/supabase/admin";
 import { authHelper } from "@/lib/auth-helper";
 import { dataHelper } from "@/lib/data-helper";
 
+/**
+ * Reorders the display sequence of images tied to a specific product.
+ * Requires admin privileges via Bearer token authorization.
+ * Iterates through the provided array and sequentially updates the `display_order` mapping for each image.
+ * Logs the reordering activity into the `tbl_activity_log`.
+ * @param request - Next.js Request housing the authorization headers alongside `product_id` and `orderedImageIds` payload.
+ * @returns JSON response containing the newly updated order mappings across the relevant product's gallery.
+ */
 export async function PUT(request: NextRequest) {
   try {
     const authorization = request.headers.get("authorization");

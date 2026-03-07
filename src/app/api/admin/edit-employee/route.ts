@@ -3,6 +3,13 @@ import { authHelper } from "@/lib/auth-helper";
 import { dataHelper } from "@/lib/data-helper";
 import { admin } from "@/lib/supabase/admin";
 
+/**
+ * Handles modification logic surrounding existing employee accounts on the system.
+ * Modifiable footprints belong strictly to `tbl_users` data properties natively and Supabase explicit passwords.
+ * Generates an automated breakdown summarizing exactly what keys changed within the unified logs table.
+ * @param request - The Next.js request housing the Bearer auth block and JSON payloads containing names, IDs, or passwords.
+ * @returns A JSON string responding neutrally positive upon execution or throwing exceptions natively.
+ */
 export async function PUT(request: NextRequest) {
   try {
     // Verify the requesting user is an admin
@@ -92,8 +99,8 @@ export async function PUT(request: NextRequest) {
       message: 'Employee updated successfully'
     });
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error updating employee:', error);
-    return NextResponse.json({ error: error.message || 'Internal server error' }, { status: 500 });
+    return NextResponse.json({ error: error instanceof Error ? error.message : 'Internal server error' }, { status: 500 });
   }
 }

@@ -4,25 +4,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AlertTriangle, Loader2, Package, Pencil } from "lucide-react";
 import { browserSupabase } from "@/lib/supabase/browser";
 
-type ActivityLog = {
-    log_id: number;
-    created_at: string;
-    action_type: string;
-    product_id: number | string | null;
-    description: string;
-    editor: string | null;
-    user_id: string | number | null;
-};
-
-type InventoryProduct = {
-    product_id: number | string;
-    product_name: string;
-    product_price: number;
-    product_stock: number;
-    show_in_catalog: boolean;
-    image_id: string | null;
-    created_at: string;
-};
+import { ActivityLog } from "@/types/logs.types";
+import { InventoryProduct } from "@/types/inventory.types";
 
 const actionLabels: Record<string, string> = {
     create_product: "Listed",
@@ -161,10 +144,15 @@ export default function EmployeeDashboard() {
         [products]
     );
 
-    const now = new Date();
-    const weekStart = new Date(now);
-    weekStart.setDate(now.getDate() - 7);
-    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+    const weekStart = useMemo(() => {
+        const d = new Date();
+        d.setDate(d.getDate() - 7);
+        return d;
+    }, []);
+    const monthStart = useMemo(() => {
+        const d = new Date();
+        return new Date(d.getFullYear(), d.getMonth(), 1);
+    }, []);
 
     const myProductLogs = useMemo(() => {
         return logs.filter((log) =>

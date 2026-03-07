@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import { browserSupabase } from "@/lib/supabase/browser";
 import { authHelper } from "@/lib/auth-helper";
-import { dataHelper } from "@/lib/data-helper";
 import { User } from "@supabase/supabase-js";
 
 /**

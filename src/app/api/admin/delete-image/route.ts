@@ -3,6 +3,12 @@ import { admin } from "@/lib/supabase/admin";
 import { authHelper } from "@/lib/auth-helper";
 import { dataHelper } from "@/lib/data-helper";
 
+/**
+ * Extracts the specific file path portion from a full storage image URL.
+ * Intended to be passed securely to the Supabase Storage deletion command.
+ * @param imageUrl - Full incoming URL to parse.
+ * @returns Restructured internal storage bucket file path.
+ */
 function getStorageObjectPath(imageUrl: string) {
   try {
     const decodedUrl = decodeURIComponent(imageUrl);
@@ -19,6 +25,13 @@ function getStorageObjectPath(imageUrl: string) {
   }
 }
 
+/**
+ * Handles the removal of a specific product image from both the database and storage bucket.
+ * Verifies authorization to ensure the caller has inventory edit privileges.
+ * Seamlessly rebundles sibling images, adjusting their `is_primary` flags or `display_order` intelligently.
+ * @param request - The incoming Next.js DELETE request housing authorization headers and the `image_id` query parameter.
+ * @returns A generic success payload or a 500 status outlining why the task sequence failed.
+ */
 export async function DELETE(request: NextRequest) {
   try {
     const authorization = request.headers.get("authorization");

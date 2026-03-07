@@ -1,6 +1,7 @@
 import { TableHead } from "@/components/ui/table";
 import { ChevronUp, ChevronDown } from "lucide-react";
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function SortableHeader({ label, sortKey, sortConfig, onSort }: any) {
     const isActive = sortConfig.key === sortKey;
 

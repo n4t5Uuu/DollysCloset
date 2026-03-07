@@ -1,3 +1,6 @@
+/**
+ * Outlines strictly mapped schema boundaries reflecting `tbl_product` records loaded from the inventory database.
+ */
 export interface InventoryProduct {
     product_id: string;
     product_name: string;
@@ -13,6 +16,9 @@ export interface InventoryProduct {
     created_at: string;
 }
 
+/**
+ * Implements rigid typing rules against `tbl_category` references utilized heavily across filtering chains natively.
+ */
 export interface InventoryCategory {
     category_id: number;
     category_name: string;
@@ -20,6 +26,9 @@ export interface InventoryCategory {
     parent_category: number | null;
 }
 
+/**
+ * Identifies standard payloads fetched across `tbl_product_image` managing gallery sorting explicitly via `display_order`.
+ */
 export interface InventoryProductImage {
     image_id: string;
     product_id: string;

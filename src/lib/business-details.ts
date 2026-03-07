@@ -1,24 +1,16 @@
+import {
+  ContactFieldKey,
+  ContactDetailsPayload,
+  AboutFieldKey,
+  AboutDetailsPayload,
+  BusinessDetailsRowLike
+} from "@/types/business-details.types";
+
 export const CONTACT_SLUG = "contact";
 export const ABOUT_SLUG = "about";
 export const ANNOUNCEMENT_SLUG = "announcement";
 export const ANNOUNCEMENT_TITLE = "Announcement Text";
 export const defaultAnnouncementText = "Free shipping on orders over ₱2,000  •  New arrivals every friday  •";
-
-export type ContactFieldKey =
-  | "introText"
-  | "facebookName"
-  | "facebookLink"
-  | "instagramHandle"
-  | "instagramLink"
-  | "viberName"
-  | "viberLink"
-  | "contactNumberDisplay"
-  | "contactNumberLink"
-  | "address"
-  | "weekdaysHours"
-  | "weekendHours";
-
-export type ContactDetailsPayload = Record<ContactFieldKey, string>;
 
 export const CONTACT_LABEL_BY_KEY: Record<ContactFieldKey, string> = {
   introText: "Intro Text",
@@ -50,12 +42,7 @@ export const defaultContactDetails: ContactDetailsPayload = {
   weekendHours: "10:00 AM - 5:00 PM",
 };
 
-export type ContactFieldConfig = {
-  key: ContactFieldKey;
-  label: string;
-  type: "input" | "textarea";
-  minHeightClassName?: string;
-};
+import { ContactFieldConfig } from "@/types/business-details.types";
 
 export const CONTACT_FIELD_CONFIG: ContactFieldConfig[] = [
   { key: "facebookName", label: CONTACT_LABEL_BY_KEY.facebookName, type: "input" },
@@ -71,27 +58,7 @@ export const CONTACT_FIELD_CONFIG: ContactFieldConfig[] = [
   { key: "address", label: CONTACT_LABEL_BY_KEY.address, type: "textarea", minHeightClassName: "min-h-[90px]" },
 ];
 
-export type AboutFieldKey =
-  | "aboutBody"
-  | "historyBody"
-  | "question1"
-  | "answer1"
-  | "question2"
-  | "answer2"
-  | "question3"
-  | "answer3"
-  | "question4"
-  | "answer4"
-  | "question5"
-  | "answer5"
-  | "question6"
-  | "answer6"
-  | "question7"
-  | "answer7"
-  | "question8"
-  | "answer8";
-
-export type AboutDetailsPayload = Record<AboutFieldKey, string>;
+ 
 
 export const ABOUT_LABEL_BY_KEY: Record<AboutFieldKey, string> = {
   aboutBody: "About Dolly's Closet Body",
@@ -147,12 +114,7 @@ export const defaultAboutDetails: AboutDetailsPayload = {
   answer8: "We do not offer reservations. Our items are sold on a first-come, first-served basis.",
 };
 
-export type AboutFieldConfig = {
-  key: AboutFieldKey;
-  label: string;
-  type: "input" | "textarea";
-  minHeightClassName?: string;
-};
+import { AboutFieldConfig } from "@/types/business-details.types";
 
 export const ABOUT_SECTION_FIELD_CONFIG: AboutFieldConfig[] = [
   { key: "aboutBody", label: "About Dolly's Closet Body", type: "textarea", minHeightClassName: "min-h-[180px]" },
@@ -178,33 +140,59 @@ export const FAQ_FIELD_CONFIG: AboutFieldConfig[] = [
   { key: "answer8", label: "Answer 8", type: "textarea", minHeightClassName: "min-h-[90px]" },
 ];
 
-export type BusinessDetailsRowLike = {
-  title?: string | null;
-  body?: string | null;
-};
+ 
 
+/**
+ * Normalizes a given text value by trimming whitespace and converting to lowercase.
+ * This is primarily intended for consistent string comparison.
+ * @param value - The input text to format.
+ * @returns The resulting formatted string.
+ */
 export function normalizeTitle(value: string) {
   return value.trim().toLowerCase();
 }
 
+/**
+ * Safeguards rendering and logic against non-string equivalents by coercing them 
+ * appropriately without turning null/undefined into string literals.
+ * @param value - An unknown value to textify.
+ * @returns A strictly parsed string representation, or empty string if logically nullish.
+ */
 export function toText(value: unknown) {
   if (typeof value === "string") return value;
   if (value === null || value === undefined) return "";
   return String(value);
 }
 
+/**
+ * Evaluates whether a provided string maps directly to a standard external web uniform resource representation.
+ * @param value - Address value.
+ * @returns Truthy determination on URL compliance.
+ */
 function looksLikeExternalLink(value: string) {
   const trimmed = value.trim().toLowerCase();
   if (!trimmed || trimmed === "#") return false;
   return trimmed.startsWith("http://") || trimmed.startsWith("https://") || trimmed.startsWith("www.");
 }
 
+/**
+ * Checks if a string acts as a valid telephone link structure natively recognized by mobile platforms.
+ * @param value - The input telephone string.
+ * @returns True if structurally conforming to standard telephonic patterns.
+ */
 function looksLikePhoneLink(value: string) {
   const trimmed = value.trim().toLowerCase();
   if (!trimmed) return false;
   return trimmed.startsWith("tel:") || /^\+?[\d\s\-()]{7,}$/.test(trimmed);
 }
 
+/**
+ * Restructures legacy or loosely identified system keys enforcing stricter adherence to semantic expectations automatically.
+ * Ensures display handles get normalized over to literal link configurations if appropriate contexts match natively seamlessly.
+ * @param key - Identified contact schema payload key originally.
+ * @param value - Contact payload value corresponding.
+ * @returns Redefined strictest key variant conceptually correctly aligned gracefully.
+ */
 function normalizeResolvedContactKey(key: ContactFieldKey | null, value: string): ContactFieldKey | null {
   if (!key) return null;
 
@@ -227,6 +215,12 @@ function normalizeResolvedContactKey(key: ContactFieldKey | null, value: string)
   return key;
 }
 
+/**
+ * Attempts to match a string descriptor onto a predefined internal contact data key.
+ * Used when reading loose column headers or parsing form inputs.
+ * @param value - The external name/label for the contact property.
+ * @returns The strictly typed ContactFieldKey it matched to, or null if unknown.
+ */
 export function resolveContactKey(value: string): ContactFieldKey | null {
   const normalized = normalizeTitle(value);
 
@@ -260,6 +254,11 @@ export function resolveContactKey(value: string): ContactFieldKey | null {
   return null;
 }
 
+/**
+ * Attempts to match a string descriptor onto a predefined internal about data key.
+ * @param value - The external name/label for the about/FAQ property.
+ * @returns The strictly typed AboutFieldKey it matched to, or null if unknown.
+ */
 export function resolveAboutKey(value: string): AboutFieldKey | null {
   const normalized = normalizeTitle(value);
 
@@ -272,6 +271,12 @@ export function resolveAboutKey(value: string): AboutFieldKey | null {
   return null;
 }
 
+/**
+ * Parses and reconstructs the contact details object from different acceptable input types (e.g. JSON strings).
+ * Fills any missing critical fields with default constants to maintain type guarantee.
+ * @param rawBody - The raw data format of the contact body logic.
+ * @returns The resulting safely constrained object mapping key details for contacts.
+ */
 export function parseContactBody(rawBody: unknown): ContactDetailsPayload {
   if (!rawBody) {
     return defaultContactDetails;
@@ -299,6 +304,12 @@ export function parseContactBody(rawBody: unknown): ContactDetailsPayload {
   }
 }
 
+/**
+ * Parses and reconstructs the "about page" details object from different incoming types.
+ * Will overlay incoming data over predefined safely typed defaults.
+ * @param rawBody - The raw "about text" details context.
+ * @returns The securely bound mapping structure for the "About Dolly's Closet" page.
+ */
 export function parseAboutBody(rawBody: unknown): AboutDetailsPayload {
   if (!rawBody) {
     return defaultAboutDetails;
@@ -326,6 +337,12 @@ export function parseAboutBody(rawBody: unknown): AboutDetailsPayload {
   }
 }
 
+/**
+ * Scans through loosely formatted generic data rows and interprets them into a contact context.
+ * Normalizes phone numbers, titles, social media tags, addresses and unifies them into a single record.
+ * @param rows - Raw array grouping rows mimicking generic database content.
+ * @returns Combined slug and structured record object mapped to Contact details.
+ */
 export function buildContactAggregate(rows: BusinessDetailsRowLike[]) {
   const body: Partial<ContactDetailsPayload> = {};
   const capturedKeys = new Set<ContactFieldKey>();
@@ -384,6 +401,12 @@ export function buildContactAggregate(rows: BusinessDetailsRowLike[]) {
   };
 }
 
+/**
+ * Reads potentially malformed row inputs and reconstructs them into an "about/history/faq" schema context.
+ * Uses parsing rules defined across labels to safely inject values where they belong.
+ * @param rows - Databound arrays storing vague structural strings.
+ * @returns Composed format ready to map straight to the About UI.
+ */
 export function buildAboutAggregate(rows: BusinessDetailsRowLike[]) {
   const body: Partial<AboutDetailsPayload> = {};
   const capturedKeys = new Set<AboutFieldKey>();

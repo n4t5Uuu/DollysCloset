@@ -1,3 +1,6 @@
+/**
+ * Delineates standard database return blocks tied exclusively against `tbl_users` entities restricted via explicit permissions inherently.
+ */
 export interface Employee {
     user_key: string;
     id: string;

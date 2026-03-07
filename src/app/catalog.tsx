@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useCallback } from "react";
 
 import FeatureCardCarousel from "@/components/catalog/FeatureCardCarousel";
 import SearchBar from "@/components/general-components/SearchBar";
@@ -14,28 +14,7 @@ import { InView } from "@/components/motion-primitives/in-view";
 import { Button } from "@/components/ui/button";
 import { ANNOUNCEMENT_SLUG, defaultAnnouncementText } from "@/lib/business-details";
 
-type CatalogCategory = {
-    category_id: number;
-    category_name: string;
-    parent_category: number | null;
-};
-
-type CatalogApiProduct = {
-    id: string;
-    name: string;
-    categoryId: number;
-    categoryName: string;
-    categoryPath: string;
-    price: number;
-    brand: string;
-    size: string;
-    condition: string;
-    description: string;
-    stock: number;
-    isNewArrival: boolean;
-    images: string[];
-    createdAt: string;
-};
+import { CatalogCategory, CatalogApiProduct } from "@/types/product.types";
 
 function toViewProduct(product: CatalogApiProduct): Product {
     return {
@@ -152,7 +131,7 @@ export default function Catalog() {
         }, new Map<string, number[]>());
     }, [categories]);
 
-    const collectDescendantCategoryIds = (categoryId: number) => {
+    const collectDescendantCategoryIds = useCallback((categoryId: number) => {
         const visited = new Set<number>();
         const stack: number[] = [categoryId];
 
@@ -170,7 +149,7 @@ export default function Catalog() {
         }
 
         return visited;
-    };
+    }, [childrenByParent]);
     
     const filteredProducts = useMemo(() => {
         let list = [...products];
@@ -217,7 +196,7 @@ export default function Catalog() {
         }
 
         return list;
-    }, [products, activeFilter, sortBy, childrenByParent, rootCategoryIdsByName, searchQuery]);
+    }, [products, activeFilter, sortBy, rootCategoryIdsByName, searchQuery, collectDescendantCategoryIds]);
 
     const totalPages = Math.max(1, Math.ceil(filteredProducts.length / itemsPerPage));
     const paginatedProducts = filteredProducts.slice(

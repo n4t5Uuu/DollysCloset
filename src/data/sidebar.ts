@@ -1,10 +1,10 @@
-import {LucideIcon, Home, ChartArea, IdCardLanyard, Logs, Box} from "lucide-react"
+import { Home, ChartArea, IdCardLanyard, Logs, Box } from "lucide-react"
 
-interface SidebarInterface {
-    tabName: string
-    icon: LucideIcon
-}
+import { SidebarInterface } from "@/types/ui.types";
 
+/**
+ * Dictates static sidebar tab properties restricted visually mapping over an `admin` domain environment inherently.
+ */
 export const adminSidebar: SidebarInterface[] = [
     {
         tabName: "Home",
@@ -29,6 +29,9 @@ export const adminSidebar: SidebarInterface[] = [
 
 ]
 
+/**
+ * Dictates static sidebar tab properties constrained to standard `employee` role limits natively.
+ */
 export const employeeSidebar: SidebarInterface[] = [
     {
         tabName: "Home",

@@ -4,7 +4,7 @@ import { authHelper } from "@/lib/auth-helper";
 import { createServerSupabase } from "@/lib/supabase/server";
 import EmployeeSidebar from "@/components/sidebar/EmployeeSidebar";
 import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
-import { dataHelper } from "@/lib/data-helper";
+
 
 export const dynamic = "force-dynamic";
 

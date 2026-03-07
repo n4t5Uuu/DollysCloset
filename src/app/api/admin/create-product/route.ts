@@ -5,6 +5,13 @@ import { admin } from "@/lib/supabase/admin";
 
 const MAX_META_LENGTH = 9;
 
+/**
+ * Submits metadata properties encapsulating a brand-new catalog product into the database mapping `tbl_product`.
+ * Constrains meta variables explicitly inside system bounds (e.g., maximum string layouts for arbitrary labels).
+ * Can be conducted by either administrative or standard 'employee' authenticated profiles.
+ * @param request - The Next.js Request specifying category relationships, cost parameters, and arbitrary flags formatted as JSON.
+ * @returns Response reporting the specific `product_id` and values injected natively inside DB if operations clear.
+ */
 export async function POST(request: NextRequest) {
   try {
     // Verify the requesting user is an admin

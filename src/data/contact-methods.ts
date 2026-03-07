@@ -1,5 +1,9 @@
 import {Facebook, Instagram, MessageCircle, Phone} from "lucide-react";
 
+/**
+ * Centralized list reflecting predefined contact configurations matched logically against visual Lucide icons.
+ * Forms baseline iterative elements representing generic footers or contact UI bounds.
+ */
 export const contactMethods = [
     {
         icon: Facebook,
