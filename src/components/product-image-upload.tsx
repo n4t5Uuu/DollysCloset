@@ -17,7 +17,6 @@ export default function ProductImageUpload({
   productId,
   images,
   onImagesChange,
-  loading = false,
 }: ProductImageUploadProps) {
   const [uploading, setUploading] = useState(false);
   const [dragActive, setDragActive] = useState(false);
@@ -247,6 +246,7 @@ export default function ProductImageUpload({
               key={image.image_id}
               className="relative group border border-gray-200 rounded-lg overflow-hidden bg-gray-100"
             >
+              {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src={image.image_url}
                 alt={`Product image ${index + 1}`}

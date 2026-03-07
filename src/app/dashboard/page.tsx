@@ -3,7 +3,7 @@ import { createServerSupabase } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import AdminDashboard from "@/components/dashboards/AdminDashboard";
 import EmployeeDashboard from "@/components/dashboards/EmployeeDashboard";
-import { dataHelper } from "@/lib/data-helper";
+
 
 export default async function DashboardPage() {
     const supabase = await createServerSupabase();

@@ -4,7 +4,6 @@ import { createServerSupabase } from "@/lib/supabase/server";
 import AdminSidebar from "@/components/sidebar/AdminSidebar";
 import EmployeeSidebar from "@/components/sidebar/EmployeeSidebar";
 import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
-import { dataHelper } from "@/lib/data-helper";
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
     const supabase = await createServerSupabase();

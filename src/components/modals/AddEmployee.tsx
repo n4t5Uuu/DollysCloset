@@ -57,7 +57,7 @@ export default function AddEmployee({ isOpen, onClose, employeeToEdit, onEmploye
             const endpoint = employeeToEdit ? '/api/admin/edit-employee' : '/api/admin/create-employee';
             const method = employeeToEdit ? 'PUT' : 'POST';
             
-            const body: any = {
+            const body: Record<string, string> = {
                 username: formData.username,
                 first_name: formData.first_name,
                 last_name: formData.last_name,
@@ -87,9 +87,9 @@ export default function AddEmployee({ isOpen, onClose, employeeToEdit, onEmploye
 
             onEmployeeSaved();
             onClose();
-        } catch (err: any) {
+        } catch (err: unknown) {
             console.error('Error saving employee:', err);
-            setError(err.message || 'Failed to save employee');
+            setError(err instanceof Error ? err.message : 'Failed to save employee');
         } finally {
             setActionLoading(false);
         }

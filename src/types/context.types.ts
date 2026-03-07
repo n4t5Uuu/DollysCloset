@@ -1,4 +1,3 @@
-import { ReactNode } from "react";
 import { Product } from "./product.types";
 import { CatalogStatus, ActivityLog } from "./logs.types";
 

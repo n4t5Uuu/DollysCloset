@@ -21,8 +21,6 @@ let cachedBusinessDetailsTable: string | null = null;
 
 import {
   BusinessDetailsRow,
-  AdminValidationSuccess,
-  AdminValidationFailure,
   AdminValidationResult
 } from "@/types/business-details.types";
 

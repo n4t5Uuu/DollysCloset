@@ -164,18 +164,35 @@ export function toText(value: unknown) {
   return String(value);
 }
 
+/**
+ * Evaluates whether a provided string maps directly to a standard external web uniform resource representation.
+ * @param value - Address value.
+ * @returns Truthy determination on URL compliance.
+ */
 function looksLikeExternalLink(value: string) {
   const trimmed = value.trim().toLowerCase();
   if (!trimmed || trimmed === "#") return false;
   return trimmed.startsWith("http://") || trimmed.startsWith("https://") || trimmed.startsWith("www.");
 }
 
+/**
+ * Checks if a string acts as a valid telephone link structure natively recognized by mobile platforms.
+ * @param value - The input telephone string.
+ * @returns True if structurally conforming to standard telephonic patterns.
+ */
 function looksLikePhoneLink(value: string) {
   const trimmed = value.trim().toLowerCase();
   if (!trimmed) return false;
   return trimmed.startsWith("tel:") || /^\+?[\d\s\-()]{7,}$/.test(trimmed);
 }
 
+/**
+ * Restructures legacy or loosely identified system keys enforcing stricter adherence to semantic expectations automatically.
+ * Ensures display handles get normalized over to literal link configurations if appropriate contexts match natively seamlessly.
+ * @param key - Identified contact schema payload key originally.
+ * @param value - Contact payload value corresponding.
+ * @returns Redefined strictest key variant conceptually correctly aligned gracefully.
+ */
 function normalizeResolvedContactKey(key: ContactFieldKey | null, value: string): ContactFieldKey | null {
   if (!key) return null;
 

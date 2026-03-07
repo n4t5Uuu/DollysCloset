@@ -144,10 +144,15 @@ export default function EmployeeDashboard() {
         [products]
     );
 
-    const now = new Date();
-    const weekStart = new Date(now);
-    weekStart.setDate(now.getDate() - 7);
-    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+    const weekStart = useMemo(() => {
+        const d = new Date();
+        d.setDate(d.getDate() - 7);
+        return d;
+    }, []);
+    const monthStart = useMemo(() => {
+        const d = new Date();
+        return new Date(d.getFullYear(), d.getMonth(), 1);
+    }, []);
 
     const myProductLogs = useMemo(() => {
         return logs.filter((log) =>

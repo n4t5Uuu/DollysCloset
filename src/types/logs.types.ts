@@ -5,8 +5,8 @@ export type CatalogStatus = "featured" | "standard" | "unlisted";
 
 export type FieldChange = {
     field: string;
-    oldValue: any;
-    newValue: any;
+    oldValue: unknown;
+    newValue: unknown;
 };
 
 /**
@@ -44,5 +44,5 @@ export interface LogActivityProps {
     description?: string;
     editor?: string | null;
     user_id?: string | number | null;
-    supabase?: any;
+    supabase?: unknown;
 }

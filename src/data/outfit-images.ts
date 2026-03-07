@@ -4,7 +4,6 @@ import img3 from "@/assets/images/outfits/Sweatshirt-With-Baggy-Jeans.jpg";
 import img4 from "@/assets/images/outfits/all-black-fit.jpg";
 import img5 from "@/assets/images/outfits/shorts-fit.jpg";
 import img6 from "@/assets/images/outfits/women-with-baggy-pants-and-trench-coat.jpg";
-import { StaticImageData } from "next/image";
 
 import { OutfitImage } from "@/types/outfits.types";
 

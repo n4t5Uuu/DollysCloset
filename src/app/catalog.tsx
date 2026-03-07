@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useCallback } from "react";
 
 import FeatureCardCarousel from "@/components/catalog/FeatureCardCarousel";
 import SearchBar from "@/components/general-components/SearchBar";
@@ -131,7 +131,7 @@ export default function Catalog() {
         }, new Map<string, number[]>());
     }, [categories]);
 
-    const collectDescendantCategoryIds = (categoryId: number) => {
+    const collectDescendantCategoryIds = useCallback((categoryId: number) => {
         const visited = new Set<number>();
         const stack: number[] = [categoryId];
 
@@ -149,7 +149,7 @@ export default function Catalog() {
         }
 
         return visited;
-    };
+    }, [childrenByParent]);
     
     const filteredProducts = useMemo(() => {
         let list = [...products];
@@ -196,7 +196,7 @@ export default function Catalog() {
         }
 
         return list;
-    }, [products, activeFilter, sortBy, childrenByParent, rootCategoryIdsByName, searchQuery]);
+    }, [products, activeFilter, sortBy, rootCategoryIdsByName, searchQuery, collectDescendantCategoryIds]);
 
     const totalPages = Math.max(1, Math.ceil(filteredProducts.length / itemsPerPage));
     const paginatedProducts = filteredProducts.slice(

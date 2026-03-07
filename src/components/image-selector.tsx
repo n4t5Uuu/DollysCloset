@@ -101,6 +101,7 @@ export default function ImageSelector({
               key={`${file.name}-${index}`}
               className="relative group border border-black rounded-lg overflow-hidden bg-gray-100"
             >
+              {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src={URL.createObjectURL(file)}
                 alt={`Staged image ${index + 1}`}

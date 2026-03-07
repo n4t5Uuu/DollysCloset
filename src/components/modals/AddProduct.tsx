@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { Loader2, X } from "lucide-react";
 import { browserSupabase } from "@/lib/supabase/browser";
 import { Button } from "@/components/ui/button";
@@ -272,7 +272,7 @@ export default function AddProduct({ isOpen, onClose, categories, productToEdit,
         [categories]
     );
 
-    const buildCategoryPathLabel = (category: Category) => {
+    const buildCategoryPathLabel = useCallback((category: Category) => {
         const path: string[] = [category.category_name];
         let parentId = category.parent_category;
         const visited = new Set<number>([Number(category.category_id)]);
@@ -289,7 +289,7 @@ export default function AddProduct({ isOpen, onClose, categories, productToEdit,
         }
 
         return path.join(" > ");
-    };
+    }, [categoryById]);
 
     const categoriesWithChildren = useMemo(
         () => new Set(
@@ -314,7 +314,7 @@ export default function AddProduct({ isOpen, onClose, categories, productToEdit,
             ...cat,
             normalizedId: normalizeCategoryId(cat.category_id),
             displayLabel: buildCategoryPathLabel(cat),
-        })), [selectableCategories]);
+        })), [selectableCategories, buildCategoryPathLabel]);
 
     const normalizedSelectedCategory = normalizeCategoryId(formData.category_id);
 

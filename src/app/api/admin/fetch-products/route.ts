@@ -30,7 +30,7 @@ export async function GET() {
     
     return NextResponse.json({ data: data || [] })
     
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error('Unexpected error:', err)
     return NextResponse.json(
       { error: 'Failed to fetch products' },

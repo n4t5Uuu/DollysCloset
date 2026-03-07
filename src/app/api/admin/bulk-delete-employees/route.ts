@@ -83,8 +83,8 @@ export async function DELETE(request: NextRequest) {
       failed_count: failures.length
     });
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error bulk deleting employees:', error);
-    return NextResponse.json({ error: error.message || 'Internal server error' }, { status: 500 });
+    return NextResponse.json({ error: error instanceof Error ? error.message : 'Internal server error' }, { status: 500 });
   }
 }

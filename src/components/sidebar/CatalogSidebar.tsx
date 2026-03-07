@@ -113,7 +113,7 @@ export default function CatalogSidebar({ categories, activeFilter, sortBy, onFil
                     key={category.category_id}
                     onClick={() => handleFilterChange(filterValue)}
                     className={cn(
-                        "group w-full rounded-md px-2.5 text-left font-montserrat transition-colors duration-200",
+                        "group w-full cursor-pointer rounded-md px-2.5 text-left font-montserrat transition-colors duration-200",
                         depth === 0 ? "text-base font-medium tracking-wide py-1.5" : "text-sm py-1.5",
                         activeFilter === filterValue
                             ? "bg-[#121212] text-[#E7A3B0] font-semibold"
@@ -134,7 +134,7 @@ export default function CatalogSidebar({ categories, activeFilter, sortBy, onFil
             <AccordionItem value={`item-${category.category_id}-${depth}`} key={`${category.category_id}-${depth}`} className="border-none">
                 <AccordionTrigger
                     className={cn(
-                        "rounded-md px-2.5 font-montserrat cursor-pointer py-2 hover:no-underline text-gray-700 [&>svg]:text-[#94a3b8] [&>svg]:size-3.5 data-[state=open]:bg-[#fff5f7] data-[state=open]:text-[#E7A3B0]",
+                        "rounded-md px-2.5 font-montserrat cursor-pointer py-2 hover:no-underline text-gray-700 hover:bg-[#fff5f7] hover:text-[#E7A3B0] [&>svg]:text-[#94a3b8] [&>svg]:size-3.5 data-[state=open]:bg-[#fff5f7] data-[state=open]:text-[#E7A3B0]",
                         depth === 0 ? "text-base font-medium tracking-wide" : "text-sm"
                     )}
                     style={{ paddingLeft: `${8 + depth * 14}px` }}
@@ -184,7 +184,7 @@ export default function CatalogSidebar({ categories, activeFilter, sortBy, onFil
             <AccordionItem value={`root-${group.key}`} key={`root-${group.key}`} className="border-none">
                 <AccordionTrigger
                     className={cn(
-                        "rounded-md px-2.5 font-montserrat cursor-pointer py-2 hover:no-underline text-gray-700 text-base font-semibold tracking-wide [&>svg]:text-[#94a3b8] [&>svg]:size-3.5 data-[state=open]:bg-[#fff5f7] data-[state=open]:text-[#E7A3B0]",
+                        "rounded-md px-2.5 font-montserrat cursor-pointer py-2 hover:no-underline text-gray-700 hover:bg-[#fff5f7] hover:text-[#E7A3B0] text-base font-semibold tracking-wide [&>svg]:text-[#94a3b8] [&>svg]:size-3.5 data-[state=open]:bg-[#fff5f7] data-[state=open]:text-[#E7A3B0]",
                         activeFilter === rootFilterValue ? "text-[#E7A3B0] font-bold" : ""
                     )}
                 >
@@ -231,7 +231,7 @@ export default function CatalogSidebar({ categories, activeFilter, sortBy, onFil
                         <button
                             type="button"
                             onClick={() => setTreeRenderKey((previous) => previous + 1)}
-                            className="text-xs text-gray-400 hover:text-[#E7A3B0] transition-colors"
+                            className="text-xs text-gray-400 cursor-pointer hover:text-[#E7A3B0] transition-colors"
                         >
                             Collapse all
                         </button>
@@ -241,7 +241,7 @@ export default function CatalogSidebar({ categories, activeFilter, sortBy, onFil
                     <div className="flex flex-col gap-1 px-2 py-2">
                     <button 
                         onClick={() => handleFilterChange("all")}
-                        className={cn("text-left rounded-md px-2.5 py-2 font-montserrat text-sm font-medium transition-colors duration-200 hover:text-[#E7A3B0] hover:bg-[#fff5f7]", 
+                        className={cn("text-left cursor-pointer rounded-md px-2.5 py-2 font-montserrat text-sm font-medium transition-colors duration-200 hover:text-[#E7A3B0] hover:bg-[#fff5f7]", 
                                 activeFilter === "all" ? "bg-[#121212] text-[#E7A3B0] font-semibold" : "text-gray-600")}
                     >
                         All Products
@@ -249,7 +249,7 @@ export default function CatalogSidebar({ categories, activeFilter, sortBy, onFil
 
                     <button 
                         onClick={() => handleFilterChange("new")}
-                        className={cn("text-left rounded-md px-2.5 py-2 font-montserrat text-sm font-medium transition-colors duration-200 hover:text-[#E7A3B0] hover:bg-[#fff5f7]", 
+                        className={cn("text-left cursor-pointer rounded-md px-2.5 py-2 font-montserrat text-sm font-medium transition-colors duration-200 hover:text-[#E7A3B0] hover:bg-[#fff5f7]", 
                                 activeFilter === "new" ? "bg-[#121212] text-[#E7A3B0] font-semibold" : "text-gray-600")}
                     
                     >
@@ -270,17 +270,17 @@ export default function CatalogSidebar({ categories, activeFilter, sortBy, onFil
                     </h3>
                 </div>
                 <Select value={sortBy} onValueChange={handleSortChange}>
-                    <SelectTrigger className="w-full bg-white border border-gray-200 rounded-none font-montserrat text-sm focus:ring-1 focus:ring-[#E7A3B0] text-black h-10">
+                    <SelectTrigger className="w-full bg-white border border-gray-200 rounded-md font-montserrat text-sm focus:ring-0 focus:ring-offset-0 focus-visible:ring-0 focus-visible:ring-offset-0 focus-visible:outline-none text-black h-10">
                         <SelectValue placeholder="Sort option" />
                     </SelectTrigger>
-                    <SelectContent>
-                        <SelectItem value="newest" className="font-montserrat">
+                    <SelectContent className="bg-white border-gray-200 text-black">
+                        <SelectItem value="newest" className="font-montserrat text-black focus:bg-[#fff5f7] focus:text-[#E7A3B0] cursor-pointer">
                             Newest First
                         </SelectItem>
-                        <SelectItem value="price-low" className="font-montserrat">
+                        <SelectItem value="price-low" className="font-montserrat text-black focus:bg-[#fff5f7] focus:text-[#E7A3B0] cursor-pointer">
                             Price: Low to High
                         </SelectItem>
-                        <SelectItem value="price-high" className="font-montserrat">
+                        <SelectItem value="price-high" className="font-montserrat text-black focus:bg-[#fff5f7] focus:text-[#E7A3B0] cursor-pointer">
                             Price: High to Low
                         </SelectItem>
                     </SelectContent>

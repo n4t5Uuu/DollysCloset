@@ -1,4 +1,4 @@
-import {LucideIcon, Home, ChartArea, IdCardLanyard, Logs, Box} from "lucide-react"
+import { Home, ChartArea, IdCardLanyard, Logs, Box } from "lucide-react"
 
 import { SidebarInterface } from "@/types/ui.types";
 

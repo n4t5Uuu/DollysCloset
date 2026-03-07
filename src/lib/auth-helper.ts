@@ -61,6 +61,7 @@ export const authHelper = {
      * @param supabase - The Supabase client to use (defaults to browserSupabase).
      * @returns An object containing the user's role data or an error if the query fails.
      */
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     async getUserRole(user_id: string, supabase: any = browserSupabase) {
         const { data, error } = await supabase.from("tbl_users")
             .select("role")
