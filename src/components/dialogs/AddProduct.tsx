@@ -24,6 +24,7 @@ import {
     CardTitle,
 } from "@/components/ui/card";
 import { InventoryProduct as Product, InventoryCategory as Category, InventoryProductImage as ProductImage } from "@/types/inventory.types";
+import DiscardChangesDialog from "@/components/dialogs/DiscardChangesDialog";
 
 // Define interfaces locally to match the usage in the inventory page
 // Ideally these should be in a shared types file
@@ -62,6 +63,46 @@ export default function AddProduct({ isOpen, onClose, categories, productToEdit,
     const [error, setError] = useState<string | null>(null);
     const [stagedFiles, setStagedFiles] = useState<File[]>([]);
     const [productImages, setProductImages] = useState<ProductImage[]>([]);
+
+    const [showDiscardConfirm, setShowDiscardConfirm] = useState(false);
+
+    const hasUnsavedChanges = () => {
+        const normalizeString = (str: string | null | undefined) => (str || "").trim();
+        if (productToEdit) {
+            return (
+                formData.product_name !== productToEdit.product_name ||
+                formData.category_id !== normalizeCategoryId(productToEdit.category_id) ||
+                formData.product_price !== productToEdit.product_price.toString() ||
+                formData.product_brand !== normalizeString(productToEdit.product_brand) ||
+                formData.product_description !== normalizeString(productToEdit.product_description) ||
+                formData.product_stock !== productToEdit.product_stock.toString() ||
+                formData.product_condition !== (productToEdit.product_condition || "New").slice(0, MAX_META_LENGTH) ||
+                formData.size_label !== (productToEdit.size_label || "One Size").slice(0, MAX_META_LENGTH) ||
+                formData.show_in_catalog !== productToEdit.show_in_catalog ||
+                stagedFiles.length > 0
+            );
+        }
+        return (
+            formData.product_name !== "" ||
+            formData.category_id !== "" ||
+            formData.product_price !== "" ||
+            formData.product_brand !== "" ||
+            formData.product_description !== "" ||
+            formData.product_stock !== "" ||
+            formData.product_condition !== "New" ||
+            formData.size_label !== "One Size" ||
+            formData.show_in_catalog !== true ||
+            stagedFiles.length > 0
+        );
+    };
+
+    const handleClose = () => {
+        if (hasUnsavedChanges()) {
+            setShowDiscardConfirm(true);
+        } else {
+            onClose();
+        }
+    };
 
     const [formData, setFormData] = useState({
         product_name: "",
@@ -329,7 +370,7 @@ export default function AddProduct({ isOpen, onClose, categories, productToEdit,
             <Card className="bg-white w-full max-w-2xl max-h-[90vh] overflow-y-auto p-0">
                 <CardHeader className="flex flex-row items-center justify-between border-b p-6 space-y-0 text-gray-900">
                     <CardTitle className="text-gray-900">{productToEdit ? "Edit Product" : "Add Product"}</CardTitle>
-                    <button onClick={onClose} disabled={actionLoading} className="text-gray-400 hover:text-gray-600 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed">
+                    <button type="button" onClick={handleClose} disabled={actionLoading} className="text-gray-400 hover:text-gray-600 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed">
                         <X className="w-5 h-5" />
                     </button>
                 </CardHeader>
@@ -481,7 +522,7 @@ export default function AddProduct({ isOpen, onClose, categories, productToEdit,
                     </CardContent>
 
                     <CardFooter className="flex gap-3 p-6 border-t bg-gray-50">
-                        <Button type="button" variant="outline" onClick={onClose} disabled={actionLoading} className="flex-1 border-gray-300 text-gray-700 bg-white hover:bg-white hover:text-black transition-all duration-300 hover:scale-105 hover:shadow-md hover:border-gray-400 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 disabled:hover:shadow-none">Cancel</Button>
+                        <Button type="button" variant="outline" onClick={handleClose} disabled={actionLoading} className="flex-1 border-gray-300 text-gray-700 bg-white hover:bg-white hover:text-black transition-all duration-300 hover:scale-105 hover:shadow-md hover:border-gray-400 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 disabled:hover:shadow-none">Cancel</Button>
                         <Button type="submit" className="flex-1 bg-[#E7A3B0] hover:bg-[#ca8c98] text-white transition-all duration-300 hover:scale-[1.03] active:scale-95 shadow-sm hover:shadow-md" disabled={actionLoading}>
                             {actionLoading ? (<>
                                 <Loader2 className="w-4 h-4 mr-2 animate-spin" />
@@ -493,6 +534,12 @@ export default function AddProduct({ isOpen, onClose, categories, productToEdit,
                     </CardFooter>
                 </form>
             </Card>
+
+            <DiscardChangesDialog
+                isOpen={showDiscardConfirm}
+                onOpenChange={setShowDiscardConfirm}
+                onDiscard={onClose}
+            />
         </div>
     );
 }

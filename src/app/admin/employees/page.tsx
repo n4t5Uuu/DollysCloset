@@ -4,7 +4,7 @@
 import { useState, useEffect } from "react";
 import { Plus, Search, X, AlertTriangle, Trash, Loader2 } from "lucide-react";
 import { browserSupabase } from "@/lib/supabase/browser";
-import AddEmployee from "@/components/modals/AddEmployee";
+import AddEmployee from "@/components/dialogs/AddEmployee";
 import { EmployeeTable } from "@/components/tables/EmployeeTable";
 import { Employee } from "@/types/employee.types";
 import {
@@ -15,6 +15,10 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from "@/components/ui/pagination";
+
+import ViewEmployeeDialog from "@/components/dialogs/ViewEmployeeDialog";
+import DeleteEmployeeDialog from "@/components/dialogs/DeleteEmployeeDialog";
+import BulkDeleteEmployeeDialog from "@/components/dialogs/BulkDeleteEmployeeDialog";
 
 export default function EmployeesPage() {
   const [employees, setEmployees] = useState<Employee[]>([]);
@@ -427,187 +431,33 @@ export default function EmployeesPage() {
 
       {/* View Employee Modal */}
       {showViewModal && selectedEmployee && (
-        <Modal onClose={() => setShowViewModal(false)} title="Employee Details">
-          <div className="space-y-4">
-            <div className="bg-linear-to-br from-[#E7A3B0]/10 to-pink-50 rounded-xl p-4 border border-[#E7A3B0]/20">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Email Address</p>
-                  <p className="font-semibold text-gray-900">{selectedEmployee.username}</p>
-                </div>
-                <div>
-                  <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Role</p>
-                  <p className="font-semibold text-gray-900 capitalize">{selectedEmployee.role}</p>
-                </div>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div className="bg-gray-50 rounded-xl p-4">
-                <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">First Name</p>
-                <p className="font-semibold text-gray-900">{selectedEmployee.first_name}</p>
-              </div>
-              <div className="bg-gray-50 rounded-xl p-4">
-                <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Last Name</p>
-                <p className="font-semibold text-gray-900">{selectedEmployee.last_name}</p>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div className="bg-gray-50 rounded-xl p-4">
-                <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Joined Date</p>
-                <p className="font-semibold text-gray-900">
-                  {new Date(selectedEmployee.created_at).toLocaleDateString("en-US", {
-                    month: "short",
-                    day: "numeric",
-                    year: "numeric",
-                  })}
-                </p>
-              </div>
-              <div className="bg-gray-50 rounded-xl p-4">
-                <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Last Updated</p>
-                <p className="font-semibold text-gray-900">
-                  {new Date(selectedEmployee.updated_at).toLocaleDateString("en-US", {
-                    month: "short",
-                    day: "numeric",
-                    year: "numeric",
-                  })}
-                </p>
-              </div>
-            </div>
-
-            <button
-              onClick={() => setShowViewModal(false)}
-              className="w-full px-4 py-3 bg-linear-to-r from-[#E7A3B0] to-[#f0b8c3] text-white rounded-xl hover:from-[#d891a0] hover:to-[#E7A3B0] font-medium transition-all shadow-md hover:shadow-lg"
-            >
-              Close
-            </button>
-          </div>
-        </Modal>
+        <ViewEmployeeDialog
+          employee={selectedEmployee}
+          onClose={() => setShowViewModal(false)}
+        />
       )}
 
       {/* Delete Confirmation Modal */}
       {showDeleteModal && selectedEmployee && (
-        <Modal onClose={() => setShowDeleteModal(false)} title="Delete Employee">
-          <div className="space-y-5">
-            {error && (
-              <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">
-                {error}
-              </div>
-            )}
-
-            <div className="flex items-center gap-4 p-4 bg-red-50 rounded-xl border border-red-200">
-              <div className="w-12 h-12 rounded-full bg-red-100 flex items-center justify-center shrink-0">
-                <AlertTriangle className="w-6 h-6 text-red-600" />
-              </div>
-              <div>
-                <h3 className="font-semibold text-gray-900 mb-1">Are you sure?</h3>
-                <p className="text-sm text-gray-600">
-                  This will permanently delete <span className="font-semibold">{selectedEmployee.username}</span> and all
-                  associated data. This action cannot be undone.
-                </p>
-              </div>
-            </div>
-
-            <div className="flex gap-3">
-              <button
-                onClick={() => setShowDeleteModal(false)}
-                disabled={actionLoading}
-                className="flex-1 px-4 py-3 border border-[#E7A3B0]/40 text-[#cc7f8f] rounded-xl hover:bg-[#fff5f7] hover:text-[#b96d7d] font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleDeleteEmployee}
-                disabled={actionLoading}
-                className="flex-1 px-4 py-3 bg-linear-to-r from-red-500 to-red-600 text-white rounded-xl hover:from-red-600 hover:to-red-700 font-medium transition-all shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-              >
-                {actionLoading ? (
-                  <>
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                    Deleting...
-                  </>
-                ) : (
-                  'Delete Employee'
-                )}
-              </button>
-            </div>
-          </div>
-        </Modal>
+        <DeleteEmployeeDialog
+          employee={selectedEmployee}
+          onClose={() => setShowDeleteModal(false)}
+          onDelete={handleDeleteEmployee}
+          actionLoading={actionLoading}
+          error={error}
+        />
       )}
 
       {/* Bulk Delete Confirmation Modal */}
       {showBulkDeleteModal && (
-        <Modal onClose={() => setShowBulkDeleteModal(false)} title="Delete Multiple Employees">
-          <div className="space-y-5">
-            {error && (
-              <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">
-                {error}
-              </div>
-            )}
-
-            <div className="flex items-center gap-4 p-4 bg-red-50 rounded-xl border border-red-200">
-              <div className="w-12 h-12 rounded-full bg-red-100 flex items-center justify-center shrink-0">
-                <AlertTriangle className="w-6 h-6 text-red-600" />
-              </div>
-              <div>
-                <h3 className="font-semibold text-gray-900 mb-1">Are you sure?</h3>
-                <p className="text-sm text-gray-600">
-                  This will permanently delete <span className="font-semibold">{selectedRows.size} employee{selectedRows.size !== 1 ? 's' : ''}</span> and all
-                  associated data. This action cannot be undone.
-                </p>
-              </div>
-            </div>
-
-            <div className="flex gap-3">
-              <button
-                onClick={() => setShowBulkDeleteModal(false)}
-                disabled={actionLoading}
-                className="flex-1 px-4 py-3 border border-[#E7A3B0]/40 text-[#cc7f8f] rounded-xl hover:bg-[#fff5f7] hover:text-[#b96d7d] font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleBulkDelete}
-                disabled={actionLoading}
-                className="flex-1 px-4 py-3 bg-linear-to-r from-red-500 to-red-600 text-white rounded-xl hover:from-red-600 hover:to-red-700 font-medium transition-all shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-              >
-                {actionLoading ? (
-                  <>
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                    Deleting...
-                  </>
-                ) : (
-                  `Delete ${selectedRows.size} Employee${selectedRows.size !== 1 ? 's' : ''}`
-                )}
-              </button>
-            </div>
-          </div>
-        </Modal>
+        <BulkDeleteEmployeeDialog
+          selectedCount={selectedRows.size}
+          onClose={() => setShowBulkDeleteModal(false)}
+          onDelete={handleBulkDelete}
+          actionLoading={actionLoading}
+          error={error}
+        />
       )}
-    </div>
-  );
-}
-
-// Reusable Modal Component
-function Modal({ children, onClose, title }: { children: React.ReactNode; onClose: () => void; title: string }) {
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-      <div
-        className="bg-white rounded-2xl shadow-2xl max-w-md w-full max-h-[90vh] overflow-y-auto"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="sticky top-0 bg-white border-b border-gray-100 px-6 py-4 flex items-center justify-between rounded-t-2xl">
-          <h2 className="text-xl font-bold text-gray-900">{title}</h2>
-          <button
-            onClick={onClose}
-            className="p-2 hover:bg-gray-100 rounded-lg transition-colors text-gray-500 hover:text-gray-700"
-          >
-            <X size={20} />
-          </button>
-        </div>
-        <div className="px-6 py-6">{children}</div>
-      </div>
     </div>
   );
 }

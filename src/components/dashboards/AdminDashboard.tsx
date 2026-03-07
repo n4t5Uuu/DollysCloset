@@ -38,7 +38,7 @@ function formatLogDate(value: string) {
     });
 }
 
-function extractProductNameFromDescription(description: string, productId: number | null) {
+function extractProductNameFromDescription(description: string, productId: string | number | null) {
     const matchedName = description.match(/"([^"]+)"/);
     if (matchedName?.[1]) {
         return matchedName[1];
@@ -60,9 +60,13 @@ function extractStockChangeFromDescription(description: string) {
     return matchedStock[1].trim();
 }
 
+let globalAdminCache: {
+    logs: ActivityLog[];
+} | null = null;
+
 export default function AdminDashboard() {
-    const [logs, setLogs] = useState<ActivityLog[]>([]);
-    const [loading, setLoading] = useState(true);
+    const [logs, setLogs] = useState<ActivityLog[]>(globalAdminCache?.logs || []);
+    const [loading, setLoading] = useState(globalAdminCache === null);
     const [error, setError] = useState<string | null>(null);
     const authTokenRef = useRef<string | null>(null);
 
@@ -85,7 +89,7 @@ export default function AdminDashboard() {
 
     const fetchLogs = useCallback(async (isBackground = false) => {
         try {
-            if (!isBackground) {
+            if (!isBackground && !globalAdminCache) {
                 setLoading(true);
             }
             setError(null);
@@ -105,12 +109,18 @@ export default function AdminDashboard() {
             }
 
             const result = await response.json();
-            setLogs(result.data || []);
+            const fetchedLogs = result.data || [];
+
+            globalAdminCache = { logs: fetchedLogs };
+
+            setLogs(fetchedLogs);
         } catch (err: unknown) {
             console.error("Error fetching dashboard logs:", err);
             setError(err instanceof Error ? err.message : "Failed to load dashboard data");
         } finally {
-            if (!isBackground) {
+            if (!isBackground && !globalAdminCache) {
+                setLoading(false);
+            } else if (globalAdminCache) {
                 setLoading(false);
             }
         }

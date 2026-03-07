@@ -6,7 +6,7 @@ import FeatureCardCarousel from "@/components/catalog/FeatureCardCarousel";
 import SearchBar from "@/components/general-components/SearchBar";
 import CatalogSidebar from "@/components/sidebar/CatalogSidebar";
 import ProductCard from "@/components/catalog/ProductCard";
-import ProductModal from "@/components/modals/ProductModal";
+import ProductModal from "@/components/dialogs/ProductModal";
 import { Product } from "@/types/product.types";
 import { InfiniteSlider } from "@/components/motion-primitives/infinite-slider";
 import { TextEffect } from "@/components/motion-primitives/text-effect";

@@ -23,7 +23,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 
-import AddProduct from "@/components/modals/AddProduct";
+import AddProduct from "@/components/dialogs/AddProduct";
 import { InventoryTable } from "@/components/tables/InventoryTable";
 import { InventoryProduct as Product, InventoryCategory as Category, InventoryProductImage as ProductImage } from "@/types/inventory.types";
 import {
@@ -34,6 +34,7 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from "@/components/ui/pagination";
+import ViewProductDialog from "@/components/dialogs/ViewProductDialog";
 
 export default function AdminInventoryPage() {
   const [products, setProducts] = useState<Product[]>([]);
@@ -298,8 +299,19 @@ export default function AdminInventoryPage() {
   return (
     <div className="p-6 space-y-6">
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900">Manage Inventory</h1>
-        <p className="text-gray-600 mt-2">Create, update, and organize products and categories.</p>
+        <div className="flex items-center justify-between mb-2">
+          <h1 className="text-4xl font-bold bg-linear-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent">
+            Manage Inventory
+          </h1>
+          <button
+            onClick={openAddModal}
+            className="flex items-center gap-2 px-5 py-2.5 bg-linear-to-r from-[#E7A3B0] to-[#f0b8c3] hover:from-[#d891a0] hover:to-[#E7A3B0] text-white rounded-lg font-medium transition-all duration-300 shadow-md hover:shadow-lg hover:scale-105 cursor-pointer"
+          >
+            <Plus size={18} />
+            Add Product
+          </button>
+        </div>
+        <p className="text-gray-600 text-sm">Create, update, and organize products and categories.</p>
       </div>
 
       {error && (
@@ -383,13 +395,6 @@ export default function AdminInventoryPage() {
               Delete ({selectedProducts.size})
             </Button>
           )}
-          <Button 
-            className="bg-green-500 hover:bg-green-600 text-white"
-            onClick={openAddModal}
-          >
-            <Plus className="w-4 h-4 mr-2" />
-            Add Product
-          </Button>
         </div>
       </div>
 
@@ -452,116 +457,18 @@ export default function AdminInventoryPage() {
       </div>
 
       {viewProduct && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <Card className="bg-white w-full max-w-2xl max-h-[90vh] overflow-y-auto p-0 text-gray-900">
-            <CardHeader className="flex flex-row items-center justify-between border-b p-6 space-y-0 text-gray-900">
-              <CardTitle className="text-gray-900">Product Details</CardTitle>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setViewProduct(null);
-                    setViewImages([]);
-                    setSelectedViewImage(null);
-                  }}
-                className="inline-flex h-9 w-9 items-center justify-center rounded-full text-gray-400 hover:text-gray-600"
-                aria-label="Close product details"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </CardHeader>
-            <CardContent className="space-y-4 p-6 text-gray-900">
-              <div className="w-full">
-                {viewImages.length > 0 ? (
-                  <>
-                    <div className="w-full h-72 rounded-lg border bg-gray-50 flex items-center justify-center p-2">
-                      <img
-                        src={selectedViewImage || orderedViewImages[0].image_url}
-                        alt={viewProduct.product_name}
-                        className="w-full h-full object-contain rounded-md"
-                      />
-                    </div>
-                    {orderedViewImages.length > 1 && (
-                      <div className="mt-3 flex gap-2 overflow-x-auto pb-1">
-                        {orderedViewImages.map((image) => {
-                          const isSelected = (selectedViewImage || orderedViewImages[0].image_url) === image.image_url;
-                          return (
-                            <button
-                              key={image.image_id}
-                              type="button"
-                              onClick={() => setSelectedViewImage(image.image_url)}
-                              className={`h-16 w-16 shrink-0 overflow-hidden rounded-md border-2 ${isSelected ? "border-pink-400" : "border-transparent"}`}
-                              aria-label="Select product image"
-                            >
-                              <img
-                                src={image.image_url}
-                                alt={`${viewProduct.product_name} thumbnail`}
-                                className="h-full w-full object-cover"
-                              />
-                            </button>
-                          );
-                        })}
-                      </div>
-                    )}
-                  </>
-                ) : (
-                  <div className="w-full h-64 rounded-lg border bg-gray-50 flex items-center justify-center text-gray-400 text-sm">
-                    No image available
-                  </div>
-                )}
-              </div>
-              <div>
-                <p className="text-sm font-medium text-gray-500">Product Name</p>
-                <p className="text-lg font-semibold">{viewProduct.product_name}</p>
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <p className="text-sm font-medium text-gray-500">Category</p>
-                  <p className="font-medium">{getCategoryName(viewProduct.category_id)}</p>
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-gray-500">Brand</p>
-                  <p className="font-medium">{viewProduct.product_brand}</p>
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-gray-500">Price</p>
-                  <p className="font-medium">₱{viewProduct.product_price.toFixed(2)}</p>
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-gray-500">Stock</p>
-                  <p className="font-medium">{viewProduct.product_stock}</p>
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-gray-500">Condition</p>
-                  <p className="font-medium">{viewProduct.product_condition}</p>
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-gray-500">Size</p>
-                  <p className="font-medium">{viewProduct.size_label}</p>
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-gray-500">Visibility</p>
-                  <p className="font-medium">{viewProduct.show_in_catalog ? "Listed" : "Hidden"}</p>
-                </div>
-              </div>
-              <div>
-                <p className="text-sm font-medium text-gray-500">Description</p>
-                <p className="text-sm text-gray-700">{viewProduct.product_description || "No description"}</p>
-              </div>
-            </CardContent>
-            <CardFooter className="border-t flex justify-end gap-3 p-6 bg-gray-50">
-              <Button
-                variant="outline"
-                onClick={() => {
-                  setViewProduct(null);
-                  setViewImages([]);
-                  setSelectedViewImage(null);
-                }}
-              >
-                Close
-              </Button>
-            </CardFooter>
-          </Card>
-        </div>
+        <ViewProductDialog
+          product={viewProduct}
+          images={viewImages}
+          selectedImage={selectedViewImage}
+          onSelectedImageChange={setSelectedViewImage}
+          onClose={() => {
+            setViewProduct(null);
+            setViewImages([]);
+            setSelectedViewImage(null);
+          }}
+          getCategoryName={getCategoryName}
+        />
       )}
 
       <AddProduct

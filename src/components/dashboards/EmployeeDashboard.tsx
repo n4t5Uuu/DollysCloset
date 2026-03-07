@@ -34,10 +34,15 @@ function extractProductName(description: string, productId: number | string | nu
     return "Product";
 }
 
+let globalEmployeeCache: {
+    products: InventoryProduct[];
+    logs: ActivityLog[];
+} | null = null;
+
 export default function EmployeeDashboard() {
-    const [products, setProducts] = useState<InventoryProduct[]>([]);
-    const [logs, setLogs] = useState<ActivityLog[]>([]);
-    const [loading, setLoading] = useState(true);
+    const [products, setProducts] = useState<InventoryProduct[]>(globalEmployeeCache?.products || []);
+    const [logs, setLogs] = useState<ActivityLog[]>(globalEmployeeCache?.logs || []);
+    const [loading, setLoading] = useState(globalEmployeeCache === null);
     const [error, setError] = useState<string | null>(null);
     const [displayName, setDisplayName] = useState("there");
     const [currentUserId, setCurrentUserId] = useState<string | null>(null);
@@ -77,7 +82,7 @@ export default function EmployeeDashboard() {
 
     const fetchDashboardData = useCallback(async (isBackground = false) => {
         try {
-            if (!isBackground) {
+            if (!isBackground && !globalEmployeeCache) {
                 setLoading(true);
             }
             setError(null);
@@ -107,13 +112,20 @@ export default function EmployeeDashboard() {
             const productsResult = await productsResponse.json();
             const logsResult = await logsResponse.json();
 
-            setProducts(productsResult.data || []);
-            setLogs(logsResult.data || []);
+            const fetchedProducts = productsResult.data || [];
+            const fetchedLogs = logsResult.data || [];
+
+            globalEmployeeCache = { products: fetchedProducts, logs: fetchedLogs };
+
+            setProducts(fetchedProducts);
+            setLogs(fetchedLogs);
         } catch (err: unknown) {
             console.error("Error loading employee dashboard:", err);
             setError(err instanceof Error ? err.message : "Failed to load dashboard");
         } finally {
-            if (!isBackground) {
+            if (!isBackground && !globalEmployeeCache) {
+                setLoading(false);
+            } else if (globalEmployeeCache) {
                 setLoading(false);
             }
         }

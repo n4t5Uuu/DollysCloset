@@ -23,7 +23,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 
-import AddProduct from "@/components/modals/AddProduct";
+import AddProduct from "@/components/dialogs/AddProduct";
 import { InventoryTable } from "@/components/tables/InventoryTable";
 import { InventoryProduct as Product, InventoryCategory as Category, InventoryProductImage as ProductImage } from "@/types/inventory.types";
 import {
