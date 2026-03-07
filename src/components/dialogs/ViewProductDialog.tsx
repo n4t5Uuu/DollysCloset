@@ -1,3 +1,4 @@
+/* eslint-disable @next/next/no-img-element */
 import { InventoryProduct as Product, InventoryProductImage as ProductImage } from "@/types/inventory.types";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";

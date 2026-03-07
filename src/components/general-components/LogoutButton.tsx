@@ -30,7 +30,7 @@ export default function LogoutButton() {
         <button
             onClick={handleLogout}
             disabled={isLoggingOut}
-            className="flex items-center gap-2 px-6 py-2 rounded-full bg-gradient-to-r 
+            className="flex items-center gap-2 px-6 py-2 rounded-full bg-linear-to-r 
                 from-[#E7A3B0] to-[#f0b8c3] hover:from-[#d891a0] hover:to-[#E7A3B0] 
                 transition-all duration-300 shadow-md hover:shadow-lg text-white font-medium
                 disabled:opacity-70 disabled:cursor-not-allowed group cursor-pointer"

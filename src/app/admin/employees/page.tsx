@@ -4,7 +4,7 @@
 import { useState, useEffect } from "react";
 import { Plus, Search, X, AlertTriangle, Trash, Loader2 } from "lucide-react";
 import { browserSupabase } from "@/lib/supabase/browser";
-import AddEmployee from "@/components/dialogs/AddEmployee";
+import AddEmployee from "@/components/modals/AddEmployee";
 import { EmployeeTable } from "@/components/tables/EmployeeTable";
 import { Employee } from "@/types/employee.types";
 import {

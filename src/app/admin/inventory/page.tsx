@@ -1,4 +1,3 @@
-/* eslint-disable @next/next/no-img-element */
 "use client";
 
 import { useState, useEffect, useMemo, useCallback } from "react";
@@ -15,15 +14,9 @@ import {
 } from "@/components/ui/select";
 import CategoryCascadingFilter from "@/components/filters/CategoryCascadingFilter";
 
-import {
-  Card,
-  CardContent,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
 
-import AddProduct from "@/components/dialogs/AddProduct";
+
+import AddProduct from "@/components/modals/AddProduct";
 import { InventoryTable } from "@/components/tables/InventoryTable";
 import { InventoryProduct as Product, InventoryCategory as Category, InventoryProductImage as ProductImage } from "@/types/inventory.types";
 import {
