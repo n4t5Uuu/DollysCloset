@@ -4,7 +4,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Loader2, AlertTriangle, Search, X } from "lucide-react";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Loader2, AlertTriangle, Search, X, Eye } from "lucide-react";
 import { browserSupabase } from "@/lib/supabase/browser";
 import {
   Pagination,
@@ -76,6 +77,7 @@ export default function ActivityLogsPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [sortOrder, setSortOrder] = useState<"desc" | "asc">("desc");
   const [currentPage, setCurrentPage] = useState(1);
+  const [viewLog, setViewLog] = useState<ActivityLog | null>(null);
   const itemsPerPage = 10;
   const isFetchingRef = useRef(false);
   const isMountedRef = useRef(true);
@@ -299,41 +301,115 @@ export default function ActivityLogsPage() {
           {logs.length === 0 ? "No activity logs yet." : "No logs match your search."}
         </div>
       ) : (
-        <div className="overflow-hidden rounded-lg border border-gray-200 bg-white">
-          <div className="grid grid-cols-7 gap-4 border-b bg-gray-50 px-6 py-4 text-xs font-semibold uppercase tracking-wide text-gray-700">
-            <div>Date & Time</div>
-            <div>Action</div>
-            <div>Product ID</div>
-            <div>User ID</div>
-            <div>Description</div>
-            <div>Editor</div>
-          </div>
+        <div className="bg-white rounded-lg border overflow-hidden">
+            <Table className="w-full table-fixed">
+              <TableHeader className="border-b bg-gray-50">
+                <TableRow>
+                  <TableHead className="p-4 font-bold w-[194px]">Date & Time</TableHead>
+                  <TableHead className="p-4 font-bold w-[235px]">Action</TableHead>
+                  <TableHead className="p-4 font-bold w-[115px]">Product ID</TableHead>
+                  <TableHead className="p-4 font-bold w-[158px]">User ID</TableHead>
+                  <TableHead className="p-4 font-bold">Description</TableHead>
+                  <TableHead className="p-4 font-bold w-[190px]">Editor</TableHead>
+                  <TableHead className="p-4 font-bold w-[70px] text-center">View</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {paginatedLogs.map((log) => (
+                  <TableRow key={log.log_id} className="border-b hover:bg-gray-50">
+                    <TableCell className="p-4 text-sm text-gray-700">
+                      <div className="line-clamp-2 break-words">{new Date(log.created_at).toLocaleString()}</div>
+                    </TableCell>
+                    <TableCell className="p-4">
+                      <div className="line-clamp-2">
+                        <span className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-medium ${actionColors[log.action_type] || "bg-gray-100 text-gray-800"}`}>
+                          {actionLabels[log.action_type] || log.action_type}
+                        </span>
+                      </div>
+                    </TableCell>
+                    <TableCell className="p-4 text-sm text-gray-900">
+                      <div className="line-clamp-2 break-all">{log.product_id || "—"}</div>
+                    </TableCell>
+                    <TableCell className="p-4 text-sm text-gray-900">
+                      <div className="line-clamp-2 break-all">
+                        {employeeManagementActions.has(log.action_type) ? (log.user_id || "—") : "—"}
+                      </div>
+                    </TableCell>
+                    <TableCell className="p-4 text-sm text-gray-600">
+                      <div className="line-clamp-2">{log.description || "—"}</div>
+                    </TableCell>
+                    <TableCell className="p-4 text-sm text-gray-600">
+                      <div className="line-clamp-2 break-all">
+                        {log.editor || "—"}
+                      </div>
+                    </TableCell>
+                    <TableCell className="p-4 text-center">
+                      <Button
+                        size="icon"
+                        variant="outline"
+                        className="border-pink-200 text-pink-600 bg-pink-50 hover:bg-pink-200 hover:text-pink-700 hover:border-pink-300"
+                        onClick={() => setViewLog(log)}
+                      >
+                        <Eye className="h-4 w-4" />
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+        </div>
+      )}
 
-          <div className="divide-y">
-            {paginatedLogs.map((log) => (
-              <div key={log.log_id} className="grid grid-cols-7 gap-4 px-6 py-4 hover:bg-gray-50 transition">
-                <div className="text-sm text-gray-700">
-                  {new Date(log.created_at).toLocaleString()}
+      {viewLog && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={() => setViewLog(null)}>
+          <div
+            className="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="sticky top-0 bg-white border-b border-gray-100 px-6 py-4 flex items-center justify-between rounded-t-2xl">
+              <h2 className="text-xl font-bold text-gray-900">Log Details</h2>
+              <button onClick={() => setViewLog(null)} className="p-2 hover:bg-gray-100 rounded-lg text-gray-500 hover:text-gray-700">
+                <X size={20} />
+              </button>
+            </div>
+            <div className="px-6 py-6 space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="bg-gray-50 rounded-xl p-4">
+                  <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Date & Time</p>
+                  <p className="text-sm font-semibold text-gray-900">{new Date(viewLog.created_at).toLocaleString()}</p>
                 </div>
-                <div>
-                  <span className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-medium ${actionColors[log.action_type] || "bg-gray-100 text-gray-800"}`}>
-                    {actionLabels[log.action_type] || log.action_type}
+                <div className="bg-gray-50 rounded-xl p-4">
+                  <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Action</p>
+                  <span className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-medium ${actionColors[viewLog.action_type] || "bg-gray-100 text-gray-800"}`}>
+                    {actionLabels[viewLog.action_type] || viewLog.action_type}
                   </span>
                 </div>
-                <div className="text-sm text-gray-900">
-                  {log.product_id || "—"}
+                <div className="bg-gray-50 rounded-xl p-4">
+                  <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Product ID</p>
+                  <p className="text-sm font-semibold text-gray-900">{viewLog.product_id ?? "—"}</p>
                 </div>
-                <div className="text-sm text-gray-900">
-                  {employeeManagementActions.has(log.action_type) ? (log.user_id || "—") : "—"}
-                </div>
-                <div className="text-sm text-gray-600">
-                  {log.description || "—"}
-                </div>
-                <div className="text-sm text-gray-600">
-                  {log.editor || "—"}
+                <div className="bg-gray-50 rounded-xl p-4">
+                  <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">User ID</p>
+                  <p className="text-sm font-semibold text-gray-900">
+                    {employeeManagementActions.has(viewLog.action_type) ? (viewLog.user_id ?? "—") : "—"}
+                  </p>
                 </div>
               </div>
-            ))}
+              <div className="bg-gray-50 rounded-xl p-4">
+                <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Description</p>
+                <p className="text-sm text-gray-700 whitespace-pre-wrap">{viewLog.description || "—"}</p>
+              </div>
+              <div className="bg-gray-50 rounded-xl p-4">
+                <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Editor</p>
+                <p className="text-sm font-semibold text-gray-900 break-all">{viewLog.editor || "—"}</p>
+              </div>
+              <button
+                onClick={() => setViewLog(null)}
+                className="w-full px-4 py-3 bg-gradient-to-r from-[#E7A3B0] to-[#f0b8c3] text-white rounded-xl hover:from-[#d891a0] hover:to-[#E7A3B0] font-medium transition-all shadow-md hover:shadow-lg"
+              >
+                Close
+              </button>
+            </div>
           </div>
         </div>
       )}
