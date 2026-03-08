@@ -221,7 +221,6 @@ export default function Catalog() {
 
     const handleCloseModal = () => {
         setIsModalOpen(false);
-        setSelectedProduct(null);
     };
 
     return (
@@ -398,6 +397,7 @@ export default function Catalog() {
                     product={selectedProduct}
                     isOpen={isModalOpen}
                     onClose={handleCloseModal}
+                    onExitComplete={() => setSelectedProduct(null)}
                 />
             )}
         </main>

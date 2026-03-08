@@ -27,6 +27,8 @@ export default function CategoryCascadingSelect({
   const triggerRef = useRef<HTMLButtonElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const [isOpen, setIsOpen] = useState(false);
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => { setMounted(true); }, []);
   const [activeRootKey, setActiveRootKey] = useState<string | null>(null);
   const [activeSecondLevelId, setActiveSecondLevelId] = useState<number | null>(null);
   const [dropdownStyle, setDropdownStyle] = useState<React.CSSProperties>({});
@@ -275,7 +277,7 @@ export default function CategoryCascadingSelect({
       </button>
 
       {isOpen &&
-        typeof window !== "undefined" &&
+        mounted &&
         createPortal(
           <div
             ref={dropdownRef}
