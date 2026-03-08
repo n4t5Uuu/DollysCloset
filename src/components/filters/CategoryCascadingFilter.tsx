@@ -126,13 +126,23 @@ export default function CategoryCascadingFilter({
     return path.join(" > ");
   };
 
-  const selectedCategoryId = value === "all" ? null : Number(value);
-  const selectedLabel = selectedCategoryId && !Number.isNaN(selectedCategoryId)
-    ? getCategoryPath(selectedCategoryId)
-    : "All Categories";
+  const isRootGroupValue = value.startsWith("rootgroup:");
+  const selectedRootGroupKey = isRootGroupValue ? value.slice("rootgroup:".length) : null;
+  const selectedCategoryId = value === "all" || isRootGroupValue ? null : Number(value);
+  const selectedLabel = isRootGroupValue
+    ? (rootGroupByKey.get(selectedRootGroupKey!)?.label ?? "All Categories")
+    : selectedCategoryId && !Number.isNaN(selectedCategoryId)
+      ? getCategoryPath(selectedCategoryId)
+      : "All Categories";
 
   useEffect(() => {
     if (!isOpen) return;
+
+    if (selectedRootGroupKey) {
+      setActiveRootKey(selectedRootGroupKey);
+      setActiveSecondLevelId(null);
+      return;
+    }
 
     if (selectedCategoryId && !Number.isNaN(selectedCategoryId)) {
       const selectedCategory = categoryById.get(selectedCategoryId);
@@ -161,7 +171,7 @@ export default function CategoryCascadingFilter({
 
     setActiveRootKey(rootCategoryGroups[0]?.key ?? null);
     setActiveSecondLevelId(null);
-  }, [isOpen, selectedCategoryId, categoryById, rootCategoryGroups, rootGroupByRootId]);
+  }, [isOpen, selectedRootGroupKey, selectedCategoryId, categoryById, rootCategoryGroups, rootGroupByRootId]);
 
   useEffect(() => {
     if (!isOpen || !containerRef.current) return;
@@ -232,8 +242,7 @@ export default function CategoryCascadingFilter({
     const categoryId = Number(category.category_id);
     const itemHasChildren = hasChildren(categoryId);
     const isSelected = selectedCategoryId === categoryId;
-    const isActive =
-      (level === 2 && activeSecondLevelId === categoryId);
+    const isActive = level === 2 && activeSecondLevelId === categoryId;
 
     return (
       <button
@@ -245,15 +254,14 @@ export default function CategoryCascadingFilter({
           }
         }}
         onClick={() => {
-          if (!itemHasChildren) {
-            handleLeafSelect(categoryId);
-          }
+          onValueChange(String(categoryId));
+          setIsOpen(false);
         }}
-        className={`w-full flex items-center justify-between rounded-md px-3 py-2 text-left text-sm transition-colors ${
+        className={`w-full flex items-center justify-between rounded-md px-3 py-2 text-left text-sm transition-colors cursor-pointer ${
           isActive
             ? "bg-white/10 text-white"
             : "text-white/90 hover:bg-white/10 hover:text-white"
-        } ${itemHasChildren ? "cursor-default" : "cursor-pointer"}`}
+        }`}
       >
         <span className="truncate pr-2">{category.category_name}</span>
         <span className="flex items-center gap-1">
@@ -267,6 +275,7 @@ export default function CategoryCascadingFilter({
   const renderRootItem = (rootGroup: { key: string; label: string; rootIds: number[] }) => {
     const hasAnyChildren = rootGroup.rootIds.some((rootId) => hasChildren(rootId));
     const isActive = activeRootKey === rootGroup.key;
+    const isSelected = selectedRootGroupKey === rootGroup.key;
 
     return (
       <button
@@ -276,14 +285,21 @@ export default function CategoryCascadingFilter({
           setActiveRootKey(rootGroup.key);
           setActiveSecondLevelId(null);
         }}
-        className={`w-full flex items-center justify-between rounded-md px-3 py-2 text-left text-sm transition-colors ${
+        onClick={() => {
+          onValueChange(`rootgroup:${rootGroup.key}`);
+          setIsOpen(false);
+        }}
+        className={`w-full flex items-center justify-between rounded-md px-3 py-2 text-left text-sm transition-colors cursor-pointer ${
           isActive
             ? "bg-white/10 text-white"
             : "text-white/90 hover:bg-white/10 hover:text-white"
         }`}
       >
         <span className="truncate pr-2">{rootGroup.label}</span>
-        {hasAnyChildren && <ChevronRight className="h-4 w-4 text-white/60" />}
+        <span className="flex items-center gap-1">
+          {isSelected && <Check className="h-4 w-4" />}
+          {hasAnyChildren && <ChevronRight className="h-4 w-4 text-white/60" />}
+        </span>
       </button>
     );
   };

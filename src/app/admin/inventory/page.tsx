@@ -118,11 +118,57 @@ export default function AdminInventoryPage() {
     initializeInventory();
   }, [fetchProducts, fetchCategories]);
 
+  const categoryById = useMemo(
+    () => new Map(categories.map((category) => [Number(category.category_id), category])),
+    [categories]
+  );
+
+  const childrenByParentId = useMemo(() => {
+    const map = new Map<number | null, number[]>();
+    categories.forEach((cat) => {
+      const parentId = cat.parent_category;
+      const existing = map.get(parentId) ?? [];
+      existing.push(Number(cat.category_id));
+      map.set(parentId, existing);
+    });
+    return map;
+  }, [categories]);
+
+  const getDescendantIds = useCallback((rootId: number): Set<number> => {
+    const result = new Set<number>();
+    const queue = [rootId];
+    while (queue.length > 0) {
+      const current = queue.shift()!;
+      result.add(current);
+      (childrenByParentId.get(current) ?? []).forEach((childId) => queue.push(childId));
+    }
+    return result;
+  }, [childrenByParentId]);
+
+  const filteredCategoryIds = useMemo(() => {
+    if (categoryFilter === "all") return null;
+
+    if (categoryFilter.startsWith("rootgroup:")) {
+      const key = categoryFilter.slice("rootgroup:".length);
+      const rootCats = categories.filter(
+        (cat) => cat.parent_category === null && cat.category_name.trim().toLowerCase() === key
+      );
+      const result = new Set<number>();
+      rootCats.forEach((cat) => {
+        getDescendantIds(Number(cat.category_id)).forEach((id) => result.add(id));
+      });
+      return result;
+    }
+
+    const id = parseInt(categoryFilter);
+    return isNaN(id) ? null : getDescendantIds(id);
+  }, [categoryFilter, categories, getDescendantIds]);
+
   const filteredProducts = useMemo(() => {
     return products
       .filter((product) => {
         const matchesSearch = product.product_name.toLowerCase().includes(searchQuery.toLowerCase());
-        const matchesCategory = categoryFilter === "all" || product.category_id === parseInt(categoryFilter);
+        const matchesCategory = filteredCategoryIds === null || filteredCategoryIds.has(Number(product.category_id));
         const matchesAvailability = availabilityFilter === "all" ||
           (availabilityFilter === "in-stock" && product.product_stock >= lowStockThreshold) ||
           (availabilityFilter === "low-stock" && product.product_stock > 0 && product.product_stock < lowStockThreshold) ||
@@ -142,17 +188,12 @@ export default function AdminInventoryPage() {
 
         return secondDateValue - firstDateValue;
       });
-  }, [products, searchQuery, categoryFilter, availabilityFilter, visibilityFilter, dateSort, lowStockThreshold]);
+  }, [products, searchQuery, filteredCategoryIds, availabilityFilter, visibilityFilter, dateSort, lowStockThreshold]);
 
   const totalPages = Math.max(1, Math.ceil(filteredProducts.length / itemsPerPage));
   const startIndex = (currentPage - 1) * itemsPerPage;
   const endIndex = startIndex + itemsPerPage;
   const currentProducts = filteredProducts.slice(startIndex, endIndex);
-
-  const categoryById = useMemo(
-    () => new Map(categories.map((category) => [Number(category.category_id), category])),
-    [categories]
-  );
 
   const getCategoryName = useCallback((id: number) => {
     const category = categoryById.get(id);

@@ -149,7 +149,7 @@ export default function AddEmployee({ isOpen, onClose, employeeToEdit, onEmploye
                         <div className="space-y-2">
                             <label className="block text-sm font-semibold text-gray-700">Email Address</label>
                             <Input
-                                type="text"
+                                type="email"
                                 value={formData.username}
                                 onChange={(e) => setFormData({ ...formData, username: e.target.value })}
                                 placeholder="Enter email address"
