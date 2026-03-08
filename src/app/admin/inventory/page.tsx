@@ -19,14 +19,7 @@ import CategoryCascadingFilter from "@/components/filters/CategoryCascadingFilte
 import AddProduct from "@/components/modals/AddProduct";
 import { InventoryTable } from "@/components/tables/InventoryTable";
 import { InventoryProduct as Product, InventoryCategory as Category, InventoryProductImage as ProductImage } from "@/types/inventory.types";
-import {
-  Pagination,
-  PaginationContent,
-  PaginationItem,
-  PaginationLink,
-  PaginationNext,
-  PaginationPrevious,
-} from "@/components/ui/pagination";
+import CustomPagination from "@/components/general-components/CustomPagination";
 import ViewProductDialog from "@/components/dialogs/ViewProductDialog";
 
 export default function AdminInventoryPage() {
@@ -468,48 +461,11 @@ export default function AdminInventoryPage() {
 
       {/* Footer Stats & Pagination */}
       <div className="flex flex-col gap-4 mt-2">
-        <Pagination>
-            <PaginationContent>
-              <PaginationItem>
-                <PaginationPrevious 
-                  href="#" 
-                  onClick={(e) => {
-                    e.preventDefault();
-                    if (currentPage > 1) setCurrentPage((prev) => Math.max(1, prev - 1));
-                  }} 
-                  className={currentPage === 1 ? "pointer-events-none opacity-50" : "cursor-pointer"} 
-                />
-              </PaginationItem>
-              {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-                const pageNum = totalPages <= 5 ? i + 1 : currentPage <= 3 ? i + 1 : currentPage >= totalPages - 2 ? totalPages - 4 + i : currentPage - 2 + i;
-                return (
-                  <PaginationItem key={pageNum}>
-                    <PaginationLink 
-                      href="#"
-                      onClick={(e) => {
-                        e.preventDefault();
-                        setCurrentPage(pageNum);
-                      }}
-                      isActive={currentPage === pageNum}
-                      className="cursor-pointer"
-                    >
-                      {pageNum}
-                    </PaginationLink>
-                  </PaginationItem>
-                );
-              })}
-              <PaginationItem>
-                <PaginationNext 
-                  href="#"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    if (currentPage < totalPages) setCurrentPage((prev) => Math.min(totalPages, prev + 1));
-                  }} 
-                  className={currentPage === totalPages ? "pointer-events-none opacity-50" : "cursor-pointer"}
-                />
-              </PaginationItem>
-            </PaginationContent>
-          </Pagination>
+        <CustomPagination 
+          currentPage={currentPage}
+          totalPages={totalPages}
+          onPageChange={setCurrentPage}
+        />
       </div>
 
       {viewProduct && (

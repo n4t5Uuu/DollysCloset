@@ -7,14 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Loader2, AlertTriangle, Search, X, Eye } from "lucide-react";
 import { browserSupabase } from "@/lib/supabase/browser";
-import {
-  Pagination,
-  PaginationContent,
-  PaginationItem,
-  PaginationLink,
-  PaginationNext,
-  PaginationPrevious,
-} from "@/components/ui/pagination";
+import CustomPagination from "@/components/general-components/CustomPagination";
 
 interface ActivityLog {
   log_id: number;
@@ -338,7 +331,7 @@ export default function ActivityLogsPage() {
                 {paginatedLogs.map((log) => (
                   <TableRow key={log.log_id} className="border-b hover:bg-gray-50">
                     <TableCell className="p-4 text-sm text-gray-700">
-                      <div className="line-clamp-2 break-words">{new Date(log.created_at).toLocaleString()}</div>
+                      <div className="line-clamp-2 wrap-break-word">{new Date(log.created_at).toLocaleString()}</div>
                     </TableCell>
                     <TableCell className="p-4">
                       <div className="line-clamp-2">
@@ -425,7 +418,7 @@ export default function ActivityLogsPage() {
               </div>
               <button
                 onClick={() => setViewLog(null)}
-                className="w-full px-4 py-3 bg-gradient-to-r from-[#E7A3B0] to-[#f0b8c3] text-white rounded-xl hover:from-[#d891a0] hover:to-[#E7A3B0] font-medium transition-all shadow-md hover:shadow-lg"
+                className="w-full px-4 py-3 bg-linear-to-r from-[#E7A3B0] to-[#f0b8c3] text-white rounded-xl hover:from-[#d891a0] hover:to-[#E7A3B0] font-medium transition-all shadow-md hover:shadow-lg"
               >
                 Close
               </button>
@@ -435,59 +428,12 @@ export default function ActivityLogsPage() {
       )}
 
       {filteredLogs.length > 0 && (
-        <Pagination className="mt-4">
-          <PaginationContent>
-            <PaginationItem>
-              <PaginationPrevious 
-                href="#" 
-                onClick={(e) => {
-                  e.preventDefault();
-                  if (safePage > 1) setCurrentPage((prev) => Math.max(1, prev - 1));
-                }} 
-                className={safePage === 1 ? "pointer-events-none opacity-50 border border-[#E7A3B0]/40 text-[#cc7f8f]" : "cursor-pointer border border-[#E7A3B0]/40 text-[#cc7f8f] hover:bg-[#fff5f7]"} 
-              />
-            </PaginationItem>
-            {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-              const pageNum = totalPages <= 5
-                ? i + 1
-                : safePage <= 3
-                  ? i + 1
-                  : safePage >= totalPages - 2
-                    ? totalPages - 4 + i
-                    : safePage - 2 + i;
-
-              return (
-                <PaginationItem key={pageNum}>
-                  <PaginationLink 
-                    href="#"
-                    onClick={(e) => {
-                      e.preventDefault();
-                      setCurrentPage(pageNum);
-                    }}
-                    isActive={safePage === pageNum}
-                    className={
-                      safePage === pageNum
-                        ? "cursor-pointer bg-[#E7A3B0] text-white hover:bg-[#d891a0] border border-[#E7A3B0]"
-                        : "cursor-pointer border border-[#E7A3B0]/40 text-[#cc7f8f] hover:bg-[#fff5f7]"
-                    }
-                  >
-                    {pageNum}
-                  </PaginationLink>
-                </PaginationItem>
-              );
-            })}
-            <PaginationItem>
-              <PaginationNext 
-                href="#"
-                onClick={(e) => {
-                  e.preventDefault();
-                  if (safePage < totalPages) setCurrentPage((prev) => Math.min(totalPages, prev + 1));
-                }} 
-                className={safePage === totalPages ? "pointer-events-none opacity-50 border border-[#E7A3B0]/40 text-[#cc7f8f]" : "cursor-pointer border border-[#E7A3B0]/40 text-[#cc7f8f] hover:bg-[#fff5f7]"}
-              />
-            </PaginationItem>
-          </PaginationContent>
-        </Pagination>
+        <CustomPagination
+          className="mt-4"
+          currentPage={safePage}
+          totalPages={totalPages}
+          onPageChange={setCurrentPage}
+        />
       )}
     </div>
   );

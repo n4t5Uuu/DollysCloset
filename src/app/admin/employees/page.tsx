@@ -7,14 +7,7 @@ import { browserSupabase } from "@/lib/supabase/browser";
 import AddEmployee from "@/components/modals/AddEmployee";
 import { EmployeeTable } from "@/components/tables/EmployeeTable";
 import { Employee } from "@/types/employee.types";
-import {
-  Pagination,
-  PaginationContent,
-  PaginationItem,
-  PaginationLink,
-  PaginationNext,
-  PaginationPrevious,
-} from "@/components/ui/pagination";
+import CustomPagination from "@/components/general-components/CustomPagination";
 
 import ViewEmployeeDialog from "@/components/dialogs/ViewEmployeeDialog";
 import DeleteEmployeeDialog from "@/components/dialogs/DeleteEmployeeDialog";
@@ -372,58 +365,11 @@ export default function EmployeesPage() {
             </div>
           )}
           
-          <Pagination>
-              <PaginationContent>
-                <PaginationItem>
-                  <PaginationPrevious 
-                    href="#" 
-                    onClick={(e) => {
-                      e.preventDefault();
-                      if (currentPage > 1) setCurrentPage((prev) => Math.max(1, prev - 1));
-                    }} 
-                    className={currentPage === 1 ? "pointer-events-none opacity-50 border border-[#E7A3B0]/40 text-[#cc7f8f]" : "cursor-pointer border border-[#E7A3B0]/40 text-[#cc7f8f] hover:bg-[#fff5f7]"} 
-                  />
-                </PaginationItem>
-                {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-                  const pageNum = totalPages <= 5 
-                    ? i + 1 
-                    : currentPage <= 3 
-                      ? i + 1 
-                      : currentPage >= totalPages - 2 
-                        ? totalPages - 4 + i 
-                        : currentPage - 2 + i;
-                  return (
-                    <PaginationItem key={pageNum}>
-                      <PaginationLink 
-                        href="#"
-                        onClick={(e) => {
-                          e.preventDefault();
-                          setCurrentPage(pageNum);
-                        }}
-                        isActive={currentPage === pageNum}
-                        className={
-                          currentPage === pageNum
-                            ? "cursor-pointer bg-[#E7A3B0] text-white hover:bg-[#d891a0] border border-[#E7A3B0]"
-                            : "cursor-pointer border border-[#E7A3B0]/40 text-[#cc7f8f] hover:bg-[#fff5f7]"
-                        }
-                      >
-                        {pageNum}
-                      </PaginationLink>
-                    </PaginationItem>
-                  );
-                })}
-                <PaginationItem>
-                  <PaginationNext 
-                    href="#"
-                    onClick={(e) => {
-                      e.preventDefault();
-                      if (currentPage < totalPages) setCurrentPage((prev) => Math.min(totalPages, prev + 1));
-                    }} 
-                    className={currentPage === totalPages ? "pointer-events-none opacity-50 border border-[#E7A3B0]/40 text-[#cc7f8f]" : "cursor-pointer border border-[#E7A3B0]/40 text-[#cc7f8f] hover:bg-[#fff5f7]"}
-                  />
-                </PaginationItem>
-              </PaginationContent>
-            </Pagination>
+          <CustomPagination 
+            currentPage={currentPage}
+            totalPages={totalPages}
+            onPageChange={setCurrentPage}
+          />
         </div>
       </div>
 
