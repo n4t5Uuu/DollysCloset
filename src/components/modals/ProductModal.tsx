@@ -49,15 +49,12 @@ export default function ProductModal({ product, isOpen, onClose, onExitComplete 
   const goPrev = () => goToImage((selectedImage - 1 + totalImages) % totalImages, -1);
   const goNext = () => goToImage((selectedImage + 1) % totalImages, 1);
 
-  const handleMouseEnter = useCallback(() => {
-    setIsZoomed(true);
-  }, []);
-
   const handleMouseLeave = useCallback(() => {
     setIsZoomed(false);
   }, []);
 
   const handleMouseMove = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
+    setIsZoomed(true);
     const imgEl = imageContainerRef.current;
     const cardEl = cardRef.current;
     if (!imgEl || !cardEl) return;
@@ -131,7 +128,6 @@ export default function ProductModal({ product, isOpen, onClose, onExitComplete 
                 <div
                   ref={imageContainerRef}
                   className="aspect-3/4 bg-gray-100 rounded-xl overflow-hidden relative cursor-crosshair"
-                  onMouseEnter={handleMouseEnter}
                   onMouseLeave={handleMouseLeave}
                   onMouseMove={handleMouseMove}
                 >
