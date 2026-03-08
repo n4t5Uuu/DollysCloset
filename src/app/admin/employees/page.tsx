@@ -4,6 +4,8 @@
 import { useState, useEffect } from "react";
 import { Plus, Search, X, AlertTriangle, Trash, Loader2 } from "lucide-react";
 import { browserSupabase } from "@/lib/supabase/browser";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import AddEmployee from "@/components/modals/AddEmployee";
 import { EmployeeTable } from "@/components/tables/EmployeeTable";
 import { Employee } from "@/types/employee.types";
@@ -298,47 +300,34 @@ export default function EmployeesPage() {
           </div>
         )}
 
-        {/* Bulk Actions Bar */}
-        {selectedRows.size > 0 && (
-          <div className="mb-6 p-4 bg-[#E7A3B0]/10 border border-[#E7A3B0]/30 rounded-xl flex items-center justify-between animate-in fade-in slide-in-from-top-2 duration-300">
-            <span className="text-[#E7A3B0] font-semibold">
-              {selectedRows.size} employee{selectedRows.size !== 1 ? "s" : ""} selected
-            </span>
-            <div className="flex gap-3">
-              <button
-                onClick={() => setSelectedRows(new Set())}
-                className="px-4 py-2 text-gray-700 hover:bg-white rounded-lg font-medium transition-all"
-              >
-                Clear Selection
-              </button>
-              <button
-                onClick={() => setShowBulkDeleteModal(true)}
-                className="flex items-center gap-2 px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg font-medium transition-all shadow-md hover:shadow-lg"
-              >
-                <Trash size={16} />
-                Delete Selected
-              </button>
-            </div>
-          </div>
-        )}
-
         {/* Search Bar */}
-        <div className="mb-6">
-          <div className="relative">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-[#E7A3B0]/60 w-5 h-5" />
-            <input
+        <div className="flex items-center gap-4 mb-6 flex-wrap">
+          <div className="relative flex-1 min-w-[200px]">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+            <Input
               type="text"
               placeholder="Search by name or email..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-12 pr-4 py-3 border border-[#E7A3B0]/20 rounded-xl bg-white focus:outline-none focus:border-[#E7A3B0] focus:ring-2 focus:ring-[#E7A3B0]/20 transition-all duration-300 text-gray-900 placeholder-gray-400"
+              className="w-full pl-10 rounded-full border-gray-300 text-gray-900 bg-white"
             />
           </div>
         </div>
-        
+
         <div className="flex items-center justify-between flex-wrap gap-4 mb-4">
           <div className="text-sm text-gray-600">
             Showing {currentEmployees.length > 0 ? startIndex + 1 : 0}-{Math.min(endIndex, sortedEmployees.length)} of {sortedEmployees.length} employees
+          </div>
+          <div className="flex gap-3">
+            {selectedRows.size > 0 && (
+              <Button
+                className="bg-red-500 hover:bg-red-600 text-white"
+                onClick={() => setShowBulkDeleteModal(true)}
+              >
+                <Trash className="w-4 h-4 mr-2" />
+                Delete ({selectedRows.size})
+              </Button>
+            )}
           </div>
         </div>
 
@@ -357,15 +346,7 @@ export default function EmployeesPage() {
         
         {/* Footer Stats & Pagination */}
         <div className="flex flex-col gap-4 mt-2">
-          {selectedRows.size > 0 && (
-            <div className="p-4 bg-gray-50 border border-[#E7A3B0]/20 rounded-xl flex items-center justify-between text-sm text-gray-600">
-              <span className="text-[#E7A3B0] font-medium">
-                {selectedRows.size} employee{selectedRows.size !== 1 ? "s" : ""} selected
-              </span>
-            </div>
-          )}
-          
-          <CustomPagination 
+          <CustomPagination
             currentPage={currentPage}
             totalPages={totalPages}
             onPageChange={setCurrentPage}

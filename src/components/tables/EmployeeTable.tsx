@@ -47,7 +47,7 @@ export function EmployeeTable({
               <SortableHeader label="Last Name" sortKey="last_name" sortConfig={sortConfig} onSort={toggleSort} />
               <SortableHeader label="Joined" sortKey="created_at" sortConfig={sortConfig} onSort={toggleSort} />
               <SortableHeader label="Last Updated" sortKey="updated_at" sortConfig={sortConfig} onSort={toggleSort} />
-              <TableHead className="p-4 text-right font-bold w-[200px]">Actions</TableHead>
+              <TableHead className="p-4 text-center font-bold w-[200px]">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -86,7 +86,7 @@ export function EmployeeTable({
                     })}
                   </TableCell>
                   <TableCell className="p-4">
-                    <div className="flex items-center justify-end gap-2">
+                    <div className="flex items-center justify-center gap-2">
                       <Button size="icon" variant="outline" className="border-pink-200 text-pink-600 bg-pink-50 hover:bg-pink-200 hover:text-pink-700 hover:border-pink-300" onClick={() => openViewModal(employee)}>
                         <Eye className="h-4 w-4" />
                       </Button>
