@@ -131,7 +131,14 @@ export default function EmployeeDashboard() {
             setLogs(fetchedLogs);
         } catch (err: unknown) {
             console.error("Error loading employee dashboard:", err);
-            setError(err instanceof Error ? err.message : "Failed to load dashboard");
+            const errorMsg = err instanceof Error ? err.message : "Failed to load dashboard";
+            
+            if (errorMsg === "Not authenticated") {
+                window.location.replace("/unauthorized");
+                return;
+            }
+
+            setError(errorMsg);
         } finally {
             if (!isBackground && !globalEmployeeCache) {
                 setLoading(false);

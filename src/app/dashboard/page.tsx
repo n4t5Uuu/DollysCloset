@@ -8,7 +8,7 @@ import EmployeeDashboard from "@/components/dashboards/EmployeeDashboard";
 export default async function DashboardPage() {
     const supabase = await createServerSupabase();
     const { data: { user } } = await supabase.auth.getUser();
-    if (!user) redirect("/login");
+    if (!user) redirect("/unauthorized");
 
     const { data: userData } = await authHelper.getUserRole(user.id, supabase);
     

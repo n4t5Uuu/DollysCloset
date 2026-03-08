@@ -6,7 +6,7 @@ import Navbar from "@/components/general-components/navbar";
 
 export function ConditionalNavbar() {
     const pathname = usePathname();
-    const hiddenNavbarPaths = ["/"];
+    const hiddenNavbarPaths = ["/", "/unauthorized", "/login"];
 
     const shouldHideNavbar = hiddenNavbarPaths.includes(pathname);
 
@@ -26,8 +26,8 @@ export function ConditionalFooter() {
     // The login page (root '/') is hidden via exact match.
     const hiddenFooterPrefixes = ["/dashboard", "/admin", "/employee"];
     
-    // Check if path starts with any of the hidden prefixes OR if it is exactly the root path (login)
-    const shouldHideFooter = hiddenFooterPrefixes.some((path) => pathname.startsWith(path)) || pathname === "/";
+    // Check if path starts with any of the hidden prefixes OR if it is exactly the root path (login) or unauthorized page
+    const shouldHideFooter = hiddenFooterPrefixes.some((path) => pathname.startsWith(path)) || pathname === "/" || pathname === "/unauthorized" || pathname === "/login";
 
     if (shouldHideFooter) {
         return null;

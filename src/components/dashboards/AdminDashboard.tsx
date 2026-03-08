@@ -126,7 +126,14 @@ export default function AdminDashboard() {
             setLogs(fetchedLogs);
         } catch (err: unknown) {
             console.error("Error fetching dashboard logs:", err);
-            setError(err instanceof Error ? err.message : "Failed to load dashboard data");
+            const errorMsg = err instanceof Error ? err.message : "Failed to load dashboard data";
+            
+            if (errorMsg === "Not authenticated") {
+                window.location.replace("/unauthorized");
+                return;
+            }
+            
+            setError(errorMsg);
         } finally {
             if (!isBackground && !globalAdminCache) {
                 setLoading(false);

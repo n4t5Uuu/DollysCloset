@@ -64,13 +64,14 @@ export async function middleware(request: NextRequest) {
     return redirectResponse
   }
 
-  // Redirect unauthenticated overarching users accessing protected environments explicitly back toward explicit login handlers.
+  // Redirect unauthenticated overarching users accessing protected environments explicitly back toward explicit unauthorized handlers.
   if (!user && (
     request.nextUrl.pathname.startsWith('/admin') || 
-    request.nextUrl.pathname.startsWith('/employee')
+    request.nextUrl.pathname.startsWith('/employee') ||
+    request.nextUrl.pathname.startsWith('/dashboard')
   )) {
-    console.log('User not authenticated, redirecting to login')
-    return redirect('/login')
+    console.log('User not authenticated, redirecting to unauthorized')
+    return redirect('/unauthorized')
   }
 
   // Post-authentication validation to implement accurate systemic Role-Based Access Control logic
@@ -107,6 +108,18 @@ export async function middleware(request: NextRequest) {
     }
   }
 
+  // Ensure protected routes are never cached by the browser's back/forward cache (bfcache)
+  // This guarantees that pressing the back button will force a re-validation against the server
+  if (
+    request.nextUrl.pathname.startsWith('/admin') ||
+    request.nextUrl.pathname.startsWith('/employee') ||
+    request.nextUrl.pathname.startsWith('/dashboard')
+  ) {
+    response.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0, proxy-revalidate, s-maxage=0');
+    response.headers.set('Pragma', 'no-cache');
+    response.headers.set('Expires', '0');
+  }
+
   return response
 }
 
@@ -114,5 +127,5 @@ export async function middleware(request: NextRequest) {
  * Route matcher configuration object limiting middleware applicability exclusively towards restrictive segments.
  */
 export const config = {
-  matcher: ['/admin/:path*', '/employee/:path*'],
+  matcher: ['/admin/:path*', '/employee/:path*', '/dashboard/:path*'],
 }

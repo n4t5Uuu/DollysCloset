@@ -10,15 +10,21 @@ export default function LogoutButton() {
     const { user, loading, signOut } = useUser();
     const [isLoggingOut, setIsLoggingOut] = useState(false);
 
-    const handleLogout = () => {
+    const handleLogout = async () => {
         setIsLoggingOut(true);
         
-        // Run signout in the background to avoid blocking the UI with network requests
-        signOut().catch(() => {});
+        try {
+            await signOut();
+        } catch (error) {
+            console.error(error);
+        }
 
-        // Redirects to the login page after logging out 
-        // overwrites the browser history to prevent going back to the dashboard
-        router.replace('/');
+        // Force a hard navigation to clear the Next.js client-side router cache.
+        // We use assign() instead of replace() so that the browser history saves the
+        // dashboard page. That way, if the user hits the Back button, the browser
+        // tries to load the dashboard again, hits our middleware, and redirects
+        // them to the unauthorized error page instead of back to login!
+        window.location.assign('/');
     };
 
     // Don't render anything if loading or not logged in
