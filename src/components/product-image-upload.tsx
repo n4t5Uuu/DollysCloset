@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Upload, X, Star } from "lucide-react";
+import { compressImage } from "@/lib/image-compression";
 import { InventoryProductImage as ProductImage } from "@/types/inventory.types";
 
 interface ProductImageUploadProps {
@@ -119,8 +120,11 @@ export default function ProductImageUpload({
       const uploadedImages: ProductImage[] = [];
 
       for (const file of files) {
+        // Compress the file before uploading
+        const compressedFile = await compressImage(file);
+        
         const formData = new FormData();
-        formData.append("file", file);
+        formData.append("file", compressedFile);
         formData.append("product_id", productId!);
 
         const response = await fetch("/api/admin/upload-image", {
@@ -270,7 +274,7 @@ export default function ProductImageUpload({
                 type="button"
                 onClick={() => deleteImage(image.image_id)}
                 title="Delete image"
-                className="absolute top-2 right-2 p-2 bg-red-500/95 hover:bg-red-600 text-white rounded transition opacity-90 group-hover:opacity-100 shadow-sm"
+                className="absolute top-2 right-2 p-2 bg-red-500/95 hover:bg-red-600 text-white rounded transition opacity-90 group-hover:opacity-100 shadow-sm cursor-pointer"
               >
                 <X className="w-4 h-4" />
               </button>

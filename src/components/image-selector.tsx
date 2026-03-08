@@ -1,6 +1,8 @@
 "use client";
 
-import { Upload, X } from "lucide-react";
+import { useState } from "react";
+import { Upload, X, Loader2 } from "lucide-react";
+import { compressImage } from "@/lib/image-compression";
 
 interface ImageSelectorProps {
   stagedFiles: File[];
@@ -15,6 +17,7 @@ export default function ImageSelector({
   onFilesAdd,
   onFileRemove,
 }: ImageSelectorProps) {
+  const [isCompressing, setIsCompressing] = useState(false);
   // limits the files to 5
   const canAddMore = stagedFiles.length < 5;
 
@@ -23,7 +26,7 @@ export default function ImageSelector({
     e.stopPropagation();
   };
 
-  const handleDrop = (e: React.DragEvent) => {
+  const handleDrop = async (e: React.DragEvent) => {
     e.preventDefault();
     e.stopPropagation();
 
@@ -37,11 +40,22 @@ export default function ImageSelector({
     );
 
     if (files.length > 0) {
-      onFilesAdd(files);
+      setIsCompressing(true);
+      try {
+        const compressedFiles: File[] = [];
+        for (const file of files) {
+          compressedFiles.push(await compressImage(file));
+        }
+        onFilesAdd(compressedFiles);
+      } catch (error) {
+        console.error("Compression failed:", error);
+      } finally {
+        setIsCompressing(false);
+      }
     }
   };
 
-  const handleFileInput = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileInput = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFiles = Array.from(e.target.files || []);
     const imageFiles = selectedFiles.filter(isImageFile);
 
@@ -54,7 +68,18 @@ export default function ImageSelector({
     }
 
     if (imageFiles.length > 0) {
-      onFilesAdd(imageFiles);
+      setIsCompressing(true);
+      try {
+        const compressedFiles: File[] = [];
+        for (const file of imageFiles) {
+          compressedFiles.push(await compressImage(file));
+        }
+        onFilesAdd(compressedFiles);
+      } catch (error) {
+        console.error("Compression failed:", error);
+      } finally {
+        setIsCompressing(false);
+      }
     }
 
     e.target.value = "";
@@ -84,10 +109,16 @@ export default function ImageSelector({
             className="hidden"
             id="image-input-add"
           />
-          <label htmlFor="image-input-add" className="cursor-pointer block">
-            <Upload className="w-8 h-8 mx-auto mb-2 text-gray-400" />
+          <label htmlFor="image-input-add" className={`block ${isCompressing ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'}`}>
+            {isCompressing ? (
+              <Loader2 className="w-8 h-8 mx-auto mb-2 text-pink-500 animate-spin" />
+            ) : (
+              <Upload className="w-8 h-8 mx-auto mb-2 text-gray-400" />
+            )}
             <p className="text-sm text-gray-600">
-              Drag images here or click to select (Max 5)
+              {isCompressing 
+                ? "Compressing images..." 
+                : "Drag images here or click to select (Max 5)"}
             </p>
             <p className="text-xs text-gray-500 mt-1">PNG, JPG, WebP up to 5MB</p>
           </label>
@@ -112,7 +143,7 @@ export default function ImageSelector({
                 <button
                   type="button"
                   onClick={() => onFileRemove(index)}
-                  className="hidden group-hover:flex p-2 bg-red-500 hover:bg-red-600 text-white rounded"
+                  className="hidden group-hover:flex p-2 bg-red-500 hover:bg-red-600 text-white rounded cursor-pointer"
                   title="Remove image"
                 >
                   <X className="w-4 h-4" />
