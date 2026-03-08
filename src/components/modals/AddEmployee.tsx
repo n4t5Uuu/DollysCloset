@@ -72,6 +72,12 @@ export default function AddEmployee({ isOpen, onClose, employeeToEdit, onEmploye
         }
     }, [isOpen, employeeToEdit]);
 
+    /**
+     * Handles saving an employee to the backend.
+     * Depending on whether `employeeToEdit` exists, it either creates a new employee or updates an existing one.
+     * Interacts with the backend via a POST or PUT request to the respective '/api/admin/*' endpoints.
+     * @param e - The form submission event.
+     */
     const handleSaveEmployee = async (e: React.FormEvent) => {
         e.preventDefault();
         setActionLoading(true);

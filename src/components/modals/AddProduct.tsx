@@ -180,6 +180,11 @@ export default function AddProduct({ isOpen, onClose, categories, productToEdit,
         setError(null);
     };
 
+    /**
+     * Fetches product images from the backend for a specific product.
+     * Hits the /api/admin/fetch-images endpoint and stores the images in state.
+     * @param productId - The unique identifier of the product.
+     */
     const fetchProductImages = async (productId: string) => {
         try {
             const response = await fetch(`/api/admin/fetch-images?product_id=${productId}`);
@@ -200,6 +205,13 @@ export default function AddProduct({ isOpen, onClose, categories, productToEdit,
         setStagedFiles((prev) => prev.filter((_, i) => i !== index));
     };
 
+    /**
+     * Uploads any newly staged product images to the backend.
+     * Specifically sends POST requests with a FormData payload to /api/admin/upload-image.
+     * @param productId - The unique identifier of the product for which images are being uploaded.
+     * @param session - An object containing the current user's access token for authorization.
+     * @returns An object containing a list of `failedFiles` which didn't successfully upload.
+     */
     const uploadStagedImages = async (productId: string, session: SessionWithAccessToken) => {
         if (stagedFiles.length === 0) return { failedFiles: [] as string[] };
 
@@ -234,6 +246,12 @@ export default function AddProduct({ isOpen, onClose, categories, productToEdit,
         return { failedFiles };
     };
 
+    /**
+     * Handles creating or updating a product on the backend.
+     * Communicates with either /api/admin/create-product or /api/admin/edit-product endpoints.
+     * Also triggers the uploading of staged image files after a successful product creation.
+     * @param e - Form submission event.
+     */
     const handleSaveProduct = async (e: React.FormEvent) => {
         e.preventDefault();
         if (actionLoading) return;

@@ -78,6 +78,10 @@ export default function Contact() {
   const [errorMessage, setErrorMessage] = useState("");
 
   useEffect(() => {
+    /**
+     * Fetches contact details from the backend to populate the page's contact information.
+     * Uses the /api/business-details endpoint.
+     */
     const fetchContactDetails = async () => {
       try {
         const response = await fetch("/api/business-details?slug=contact", { cache: "no-store" });
@@ -162,7 +166,7 @@ export default function Contact() {
   };
 
   return (
-    <main className="w-full min-h-screen bg-gradient-to-b from-white to-pink-50/30 pt-10 pb-20 relative">
+    <main className="w-full min-h-screen bg-linear-to-b from-white to-pink-50/30 pt-10 pb-20 relative">
       {/* Decorative Elements */}
       <div className="absolute top-50 left-10 w-72 h-72 bg-[#E7A3B0]/10 rounded-full blur-3xl -z-10" />
       <div className="absolute bottom-20 right-10 w-96 h-96 bg-[#E7A3B0]/10 rounded-full blur-3xl -z-10" />
@@ -325,7 +329,7 @@ export default function Contact() {
                       <div className="relative z-10 space-y-3">
                         {/* Icon */}
                         <div
-                          className={`w-12 h-12 rounded-xl bg-gradient-to-br ${method.color} flex items-center justify-center shadow-md group-hover:scale-110 transition-transform duration-300`}
+                          className={`w-12 h-12 rounded-xl bg-linear-to-br ${method.color} flex items-center justify-center shadow-md group-hover:scale-110 transition-transform duration-300`}
                         >
                           <Icon className="w-6 h-6 text-white" />
                         </div>
@@ -361,7 +365,7 @@ export default function Contact() {
             >
                 <div className="bg-white rounded-2xl p-8 shadow-lg border border-gray-100 flex-1 flex flex-col justify-between h-full">
                 <div className="flex items-start gap-4 mb-6">
-                    <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-[#E7A3B0] to-[#f0b8c3] flex items-center justify-center shadow-md flex-shrink-0">
+                    <div className="w-14 h-14 rounded-xl bg-linear-to-br from-[#E7A3B0] to-[#f0b8c3] flex items-center justify-center shadow-md shrink-0">
                     <MapPin className="w-7 h-7 text-white" />
                     </div>
 
@@ -376,7 +380,7 @@ export default function Contact() {
                 </div>
 
                 <div className="space-y-4">
-                    <div className="bg-gradient-to-br from-[#E7A3B0]/10 to-pink-100/50 rounded-xl p-4 border border-[#E7A3B0]/20">
+                    <div className="bg-linear-to-br from-[#E7A3B0]/10 to-pink-100/50 rounded-xl p-4 border border-[#E7A3B0]/20">
                     <p className="font-montserrat text-gray-700">
                         <span className="font-bold text-[#E7A3B0]">Address:</span>
                         <br />
@@ -424,7 +428,7 @@ export default function Contact() {
             >
               <div className="bg-white rounded-2xl p-8 shadow-lg border border-gray-100 h-full flex flex-col">
                 <div className="flex items-center gap-4 mb-6 shrink-0">
-                <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-[#E7A3B0] to-[#f0b8c3] flex items-center justify-center shadow-md shrink-0">
+                <div className="w-14 h-14 rounded-xl bg-linear-to-br from-[#E7A3B0] to-[#f0b8c3] flex items-center justify-center shadow-md shrink-0">
                   <Send className="w-7 h-7 text-white" />
                 </div>
 
@@ -495,7 +499,7 @@ export default function Contact() {
                 <Button
                   type="submit"
                   disabled={status === 'submitting'}
-                  className="w-full h-12 bg-gradient-to-r from-[#E7A3B0] to-[#f0b8c3] hover:from-[#d891a0] hover:to-[#E7A3B0] text-white font-bold font-montserrat uppercase tracking-wider text-base rounded-xl transition-all duration-300 shadow-md hover:shadow-lg shrink-0 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="w-full h-12 bg-linear-to-r from-[#E7A3B0] to-[#f0b8c3] hover:from-[#d891a0] hover:to-[#E7A3B0] text-white font-bold font-montserrat uppercase tracking-wider text-base rounded-xl transition-all duration-300 shadow-md hover:shadow-lg shrink-0 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {status === 'submitting' ? (
                     <span className="flex items-center gap-2">

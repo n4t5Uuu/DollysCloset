@@ -56,6 +56,11 @@ export default function ManageDetailsPage() {
 
   const authTokenRef = useRef<string | null>(null);
 
+  /**
+   * Retrieves the current user's session token from Supabase.
+   * If the token is already cached during this session, it returns the cached token.
+   * @returns A promise resolving to the session access token.
+   */
   const getAuthToken = useCallback(async () => {
     if (authTokenRef.current) {
       return authTokenRef.current;
@@ -73,6 +78,10 @@ export default function ManageDetailsPage() {
     return session.access_token;
   }, []);
 
+  /**
+   * Fetches contact details data from the backend.
+   * Sends a GET request to the /api/admin/business-details endpoint using the contact slug.
+   */
   const fetchContactDetails = useCallback(async () => {
     try {
       setLoadingContact(true);
@@ -99,6 +108,10 @@ export default function ManageDetailsPage() {
     }
   }, [getAuthToken]);
 
+  /**
+   * Fetches the announcement text from the backend.
+   * Sends a GET request to the /api/admin/business-details endpoint using the announcement slug.
+   */
   const fetchAnnouncementDetails = useCallback(async () => {
     try {
       setLoadingAnnouncement(true);
@@ -126,6 +139,10 @@ export default function ManageDetailsPage() {
     }
   }, [getAuthToken]);
 
+  /**
+   * Fetches the about page details and FAQ data from the backend.
+   * Sends a GET request to the /api/admin/business-details endpoint using the about slug.
+   */
   const fetchAboutDetails = useCallback(async () => {
     try {
       setLoadingAbout(true);
@@ -169,6 +186,12 @@ export default function ManageDetailsPage() {
     }
   }, [activeSection, hasLoadedAbout, fetchAboutDetails]);
 
+  /**
+   * Updates a specific contact field on the backend.
+   * Sends a PUT request to /api/admin/business-details with the updated field value.
+   * @param fieldKey - The key corresponding to the contact field to save.
+   * @param label - The human-readable label of the field (for the success message).
+   */
   async function handleSaveContactField(fieldKey: ContactFieldKey, label: string) {
     try {
       setSavingField(fieldKey);
@@ -203,6 +226,12 @@ export default function ManageDetailsPage() {
     }
   }
 
+  /**
+   * Updates a specific about/FAQ field on the backend.
+   * Sends a PUT request to /api/admin/business-details with the updated field value.
+   * @param fieldKey - The key corresponding to the about or FAQ field to save.
+   * @param label - The human-readable label of the field.
+   */
   async function handleSaveAboutField(fieldKey: AboutFieldKey, label: string) {
     try {
       setSavingAboutField(fieldKey);
@@ -237,6 +266,10 @@ export default function ManageDetailsPage() {
     }
   }
 
+  /**
+   * Updates the global announcement text on the backend.
+   * Sends a PUT request to /api/admin/business-details with the current banner text.
+   */
   async function handleSaveAnnouncement() {
     try {
       setSavingAnnouncement(true);
@@ -272,14 +305,14 @@ export default function ManageDetailsPage() {
   }
 
   function updateDetails(key: ContactFieldKey, value: string) {
-    setDetails((prev) => ({
+    setDetails((prev: ContactDetailsPayload) => ({
       ...prev,
       [key]: value,
     }));
   }
 
   function updateAboutDetails(key: AboutFieldKey, value: string) {
-    setAboutDetails((prev) => ({
+    setAboutDetails((prev: AboutDetailsPayload) => ({
       ...prev,
       [key]: value,
     }));

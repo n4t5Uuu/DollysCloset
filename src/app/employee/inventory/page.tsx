@@ -60,6 +60,11 @@ export default function EmployeeInventoryPage() {
   const lowStockThreshold = 10;
   const dateSortLabel = dateSort === "oldest" ? "Oldest" : "Newest";
 
+  /**
+   * Fetches all products from the backend via the /api/admin/fetch-products endpoint.
+   * @param showGlobalLoader - Whether to show the main loading spinner during the fetch.
+   * @returns A boolean representing whether the fetch was successful.
+   */
   const fetchProducts = useCallback(async (showGlobalLoader = false) => {
     try {
       if (showGlobalLoader) {
@@ -88,6 +93,9 @@ export default function EmployeeInventoryPage() {
     }
   }, []);
 
+  /**
+   * Fetches the hierarchical list of categories from the backend via /api/admin/fetch-categories.
+   */
   const fetchCategories = useCallback(async () => {
     try {
       const response = await fetch('/api/admin/fetch-categories', { cache: 'no-store' });
@@ -207,6 +215,11 @@ export default function EmployeeInventoryPage() {
     setShowAddModal(true);
   };
 
+  /**
+   * Opens the product view modal and fetches its associated images from the backend.
+   * Calls the /api/admin/fetch-images endpoint for the selected product.
+   * @param product - The product object to view.
+   */
   const handleViewProduct = async (product: Product) => {
     setViewProduct(product);
     setSelectedViewImage(null);
@@ -229,6 +242,11 @@ export default function EmployeeInventoryPage() {
     }
   };
 
+  /**
+   * Deletes a single product by interacting with the backend via a DELETE request to /api/admin/delete-product.
+   * Automatically refreshes the product list upon success.
+   * @param productId - The unique identifier of the product to delete.
+   */
   const handleDeleteProduct = async (productId: string) => {
     if (!confirm("Are you sure you want to delete this product?")) return;
     setActionLoading(true);
@@ -254,6 +272,10 @@ export default function EmployeeInventoryPage() {
     }
   };
 
+  /**
+   * Deletes multiple selected products at once by interacting with the backend via /api/admin/bulk-delete-products.
+   * Uses a DELETE request with an array of product IDs and refreshes the list on success.
+   */
   const handleBulkDelete = async () => {
     if (selectedProducts.size === 0) {
       setError("No products selected");

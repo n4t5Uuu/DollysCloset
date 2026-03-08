@@ -89,6 +89,12 @@ export default function ProductImageUpload({
     e.target.value = "";
   };
 
+  /**
+   * Uploads multiple image files to the backend for a specific product.
+   * Hits the /api/admin/upload-image endpoint for each file sequentially.
+   * Afterwards, refreshes the product's image list via /api/admin/fetch-images.
+   * @param files - Array of image File objects to be uploaded.
+   */
   const uploadFiles = async (files: File[]) => {
     if (!files.every(isImageFile)) {
       alert("Only image files are allowed.");
@@ -157,6 +163,11 @@ export default function ProductImageUpload({
     }
   };
 
+  /**
+   * Deletes a specific product image from the backend via the /api/admin/delete-image endpoint.
+   * Confirms the action with the user before proceeding, and refreshes the image list upon success.
+   * @param imageId - The unique identifier of the image to be deleted.
+   */
   const deleteImage = async (imageId: string) => {
     if (!confirm("Delete this image?")) return;
 

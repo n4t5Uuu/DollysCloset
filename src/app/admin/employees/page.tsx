@@ -46,6 +46,10 @@ export default function EmployeesPage() {
     fetchEmployees();
   }, []);
 
+  /**
+   * Fetches all employee records from the backend.
+   * Sends a GET request to /api/admin/fetch-employees and populates the employee list.
+   */
   async function fetchEmployees() {
     try {
       setLoading(true)
@@ -154,6 +158,11 @@ export default function EmployeesPage() {
 
 
 
+  /**
+   * Deletes a specific employee from the system.
+   * Calls the /api/admin/delete-employee backend endpoint using the selected employee's ID.
+   * Refreshes the employee list after a successful deletion.
+   */
   const handleDeleteEmployee = async () => {
     if (!selectedEmployee) return;
 
@@ -202,6 +211,11 @@ export default function EmployeesPage() {
 
 
   // Bulk delete handler
+  /**
+   * Deletes multiple selected employees from the system.
+   * Interacts with the /api/admin/bulk-delete-employees backend endpoint using an array of employee IDs.
+   * Clears selection and refreshes the employee list after success.
+   */
   const handleBulkDelete = async () => {
     setActionLoading(true);
     setError(null);

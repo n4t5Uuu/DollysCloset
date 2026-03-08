@@ -53,6 +53,10 @@ export default function Catalog() {
     const itemsPerPage = 12;
 
     useEffect(() => {
+        /**
+         * Fetches catalog data from the backend including categories, products, and featured products.
+         * Hits the /api/catalog endpoint.
+         */
         const fetchCatalog = async () => {
             try {
                 setLoading(true);
@@ -82,6 +86,10 @@ export default function Catalog() {
     }, []);
 
     useEffect(() => {
+        /**
+         * Fetches the global announcement text to display in the scrolling banner on the catalog page.
+         * Hits the /api/business-details endpoint.
+         */
         const fetchAnnouncement = async () => {
             try {
                 const response = await fetch(`/api/business-details?slug=${ANNOUNCEMENT_SLUG}`, { cache: "no-store" });

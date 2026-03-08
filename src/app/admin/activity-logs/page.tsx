@@ -80,6 +80,11 @@ export default function ActivityLogsPage() {
   const isFetchingRef = useRef(false);
   const isMountedRef = useRef(true);
 
+  /**
+   * Retrieves the current authenticated session's access token from Supabase.
+   * Throws an error if the user is not currently authenticated.
+   * @returns A promise that resolves to the access token string.
+   */
   const getAuthToken = useCallback(async () => {
     const {
       data: { session },
@@ -92,6 +97,12 @@ export default function ActivityLogsPage() {
     return session.access_token;
   }, []);
 
+  /**
+   * Performs an HTTP GET request to the /api/admin/fetch-logs endpoint to retrieve activity logs.
+   * Uses the provided access token for authorization.
+   * @param token - The user's access token for the backend request.
+   * @returns A promise resolving to the fetch response object.
+   */
   const fetchLogsWithToken = useCallback(async (token: string) => {
     return fetch('/api/admin/fetch-logs', {
       cache: 'no-store',
@@ -101,6 +112,11 @@ export default function ActivityLogsPage() {
     });
   }, []);
 
+  /**
+   * Fetches activity logs from the backend and handles token refreshing if the session has expired.
+   * Updates component state with the fetched logs on success.
+   * @param isBackground - If true, prevents the global loading indicator from showing during the request.
+   */
   const fetchLogs = useCallback(async (isBackground = false) => {
     if (isFetchingRef.current) return;
     isFetchingRef.current = true;
@@ -210,6 +226,10 @@ export default function ActivityLogsPage() {
   );
 
 
+  /**
+   * Interacts with the backend via the /api/admin/reset-activity-logs POST endpoint
+   * to delete all activity logs from the database. Requires user confirmation first.
+   */
   const handleResetLogs = async () => {
     if (confirm("Are you sure you want to delete all activity logs? This cannot be undone.")) {
       try {

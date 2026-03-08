@@ -70,6 +70,11 @@ export default function AdminDashboard() {
     const [error, setError] = useState<string | null>(null);
     const authTokenRef = useRef<string | null>(null);
 
+    /**
+     * Retrieves the current user's session token from Supabase.
+     * Reuses an already fetched token if one is cached in 'authTokenRef'.
+     * @returns A promise resolving to the session access token.
+     */
     const getAuthToken = useCallback(async () => {
         if (authTokenRef.current) {
             return authTokenRef.current;
@@ -87,6 +92,11 @@ export default function AdminDashboard() {
         return session.access_token;
     }, []);
 
+    /**
+     * Fetches recent activity logs from the backend.
+     * Makes a request to the /api/admin/fetch-logs endpoint.
+     * @param isBackground - If true, fetches data silently without setting the visible loading state.
+     */
     const fetchLogs = useCallback(async (isBackground = false) => {
         try {
             if (!isBackground && !globalAdminCache) {

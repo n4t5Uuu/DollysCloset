@@ -6,6 +6,14 @@ import {
   BusinessDetailsRowLike
 } from "@/types/business-details.types";
 
+export type {
+  ContactFieldKey,
+  ContactDetailsPayload,
+  AboutFieldKey,
+  AboutDetailsPayload,
+  BusinessDetailsRowLike
+};
+
 export const CONTACT_SLUG = "contact";
 export const ABOUT_SLUG = "about";
 export const ANNOUNCEMENT_SLUG = "announcement";

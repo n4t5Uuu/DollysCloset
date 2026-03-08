@@ -48,6 +48,11 @@ export default function EmployeeDashboard() {
     const [currentUserId, setCurrentUserId] = useState<string | null>(null);
     const authTokenRef = useRef<string | null>(null);
 
+    /**
+     * Retrieves the current user's session from Supabase, updates local state for display name,
+     * and fetches the user's detailed information from the 'tbl_users' database table.
+     * @returns A promise that resolves to the session's access token string.
+     */
     const getSessionDetails = useCallback(async () => {
         const { data: { session } } = await browserSupabase.auth.getSession();
 
@@ -80,6 +85,11 @@ export default function EmployeeDashboard() {
         return session.access_token;
     }, []);
 
+    /**
+     * Fetches dashboard data including products and recent activity logs from the backend.
+     * Interacts with /api/admin/fetch-products and /api/admin/fetch-logs endpoints.
+     * @param isBackground - If true, avoids triggering the visible loading state (used for silent polling).
+     */
     const fetchDashboardData = useCallback(async (isBackground = false) => {
         try {
             if (!isBackground && !globalEmployeeCache) {
