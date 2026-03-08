@@ -84,6 +84,13 @@ export default function AddEmployee({ isOpen, onClose, employeeToEdit, onEmploye
         setError(null);
 
         try {
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            if (!emailRegex.test(formData.username)) {
+                setError('Please enter a valid email address.');
+                setActionLoading(false);
+                return;
+            }
+
             const { data: { session } } = await browserSupabase.auth.getSession();
             if (!session) throw new Error('Not authenticated');
 

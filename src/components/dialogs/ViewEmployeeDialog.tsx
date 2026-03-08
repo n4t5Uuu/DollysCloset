@@ -11,10 +11,10 @@ export default function ViewEmployeeDialog({ employee, onClose }: ViewEmployeeDi
     <BaseModalDialog onClose={onClose} title="Employee Details">
       <div className="space-y-4">
         <div className="bg-linear-to-br from-[#E7A3B0]/10 to-pink-50 rounded-xl p-4 border border-[#E7A3B0]/20">
-          <div className="grid grid-cols-2 gap-4">
-            <div>
+          <div className="flex flex-col gap-3">
+            <div className="min-w-0">
               <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Email Address</p>
-              <p className="font-semibold text-gray-900">{employee.username}</p>
+              <p className="font-semibold text-gray-900 break-all">{employee.username}</p>
             </div>
             <div>
               <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Role</p>
