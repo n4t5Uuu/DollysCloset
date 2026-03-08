@@ -12,7 +12,9 @@ import ImageSelector from "@/components/image-selector";
 import {
     Select,
     SelectContent,
+    SelectGroup,
     SelectItem,
+    SelectLabel,
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select";
@@ -375,6 +377,21 @@ export default function AddProduct({ isOpen, onClose, categories, productToEdit,
             displayLabel: buildCategoryPathLabel(cat),
         })), [selectableCategories, buildCategoryPathLabel]);
 
+    const groupedCategories = useMemo(() => {
+        const groups: Record<string, typeof normalizedCategories> = {};
+        normalizedCategories.forEach((cat) => {
+            const parts = cat.displayLabel.split(" > ");
+            const rootLabel = parts[0] || "Other";
+            const remainingLabel = parts.slice(1).join(" > ") || rootLabel;
+            
+            if (!groups[rootLabel]) {
+                groups[rootLabel] = [];
+            }
+            groups[rootLabel].push({ ...cat, displayLabel: remainingLabel });
+        });
+        return groups;
+    }, [normalizedCategories]);
+
     const normalizedSelectedCategory = normalizeCategoryId(formData.category_id);
 
     const hasSelectedCategory = normalizedCategories.some(
@@ -422,17 +439,24 @@ export default function AddProduct({ isOpen, onClose, categories, productToEdit,
                                     <SelectTrigger className="border-black text-black bg-white data-placeholder:text-black">
                                         <SelectValue placeholder="Select category" />
                                     </SelectTrigger>
-                                    <SelectContent className="bg-white text-black z-60">
+                                    <SelectContent className="bg-white text-black z-60 max-h-[400px]">
                                         {normalizedSelectedCategory && !hasSelectedCategory && (
                                             <SelectItem value={normalizedSelectedCategory}>
                                                 Current Category (ID: {normalizedSelectedCategory})
                                             </SelectItem>
                                         )}
-                                        {normalizedCategories.length === 0 ? (
+                                        {Object.keys(groupedCategories).length === 0 ? (
                                             <SelectItem value="none" disabled>No categories found</SelectItem>
                                         ) : (
-                                            normalizedCategories.map((cat) => (
-                                                <SelectItem key={cat.category_id} value={cat.normalizedId}>{cat.displayLabel}</SelectItem>
+                                            Object.entries(groupedCategories).map(([rootLabel, cats]) => (
+                                                <SelectGroup key={rootLabel}>
+                                                    <SelectLabel className="font-bold text-gray-900 bg-gray-50 border-y border-gray-100 py-2">{rootLabel}</SelectLabel>
+                                                    {cats.map((cat) => (
+                                                        <SelectItem key={cat.category_id} value={cat.normalizedId} className="pl-6 hover:bg-gray-50">
+                                                            {cat.displayLabel}
+                                                        </SelectItem>
+                                                    ))}
+                                                </SelectGroup>
                                             ))
                                         )}
                                     </SelectContent>
