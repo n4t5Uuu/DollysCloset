@@ -210,6 +210,20 @@ export default function AdminInventoryPage() {
     return path.join(" > ");
   }, [categoryById]);
 
+  const activeCategoryLabel = useMemo(() => {
+    if (categoryFilter === "all") return null;
+    if (categoryFilter.startsWith("rootgroup:")) {
+      const key = categoryFilter.slice("rootgroup:".length);
+      const rootCat = categories.find(
+        (c) => c.parent_category === null && c.category_name.trim().toLowerCase() === key
+      );
+      return rootCat?.category_name ?? key;
+    }
+    const id = parseInt(categoryFilter);
+    if (isNaN(id)) return null;
+    return getCategoryName(id);
+  }, [categoryFilter, categories, getCategoryName]);
+
   const openAddModal = () => {
     setEditingProduct(null);
     setShowAddModal(true);
@@ -427,6 +441,22 @@ export default function AdminInventoryPage() {
           </SelectContent>
         </Select>
       </div>
+
+      {activeCategoryLabel && (
+        <div className="flex items-center gap-2 mb-3">
+          <span className="text-xs text-gray-500">Category:</span>
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-gray-100 text-gray-700 text-xs font-medium">
+            {activeCategoryLabel}
+            <button
+              onClick={() => setCategoryFilter("all")}
+              className="text-gray-400 hover:text-gray-700 transition-colors cursor-pointer"
+              aria-label="Clear category filter"
+            >
+              <X className="w-3 h-3" />
+            </button>
+          </span>
+        </div>
+      )}
 
       <div className="flex items-center justify-between flex-wrap gap-4 mb-4">
         <div className="text-sm text-gray-600">

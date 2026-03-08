@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { Loader2, X } from "lucide-react";
 import { browserSupabase } from "@/lib/supabase/browser";
 import { Button } from "@/components/ui/button";
@@ -9,15 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import ProductImageUpload from "@/components/product-image-upload";
 import ImageSelector from "@/components/image-selector";
-import {
-    Select,
-    SelectContent,
-    SelectGroup,
-    SelectItem,
-    SelectLabel,
-    SelectTrigger,
-    SelectValue,
-} from "@/components/ui/select";
+import CategoryCascadingSelect from "@/components/selects/CategoryCascadingSelect";
 import {
     Card,
     CardContent,
@@ -328,76 +320,6 @@ export default function AddProduct({ isOpen, onClose, categories, productToEdit,
         }
     };
 
-    const categoryById = useMemo(
-        () => new Map(categories.map((category) => [Number(category.category_id), category])),
-        [categories]
-    );
-
-    const buildCategoryPathLabel = useCallback((category: Category) => {
-        const path: string[] = [category.category_name];
-        let parentId = category.parent_category;
-        const visited = new Set<number>([Number(category.category_id)]);
-
-        while (parentId !== null) {
-            if (visited.has(parentId)) break;
-            visited.add(parentId);
-
-            const parent = categoryById.get(parentId);
-            if (!parent) break;
-
-            path.unshift(parent.category_name);
-            parentId = parent.parent_category;
-        }
-
-        return path.join(" > ");
-    }, [categoryById]);
-
-    const categoriesWithChildren = useMemo(
-        () => new Set(
-            categories
-                .map((category) => category.parent_category)
-                .filter((parentId): parentId is number => parentId !== null)
-        ),
-        [categories]
-    );
-
-    const selectableCategories = useMemo(() => categories.filter((category) => {
-        const categoryId = Number(category.category_id);
-        const hasChildren = categoriesWithChildren.has(categoryId);
-        const isRootCategory = category.parent_category === null;
-
-        return !hasChildren && !isRootCategory;
-    }), [categories, categoriesWithChildren]);
-
-    const normalizedCategories = useMemo(() => [...selectableCategories]
-        .sort((a, b) => Number(a.category_id) - Number(b.category_id))
-        .map((cat) => ({
-            ...cat,
-            normalizedId: normalizeCategoryId(cat.category_id),
-            displayLabel: buildCategoryPathLabel(cat),
-        })), [selectableCategories, buildCategoryPathLabel]);
-
-    const groupedCategories = useMemo(() => {
-        const groups: Record<string, typeof normalizedCategories> = {};
-        normalizedCategories.forEach((cat) => {
-            const parts = cat.displayLabel.split(" > ");
-            const rootLabel = parts[0] || "Other";
-            const remainingLabel = parts.slice(1).join(" > ") || rootLabel;
-            
-            if (!groups[rootLabel]) {
-                groups[rootLabel] = [];
-            }
-            groups[rootLabel].push({ ...cat, displayLabel: remainingLabel });
-        });
-        return groups;
-    }, [normalizedCategories]);
-
-    const normalizedSelectedCategory = normalizeCategoryId(formData.category_id);
-
-    const hasSelectedCategory = normalizedCategories.some(
-        (cat) => cat.normalizedId === normalizedSelectedCategory
-    );
-
     if (!isOpen) return null;
 
     return (
@@ -431,36 +353,12 @@ export default function AddProduct({ isOpen, onClose, categories, productToEdit,
                         <div className="grid grid-cols-2 gap-4">
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-2">Category <span className="text-red-500">*</span></label>
-                                <Select
-                                    key={`category-${productToEdit?.product_id || "new"}-${normalizedSelectedCategory}-${normalizedCategories.length}`}
-                                    value={normalizedSelectedCategory}
+                                <CategoryCascadingSelect
+                                    categories={categories}
+                                    value={formData.category_id}
                                     onValueChange={(value) => setFormData({ ...formData, category_id: normalizeCategoryId(value) })}
-                                >
-                                    <SelectTrigger className="border-black text-black bg-white data-placeholder:text-black">
-                                        <SelectValue placeholder="Select category" />
-                                    </SelectTrigger>
-                                    <SelectContent className="bg-white text-black z-60 max-h-[400px]">
-                                        {normalizedSelectedCategory && !hasSelectedCategory && (
-                                            <SelectItem value={normalizedSelectedCategory}>
-                                                Current Category (ID: {normalizedSelectedCategory})
-                                            </SelectItem>
-                                        )}
-                                        {Object.keys(groupedCategories).length === 0 ? (
-                                            <SelectItem value="none" disabled>No categories found</SelectItem>
-                                        ) : (
-                                            Object.entries(groupedCategories).map(([rootLabel, cats]) => (
-                                                <SelectGroup key={rootLabel}>
-                                                    <SelectLabel className="font-bold text-gray-900 bg-gray-50 border-y border-gray-100 py-2">{rootLabel}</SelectLabel>
-                                                    {cats.map((cat) => (
-                                                        <SelectItem key={cat.category_id} value={cat.normalizedId} className="pl-6 hover:bg-gray-50">
-                                                            {cat.displayLabel}
-                                                        </SelectItem>
-                                                    ))}
-                                                </SelectGroup>
-                                            ))
-                                        )}
-                                    </SelectContent>
-                                </Select>
+                                    placeholder="Select category"
+                                />
                             </div>
 
                             <div>
