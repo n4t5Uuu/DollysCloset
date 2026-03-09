@@ -116,23 +116,40 @@ export default function Home() {
   }
 
   return (
-    <div className="min-h-screen w-full flex items-center justify-center bg-white font-montserrat p-4">
+    <div className="min-h-screen w-full flex items-center justify-center font-montserrat p-4 relative overflow-hidden bg-[#FFFBFB]">
       
-      <div className="w-full max-w-[500px] bg-[#F2F2F2] rounded-[30px] shadow-[0_10px_40px_-10px_rgba(0,0,0,0.1)] p-8 md:p-12 animate-in fade-in zoom-in-95 duration-700">
-        
-        <h1 className="text-4xl md:text-5xl font-playfair font-bold text-center mb-10 tracking-wider text-black animate-in slide-in-from-bottom-4 fade-in duration-700 delay-100 fill-mode-both">
-          LOGIN
-        </h1>
+      {/* Ultra-soft elegant background mimicking the mockup exactly */}
+      <div 
+        className="absolute inset-0 z-0 pointer-events-none" 
+        style={{ 
+          backgroundImage: `
+            radial-gradient(circle at 50% 50%, rgba(255, 226, 232, 0.8) 0%, transparent 60%),
+            linear-gradient(to right, rgba(231, 163, 176, 0.06) 1px, transparent 1px), 
+            linear-gradient(to bottom, rgba(231, 163, 176, 0.06) 1px, transparent 1px)
+          `,
+          backgroundSize: '100% 100%, 80px 80px, 80px 80px',
+          backgroundPosition: 'center center'
+        }}
+      />
 
-        <form onSubmit={handleSubmit} className="space-y-8">
+      <div className="relative z-10 w-full max-w-[420px] bg-white/98 backdrop-blur-xl rounded-[32px] shadow-[0_16px_40px_-12px_rgba(231,163,176,0.25)] border border-white/60 p-10 md:px-12 md:py-12 animate-in fade-in zoom-in-95 duration-700">
+        
+        <div className="text-center mb-10">
+          <h1 className="text-[2.75rem] leading-none font-oswald font-bold text-[#1A1A1A] tracking-wider mb-3 uppercase">
+            Log In
+          </h1>
+          <p className="text-sm font-montserrat text-[#828282] tracking-wide">Sign in to Dolly's Closet</p>
+        </div>
+
+        <form onSubmit={handleSubmit} className="space-y-6">
 
           {/* Username/Email Input - Floating Label */}
-          <div className="relative group animate-in slide-in-from-bottom-4 fade-in duration-700 delay-200 fill-mode-both">
+          <div className="relative group">
             <input 
               type="text" 
               id="email"
               placeholder=" " 
-              className="peer w-full px-5 py-3.5 rounded-xl border-2 border-[#E7A3B0]/40 bg-white text-black placeholder-transparent focus:border-[#E7A3B0] focus:outline-none focus:shadow-[0_0_0_4px_rgba(231,163,176,0.1)] transition-all duration-300 hover:border-[#E7A3B0]/70"
+              className="peer w-full px-5 py-[18px] rounded-xl border border-[#E5E5E5] bg-transparent text-[#1A1A1A] focus:outline-none transition-all duration-300 focus:border-[#E7A3B0] focus:ring-1 focus:ring-[#E7A3B0]"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
@@ -140,21 +157,21 @@ export default function Home() {
             />
             <label 
               htmlFor="email"
-              className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 text-sm transition-all duration-300 cursor-text pointer-events-none bg-white px-1
-                        peer-focus:top-0 peer-focus:-translate-y-1/2 peer-focus:text-xs peer-focus:text-[#E7A3B0] peer-focus:font-bold
-                        peer-[:not(:placeholder-shown)]:top-0 peer-[:not(:placeholder-shown)]:-translate-y-1/2 peer-[:not(:placeholder-shown)]:text-xs peer-[:not(:placeholder-shown)]:text-[#E7A3B0]/80"
+              className="absolute left-5 top-1/2 -translate-y-1/2 text-[#828282] font-medium text-[14px] transition-all duration-200 cursor-text pointer-events-none px-1.5 bg-white
+                        peer-focus:top-0 peer-focus:text-[12px] peer-focus:text-[#E7A3B0]
+                        peer-[:not(:placeholder-shown)]:top-0 peer-[:not(:placeholder-shown)]:text-[12px] peer-[:not(:placeholder-shown)]:text-[#E7A3B0]"
             >
               Username
             </label>
           </div>
 
           {/* Password Input - Floating Label */}
-          <div className="relative group animate-in slide-in-from-bottom-4 fade-in duration-700 delay-300 fill-mode-both">
+          <div className="relative group mt-6">
             <input 
               type={showPassword ? "text" : "password"}
               id="password"
               placeholder=" "
-              className="peer w-full px-5 py-3.5 rounded-xl border-2 border-[#E7A3B0]/40 bg-white text-black placeholder-transparent focus:border-[#E7A3B0] focus:outline-none focus:shadow-[0_0_0_4px_rgba(231,163,176,0.1)] transition-all duration-300 pr-12 hover:border-[#E7A3B0]/70"
+              className="peer w-full px-5 py-[18px] rounded-xl border border-[#E5E5E5] bg-transparent text-[#1A1A1A] focus:outline-none transition-all duration-300 pr-12 focus:border-[#E7A3B0] focus:ring-1 focus:ring-[#E7A3B0]"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
@@ -162,28 +179,28 @@ export default function Home() {
             />
             <label 
               htmlFor="password"
-              className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 text-sm transition-all duration-300 cursor-text pointer-events-none bg-white px-1
-                        peer-focus:top-0 peer-focus:-translate-y-1/2 peer-focus:text-xs peer-focus:text-[#E7A3B0] peer-focus:font-bold
-                        peer-[:not(:placeholder-shown)]:top-0 peer-[:not(:placeholder-shown)]:-translate-y-1/2 peer-[:not(:placeholder-shown)]:text-xs peer-[:not(:placeholder-shown)]:text-[#E7A3B0]/80"
+              className="absolute left-5 top-1/2 -translate-y-1/2 text-[#828282] font-medium text-[14px] transition-all duration-200 cursor-text pointer-events-none px-1.5 bg-white
+                        peer-focus:top-0 peer-focus:text-[12px] peer-focus:text-[#E7A3B0]
+                        peer-[:not(:placeholder-shown)]:top-0 peer-[:not(:placeholder-shown)]:text-[12px] peer-[:not(:placeholder-shown)]:text-[#E7A3B0]"
             >
               Password
             </label>
             <button 
               type="button" 
               onClick={() => setShowPassword(!showPassword)} 
-              className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-[#E7A3B0] transition-all duration-200 focus:outline-none cursor-pointer hover:scale-110 active:scale-95"
+              className="absolute right-5 top-1/2 -translate-y-1/2 text-[#B3B3B3] hover:text-[#E7A3B0] transition-colors focus:outline-none cursor-pointer"
               disabled={loading}
             >
-              {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+              {showPassword ? <EyeOff size={20} strokeWidth={1.5} /> : <Eye size={20} strokeWidth={1.5} />}
             </button>
           </div>
 
           <button 
             type="submit" 
             disabled={loading}
-            className="w-full bg-[#E7A3B0] text-white font-medium py-3.5 rounded-xl hover:bg-[#d68c9d] active:scale-[0.98] transition-all duration-300 shadow-md hover:shadow-xl hover:-translate-y-1 mt-8 text-lg tracking-wide disabled:opacity-70 disabled:cursor-not-allowed cursor-pointer animate-in slide-in-from-bottom-4 fade-in duration-700 delay-500 fill-mode-both"
+            className="w-full bg-linear-to-r from-[#E7A3B0] to-[#E2899A] text-white font-bold py-[18px] rounded-xl hover:from-[#E2899A] hover:to-[#DE7588] transition-all duration-300 mt-10 text-[15px] tracking-widest uppercase shadow-[0_8px_20px_-6px_rgba(231,163,176,0.6)]"
           >
-            {loading ? "Logging in..." : "Login"}
+            {loading ? "Logging in..." : "Log In"}
           </button>
         </form>
       </div>
