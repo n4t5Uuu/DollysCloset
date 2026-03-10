@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useMemo, useCallback } from "react";
-import { Plus, Trash, Loader2, AlertTriangle, Search, X } from "lucide-react";
+import { Plus, Trash, Loader2, AlertTriangle, Search, X, Upload } from "lucide-react";
 import { browserSupabase } from "@/lib/supabase/browser";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -17,6 +17,7 @@ import CategoryCascadingFilter from "@/components/filters/CategoryCascadingFilte
 
 
 import AddProduct from "@/components/modals/AddProduct";
+import BulkImportModal from "@/components/modals/BulkImportModal";
 import { InventoryTable } from "@/components/tables/InventoryTable";
 import { InventoryProduct as Product, InventoryCategory as Category, InventoryProductImage as ProductImage } from "@/types/inventory.types";
 import CustomPagination from "@/components/general-components/CustomPagination";
@@ -43,6 +44,7 @@ export default function AdminInventoryPage() {
   const [selectedViewImage, setSelectedViewImage] = useState<string | null>(null);
 
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
+  const [showBulkImport, setShowBulkImport] = useState(false);
 
   const itemsPerPage = 10;
   const lowStockThreshold = 10;
@@ -376,13 +378,22 @@ export default function AdminInventoryPage() {
           <h1 className="text-4xl font-bold bg-linear-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent">
             Manage Inventory
           </h1>
-          <button
-            onClick={openAddModal}
-            className="flex items-center gap-2 px-5 py-2.5 bg-linear-to-r from-[#E7A3B0] to-[#f0b8c3] hover:from-[#d891a0] hover:to-[#E7A3B0] text-white rounded-lg font-medium transition-all duration-300 shadow-md hover:shadow-lg hover:scale-105 cursor-pointer"
-          >
-            <Plus size={18} />
-            Add Product
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setShowBulkImport(true)}
+              className="flex items-center gap-2 px-5 py-2.5 bg-white border border-gray-300 hover:border-gray-400 text-gray-700 hover:text-gray-900 rounded-lg font-medium transition-all duration-300 shadow-sm hover:shadow-md hover:scale-105 cursor-pointer"
+            >
+              <Upload size={18} />
+              Import
+            </button>
+            <button
+              onClick={openAddModal}
+              className="flex items-center gap-2 px-5 py-2.5 bg-linear-to-r from-[#E7A3B0] to-[#f0b8c3] hover:from-[#d891a0] hover:to-[#E7A3B0] text-white rounded-lg font-medium transition-all duration-300 shadow-md hover:shadow-lg hover:scale-105 cursor-pointer"
+            >
+              <Plus size={18} />
+              Add Product
+            </button>
+          </div>
         </div>
         <p className="text-gray-600 text-sm">Create, update, and organize products and categories.</p>
       </div>
@@ -535,6 +546,12 @@ export default function AdminInventoryPage() {
             setError('Saved successfully, but refresh was delayed. Data will update shortly.');
           }
         }}
+      />
+
+      <BulkImportModal
+        isOpen={showBulkImport}
+        onClose={() => setShowBulkImport(false)}
+        onImportComplete={() => fetchProducts(false)}
       />
     </div>
   );
