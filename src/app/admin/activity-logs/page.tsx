@@ -251,8 +251,9 @@ export default function ActivityLogsPage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <Loader2 className="w-8 h-8 animate-spin" />
+      <div className="flex flex-col items-center justify-center min-h-[80vh] gap-4">
+        <Loader2 className="w-12 h-12 text-[#E7A3B0] animate-spin" />
+        <p className="text-gray-600 font-medium">Loading activity logs...</p>
       </div>
     );
   }

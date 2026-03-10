@@ -14,6 +14,7 @@ import CustomPagination from "@/components/general-components/CustomPagination";
 import ViewEmployeeDialog from "@/components/dialogs/ViewEmployeeDialog";
 import DeleteEmployeeDialog from "@/components/dialogs/DeleteEmployeeDialog";
 import BulkDeleteEmployeeDialog from "@/components/dialogs/BulkDeleteEmployeeDialog";
+import { toast } from "sonner";
 
 export default function EmployeesPage() {
   const [employees, setEmployees] = useState<Employee[]>([]);
@@ -196,9 +197,12 @@ export default function EmployeesPage() {
       setSelectedRows(new Set(selectedRows));
       setShowDeleteModal(false);
       setSelectedEmployee(null);
+      toast.success("Employee deleted successfully.");
     } catch (err: unknown) {
       console.error('Error deleting employee:', err);
-      setError(err instanceof Error ? err.message : 'Failed to delete employee');
+      const errorMessage = err instanceof Error ? err.message : 'Failed to delete employee';
+      setError(errorMessage);
+      toast.error(errorMessage);
     } finally {
       setActionLoading(false);
     }
@@ -247,9 +251,12 @@ export default function EmployeesPage() {
       await fetchEmployees();
       setSelectedRows(new Set());
       setShowBulkDeleteModal(false);
+      toast.success("Selected employees deleted successfully.");
     } catch (err: unknown) {
       console.error('Error bulk deleting employees:', err);
-      setError(err instanceof Error ? err.message : 'Failed to delete employees');
+      const errorMessage = err instanceof Error ? err.message : 'Failed to delete employees';
+      setError(errorMessage);
+      toast.error(errorMessage);
     } finally {
       setActionLoading(false);
     }
@@ -257,11 +264,9 @@ export default function EmployeesPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-linear-to-br from-[#faf8f8] via-white to-[#f5f0f0] flex items-center justify-center">
-        <div className="flex flex-col items-center gap-4">
-          <Loader2 className="w-12 h-12 text-[#E7A3B0] animate-spin" />
-          <p className="text-gray-600 font-medium">Loading employees...</p>
-        </div>
+      <div className="flex flex-col items-center justify-center min-h-[80vh] gap-4">
+        <Loader2 className="w-12 h-12 text-[#E7A3B0] animate-spin" />
+        <p className="text-gray-600 font-medium">Loading employees...</p>
       </div>
     );
   }

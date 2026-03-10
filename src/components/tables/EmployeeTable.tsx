@@ -1,9 +1,10 @@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
-import { Eye, Pencil, Trash2, Search } from "lucide-react";
+import { Eye, Pencil, Trash2, Search, Users } from "lucide-react";
 import { SortableHeader } from "./SortableHeader";
 import { Employee } from "@/types/employee.types";
+import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty";
 
 interface EmployeeTableProps {
   sortedEmployees: Employee[];
@@ -102,12 +103,18 @@ export function EmployeeTable({
               ))
             ) : (
               <TableRow>
-                <TableCell colSpan={8} className="p-8 text-center text-gray-500">
-                  <div className="flex flex-col items-center gap-2">
-                    <Search className="w-10 h-10 text-gray-300" />
-                    <p className="text-gray-600 font-medium">No employees found</p>
-                    <p className="text-gray-400 text-sm">Try adjusting your search terms</p>
-                  </div>
+                <TableCell colSpan={8} className="p-0 border-none">
+                  <Empty className="border-none rounded-none py-12">
+                    <EmptyHeader>
+                      <EmptyMedia variant="icon">
+                        <Users className="size-6 text-[#E7A3B0]" />
+                      </EmptyMedia>
+                      <EmptyTitle>No employees found</EmptyTitle>
+                      <EmptyDescription>
+                        We couldn't find any employees matching your current search or filters.
+                      </EmptyDescription>
+                    </EmptyHeader>
+                  </Empty>
                 </TableCell>
               </TableRow>
             )}

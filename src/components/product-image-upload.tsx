@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Upload, X, Star } from "lucide-react";
 import { compressImage } from "@/lib/image-compression";
 import { InventoryProductImage as ProductImage } from "@/types/inventory.types";
+import { toast } from "sonner";
 
 interface ProductImageUploadProps {
   productId: string | null;
@@ -39,12 +40,12 @@ export default function ProductImageUpload({
     setDragActive(false);
 
     if (!productId) {
-      alert("Please save the product first");
+      toast.error("Please save the product first");
       return;
     }
 
     if (!canUploadMore) {
-      alert("Maximum 5 images per product");
+      toast.warning("Maximum 5 images per product");
       return;
     }
 
@@ -53,7 +54,7 @@ export default function ProductImageUpload({
       .slice(0, remainingSlots);
 
     if (e.dataTransfer.files.length > files.length) {
-      alert(`Only ${remainingSlots} more image(s) can be uploaded.`);
+      toast.warning(`Only ${remainingSlots} more image(s) can be uploaded.`);
     }
 
     if (files.length > 0) {
@@ -63,7 +64,7 @@ export default function ProductImageUpload({
 
   const handleFileInput = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!productId) {
-      alert("Please save the product first");
+      toast.error("Please save the product first");
       return;
     }
 
@@ -72,15 +73,15 @@ export default function ProductImageUpload({
     const limitedImageFiles = imageFiles.slice(0, remainingSlots);
 
     if (files.length > 0 && imageFiles.length === 0) {
-      alert("Only image files are allowed.");
+      toast.error("Only image files are allowed.");
     }
 
     if (files.length > imageFiles.length) {
-      alert("Some files were skipped because only image files are allowed.");
+      toast.warning("Some files were skipped because only image files are allowed.");
     }
 
     if (imageFiles.length > limitedImageFiles.length) {
-      alert(`Only ${remainingSlots} more image(s) can be uploaded.`);
+      toast.warning(`Only ${remainingSlots} more image(s) can be uploaded.`);
     }
 
     if (limitedImageFiles.length > 0) {
@@ -98,12 +99,12 @@ export default function ProductImageUpload({
    */
   const uploadFiles = async (files: File[]) => {
     if (!files.every(isImageFile)) {
-      alert("Only image files are allowed.");
+      toast.error("Only image files are allowed.");
       return;
     }
 
     if (files.length > remainingSlots) {
-      alert(`Only ${remainingSlots} more image(s) can be uploaded.`);
+      toast.warning(`Only ${remainingSlots} more image(s) can be uploaded.`);
       return;
     }
 
@@ -160,8 +161,9 @@ export default function ProductImageUpload({
           onImagesChange(mergedImages);
         }
       }
+      toast.success("Images uploaded successfully.");
     } catch (error) {
-      alert(`Upload failed: ${(error as Error).message}`);
+      toast.error(`Upload failed: ${(error as Error).message}`);
     } finally {
       setUploading(false);
     }
@@ -205,8 +207,9 @@ export default function ProductImageUpload({
       } else {
         onImagesChange(images.filter((img) => img.image_id !== imageId));
       }
+      toast.success("Image deleted successfully.");
     } catch (error) {
-      alert(`Delete failed: ${(error as Error).message}`);
+      toast.error(`Delete failed: ${(error as Error).message}`);
     }
   };
 

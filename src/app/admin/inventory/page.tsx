@@ -21,6 +21,7 @@ import { InventoryTable } from "@/components/tables/InventoryTable";
 import { InventoryProduct as Product, InventoryCategory as Category, InventoryProductImage as ProductImage } from "@/types/inventory.types";
 import CustomPagination from "@/components/general-components/CustomPagination";
 import ViewProductDialog from "@/components/dialogs/ViewProductDialog";
+import { toast } from "sonner";
 
 export default function AdminInventoryPage() {
   const [products, setProducts] = useState<Product[]>([]);
@@ -307,8 +308,11 @@ export default function AdminInventoryPage() {
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || 'Failed to delete product');
       await fetchProducts();
+      toast.success("Product deleted successfully.");
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Failed to delete product');
+      const errorMessage = err instanceof Error ? err.message : 'Failed to delete product';
+      setError(errorMessage);
+      toast.error(errorMessage);
     } finally {
       setActionLoading(false);
     }
@@ -341,8 +345,11 @@ export default function AdminInventoryPage() {
       if (!response.ok) throw new Error(data.error || 'Failed to delete products');
       setSelectedProducts(new Set());
       await fetchProducts();
+      toast.success("Selected products deleted successfully.");
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Failed to delete products');
+      const errorMessage = err instanceof Error ? err.message : 'Failed to delete products';
+      setError(errorMessage);
+      toast.error(errorMessage);
     } finally {
       setActionLoading(false);
     }
@@ -353,11 +360,14 @@ export default function AdminInventoryPage() {
     return a.is_primary ? -1 : 1;
   });
 
-  if (loading) return (
-    <div className="flex items-center justify-center min-h-screen">
-      <Loader2 className="w-8 h-8 animate-spin" />
-    </div>
-  );
+  if (loading) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[80vh] gap-4">
+        <Loader2 className="w-12 h-12 text-[#E7A3B0] animate-spin" />
+        <p className="text-gray-600 font-medium">Loading inventory...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="p-6 space-y-6">

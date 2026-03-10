@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import CustomPagination from "@/components/general-components/CustomPagination";
+import { toast } from "sonner";
 import {
   ANNOUNCEMENT_SLUG,
   ANNOUNCEMENT_TITLE,
@@ -212,8 +213,11 @@ export default function ManageDetailsPage() {
       }
 
       setSuccess(`${label} saved.`);
+      toast.success(`${label} saved successfully.`);
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Failed to save contact details");
+      const errorMessage = err instanceof Error ? err.message : "Failed to save contact details";
+      setError(errorMessage);
+      toast.error(errorMessage);
     } finally {
       setSavingField(null);
     }
@@ -252,8 +256,11 @@ export default function ManageDetailsPage() {
       }
 
       setSuccess(`${label} saved.`);
+      toast.success(`${label} saved successfully.`);
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Failed to save about details");
+      const errorMessage = err instanceof Error ? err.message : "Failed to save about details";
+      setError(errorMessage);
+      toast.error(errorMessage);
     } finally {
       setSavingAboutField(null);
     }
@@ -290,8 +297,11 @@ export default function ManageDetailsPage() {
       }
 
       setSuccess("Announcement saved.");
+      toast.success("Announcement saved successfully.");
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Failed to save announcement");
+      const errorMessage = err instanceof Error ? err.message : "Failed to save announcement";
+      setError(errorMessage);
+      toast.error(errorMessage);
     } finally {
       setSavingAnnouncement(false);
     }
@@ -313,8 +323,9 @@ export default function ManageDetailsPage() {
 
   if (loadingContact) {
     return (
-      <div className="flex min-h-[60vh] items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin" />
+      <div className="flex flex-col items-center justify-center min-h-[80vh] gap-4">
+        <Loader2 className="w-12 h-12 text-[#E7A3B0] animate-spin" />
+        <p className="text-gray-600 font-medium">Loading details...</p>
       </div>
     );
   }

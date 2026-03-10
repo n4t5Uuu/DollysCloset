@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/card";
 import { Employee } from "@/types/employee.types";
 import DiscardChangesDialog from "@/components/dialogs/DiscardChangesDialog";
+import { toast } from "sonner";
 
 interface AddEmployeeProps {
     isOpen: boolean;
@@ -125,11 +126,14 @@ export default function AddEmployee({ isOpen, onClose, employeeToEdit, onEmploye
                 throw new Error(data.error || (employeeToEdit ? 'Failed to update employee' : 'Failed to add employee'));
             }
 
+            toast.success(employeeToEdit ? 'Employee updated successfully.' : 'Employee added successfully.');
             onEmployeeSaved();
             onClose();
         } catch (err: unknown) {
             console.error('Error saving employee:', err);
-            setError(err instanceof Error ? err.message : 'Failed to save employee');
+            const errorMessage = err instanceof Error ? err.message : 'Failed to save employee';
+            setError(errorMessage);
+            toast.error(errorMessage);
         } finally {
             setActionLoading(false);
         }

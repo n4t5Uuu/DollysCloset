@@ -192,7 +192,7 @@ export default function Contact() {
                 <div className="relative">
                   <div className="w-16 h-16 rounded-full border-4 border-pink-100 border-t-[#E7A3B0] animate-spin" />
                   <div className="absolute inset-0 flex items-center justify-center">
-                    <Send className="w-6 h-6 text-[#E7A3B0] animate-pulse" />
+                    <Loader2 className="w-8 h-8 text-[#E7A3B0] animate-spin" />
                   </div>
                 </div>
                 <h3 className="font-oswald text-xl font-bold text-gray-800 uppercase tracking-wide">

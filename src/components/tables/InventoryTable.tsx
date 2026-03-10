@@ -1,8 +1,9 @@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
-import { Eye, Pencil, Trash2 } from "lucide-react";
+import { Eye, Pencil, Trash2, PackageSearch } from "lucide-react";
 import { InventoryProduct as Product } from "@/types/inventory.types";
+import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty";
 
 interface InventoryTableProps {
     currentProducts: Product[];
@@ -107,9 +108,19 @@ export function InventoryTable({
                 ))
             ) : (
                 <TableRow>
-                <TableCell colSpan={7} className="p-8 text-center text-gray-500">
-                    No products found
-                </TableCell>
+                  <TableCell colSpan={7} className="p-0 border-none">
+                    <Empty className="border-none rounded-none py-12">
+                      <EmptyHeader>
+                        <EmptyMedia variant="icon">
+                          <PackageSearch className="size-6 text-[#E7A3B0]" />
+                        </EmptyMedia>
+                        <EmptyTitle>No products found</EmptyTitle>
+                        <EmptyDescription>
+                          We couldn't find any products in your inventory matching these filters.
+                        </EmptyDescription>
+                      </EmptyHeader>
+                    </Empty>
+                  </TableCell>
                 </TableRow>
             )}
             </TableBody>

@@ -13,8 +13,9 @@ import { TextEffect } from "@/components/motion-primitives/text-effect";
 import { InView } from "@/components/motion-primitives/in-view";
 import { Button } from "@/components/ui/button";
 import { ANNOUNCEMENT_SLUG, defaultAnnouncementText } from "@/lib/business-details";
-
 import { CatalogCategory, CatalogApiProduct } from "@/types/product.types";
+import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty";
+import { PackageSearch } from "lucide-react";
 
 function toViewProduct(product: CatalogApiProduct): Product {
     return {
@@ -343,8 +344,19 @@ export default function Catalog() {
                                 ))}
                             </InView>
                         ) : (
-                            <div className="w-full py-20 flex flex-col items-center justify-center text-gray-400">
-                                <p className="font-playfair-display text-xl italic">No products found</p>
+                            <div className="w-full py-12">
+                                <Empty className="border-dashed border-[#E7A3B0]/20 bg-[#fffcfd]/50">
+                                    <EmptyHeader>
+                                        <EmptyMedia variant="icon" className="bg-[#fff0f5]">
+                                            <PackageSearch className="size-6 text-[#E7A3B0]" />
+                                        </EmptyMedia>
+                                        <EmptyTitle className="font-playfair-display text-2xl">No products matched</EmptyTitle>
+                                        <EmptyDescription className="font-montserrat">
+                                            We couldn't find any pieces in our collection that match your current search or filters. 
+                                            Try exploring a different category or clearing your search.
+                                        </EmptyDescription>
+                                    </EmptyHeader>
+                                </Empty>
                             </div>
                         )}
 

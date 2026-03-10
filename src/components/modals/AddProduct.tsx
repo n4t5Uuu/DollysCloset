@@ -10,6 +10,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import ProductImageUpload from "@/components/product-image-upload";
 import ImageSelector from "@/components/image-selector";
 import CategoryCascadingSelect from "@/components/selects/CategoryCascadingSelect";
+import { toast } from "sonner";
 import {
     Card,
     CardContent,
@@ -311,10 +312,14 @@ export default function AddProduct({ isOpen, onClose, categories, productToEdit,
 
             await onProductSaved();
             if (failedUploads.length > 0) {
-                window.alert(`Product saved, but ${failedUploads.length} image(s) failed to upload. You can re-open Edit Product and upload again.`);
+                toast.warning(`Product saved, but ${failedUploads.length} image(s) failed to upload. You can re-open Edit Product and upload again.`);
+            } else {
+                toast.success(productToEdit ? "Product updated successfully." : "Product added successfully.");
             }
         } catch (err: unknown) {
-            setError(err instanceof Error ? err.message : 'Failed to save product');
+            const errorMessage = err instanceof Error ? err.message : 'Failed to save product';
+            setError(errorMessage);
+            toast.error(errorMessage);
         } finally {
             setActionLoading(false);
         }
