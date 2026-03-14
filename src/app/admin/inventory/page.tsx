@@ -69,6 +69,7 @@ export default function AdminInventoryPage() {
       }
       
       const result = await response.json();
+      console.log('Successfully fetched inventory products:', result.data?.length || 0, 'items');
       setProducts(result.data || []);
       return true;
 
@@ -95,6 +96,7 @@ export default function AdminInventoryPage() {
       }
       
       const result = await response.json();
+      console.log('Successfully fetched categories:', result.data?.length || 0, 'categories');
       setCategories(result.data || []);
 
     } catch (err: unknown) {

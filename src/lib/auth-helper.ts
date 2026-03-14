@@ -68,8 +68,10 @@ export const authHelper = {
             .eq("user_id", user_id)
             .single()
 
-            if(error)
+            if(error) {
+                console.error(`Error Fetching Role for User ${user_id}: `, error);
                 throw error
+            }
 
         return { data, error };
     },

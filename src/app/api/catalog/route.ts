@@ -130,14 +130,17 @@ export async function GET() {
     ]);
 
     if (categoriesError) {
+      console.error('Catalog Categories Fetch Error:', categoriesError);
       return NextResponse.json({ error: categoriesError.message }, { status: 500 });
     }
 
     if (productsError) {
+      console.error('Catalog Products Fetch Error:', productsError);
       return NextResponse.json({ error: productsError.message }, { status: 500 });
     }
 
     if (imagesError) {
+      console.error('Catalog Images Fetch Error:', imagesError);
       return NextResponse.json({ error: imagesError.message }, { status: 500 });
     }
 
@@ -159,6 +162,7 @@ export async function GET() {
       },
     });
   } catch (error: unknown) {
+    console.error('CRITICAL ERROR in Catalog GET:', error);
     return NextResponse.json(
       { error: error instanceof Error ? error.message : "Failed to fetch catalog" },
       { status: 500 }

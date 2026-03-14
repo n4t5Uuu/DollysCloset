@@ -58,11 +58,11 @@ export default function EmployeesPage() {
       }
       
       const result = await response.json()
-      console.log('fetch Data:', result.data)
+      console.log('Successfully fetched employees:', result.data?.length || 0, 'records')
       setEmployees(result.data)
 
     } catch (err: unknown) {
-      console.error('Error fetching employees:', err)
+      console.error('CRITICAL ERROR fetching employees:', err)
       setError(err instanceof Error ? err.message : String(err))
     } finally {
       setLoading(false)

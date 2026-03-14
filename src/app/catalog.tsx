@@ -65,8 +65,14 @@ export default function Catalog() {
 
                 const response = await fetch("/api/catalog", { cache: "no-store" });
                 const result = await response.json();
+                console.log('Successfully fetched catalog data:', {
+                    categories: result.data?.categories?.length || 0,
+                    products: result.data?.products?.length || 0,
+                    featured: result.data?.featuredProducts?.length || 0
+                });
 
                 if (!response.ok) {
+                    console.error('Catalog fetch error response:', result);
                     throw new Error(result.error || "Failed to fetch catalog");
                 }
 
@@ -74,6 +80,7 @@ export default function Catalog() {
                 setProducts(result.data?.products || []);
                 setFeaturedProducts(result.data?.featuredProducts || []);
             } catch (err: unknown) {
+                console.error('CRITICAL: Error fetching catalog:', err);
                 setError(err instanceof Error ? err.message : "Failed to fetch catalog");
                 setCategories([]);
                 setProducts([]);

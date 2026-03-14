@@ -53,10 +53,12 @@ export async function POST(request: NextRequest) {
     });
 
     if (createError) {
+      console.error('Auth User Creation Error:', createError);
       return NextResponse.json({ error: createError.message }, { status: 400 });
     }
 
     if (!authData.user) {
+      console.error('Failed to create auth user object');
       return NextResponse.json({ error: 'Failed to create user' }, { status: 500 });
     }
 
@@ -72,6 +74,7 @@ export async function POST(request: NextRequest) {
       .eq('user_id', authData.user.id);
 
     if (updateError) {
+      console.error('Employee metadata update error:', updateError);
       // Rollback: delete auth user if update fails
       await admin.auth.admin.deleteUser(authData.user.id);
       return NextResponse.json({ error: updateError.message }, { status: 500 });
