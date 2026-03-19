@@ -20,6 +20,7 @@ import {
 } from "@/components/ui/card";
 import { InventoryProduct as Product, InventoryCategory as Category, InventoryProductImage as ProductImage } from "@/types/inventory.types";
 import DiscardChangesDialog from "@/components/dialogs/DiscardChangesDialog";
+import { compressImage } from "@/lib/image-compression";
 
 // Define interfaces locally to match the usage in the inventory page
 // Ideally these should be in a shared types file
@@ -210,10 +211,14 @@ export default function AddProduct({ isOpen, onClose, categories, productToEdit,
     const uploadStagedImages = async (productId: string, session: SessionWithAccessToken) => {
         if (stagedFiles.length === 0) return { failedFiles: [] as string[] };
 
-        const uploadResults = await Promise.all(
-            stagedFiles.map(async (file) => {
+        const failedFiles: string[] = [];
+
+        for (const file of stagedFiles) {
+            try {
+                // Compress the file before uploading to speed up and reduce bandwidth
+                const compressedFile = await compressImage(file);
                 const imageFormData = new FormData();
-                imageFormData.append("file", file);
+                imageFormData.append("file", compressedFile);
                 imageFormData.append("product_id", productId);
 
                 const response = await fetch("/api/admin/upload-image", {
@@ -225,14 +230,13 @@ export default function AddProduct({ isOpen, onClose, categories, productToEdit,
                 });
 
                 if (!response.ok) {
-                    return file.name;
+                    failedFiles.push(file.name);
                 }
-
-                return null;
-            })
-        );
-
-        const failedFiles = uploadResults.filter((fileName): fileName is string => Boolean(fileName));
+            } catch (err) {
+                console.error("Compression/Upload error:", err);
+                failedFiles.push(file.name);
+            }
+        }
 
         if (failedFiles.length === 0) {
             setStagedFiles([]);

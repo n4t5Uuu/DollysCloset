@@ -9,7 +9,7 @@ import { admin } from "@/lib/supabase/admin";
  * Links the newly minted Supabase Auth credential record to a metadata entry in `tbl_users` tagged with 'employee'.
  * @param request - The Next.js request containing auth headers and the payload details matching an employee login footprint.
  * @returns A JSON response displaying the `success: true` status alongside basic user credentials excluding exact passwords.
- */
+*/
 export async function POST(request: NextRequest) {
   try {
     // Verify the requesting user is an admin

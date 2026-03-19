@@ -290,9 +290,9 @@ export default async function About() {
                   <AccordionItem
                     key={faq.id}
                     value={faq.id}
-                    className="border border-gray-200 px-4 rounded-lg bg-white data-[state=open]:border-[#FF9EAA] data-[state=open]:ring-1 data-[state=open]:ring-[#FF9EAA]/20 transition-all duration-300 cursor-pointer"
+                    className="border border-gray-200 px-4 rounded-lg bg-white transition-all duration-300 cursor-pointer"
                   >
-                    <AccordionTrigger className="text-left text-lg font-medium hover:text-[#FF9EAA] transition-colors py-4 cursor-pointer data-[state=open]:border-b data-[state=open]:border-gray-200">
+                    <AccordionTrigger className="text-left text-lg font-medium hover:text-[#FF9EAA] transition-colors py-4 cursor-pointer">
                       {faq.question}
                     </AccordionTrigger>
                     <AccordionContent className="text-gray-600 pb-4 leading-relaxed">

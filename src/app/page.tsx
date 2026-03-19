@@ -143,10 +143,10 @@ export default function Home() {
 
         <form onSubmit={handleSubmit} className="space-y-6">
 
-          {/* Username/Email Input - Floating Label */}
+          {/* Email Input - Floating Label */}
           <div className="relative group">
             <input 
-              type="text" 
+              type="email" 
               id="email"
               placeholder=" " 
               className="peer w-full px-5 py-[18px] rounded-xl border border-[#E5E5E5] bg-transparent text-[#1A1A1A] focus:outline-none transition-all duration-300 focus:border-[#E7A3B0] focus:ring-1 focus:ring-[#E7A3B0]"
@@ -161,7 +161,7 @@ export default function Home() {
                         peer-focus:top-0 peer-focus:text-[12px] peer-focus:text-[#E7A3B0]
                         peer-[:not(:placeholder-shown)]:top-0 peer-[:not(:placeholder-shown)]:text-[12px] peer-[:not(:placeholder-shown)]:text-[#E7A3B0]"
             >
-              Username
+              Email
             </label>
           </div>
 

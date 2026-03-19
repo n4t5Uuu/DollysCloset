@@ -9,19 +9,41 @@ export default function ClientAuthGuard({ children }: { children: React.ReactNod
 
     useEffect(() => {
         let isMounted = true;
+
+        // Listen for auth state changes reactive-ly on the client side
+        const { data: { subscription } } = browserSupabase.auth.onAuthStateChange((event, session) => {
+            if (!isMounted) return;
+
+            if (event === 'SIGNED_OUT') {
+                setIsAuthorized(null); // Show loading instantly
+                window.location.replace("/");
+                return;
+            }
+
+            if (!session) {
+                window.location.replace("/unauthorized");
+            } else {
+                setIsAuthorized(true);
+            }
+        });
+
         async function checkAuth() {
             const { data: { session } } = await browserSupabase.auth.getSession();
             
-            if (!session) {
-                if (isMounted) {
+            if (isMounted) {
+                if (!session) {
                     window.location.replace("/unauthorized");
+                } else {
+                    setIsAuthorized(true);
                 }
-            } else {
-                if (isMounted) setIsAuthorized(true);
             }
         }
         checkAuth();
-        return () => { isMounted = false; };
+
+        return () => { 
+            isMounted = false; 
+            subscription.unsubscribe();
+        };
     }, []);
 
     // Show a loading screen while checking auth securely on the client side
