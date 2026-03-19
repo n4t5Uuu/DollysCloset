@@ -85,9 +85,9 @@ export default function Footer() {
     const contentStyle = "text-white "
 
     return (
-        <footer className="w-full bg-[#262626] h-[240px] mt-[100px] flex items-center justify-center">
-            <div className="grid grid-cols-4">
-                <div>
+        <footer className="w-full bg-[#262626] h-auto md:h-[280px] mt-[100px] flex items-center justify-center py-12 md:py-0">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-10 md:gap-4 px-10 md:px-20 w-full max-w-7xl">
+                <div className="flex justify-center md:justify-start">
                     <Image 
                         src="/assets/logo.jpg" 
                         alt="Dolly's Closet Logo" 
