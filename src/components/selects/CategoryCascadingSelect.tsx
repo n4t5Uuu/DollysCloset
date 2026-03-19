@@ -217,18 +217,18 @@ export default function CategoryCascadingSelect({
             setActiveSecondLevelId(catId);
           }
         }}
-        className={`w-full flex items-start justify-between rounded-md px-3 py-2 text-left text-sm transition-colors ${
+        className={`w-full flex items-center justify-between rounded-lg px-3 py-2 text-left text-sm transition-colors ${
           itemHasChildren ? "cursor-default" : "cursor-pointer"
         } ${
-          isActive
-            ? "bg-white/10 text-white"
-            : "text-white/90 hover:bg-white/10 hover:text-white"
+          isActive || isSelected
+            ? "bg-[#FFF0F3] text-[#E7A3B0] font-medium"
+            : "text-zinc-700 hover:bg-[#FFF0F3] hover:text-[#E7A3B0]"
         }`}
       >
         <span className="break-words pr-2 leading-snug">{cat.category_name}</span>
         <span className="flex items-center gap-1">
-          {isSelected && <Check className="h-4 w-4" />}
-          {itemHasChildren && <ChevronRight className="h-4 w-4 text-white/60" />}
+          {isSelected && <Check className="h-4 w-4 text-[#8CA2B4]" />}
+          {itemHasChildren && <ChevronRight className="h-4 w-4 text-zinc-400" />}
         </span>
       </button>
     );
@@ -248,14 +248,14 @@ export default function CategoryCascadingSelect({
           setActiveRootKey(group.key);
           setActiveSecondLevelId(null);
         }}
-        className={`w-full flex items-start justify-between rounded-md px-3 py-2 text-left text-sm transition-colors cursor-pointer ${
+        className={`w-full flex items-center justify-between rounded-lg px-3 py-2 text-left text-sm transition-colors cursor-pointer ${
           isActive
-            ? "bg-white/10 text-white"
-            : "text-white/90 hover:bg-white/10 hover:text-white"
+            ? "bg-[#FFF0F3] text-[#E7A3B0] font-medium"
+            : "text-zinc-700 hover:bg-[#FFF0F3] hover:text-[#E7A3B0]"
         }`}
       >
         <span className="break-words pr-2 leading-snug">{group.label}</span>
-        <ChevronRight className="h-4 w-4 text-white/60" />
+        <ChevronRight className="h-4 w-4 text-zinc-400" />
       </button>
     );
   };
@@ -282,37 +282,37 @@ export default function CategoryCascadingSelect({
           <div
             ref={dropdownRef}
             style={dropdownStyle}
-            className="w-[min(90vw,580px)] max-w-[calc(100vw-1rem)] rounded-lg border border-[#1b2a47] bg-[#020b20] p-2 shadow-2xl"
+            className="w-[min(90vw,580px)] max-w-[calc(100vw-1rem)] rounded-xl border border-black bg-white p-2.5 shadow-xl"
           >
             {/* Path bar */}
-            <div className="mb-2 px-3 py-1.5 rounded-md bg-white/5 border border-white/10 min-h-[28px] flex items-center">
+            <div className="mb-3 px-3 py-1.5 rounded-lg bg-zinc-50 border border-zinc-200 min-h-[28px] flex items-center">
               {pathBarText ? (
-                <span className="text-white/80 text-xs break-words leading-snug">{pathBarText}</span>
+                <span className="text-zinc-800 text-xs font-semibold break-words leading-snug">{pathBarText}</span>
               ) : (
-                <span className="text-white/30 text-xs">Hover a category to see the path</span>
+                <span className="text-zinc-400 text-xs">Hover a category to see the path</span>
               )}
             </div>
 
             <div className="grid grid-cols-3 gap-2">
-              <div className="max-h-72 overflow-y-auto rounded-md border border-white/10 p-1">
+              <div className="max-h-72 overflow-y-auto rounded-md border border-zinc-200 p-1">
                 {rootCategoryGroups.length > 0 ? (
                   rootCategoryGroups.map(renderRootItem)
                 ) : (
-                  <div className="px-3 py-2 text-sm text-white/60">No categories found</div>
+                  <div className="px-3 py-2 text-sm text-zinc-400">No categories found</div>
                 )}
               </div>
-              <div className="max-h-72 overflow-y-auto rounded-md border border-white/10 p-1">
+              <div className="max-h-72 overflow-y-auto rounded-md border border-zinc-200 p-1">
                 {secondColumn.length > 0 ? (
                   secondColumn.map((cat) => renderItem(cat, 2))
                 ) : (
-                  <div className="px-3 py-2 text-sm text-white/60">Select a parent category</div>
+                  <div className="px-3 py-2 text-sm text-zinc-400">Select a parent category</div>
                 )}
               </div>
-              <div className="max-h-72 overflow-y-auto rounded-md border border-white/10 p-1">
+              <div className="max-h-72 overflow-y-auto rounded-md border border-zinc-200 p-1">
                 {thirdColumn.length > 0 ? (
                   thirdColumn.map((cat) => renderItem(cat, 3))
                 ) : (
-                  <div className="h-full flex items-center justify-center px-3 py-2 text-xs text-white/20 text-center">
+                  <div className="h-full flex items-center justify-center px-3 py-2 text-xs text-zinc-300 text-center">
                     No subcategories
                   </div>
                 )}

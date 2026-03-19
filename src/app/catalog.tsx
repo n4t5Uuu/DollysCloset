@@ -16,6 +16,7 @@ import { ANNOUNCEMENT_SLUG, defaultAnnouncementText } from "@/lib/business-detai
 import { CatalogCategory, CatalogApiProduct } from "@/types/product.types";
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty";
 import { PackageSearch } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
 
 function toViewProduct(product: CatalogApiProduct): Product {
     return {
@@ -262,7 +263,21 @@ export default function Catalog() {
                         <TextEffect as="span" per="char" preset="fade-in-blur">Featured Collection</TextEffect>
                     </h3>
                 </div>
-                <FeatureCardCarousel products={featuredViewProducts} onProductClick={handleProductClick} />
+                {loading ? (
+                    <div className="w-full max-w-6xl flex gap-6 px-4 md:px-12 overflow-hidden overflow-x-auto">
+                        {Array.from({ length: 3 }).map((_, i) => (
+                            <div key={i} className="min-w-[280px] md:min-w-[340px] flex-1 space-y-4">
+                                <Skeleton className="h-[400px] w-full rounded-2xl" />
+                                <div className="space-y-2">
+                                    <Skeleton className="h-4 w-3/4" />
+                                    <Skeleton className="h-4 w-1/2" />
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                ) : (
+                    <FeatureCardCarousel products={featuredViewProducts} onProductClick={handleProductClick} />
+                )}
             </InView>
 
             {/* For the Collections */}
@@ -306,13 +321,28 @@ export default function Catalog() {
                             }}
                             transition={{ duration: 0.8, delay: 0.3 }}
                         >
-                            <CatalogSidebar
-                                categories={categories}
-                                activeFilter={activeFilter}
-                                sortBy={sortBy}
-                                onFilterChange={setActiveFilter}
-                                onSortChange={setSortBy}
-                            />
+                            {loading ? (
+                                <div className="space-y-6">
+                                    <div className="space-y-3">
+                                        <Skeleton className="h-5 w-1/2 mb-4" />
+                                        {Array.from({ length: 4 }).map((_, i) => (
+                                            <Skeleton key={i} className="h-4 w-3/4" />
+                                        ))}
+                                    </div>
+                                    <div className="space-y-3">
+                                        <Skeleton className="h-5 w-1/2 mb-4 mt-6" />
+                                        <Skeleton className="h-10 w-full rounded-lg" />
+                                    </div>
+                                </div>
+                            ) : (
+                                <CatalogSidebar
+                                    categories={categories}
+                                    activeFilter={activeFilter}
+                                    sortBy={sortBy}
+                                    onFilterChange={setActiveFilter}
+                                    onSortChange={setSortBy}
+                                />
+                            )}
                         </InView>
                     </div>
                     
@@ -326,8 +356,17 @@ export default function Catalog() {
                         </div>
 
                         {loading ? (
-                            <div className="w-full py-20 flex flex-col items-center justify-center text-gray-500">
-                                <p className="font-playfair-display text-xl italic">Loading products...</p>
+                            <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-6 gap-x-6 gap-y-12">
+                                {Array.from({ length: 12 }).map((_, i) => (
+                                    <div key={i} className="space-y-4">
+                                        <Skeleton className="w-full aspect-[3/4] rounded-xl" />
+                                        <div className="space-y-2">
+                                            <Skeleton className="h-4 w-3/4" />
+                                            <Skeleton className="h-4 w-1/4" />
+                                            <Skeleton className="h-3 w-1/2 mt-3" />
+                                        </div>
+                                    </div>
+                                ))}
                             </div>
                         ) : error ? (
                             <div className="w-full py-20 flex flex-col items-center justify-center text-red-500">

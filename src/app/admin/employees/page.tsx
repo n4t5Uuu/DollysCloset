@@ -15,6 +15,7 @@ import ViewEmployeeDialog from "@/components/dialogs/ViewEmployeeDialog";
 import DeleteEmployeeDialog from "@/components/dialogs/DeleteEmployeeDialog";
 import BulkDeleteEmployeeDialog from "@/components/dialogs/BulkDeleteEmployeeDialog";
 import { toast } from "sonner";
+import { Skeleton } from "@/components/ui/skeleton";
 
 export default function EmployeesPage() {
   const [employees, setEmployees] = useState<Employee[]>([]);
@@ -262,14 +263,7 @@ export default function EmployeesPage() {
     }
   };
 
-  if (loading) {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-[80vh] gap-4">
-        <Loader2 className="w-12 h-12 text-[#E7A3B0] animate-spin" />
-        <p className="text-gray-600 font-medium">Loading employees...</p>
-      </div>
-    );
-  }
+
 
   return (
     <div className="p-6 min-h-screen bg-linear-to-br from-[#faf8f8] via-white to-[#f5f0f0]">
@@ -337,17 +331,26 @@ export default function EmployeesPage() {
         </div>
 
         {/* Table Container */}
-        <EmployeeTable
-          sortedEmployees={currentEmployees}
-          selectedRows={selectedRows}
-          toggleSelectAll={toggleSelectAll}
-          toggleSelectRow={toggleSelectRow}
-          sortConfig={sortConfig}
-          toggleSort={toggleSort}
-          openViewModal={openViewModal}
-          openEditModal={openEditModal}
-          openDeleteModal={openDeleteModal}
-        />
+        {loading ? (
+          <div className="bg-white rounded-lg border p-4 space-y-4">
+            <Skeleton className="h-12 w-full rounded-md" />
+            {Array.from({ length: 5 }).map((_, i) => (
+              <Skeleton key={i} className="h-16 w-full rounded-md" />
+            ))}
+          </div>
+        ) : (
+          <EmployeeTable
+            sortedEmployees={currentEmployees}
+            selectedRows={selectedRows}
+            toggleSelectAll={toggleSelectAll}
+            toggleSelectRow={toggleSelectRow}
+            sortConfig={sortConfig}
+            toggleSort={toggleSort}
+            openViewModal={openViewModal}
+            openEditModal={openEditModal}
+            openDeleteModal={openDeleteModal}
+          />
+        )}
         
         {/* Footer Stats & Pagination */}
         <div className="flex flex-col gap-4 mt-2">

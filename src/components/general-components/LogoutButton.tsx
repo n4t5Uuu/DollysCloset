@@ -10,11 +10,11 @@ export default function LogoutButton() {
     const { user, loading, signOut } = useUser();
     const [isLoggingOut, setIsLoggingOut] = useState(false);
 
-    const handleLogout = async () => {
+    const handleLogout = () => {
         setIsLoggingOut(true);
         
         try {
-            await signOut();
+            signOut(); // Fire and forget in parallel
         } catch (error) {
             console.error(error);
         }

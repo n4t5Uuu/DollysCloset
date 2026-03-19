@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AlertTriangle, Loader2, Package, Pencil } from "lucide-react";
 import { browserSupabase } from "@/lib/supabase/browser";
+import { Skeleton } from "@/components/ui/skeleton";
 
 import { ActivityLog } from "@/types/logs.types";
 import { InventoryProduct } from "@/types/inventory.types";
@@ -267,14 +268,7 @@ export default function EmployeeDashboard() {
             .slice(0, 5);
     }, [myProductLogs]);
 
-    if (loading) {
-        return (
-            <div className="flex flex-col items-center justify-center min-h-[70vh] gap-4">
-                <Loader2 className="w-12 h-12 text-[#E7A3B0] animate-spin" />
-                <p className="text-gray-600 font-medium">Loading dashboard...</p>
-            </div>
-        );
-    }
+
 
     return (
         <div className="space-y-6">
@@ -291,28 +285,36 @@ export default function EmployeeDashboard() {
             )}
 
             <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
-                <div className="rounded-xl border border-gray-200 bg-white p-4">
-                    <p className="text-xs uppercase tracking-wider text-gray-400">Items Added</p>
-                    <p className="text-3xl font-bold text-[#121212] mt-1">{itemsAddedThisMonth}</p>
-                    <p className="text-sm text-green-600 mt-1">+{itemsAddedThisWeek} this week</p>
-                </div>
-                <div className="rounded-xl border border-gray-200 bg-white p-4">
-                    <p className="text-xs uppercase tracking-wider text-gray-400">Listed</p>
-                    <p className="text-3xl font-bold text-[#121212] mt-1">{listedCount}</p>
-                    <p className="text-sm text-gray-500 mt-1">Live in catalog</p>
-                </div>
-                <div className="rounded-xl border border-gray-200 bg-white p-4">
-                    <p className="text-xs uppercase tracking-wider text-gray-400">Unpublished</p>
-                    <p className="text-3xl font-bold text-[#121212] mt-1">{unlistedCount}</p>
-                    <p className={`text-sm mt-1 ${unlistedCount > 0 ? "text-amber-600" : "text-green-600"}`}>
-                        {unlistedCount > 0 ? "Needs attention" : "All published"}
-                    </p>
-                </div>
-                <div className="rounded-xl border border-[#f2dfb3] bg-[#fffaf0] p-4">
-                    <p className="text-xs uppercase tracking-wider text-gray-400">Alerts</p>
-                    <p className="text-3xl font-bold text-[#121212] mt-1">{needsAttention.length}</p>
-                    <p className="text-sm text-[#c28b16] mt-1">{missingPhotoItems.length} missing photos</p>
-                </div>
+                {loading ? (
+                    Array.from({ length: 4 }).map((_, i) => (
+                        <Skeleton key={i} className="h-24 w-full rounded-xl" />
+                    ))
+                ) : (
+                    <>
+                        <div className="rounded-xl border border-gray-200 bg-white p-4">
+                            <p className="text-xs uppercase tracking-wider text-gray-400">Items Added</p>
+                            <p className="text-3xl font-bold text-[#121212] mt-1">{itemsAddedThisMonth}</p>
+                            <p className="text-sm text-green-600 mt-1">+{itemsAddedThisWeek} this week</p>
+                        </div>
+                        <div className="rounded-xl border border-gray-200 bg-white p-4">
+                            <p className="text-xs uppercase tracking-wider text-gray-400">Listed</p>
+                            <p className="text-3xl font-bold text-[#121212] mt-1">{listedCount}</p>
+                            <p className="text-sm text-gray-500 mt-1">Live in catalog</p>
+                        </div>
+                        <div className="rounded-xl border border-gray-200 bg-white p-4">
+                            <p className="text-xs uppercase tracking-wider text-gray-400">Unpublished</p>
+                            <p className="text-3xl font-bold text-[#121212] mt-1">{unlistedCount}</p>
+                            <p className={`text-sm mt-1 ${unlistedCount > 0 ? "text-amber-600" : "text-green-600"}`}>
+                                {unlistedCount > 0 ? "Needs attention" : "All published"}
+                            </p>
+                        </div>
+                        <div className="rounded-xl border border-[#f2dfb3] bg-[#fffaf0] p-4">
+                            <p className="text-xs uppercase tracking-wider text-gray-400">Alerts</p>
+                            <p className="text-3xl font-bold text-[#121212] mt-1">{needsAttention.length}</p>
+                            <p className="text-sm text-[#c28b16] mt-1">{missingPhotoItems.length} missing photos</p>
+                        </div>
+                    </>
+                )}
             </div>
 
             <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
@@ -325,7 +327,11 @@ export default function EmployeeDashboard() {
                         <span className="text-xs text-gray-400">{needsAttention.length} items</span>
                     </div>
                     <div className="p-4 space-y-3">
-                        {needsAttention.length === 0 ? (
+                        {loading ? (
+                            Array.from({ length: 4 }).map((_, i) => (
+                                <Skeleton key={i} className="h-14 w-full rounded-lg" />
+                            ))
+                        ) : needsAttention.length === 0 ? (
                             <p className="text-sm text-gray-500">Everything looks good right now.</p>
                         ) : (
                             needsAttention.map((item) => (
@@ -349,7 +355,11 @@ export default function EmployeeDashboard() {
                         <span className="text-xs text-gray-400">your last 48 hrs</span>
                     </div>
                     <div className="p-4 space-y-3">
-                        {recentlyEdited.length === 0 ? (
+                        {loading ? (
+                            Array.from({ length: 4 }).map((_, i) => (
+                                <Skeleton key={i} className="h-14 w-full rounded-lg" />
+                            ))
+                        ) : recentlyEdited.length === 0 ? (
                             <p className="text-sm text-gray-500">No recent edits yet.</p>
                         ) : (
                             recentlyEdited.map((item) => (

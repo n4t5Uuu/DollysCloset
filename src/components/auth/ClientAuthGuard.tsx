@@ -5,7 +5,7 @@ import { browserSupabase } from "@/lib/supabase/browser";
 import { Loader2 } from "lucide-react";
 
 export default function ClientAuthGuard({ children }: { children: React.ReactNode }) {
-    const [isAuthorized, setIsAuthorized] = useState<boolean | null>(null);
+    const [isAuthorized, setIsAuthorized] = useState<boolean | null>(true);
 
     useEffect(() => {
         let isMounted = true;

@@ -8,6 +8,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Loader2, AlertTriangle, Search, X, Eye } from "lucide-react";
 import { browserSupabase } from "@/lib/supabase/browser";
 import CustomPagination from "@/components/general-components/CustomPagination";
+import { Skeleton } from "@/components/ui/skeleton";
 
 interface ActivityLog {
   log_id: number;
@@ -249,14 +250,7 @@ export default function ActivityLogsPage() {
     }
   };
 
-  if (loading) {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-[80vh] gap-4">
-        <Loader2 className="w-12 h-12 text-[#E7A3B0] animate-spin" />
-        <p className="text-gray-600 font-medium">Loading activity logs...</p>
-      </div>
-    );
-  }
+
 
   return (
     <div className="space-y-6">
@@ -310,7 +304,14 @@ export default function ActivityLogsPage() {
         </span>
       </div>
 
-      {filteredLogs.length === 0 ? (
+      {loading ? (
+        <div className="bg-white rounded-lg border p-4 space-y-4">
+          <Skeleton className="h-12 w-full rounded-md" />
+          {Array.from({ length: 7 }).map((_, i) => (
+            <Skeleton key={i} className="h-14 w-full rounded-md" />
+          ))}
+        </div>
+      ) : filteredLogs.length === 0 ? (
         <div className="rounded-lg border border-dashed border-gray-300 p-12 text-center text-gray-600">
           {logs.length === 0 ? "No activity logs yet." : "No logs match your search."}
         </div>

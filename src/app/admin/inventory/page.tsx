@@ -13,6 +13,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import CategoryCascadingFilter from "@/components/filters/CategoryCascadingFilter";
+import { Skeleton } from "@/components/ui/skeleton";
 
 
 
@@ -23,6 +24,17 @@ import { InventoryProduct as Product, InventoryCategory as Category, InventoryPr
 import CustomPagination from "@/components/general-components/CustomPagination";
 import ViewProductDialog from "@/components/dialogs/ViewProductDialog";
 import { toast } from "sonner";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 export default function AdminInventoryPage() {
   const [products, setProducts] = useState<Product[]>([]);
@@ -295,7 +307,6 @@ export default function AdminInventoryPage() {
    * @param productId - The unique identifier of the product to delete.
    */
   const handleDeleteProduct = async (productId: string) => {
-    if (!confirm("Are you sure you want to delete this product?")) return;
     setActionLoading(true);
     setError(null);
     try {
@@ -331,7 +342,6 @@ export default function AdminInventoryPage() {
       setError("No products selected");
       return;
     }
-    if (!confirm(`Delete ${selectedProducts.size} product(s)?`)) return;
     setActionLoading(true);
     setError(null);
     try {
@@ -364,14 +374,7 @@ export default function AdminInventoryPage() {
     return a.is_primary ? -1 : 1;
   });
 
-  if (loading) {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-[80vh] gap-4">
-        <Loader2 className="w-12 h-12 text-[#E7A3B0] animate-spin" />
-        <p className="text-gray-600 font-medium">Loading inventory...</p>
-      </div>
-    );
-  }
+
 
   return (
     <div className="p-6 space-y-6">
@@ -488,29 +491,53 @@ export default function AdminInventoryPage() {
         </div>
         <div className="flex gap-3">
           {selectedProducts.size > 0 && (
-            <Button 
-              className="bg-red-500 hover:bg-red-600 text-white"
-              onClick={handleBulkDelete}
-              disabled={actionLoading}
-            >
-              <Trash className="w-4 h-4 mr-2" />
-              Delete ({selectedProducts.size})
-            </Button>
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button 
+                  className="bg-red-500 hover:bg-red-600 text-white"
+                  disabled={actionLoading}
+                >
+                  <Trash className="w-4 h-4 mr-2" />
+                  Delete ({selectedProducts.size})
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent className="bg-white">
+                <AlertDialogHeader>
+                  <AlertDialogTitle className="text-gray-900">Delete Multiple Products</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Are you sure you want to delete <span className="font-semibold">{selectedProducts.size}</span> selected product(s)? This action cannot be undone.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel className="border-zinc-300 bg-white text-zinc-700 hover:bg-zinc-50 hover:text-zinc-900">Cancel</AlertDialogCancel>
+                  <AlertDialogAction className="bg-red-500 hover:bg-red-600 text-white cursor-pointer" onClick={handleBulkDelete}>Delete All</AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
           )}
         </div>
       </div>
 
-      <InventoryTable
-        currentProducts={currentProducts}
-        selectedProducts={selectedProducts}
-        toggleSelectAll={() => toggleSelectAll(selectedProducts.size !== currentProducts.length || currentProducts.length === 0)}
-        toggleSelectProduct={toggleSelectProduct}
-        getCategoryName={getCategoryName}
-        handleViewProduct={handleViewProduct}
-        handleEditProduct={handleEditProduct}
-        handleDeleteProduct={handleDeleteProduct}
-        actionLoading={actionLoading}
-      />
+      {loading ? (
+        <div className="bg-white rounded-lg border p-4 space-y-4">
+          <Skeleton className="h-10 w-full rounded-md" />
+          {Array.from({ length: 5 }).map((_, i) => (
+            <Skeleton key={i} className="h-16 w-full rounded-md" />
+          ))}
+        </div>
+      ) : (
+        <InventoryTable
+          currentProducts={currentProducts}
+          selectedProducts={selectedProducts}
+          toggleSelectAll={() => toggleSelectAll(selectedProducts.size !== currentProducts.length || currentProducts.length === 0)}
+          toggleSelectProduct={toggleSelectProduct}
+          getCategoryName={getCategoryName}
+          handleViewProduct={handleViewProduct}
+          handleEditProduct={handleEditProduct}
+          handleDeleteProduct={handleDeleteProduct}
+          actionLoading={actionLoading}
+        />
+      )}
 
       {/* Footer Stats & Pagination */}
       <div className="flex flex-col gap-4 mt-2">

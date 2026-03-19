@@ -213,29 +213,55 @@ export default function AddProduct({ isOpen, onClose, categories, productToEdit,
 
         const failedFiles: string[] = [];
 
-        for (const file of stagedFiles) {
-            try {
-                // Compress the file before uploading to speed up and reduce bandwidth
-                const compressedFile = await compressImage(file);
-                const imageFormData = new FormData();
-                imageFormData.append("file", compressedFile);
-                imageFormData.append("product_id", productId);
+        try {
+            // 1. Compress all files in parallel first to speed up the process
+            const compressedFilesData = await Promise.all(
+                stagedFiles.map(async (file) => {
+                    try {
+                        const compressed = await compressImage(file);
+                        return { file, compressed };
+                    } catch (err) {
+                        console.error("Compression error for:", file.name, err);
+                        failedFiles.push(file.name);
+                        return null;
+                    }
+                })
+            );
 
-                const response = await fetch("/api/admin/upload-image", {
-                    method: "POST",
-                    headers: {
-                        Authorization: `Bearer ${session.access_token}`,
-                    },
-                    body: imageFormData,
-                });
+            // Filter out any files that failed compression
+            const validCompressedFiles = compressedFilesData.filter(
+                (item): item is { file: File; compressed: File } => item !== null
+            );
 
-                if (!response.ok) {
-                    failedFiles.push(file.name);
+            // 2. Upload in parallel securely
+            const uploadPromises = validCompressedFiles.map(async (item, index) => {
+                try {
+                    const imageFormData = new FormData();
+                    imageFormData.append("file", item.compressed);
+                    imageFormData.append("product_id", productId);
+                    imageFormData.append("display_order", String(index + 1));
+                    imageFormData.append("is_primary", String(index === 0 ? "true" : "false"));
+
+                    const response = await fetch("/api/admin/upload-image", {
+                        method: "POST",
+                        headers: {
+                            Authorization: `Bearer ${session.access_token}`,
+                        },
+                        body: imageFormData,
+                    });
+
+                    if (!response.ok) {
+                        failedFiles.push(item.file.name);
+                    }
+                } catch (err) {
+                    console.error("Upload error for:", item.file.name, err);
+                    failedFiles.push(item.file.name);
                 }
-            } catch (err) {
-                console.error("Compression/Upload error:", err);
-                failedFiles.push(file.name);
-            }
+            });
+
+            await Promise.all(uploadPromises);
+        } catch (err) {
+            console.error("Global upload error:", err);
         }
 
         if (failedFiles.length === 0) {
@@ -355,7 +381,7 @@ export default function AddProduct({ isOpen, onClose, categories, productToEdit,
                                 value={formData.product_name}
                                 onChange={(e) => setFormData({ ...formData, product_name: e.target.value })}
                                 required
-                                className="border-gray-300 text-gray-900 bg-white placeholder:text-gray-800"
+                                className="border-gray-300 text-gray-900 bg-white placeholder:text-gray-400"
                             />
                         </div>
 
@@ -379,7 +405,7 @@ export default function AddProduct({ isOpen, onClose, categories, productToEdit,
                                     value={formData.product_price}
                                     onChange={(e) => setFormData({ ...formData, product_price: e.target.value })}
                                     required
-                                    className="border-gray-300 text-gray-900 bg-white placeholder:text-gray-800"
+                                    className="border-gray-300 text-gray-900 bg-white placeholder:text-gray-400"
                                 />
                             </div>
                         </div>
@@ -391,7 +417,7 @@ export default function AddProduct({ isOpen, onClose, categories, productToEdit,
                                     placeholder="e.g., Gucci"
                                     value={formData.product_brand}
                                     onChange={(e) => setFormData({ ...formData, product_brand: e.target.value })}
-                                    className="border-gray-300 text-gray-900 bg-white placeholder:text-gray-800"
+                                    className="border-gray-300 text-gray-900 bg-white placeholder:text-gray-400"
                                 />
                             </div>
 
@@ -402,7 +428,7 @@ export default function AddProduct({ isOpen, onClose, categories, productToEdit,
                                     placeholder="0"
                                     value={formData.product_stock}
                                     onChange={(e) => setFormData({ ...formData, product_stock: e.target.value })}
-                                    className="border-gray-300 text-gray-900 bg-white placeholder:text-gray-800"
+                                    className="border-gray-300 text-gray-900 bg-white placeholder:text-gray-400"
                                 />
                             </div>
                         </div>
@@ -415,7 +441,7 @@ export default function AddProduct({ isOpen, onClose, categories, productToEdit,
                                     value={formData.size_label}
                                     onChange={(e) => setFormData({ ...formData, size_label: e.target.value.slice(0, MAX_META_LENGTH) })}
                                     maxLength={MAX_META_LENGTH}
-                                    className="border-gray-300 text-gray-900 bg-white placeholder:text-gray-800"
+                                    className="border-gray-300 text-gray-900 bg-white placeholder:text-gray-400"
                                 />
                             </div>
 
@@ -426,7 +452,7 @@ export default function AddProduct({ isOpen, onClose, categories, productToEdit,
                                     value={formData.product_condition}
                                     onChange={(e) => setFormData({ ...formData, product_condition: e.target.value.slice(0, MAX_META_LENGTH) })}
                                     maxLength={MAX_META_LENGTH}
-                                    className="border-gray-300 text-gray-900 bg-white placeholder:text-gray-800"
+                                    className="border-gray-300 text-gray-900 bg-white placeholder:text-gray-400"
                                 />
                             </div>
                         </div>
@@ -452,7 +478,7 @@ export default function AddProduct({ isOpen, onClose, categories, productToEdit,
                                 placeholder="Enter product description"
                                 value={formData.product_description}
                                 onChange={(e) => setFormData({ ...formData, product_description: e.target.value })}
-                                className="w-full border border-gray-300 rounded px-3 py-2 min-h-[80px] focus:outline-none focus:ring-2 focus:ring-pink-500 bg-white text-gray-900 placeholder:text-gray-800 resize-none"
+                                className="w-full border border-gray-300 rounded px-3 py-2 min-h-[80px] focus:outline-none focus:ring-2 focus:ring-pink-500 bg-white text-gray-900 placeholder:text-gray-400 resize-none"
                             />
                         </div>
 
@@ -462,6 +488,7 @@ export default function AddProduct({ isOpen, onClose, categories, productToEdit,
                                     id="show_in_catalog"
                                     checked={formData.show_in_catalog}
                                     onCheckedChange={(checked) => setFormData({ ...formData, show_in_catalog: checked as boolean })}
+                                    className="border border-black data-[state=unchecked]:border-black"
                                 />
                                 <label htmlFor="show_in_catalog" className="text-sm font-medium text-gray-700 cursor-pointer">
                                     Show in Catalog

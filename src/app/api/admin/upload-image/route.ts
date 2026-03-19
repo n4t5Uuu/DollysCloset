@@ -59,6 +59,8 @@ export async function POST(request: NextRequest) {
     const formData = await request.formData();
     const file = formData.get("file") as File;
     const productId = formData.get("product_id") as string;
+    const displayOrderParam = formData.get("display_order") as string;
+    const isPrimaryParam = formData.get("is_primary") as string;
 
     if (!file || !productId) {
       return NextResponse.json({ error: "Missing file or product_id" }, { status: 400 });
@@ -113,8 +115,15 @@ export async function POST(request: NextRequest) {
       .getPublicUrl(fileName);
 
     // Calculate display order (if no images, set to 1, otherwise get max + 1)
-    const displayOrder = (existingImages?.length || 0) + 1;
-    const isFirstImage = (existingImages?.length || 0) === 0;
+    let displayOrder = (existingImages?.length || 0) + 1;
+    let isFirstImage = (existingImages?.length || 0) === 0;
+
+    if (displayOrderParam) {
+      displayOrder = Number.parseInt(displayOrderParam, 10);
+    }
+    if (isPrimaryParam) {
+      isFirstImage = isPrimaryParam === "true";
+    }
 
     // Insert image record
     const { data: imageData, error: insertError } = await admin

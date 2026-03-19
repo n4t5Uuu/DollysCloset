@@ -9,6 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import CustomPagination from "@/components/general-components/CustomPagination";
 import { toast } from "sonner";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   ANNOUNCEMENT_SLUG,
   ANNOUNCEMENT_TITLE,
@@ -321,14 +322,7 @@ export default function ManageDetailsPage() {
     }));
   }
 
-  if (loadingContact) {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-[80vh] gap-4">
-        <Loader2 className="w-12 h-12 text-[#E7A3B0] animate-spin" />
-        <p className="text-gray-600 font-medium">Loading details...</p>
-      </div>
-    );
-  }
+
 
   return (
     <div className="space-y-6">
@@ -406,7 +400,20 @@ export default function ManageDetailsPage() {
             <CardTitle className="text-xl font-semibold text-gray-900">Contact Details</CardTitle>
           </CardHeader>
           <CardContent className="space-y-6">
-            <p className="text-sm text-gray-600">Each field saves independently.</p>
+            {loadingContact ? (
+              <div className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {Array.from({ length: 4 }).map((_, i) => (
+                    <div key={i} className="space-y-2">
+                      <Skeleton className="h-4 w-1/4" />
+                      <Skeleton className="h-10 w-full rounded-md" />
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ) : (
+              <>
+                <p className="text-sm text-gray-600">Each field saves independently.</p>
 
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
               {CONTACT_FIELD_CONFIG.map((field) => (
@@ -467,6 +474,8 @@ export default function ManageDetailsPage() {
                 </div>
               ))}
             </div>
+              </>
+            )}
           </CardContent>
         </Card>
       )}
@@ -478,8 +487,12 @@ export default function ManageDetailsPage() {
           </CardHeader>
           <CardContent className="space-y-6">
             {loadingAnnouncement ? (
-              <div className="flex min-h-[220px] items-center justify-center">
-                <Loader2 className="h-6 w-6 animate-spin text-[#cc7f8f]" />
+              <div className="space-y-4">
+                <Skeleton className="h-4 w-1/4" />
+                <Skeleton className="h-[120px] w-full rounded-md" />
+                <div className="flex justify-end">
+                    <Skeleton className="h-10 w-24 rounded-md" />
+                </div>
               </div>
             ) : (
               <>
@@ -522,8 +535,14 @@ export default function ManageDetailsPage() {
           </CardHeader>
           <CardContent className="space-y-6">
             {loadingAbout ? (
-              <div className="flex min-h-[220px] items-center justify-center">
-                <Loader2 className="h-6 w-6 animate-spin text-[#cc7f8f]" />
+              <div className="space-y-6">
+                <Skeleton className="h-4 w-1/4 mb-2" />
+                {Array.from({ length: 3 }).map((_, i) => (
+                    <div key={i} className="space-y-2">
+                        <Skeleton className="h-4 w-1/3" />
+                        <Skeleton className="h-[100px] w-full rounded-md" />
+                    </div>
+                ))}
               </div>
             ) : (
               <>

@@ -120,13 +120,37 @@ export default function ProductImageUpload({
 
       const uploadedImages: ProductImage[] = [];
 
-      for (const file of files) {
-        // Compress the file before uploading
-        const compressedFile = await compressImage(file);
-        
+      // 1. Compress all files in parallel first to save CPU time
+      const compressedFilesData = await Promise.all(
+        files.map(async (file) => {
+          try {
+            const compressed = await compressImage(file);
+            return { file, compressed };
+          } catch (err) {
+            console.error("Compression error for:", file.name, err);
+            return null;
+          }
+        })
+      );
+
+      // Filter out files that failed compression
+      const validFiles = compressedFilesData.filter(
+        (item): item is { file: File; compressed: File } => item !== null
+      );
+
+      if (validFiles.length < files.length) {
+        toast.warning("Some images failed to compress and were skipped.");
+      }
+
+      const currentCount = images.length;
+
+      // 2. Upload in parallel securely with explicit display_order and is_primary
+      const uploadPromises = validFiles.map(async (item, index) => {
         const formData = new FormData();
-        formData.append("file", compressedFile);
+        formData.append("file", item.compressed);
         formData.append("product_id", productId!);
+        formData.append("display_order", String(currentCount + index + 1));
+        formData.append("is_primary", String(currentCount === 0 && index === 0 ? "true" : "false"));
 
         const response = await fetch("/api/admin/upload-image", {
           method: "POST",
@@ -145,8 +169,11 @@ export default function ProductImageUpload({
         }
 
         const newImage = await response.json();
-        uploadedImages.push(newImage);
-      }
+        return newImage;
+      });
+
+      const results = await Promise.all(uploadPromises);
+      uploadedImages.push(...results);
 
       if (uploadedImages.length > 0) {
         const refreshResponse = await fetch(`/api/admin/fetch-images?product_id=${encodeURIComponent(String(productId))}`);

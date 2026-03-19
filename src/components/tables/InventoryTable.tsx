@@ -4,6 +4,17 @@ import { Button } from "@/components/ui/button";
 import { Eye, Pencil, Trash2, PackageSearch } from "lucide-react";
 import { InventoryProduct as Product } from "@/types/inventory.types";
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty";
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+    AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 interface InventoryTableProps {
     currentProducts: Product[];
@@ -99,9 +110,26 @@ export function InventoryTable({
                         <Button size="icon" variant="outline" className="border-blue-200 text-blue-600 bg-blue-50 hover:bg-blue-200 hover:text-blue-700 hover:border-blue-300" onClick={() => handleEditProduct(product)}>
                         <Pencil className="h-4 w-4" />
                         </Button>
-                        <Button size="icon" variant="outline" className="border-red-200 text-red-600 bg-red-50 hover:bg-red-200 hover:text-red-700 hover:border-red-300" onClick={() => handleDeleteProduct(product.product_id)} disabled={actionLoading}>
-                        <Trash2 className="h-4 w-4" />
-                        </Button>
+                        
+                        <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                                <Button size="icon" variant="outline" className="border-red-200 text-red-600 bg-red-50 hover:bg-red-200 hover:text-red-700 hover:border-red-300" disabled={actionLoading}>
+                                    <Trash2 className="h-4 w-4" />
+                                </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent className="bg-white">
+                                <AlertDialogHeader>
+                                    <AlertDialogTitle className="text-gray-900">Delete Product</AlertDialogTitle>
+                                    <AlertDialogDescription>
+                                        Are you sure you want to delete <span className="font-semibold">{product.product_name}</span>? This action cannot be undone.
+                                    </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                    <AlertDialogCancel className="border-zinc-300 bg-white text-zinc-700 hover:bg-zinc-50 hover:text-zinc-900">Cancel</AlertDialogCancel>
+                                    <AlertDialogAction className="bg-red-500 hover:bg-red-600 text-white cursor-pointer" onClick={() => handleDeleteProduct(product.product_id)}>Delete</AlertDialogAction>
+                                </AlertDialogFooter>
+                            </AlertDialogContent>
+                        </AlertDialog>
                     </div>
                     </TableCell>
                 </TableRow>

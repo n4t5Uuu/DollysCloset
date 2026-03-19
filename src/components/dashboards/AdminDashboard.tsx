@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Loader2, BarChart3, Package, Activity } from "lucide-react";
 import { browserSupabase } from "@/lib/supabase/browser";
+import { Skeleton } from "@/components/ui/skeleton";
 
 import { ActivityLog } from "@/types/logs.types";
 
@@ -181,14 +182,7 @@ export default function AdminDashboard() {
             .slice(0, 5);
     }, [logs]);
 
-    if (loading) {
-        return (
-            <div className="flex flex-col items-center justify-center min-h-[70vh] gap-4">
-                <Loader2 className="w-12 h-12 text-[#E7A3B0] animate-spin" />
-                <p className="text-gray-600 font-medium">Loading dashboard...</p>
-            </div>
-        );
-    }
+
 
     return (
         <div className="space-y-6">
@@ -206,11 +200,15 @@ export default function AdminDashboard() {
                         <BarChart3 className="w-5 h-5 text-[#E7A3B0]" />
                         <h2 className="text-lg font-semibold text-[#121212]">Analytics</h2>
                     </div>
-                    <div className="h-[190px] rounded-lg border border-dashed border-gray-300 bg-gray-50 flex items-center justify-center">
-                        <p className="text-sm text-gray-500 text-center">
-                            Template placeholder for analytics widgets
-                        </p>
-                    </div>
+                    {loading ? (
+                        <Skeleton className="h-[190px] w-full rounded-lg" />
+                    ) : (
+                        <div className="h-[190px] rounded-lg border border-dashed border-gray-300 bg-gray-50 flex items-center justify-center">
+                            <p className="text-sm text-gray-500 text-center">
+                                Template placeholder for analytics widgets
+                            </p>
+                        </div>
+                    )}
                 </section>
 
                 <section className="xl:col-span-4 rounded-xl border border-gray-200 bg-white p-6 min-h-[260px]">
@@ -219,7 +217,13 @@ export default function AdminDashboard() {
                         <h2 className="text-lg font-semibold text-[#121212]">Moving Products</h2>
                     </div>
 
-                    {movingProductsLogs.length === 0 ? (
+                    {loading ? (
+                        <div className="space-y-3">
+                            {Array.from({ length: 3 }).map((_, i) => (
+                                <Skeleton key={i} className="h-20 w-full rounded-lg" />
+                            ))}
+                        </div>
+                    ) : movingProductsLogs.length === 0 ? (
                         <p className="text-sm text-gray-500">No stock movement logs yet.</p>
                     ) : (
                         <div className="space-y-3">
@@ -242,7 +246,13 @@ export default function AdminDashboard() {
                         <h2 className="text-lg font-semibold text-[#121212]">Latest Logs</h2>
                     </div>
 
-                    {latestLogs.length === 0 ? (
+                    {loading ? (
+                        <div className="space-y-3">
+                            {Array.from({ length: 4 }).map((_, i) => (
+                                <Skeleton key={i} className="h-14 w-full rounded-lg" />
+                            ))}
+                        </div>
+                    ) : latestLogs.length === 0 ? (
                         <p className="text-sm text-gray-500">No activity logs yet.</p>
                     ) : (
                         <div className="space-y-3">

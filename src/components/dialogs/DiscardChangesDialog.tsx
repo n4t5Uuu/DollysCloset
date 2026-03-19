@@ -26,7 +26,7 @@ export default function DiscardChangesDialog({ isOpen, onOpenChange, onDiscard }
                     </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
-                    <AlertDialogCancel onClick={() => onOpenChange(false)} className="border-gray-200 text-gray-700 hover:bg-gray-50">Keep editing</AlertDialogCancel>
+                    <AlertDialogCancel onClick={() => onOpenChange(false)} className="border-zinc-300 bg-white text-zinc-700 hover:bg-zinc-50 hover:text-zinc-900">Keep editing</AlertDialogCancel>
                     <AlertDialogAction onClick={() => { onOpenChange(false); onDiscard(); }} className="bg-red-500 hover:bg-red-600 text-white cursor-pointer">Discard</AlertDialogAction>
                 </AlertDialogFooter>
             </AlertDialogContent>
