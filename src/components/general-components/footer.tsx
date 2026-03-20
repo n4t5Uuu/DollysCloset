@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Image from "next/image";
+import logo from "@/assets/images/logo/logo.jpg";
 import Link from "next/link";
 
 // change the import of icons since its deprecated
@@ -89,7 +90,7 @@ export default function Footer() {
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-10 md:gap-4 px-10 md:px-20 w-full max-w-7xl">
                 <div className="flex justify-center md:justify-start">
                     <Image 
-                        src="/assets/logo.jpg" 
+                        src={logo} 
                         alt="Dolly's Closet Logo" 
                         width={180}
                         height={180}

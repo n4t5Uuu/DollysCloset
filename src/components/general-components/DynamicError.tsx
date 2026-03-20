@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import Image from "next/image";
+import noBgLogo from "@/assets/images/logo/no-bg-logo.png";
 import { AlertCircle, Lock, ShieldAlert, FileSearch } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -56,7 +57,7 @@ export default function DynamicError({
         {/* Top Logo Branding */}
         <div className="mb-4">
           <Image 
-            src="/assets/no-bg-logo.png" 
+            src={noBgLogo} 
             alt="Dolly's Closet Logo" 
             width={120} 
             height={120} 

@@ -3,6 +3,7 @@
 
 import { useState } from "react";
 import Image from "next/image";
+import noBgLogo from "@/assets/images/logo/no-bg-logo.png";
 import Link from "next/link";
 import { Menu, X } from "lucide-react";
 import UserProfileDropdown from "./LogoutButton";
@@ -18,7 +19,7 @@ export default function Navbar() {
                 
                 <div className="flex items-center gap-3">
                     <div className="shrink-0">
-                        <Image src="/assets/no-bg-logo.png" alt="Dolly's Closet Logo" width={50} height={50} />
+                        <Image src={noBgLogo} alt="Dolly's Closet Logo" width={50} height={50} />
                     </div>
                     <h2 className="text-[#E7A3B0] font-great-vibes! text-2xl md:text-3xl whitespace-nowrap">Dolly&apos;s Closet</h2>
                 </div>

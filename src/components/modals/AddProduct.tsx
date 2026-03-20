@@ -11,6 +11,10 @@ import ProductImageUpload from "@/components/product-image-upload";
 import ImageSelector from "@/components/image-selector";
 import CategoryCascadingSelect from "@/components/selects/CategoryCascadingSelect";
 import { toast } from "sonner";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+
+const SIZE_OPTIONS = ["One Size", "Free Size", "XS", "S", "M", "L", "XL", "XXL"];
+const CONDITION_OPTIONS = ["New", "Like New", "Good", "Used", "Fair"];
 import {
     Card,
     CardContent,
@@ -84,9 +88,9 @@ export default function AddProduct({ isOpen, onClose, categories, productToEdit,
             formData.product_price !== "" ||
             formData.product_brand !== "" ||
             formData.product_description !== "" ||
-            formData.product_stock !== "" ||
+            formData.product_stock !== "1" ||
             formData.product_condition !== "New" ||
-            formData.size_label !== "One Size" ||
+            formData.size_label !== "" ||
             formData.show_in_catalog !== true ||
             stagedFiles.length > 0
         );
@@ -106,9 +110,9 @@ export default function AddProduct({ isOpen, onClose, categories, productToEdit,
         product_price: "",
         product_brand: "",
         product_description: "",
-        product_stock: "",
+        product_stock: "1",
         product_condition: "New",
-        size_label: "One Size",
+        size_label: "",
         show_in_catalog: true,
         image_id: "",
     });
@@ -165,9 +169,9 @@ export default function AddProduct({ isOpen, onClose, categories, productToEdit,
             product_price: "",
             product_brand: "",
             product_description: "",
-            product_stock: "",
+            product_stock: "1",
             product_condition: "New",
-            size_label: "One Size",
+            size_label: "",
             show_in_catalog: true,
             image_id: "",
         });
@@ -368,7 +372,8 @@ export default function AddProduct({ isOpen, onClose, categories, productToEdit,
                 </CardHeader>
 
                 <form onSubmit={handleSaveProduct}>
-                    <CardContent className="space-y-5 p-6">
+                    <fieldset disabled={actionLoading} className={`border-none p-0 m-0 ${actionLoading ? "pointer-events-none opacity-75" : ""}`}>
+                        <CardContent className="space-y-5 p-6">
                         {error && (
                             <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm mb-4">
                                 {error}
@@ -400,10 +405,21 @@ export default function AddProduct({ isOpen, onClose, categories, productToEdit,
                                 <label className="block text-sm font-medium text-gray-700 mb-2">Price <span className="text-red-500">*</span></label>
                                 <Input
                                     type="number"
+                                    min="0"
                                     step="0.01"
                                     placeholder="0.00"
                                     value={formData.product_price}
-                                    onChange={(e) => setFormData({ ...formData, product_price: e.target.value })}
+                                    onChange={(e) => {
+                                        const val = e.target.value;
+                                        if (val === "" || Number(val) >= 0) {
+                                            setFormData({ ...formData, product_price: val });
+                                        }
+                                    }}
+                                    onKeyDown={(e) => {
+                                        if (['-', '+', 'e', 'E'].includes(e.key)) {
+                                            e.preventDefault();
+                                        }
+                                    }}
                                     required
                                     className="border-gray-300 text-gray-900 bg-white placeholder:text-gray-400"
                                 />
@@ -425,9 +441,20 @@ export default function AddProduct({ isOpen, onClose, categories, productToEdit,
                                 <label className="block text-sm font-medium text-gray-700 mb-2">Stock</label>
                                 <Input
                                     type="number"
+                                    min="0"
                                     placeholder="0"
                                     value={formData.product_stock}
-                                    onChange={(e) => setFormData({ ...formData, product_stock: e.target.value })}
+                                    onChange={(e) => {
+                                        const val = e.target.value;
+                                        if (val === "" || Number(val) >= 0) {
+                                            setFormData({ ...formData, product_stock: val });
+                                        }
+                                    }}
+                                    onKeyDown={(e) => {
+                                        if (['-', '+', 'e', 'E', '.'].includes(e.key)) {
+                                            e.preventDefault();
+                                        }
+                                    }}
                                     className="border-gray-300 text-gray-900 bg-white placeholder:text-gray-400"
                                 />
                             </div>
@@ -436,24 +463,30 @@ export default function AddProduct({ isOpen, onClose, categories, productToEdit,
                         <div className="grid grid-cols-2 gap-4">
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-2">Size Label</label>
-                                <Input
-                                    placeholder="e.g., One Size, M, L"
-                                    value={formData.size_label}
-                                    onChange={(e) => setFormData({ ...formData, size_label: e.target.value.slice(0, MAX_META_LENGTH) })}
-                                    maxLength={MAX_META_LENGTH}
-                                    className="border-gray-300 text-gray-900 bg-white placeholder:text-gray-400"
-                                />
+                                <Select value={formData.size_label} onValueChange={(value) => setFormData({ ...formData, size_label: value })}>
+                                    <SelectTrigger className="border-gray-300 text-gray-900 bg-white w-full">
+                                        <SelectValue placeholder="Select size" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {SIZE_OPTIONS.map((size) => (
+                                            <SelectItem key={size} value={size}>{size}</SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
                             </div>
 
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-2">Condition</label>
-                                <Input
-                                    placeholder="e.g., New, Good, 9/10"
-                                    value={formData.product_condition}
-                                    onChange={(e) => setFormData({ ...formData, product_condition: e.target.value.slice(0, MAX_META_LENGTH) })}
-                                    maxLength={MAX_META_LENGTH}
-                                    className="border-gray-300 text-gray-900 bg-white placeholder:text-gray-400"
-                                />
+                                <Select value={formData.product_condition} onValueChange={(value) => setFormData({ ...formData, product_condition: value })}>
+                                    <SelectTrigger className="border-gray-300 text-gray-900 bg-white w-full">
+                                        <SelectValue placeholder="Select condition" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {CONDITION_OPTIONS.map((cond) => (
+                                            <SelectItem key={cond} value={cond}>{cond}</SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
                             </div>
                         </div>
 
@@ -495,7 +528,8 @@ export default function AddProduct({ isOpen, onClose, categories, productToEdit,
                                 </label>
                             </div>
                         </div>
-                    </CardContent>
+                        </CardContent>
+                    </fieldset>
 
                     <CardFooter className="flex gap-3 p-6 border-t bg-gray-50">
                         <Button type="button" variant="outline" onClick={handleClose} disabled={actionLoading} className="flex-1 border-gray-300 text-gray-700 bg-white hover:bg-white hover:text-black transition-all duration-300 hover:scale-105 hover:shadow-md hover:border-gray-400 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 disabled:hover:shadow-none">Cancel</Button>
