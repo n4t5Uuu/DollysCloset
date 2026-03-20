@@ -44,6 +44,7 @@ export async function GET() {
         userId: user.id,
         role: userRow?.role || null,
         displayName,
+        firstName: userRow?.first_name || "",
       },
     });
   } catch (error: unknown) {

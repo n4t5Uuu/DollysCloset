@@ -46,6 +46,7 @@ export default function EmployeeDashboard() {
     const [error, setError] = useState<string | null>(null);
     const [displayName, setDisplayName] = useState("there");
     const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+    const [firstName, setFirstName] = useState<string>("");
     const fetchProfile = useCallback(async () => {
         const response = await fetch("/api/auth/profile", { cache: "no-store" });
         if (!response.ok) {
@@ -55,6 +56,7 @@ export default function EmployeeDashboard() {
         const result = await response.json();
         setCurrentUserId(result?.data?.userId ?? null);
         setDisplayName(result?.data?.displayName || "there");
+        setFirstName(result?.data?.firstName ?? "");
     }, []);
 
     /**
@@ -246,7 +248,7 @@ export default function EmployeeDashboard() {
         <div className="space-y-6">
             <div>
                 <p className="text-xs uppercase tracking-[0.2em] text-gray-400">Employee Home</p>
-                <h1 className="text-3xl font-bold text-[#121212] mt-1">Good day, {displayName} 👋</h1>
+                <h1 className="text-3xl font-bold text-[#121212] mt-1">Good day, {firstName || "Employee"}</h1>
                 <p className="text-gray-500 mt-1">Here’s what needs your attention today.</p>
             </div>
 

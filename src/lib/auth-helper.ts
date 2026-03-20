@@ -66,12 +66,12 @@ export const authHelper = {
         const { data, error } = await supabase.from("tbl_users")
             .select("role")
             .eq("user_id", user_id)
-            .single()
+            .maybeSingle();
 
-            if(error) {
-                console.error(`Error Fetching Role for User ${user_id}: `, error);
-                throw error
-            }
+        if (error) {
+            console.error(`Error Fetching Role for User ${user_id}: `, error);
+            throw error;
+        }
 
         return { data, error };
     },

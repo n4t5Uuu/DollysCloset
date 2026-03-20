@@ -45,6 +45,7 @@ export default function AdminDashboard() {
     const [loading, setLoading] = useState(globalAdminCache === null);
     const [error, setError] = useState<string | null>(null);
     const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+    const [firstName, setFirstName] = useState<string>("");
 
     const fetchProfile = useCallback(async () => {
         const response = await fetch("/api/auth/profile", { cache: "no-store" });
@@ -54,6 +55,7 @@ export default function AdminDashboard() {
 
         const result = await response.json();
         setCurrentUserId(result?.data?.userId ?? null);
+        setFirstName(result?.data?.firstName ?? "");
     }, []);
 
     const fetchDashboardData = useCallback(async (isBackground = false) => {
@@ -238,7 +240,7 @@ export default function AdminDashboard() {
         <div className="space-y-6">
             <div>
                 <p className="text-xs uppercase tracking-[0.2em] text-gray-400">Admin Home</p>
-                <h1 className="text-3xl font-bold text-[#121212] mt-1">Good day, Admin 👋</h1>
+                <h1 className="text-3xl font-bold text-[#121212] mt-1">Good day, {firstName || "Admin"}</h1>
                 <p className="text-gray-500 mt-1">Here’s what needs your attention today.</p>
             </div>
 
