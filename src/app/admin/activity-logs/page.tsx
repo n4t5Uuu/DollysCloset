@@ -8,6 +8,17 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { AlertTriangle, Search, X, Eye } from "lucide-react";
 import CustomPagination from "@/components/general-components/CustomPagination";
 import { Skeleton } from "@/components/ui/skeleton";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 interface ActivityLog {
   log_id: number;
@@ -36,6 +47,8 @@ const actionLabels: Record<string, string> = {
   edit_contact_details: "Updated Contact Details",
   edit_about_details: "Updated About Details",
   edit_announcement: "Edited Announcement",
+  login: "Logged In",
+  logout: "Logged Out",
 };
 
 const actionColors: Record<string, string> = {
@@ -55,12 +68,16 @@ const actionColors: Record<string, string> = {
   edit_contact_details: "bg-amber-100 text-amber-800",
   edit_about_details: "bg-violet-100 text-violet-800",
   edit_announcement: "bg-pink-100 text-pink-800",
+  login: "bg-amber-100 text-amber-800",
+  logout: "bg-gray-100 text-gray-800",
 };
 
 const employeeManagementActions = new Set([
   "create_employee",
   "edit_employee",
   "delete_employee",
+  "login",
+  "logout",
 ]);
 
 export default function ActivityLogsPage() {
@@ -185,21 +202,19 @@ export default function ActivityLogsPage() {
    * to delete all activity logs from the database. Requires user confirmation first.
    */
   const handleResetLogs = async () => {
-    if (confirm("Are you sure you want to delete all activity logs? This cannot be undone.")) {
-      try {
-        const response = await fetch('/api/admin/reset-activity-logs', {
-          method: 'POST',
-        });
+    try {
+      const response = await fetch('/api/admin/reset-activity-logs', {
+        method: 'POST',
+      });
 
-        if (!response.ok) {
-          const data = await response.json();
-          throw new Error(data.error || 'Failed to reset logs');
-        }
-
-        setLogs([]);
-      } catch (err: unknown) {
-        setError(err instanceof Error ? err.message : 'Failed to reset logs');
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || 'Failed to reset logs');
       }
+
+      setLogs([]);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Failed to reset logs');
     }
   };
 
@@ -212,13 +227,27 @@ export default function ActivityLogsPage() {
           <h1 className="text-3xl font-bold">Activity Logs</h1>
           <p className="text-gray-600">Inventory actions by admin or employee.</p>
         </div>
-        <Button
-          variant="outline"
-          className="border-red-200 text-red-600 hover:bg-red-100 hover:text-red-700"
-          onClick={handleResetLogs}
-        >
-          Reset Logs
-        </Button>
+        <AlertDialog>
+          <AlertDialogTrigger asChild>
+            <button
+              className="bg-red-500 hover:bg-red-600 text-white font-medium px-5 py-2.5 rounded-lg transition-all duration-300 shadow-md hover:shadow-lg hover:scale-105 cursor-pointer"
+            >
+              Reset Logs
+            </button>
+          </AlertDialogTrigger>
+          <AlertDialogContent className="bg-white">
+            <AlertDialogHeader>
+              <AlertDialogTitle className="text-gray-900">Clear Activity Logs</AlertDialogTitle>
+              <AlertDialogDescription>
+                Are you sure you want to delete all activity logs? This action cannot be undone and clears entire tracking tracks.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel className="border-zinc-300 bg-white text-zinc-700 hover:bg-zinc-50 hover:text-zinc-900">Cancel</AlertDialogCancel>
+              <AlertDialogAction className="bg-red-500 hover:bg-red-600 text-white cursor-pointer" onClick={handleResetLogs}>Reset All</AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
 
       {error && (

@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { authHelper } from "@/lib/auth-helper";
+import { browserSupabase } from "@/lib/supabase/browser";
 
 import { Eye, EyeOff } from "lucide-react";
 import { toast } from "sonner";
@@ -101,6 +102,21 @@ export default function Home() {
       }
 
       console.log("Login successful, redirecting to dashboard...");
+      
+      // Log login activity securely via backend bypass API
+      try {
+        await fetch("/api/auth/log-login", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            user_id: data.user.id,
+            email: data.user.email || trimmedEmail,
+          }),
+        });
+      } catch (logErr) {
+        console.warn("Failed to log login activity:", logErr);
+      }
+
       toast.success("Login successful. Redirecting to dashboard...");
       router.push('/dashboard');
       // Note: We don't set loading to false here to prevent button re-enable during redirect

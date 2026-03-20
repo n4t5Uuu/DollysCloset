@@ -81,6 +81,23 @@ export const authHelper = {
      * @returns An object indicating the success status of the sign-out operation and any associated error.
      */
     async signOut() {
+        try {
+            const { data: { user } } = await browserSupabase.auth.getUser();
+            if (user) {
+                await fetch("/api/auth/log-login", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        user_id: user.id,
+                        email: user.email,
+                        actionType: "logout"
+                    })
+                });
+            }
+        } catch (logErr) {
+            console.warn("Failed to log logout activity:", logErr);
+        }
+
         const { error } = await browserSupabase.auth.signOut();
 
         if (error) {

@@ -11,6 +11,8 @@ const actionLabels: Record<string, string> = {
     create_product: "Listed",
     edit_product: "Updated",
     delete_product: "Deleted",
+    login: "Logged In",
+    logout: "Logged Out",
 };
 
 const lowStockThreshold = 10;
