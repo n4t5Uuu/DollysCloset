@@ -1,5 +1,6 @@
 import { admin } from "@/lib/supabase/admin";
 import { authHelper } from "@/lib/auth-helper";
+import { createServerSupabase } from "@/lib/supabase/server";
 import { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 
@@ -11,18 +12,27 @@ import { NextResponse } from "next/server";
  */
 export async function POST(request: NextRequest) {
   try {
+    let userId: string | null = null;
+
     const authHeader = request.headers.get('authorization');
-    if (!authHeader) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    if (authHeader) {
+      const token = authHeader.replace('Bearer ', '');
+      const { data: { user }, error: authError } = await admin.auth.getUser(token);
+      if (!authError && user) {
+        userId = user.id;
+      }
     }
 
-    const token = authHeader.replace('Bearer ', '');
-    const { data: { user }, error: authError } = await admin.auth.getUser(token);
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    if (!userId) {
+      const supabase = await createServerSupabase();
+      const { data: { user }, error: sessionError } = await supabase.auth.getUser();
+      if (sessionError || !user) {
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      }
+      userId = user.id;
     }
 
-    const { data: userData, error: roleError } = await authHelper.getUserRole(user.id, admin);
+    const { data: userData, error: roleError } = await authHelper.getUserRole(userId, admin);
     if (roleError || userData?.role !== 'admin') {
       return NextResponse.json({ error: 'Forbidden: Admin access required' }, { status: 403 });
     }

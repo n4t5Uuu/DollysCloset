@@ -1,8 +1,7 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { AlertTriangle, Loader2, Package, Pencil } from "lucide-react";
-import { browserSupabase } from "@/lib/supabase/browser";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { AlertTriangle, Package, Pencil } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 
 import { ActivityLog } from "@/types/logs.types";
@@ -47,43 +46,15 @@ export default function EmployeeDashboard() {
     const [error, setError] = useState<string | null>(null);
     const [displayName, setDisplayName] = useState("there");
     const [currentUserId, setCurrentUserId] = useState<string | null>(null);
-    const authTokenRef = useRef<string | null>(null);
-
-    /**
-     * Retrieves the current user's session from Supabase, updates local state for display name,
-     * and fetches the user's detailed information from the 'tbl_users' database table.
-     * @returns A promise that resolves to the session's access token string.
-     */
-    const getSessionDetails = useCallback(async () => {
-        const { data: { session } } = await browserSupabase.auth.getSession();
-
-        if (!session?.access_token || !session.user) {
+    const fetchProfile = useCallback(async () => {
+        const response = await fetch("/api/auth/profile", { cache: "no-store" });
+        if (!response.ok) {
             throw new Error("Not authenticated");
         }
 
-        authTokenRef.current = session.access_token;
-        setCurrentUserId(session.user.id);
-
-        const { data: userRow } = await browserSupabase
-            .from("tbl_users")
-            .select("first_name, last_name")
-            .eq("user_id", session.user.id)
-            .single();
-
-        const firstNameFromTable = String(userRow?.first_name || "").trim();
-        const lastNameFromTable = String(userRow?.last_name || "").trim();
-        const fullNameFromTable = [firstNameFromTable, lastNameFromTable].filter(Boolean).join(" ").trim();
-
-        const metadata = session.user.user_metadata || {};
-        const firstName = String(metadata.first_name || "").trim();
-        const lastName = String(metadata.last_name || "").trim();
-        const fullNameFromParts = [firstName, lastName].filter(Boolean).join(" ").trim();
-        const fullNameFromMetadata = String(metadata.full_name || metadata.name || "").trim();
-        const fallbackName = String(session.user.email?.split("@")[0] || "there").trim();
-
-        setDisplayName(fullNameFromTable || fullNameFromParts || fullNameFromMetadata || fallbackName);
-
-        return session.access_token;
+        const result = await response.json();
+        setCurrentUserId(result?.data?.userId ?? null);
+        setDisplayName(result?.data?.displayName || "there");
     }, []);
 
     /**
@@ -98,15 +69,10 @@ export default function EmployeeDashboard() {
             }
             setError(null);
 
-            const token = authTokenRef.current || await getSessionDetails();
-
             const [productsResponse, logsResponse] = await Promise.all([
                 fetch("/api/admin/fetch-products", { cache: "no-store" }),
                 fetch("/api/admin/fetch-logs", {
                     cache: "no-store",
-                    headers: {
-                        Authorization: `Bearer ${token}`,
-                    },
                 }),
             ]);
 
@@ -147,7 +113,13 @@ export default function EmployeeDashboard() {
                 setLoading(false);
             }
         }
-    }, [getSessionDetails]);
+    }, []);
+
+    useEffect(() => {
+        fetchProfile().catch(() => {
+            window.location.replace("/unauthorized");
+        });
+    }, [fetchProfile]);
 
     useEffect(() => {
         fetchDashboardData();

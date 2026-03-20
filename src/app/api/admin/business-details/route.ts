@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { admin } from "@/lib/supabase/admin";
 import { authHelper } from "@/lib/auth-helper";
 import { dataHelper } from "@/lib/data-helper";
+import { createServerSupabase } from "@/lib/supabase/server";
 import {
   ANNOUNCEMENT_SLUG,
   ABOUT_SLUG,
@@ -85,18 +86,28 @@ async function findAllBySlug(tableName: string, slug: string) {
 }
 
 async function validateAdmin(request: NextRequest): Promise<AdminValidationResult> {
+  const supabase = await createServerSupabase();
+  const {
+    data: { user: cookieUser },
+    error: cookieAuthError,
+  } = await supabase.auth.getUser();
+
+  let user = cookieUser || null;
+
   const authHeader = request.headers.get("authorization");
-  if (!authHeader) {
-    return { ok: false, response: NextResponse.json({ error: "Unauthorized" }, { status: 401 }) };
+  if ((!user || cookieAuthError) && authHeader) {
+    const token = authHeader.replace("Bearer ", "");
+    const {
+      data: { user: tokenUser },
+      error: authError,
+    } = await admin.auth.getUser(token);
+
+    if (!authError && tokenUser) {
+      user = tokenUser;
+    }
   }
 
-  const token = authHeader.replace("Bearer ", "");
-  const {
-    data: { user },
-    error: authError,
-  } = await admin.auth.getUser(token);
-
-  if (authError || !user) {
+  if (!user) {
     return { ok: false, response: NextResponse.json({ error: "Unauthorized" }, { status: 401 }) };
   }
 

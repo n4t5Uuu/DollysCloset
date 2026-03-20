@@ -1,8 +1,7 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { AlertTriangle, Package, Pencil } from "lucide-react";
-import { browserSupabase } from "@/lib/supabase/browser";
 import { Skeleton } from "@/components/ui/skeleton";
 
 import { ActivityLog } from "@/types/logs.types";
@@ -46,19 +45,15 @@ export default function AdminDashboard() {
     const [loading, setLoading] = useState(globalAdminCache === null);
     const [error, setError] = useState<string | null>(null);
     const [currentUserId, setCurrentUserId] = useState<string | null>(null);
-    const authTokenRef = useRef<string | null>(null);
 
-    const getSessionDetails = useCallback(async () => {
-        const { data: { session } } = await browserSupabase.auth.getSession();
-
-        if (!session?.access_token || !session.user) {
+    const fetchProfile = useCallback(async () => {
+        const response = await fetch("/api/auth/profile", { cache: "no-store" });
+        if (!response.ok) {
             throw new Error("Not authenticated");
         }
 
-        authTokenRef.current = session.access_token;
-        setCurrentUserId(session.user.id);
-
-        return session.access_token;
+        const result = await response.json();
+        setCurrentUserId(result?.data?.userId ?? null);
     }, []);
 
     const fetchDashboardData = useCallback(async (isBackground = false) => {
@@ -68,15 +63,10 @@ export default function AdminDashboard() {
             }
             setError(null);
 
-            const token = authTokenRef.current || await getSessionDetails();
-
             const [productsResponse, logsResponse] = await Promise.all([
                 fetch("/api/admin/fetch-products", { cache: "no-store" }),
                 fetch("/api/admin/fetch-logs", {
                     cache: "no-store",
-                    headers: {
-                        Authorization: `Bearer ${token}`,
-                    },
                 }),
             ]);
 
@@ -117,7 +107,13 @@ export default function AdminDashboard() {
                 setLoading(false);
             }
         }
-    }, [getSessionDetails]);
+    }, []);
+
+    useEffect(() => {
+        fetchProfile().catch(() => {
+            window.location.replace("/unauthorized");
+        });
+    }, [fetchProfile]);
 
     useEffect(() => {
         fetchDashboardData();

@@ -1,8 +1,7 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Loader2, AlertTriangle, CheckCircle2 } from "lucide-react";
-import { browserSupabase } from "@/lib/supabase/browser";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -49,30 +48,6 @@ export default function ManageDetailsPage() {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
 
-  const authTokenRef = useRef<string | null>(null);
-
-  /**
-   * Retrieves the current user's session token from Supabase.
-   * If the token is already cached during this session, it returns the cached token.
-   * @returns A promise resolving to the session access token.
-   */
-  const getAuthToken = useCallback(async () => {
-    if (authTokenRef.current) {
-      return authTokenRef.current;
-    }
-
-    const {
-      data: { session },
-    } = await browserSupabase.auth.getSession();
-
-    if (!session?.access_token) {
-      throw new Error("Not authenticated");
-    }
-
-    authTokenRef.current = session.access_token;
-    return session.access_token;
-  }, []);
-
   /**
    * Fetches contact details data from the backend.
    * Sends a GET request to the /api/admin/business-details endpoint using the contact slug.
@@ -82,12 +57,8 @@ export default function ManageDetailsPage() {
       setLoadingContact(true);
       setError(null);
 
-      const token = await getAuthToken();
       const response = await fetch(`/api/admin/business-details?slug=${CONTACT_SLUG}`, {
         cache: "no-store",
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
       });
 
       const result = await response.json();
@@ -101,7 +72,7 @@ export default function ManageDetailsPage() {
     } finally {
       setLoadingContact(false);
     }
-  }, [getAuthToken]);
+  }, []);
 
   /**
    * Fetches the announcement text from the backend.
@@ -112,12 +83,8 @@ export default function ManageDetailsPage() {
       setLoadingAnnouncement(true);
       setError(null);
 
-      const token = await getAuthToken();
       const response = await fetch(`/api/admin/business-details?slug=${ANNOUNCEMENT_SLUG}`, {
         cache: "no-store",
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
       });
 
       const result = await response.json();
@@ -132,7 +99,7 @@ export default function ManageDetailsPage() {
     } finally {
       setLoadingAnnouncement(false);
     }
-  }, [getAuthToken]);
+  }, []);
 
   /**
    * Fetches the about page details and FAQ data from the backend.
@@ -143,12 +110,8 @@ export default function ManageDetailsPage() {
       setLoadingAbout(true);
       setError(null);
 
-      const token = await getAuthToken();
       const response = await fetch(`/api/admin/business-details?slug=${ABOUT_SLUG}`, {
         cache: "no-store",
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
       });
 
       const result = await response.json();
@@ -163,7 +126,7 @@ export default function ManageDetailsPage() {
     } finally {
       setLoadingAbout(false);
     }
-  }, [getAuthToken]);
+  }, []);
 
   useEffect(() => {
     fetchContactDetails();
@@ -193,13 +156,10 @@ export default function ManageDetailsPage() {
       setError(null);
       setSuccess(null);
 
-      const token = await getAuthToken();
-
       const response = await fetch("/api/admin/business-details", {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
           slug: CONTACT_SLUG,
@@ -236,13 +196,10 @@ export default function ManageDetailsPage() {
       setError(null);
       setSuccess(null);
 
-      const token = await getAuthToken();
-
       const response = await fetch("/api/admin/business-details", {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
           slug: ABOUT_SLUG,
@@ -277,13 +234,10 @@ export default function ManageDetailsPage() {
       setError(null);
       setSuccess(null);
 
-      const token = await getAuthToken();
-
       const response = await fetch("/api/admin/business-details", {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
           slug: ANNOUNCEMENT_SLUG,

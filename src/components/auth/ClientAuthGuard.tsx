@@ -15,7 +15,6 @@ export default function ClientAuthGuard({ children }: { children: React.ReactNod
             if (!isMounted) return;
 
             if (event === 'SIGNED_OUT') {
-                setIsAuthorized(null); // Show loading instantly
                 window.location.replace("/");
                 return;
             }

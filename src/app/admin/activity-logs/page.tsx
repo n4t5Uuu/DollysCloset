@@ -5,8 +5,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Loader2, AlertTriangle, Search, X, Eye } from "lucide-react";
-import { browserSupabase } from "@/lib/supabase/browser";
+import { AlertTriangle, Search, X, Eye } from "lucide-react";
 import CustomPagination from "@/components/general-components/CustomPagination";
 import { Skeleton } from "@/components/ui/skeleton";
 
@@ -77,38 +76,6 @@ export default function ActivityLogsPage() {
   const isMountedRef = useRef(true);
 
   /**
-   * Retrieves the current authenticated session's access token from Supabase.
-   * Throws an error if the user is not currently authenticated.
-   * @returns A promise that resolves to the access token string.
-   */
-  const getAuthToken = useCallback(async () => {
-    const {
-      data: { session },
-    } = await browserSupabase.auth.getSession();
-
-    if (!session?.access_token) {
-      throw new Error("Not authenticated");
-    }
-
-    return session.access_token;
-  }, []);
-
-  /**
-   * Performs an HTTP GET request to the /api/admin/fetch-logs endpoint to retrieve activity logs.
-   * Uses the provided access token for authorization.
-   * @param token - The user's access token for the backend request.
-   * @returns A promise resolving to the fetch response object.
-   */
-  const fetchLogsWithToken = useCallback(async (token: string) => {
-    return fetch('/api/admin/fetch-logs', {
-      cache: 'no-store',
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    });
-  }, []);
-
-  /**
    * Fetches activity logs from the backend and handles token refreshing if the session has expired.
    * Updates component state with the fetched logs on success.
    * @param isBackground - If true, prevents the global loading indicator from showing during the request.
@@ -123,18 +90,9 @@ export default function ActivityLogsPage() {
       }
       setError(null);
 
-      const token = await getAuthToken();
-      let response = await fetchLogsWithToken(token);
-
-      if (response.status === 401) {
-        const { data: refreshData, error: refreshError } = await browserSupabase.auth.refreshSession();
-
-        if (refreshError || !refreshData.session?.access_token) {
-          throw new Error("Session expired. Please sign in again.");
-        }
-
-        response = await fetchLogsWithToken(refreshData.session.access_token);
-      }
+      const response = await fetch('/api/admin/fetch-logs', {
+        cache: 'no-store',
+      });
       
       if (!response.ok) {
         const data = await response.json();
@@ -159,7 +117,7 @@ export default function ActivityLogsPage() {
         }
       }
     }
-  }, [fetchLogsWithToken, getAuthToken]);
+  }, []);
 
   useEffect(() => {
     isMountedRef.current = true;
@@ -229,13 +187,8 @@ export default function ActivityLogsPage() {
   const handleResetLogs = async () => {
     if (confirm("Are you sure you want to delete all activity logs? This cannot be undone.")) {
       try {
-        const token = await getAuthToken();
-
         const response = await fetch('/api/admin/reset-activity-logs', {
           method: 'POST',
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
         });
 
         if (!response.ok) {
