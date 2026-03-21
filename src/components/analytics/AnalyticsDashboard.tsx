@@ -4,6 +4,8 @@ import { useEffect, useState } from 'react';
 import {
   LineChart,
   Line,
+  BarChart,
+  Bar,
   XAxis,
   YAxis,
   CartesianGrid,
@@ -18,6 +20,13 @@ const BRAND_LIGHT = '#fdf2f4';
 
 interface DailyData {
   date: string;
+  users: number;
+  sessions: number;
+  pageViews: number;
+}
+
+interface MonthlyData {
+  month: string;
   users: number;
   sessions: number;
   pageViews: number;
@@ -43,7 +52,9 @@ interface DeviceData {
 
 interface AnalyticsData {
   dailyData: DailyData[];
-  topPages: TopPage[];
+  monthlyData: MonthlyData[];
+  customerPages: TopPage[];
+  internalPages: TopPage[];
   totals: Totals;
   deviceData: DeviceData[];
 }
@@ -74,6 +85,38 @@ const deviceIcon = (device: string) => {
     default: return <Monitor className="w-4 h-4" />;
   }
 };
+
+function PageList({ title, subtitle, pages, color }: { title: string; subtitle: string; pages: TopPage[]; color: string }) {
+  return (
+    <div style={card} className="p-6">
+      <h2 className="text-base font-semibold mb-0.5" style={{ color: '#111827' }}>{title}</h2>
+      <p className="text-xs mb-4" style={{ color: '#9ca3af' }}>{subtitle}</p>
+      {pages.length === 0 ? (
+        <p className="text-sm" style={{ color: '#9ca3af' }}>No data yet</p>
+      ) : (
+        <div className="space-y-3">
+          {pages.map((page, i) => {
+            const maxViews = pages[0]?.views ?? 1;
+            const pct = Math.round((page.views / maxViews) * 100);
+            return (
+              <div key={i} className="space-y-1">
+                <div className="flex items-center justify-between text-sm">
+                  <span className="truncate max-w-[60%]" style={{ color: '#374151' }} title={page.page}>
+                    {page.page || '/'}
+                  </span>
+                  <span style={{ color: '#6b7280' }}>{page.views.toLocaleString()} views</span>
+                </div>
+                <div className="h-1.5 rounded-full overflow-hidden" style={{ backgroundColor: '#f3f4f6' }}>
+                  <div className="h-full rounded-full transition-all" style={{ width: `${pct}%`, backgroundColor: color }} />
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
 
 export function AnalyticsDashboard() {
   const [data, setData] = useState<AnalyticsData | null>(null);
@@ -150,6 +193,7 @@ export function AnalyticsDashboard() {
       {/* Daily Traffic Chart */}
       <div style={card} className="p-6">
         <h2 className="text-base font-semibold mb-4" style={{ color: '#111827' }}>Daily Traffic — Last 30 Days</h2>
+        <div id="pdf-chart-traffic">
         <ResponsiveContainer width="100%" height={280}>
           <LineChart data={chartData} margin={{ top: 4, right: 16, left: 0, bottom: 0 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" />
@@ -177,61 +221,62 @@ export function AnalyticsDashboard() {
             <Line type="monotone" dataKey="pageViews" stroke="#9ca3af" strokeWidth={2} dot={false} name="Page Views" />
           </LineChart>
         </ResponsiveContainer>
+        </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Top Pages */}
-        <div style={card} className="lg:col-span-2 p-6">
-          <h2 className="text-base font-semibold mb-4" style={{ color: '#111827' }}>Top Pages</h2>
-          <div className="space-y-3">
-            {data.topPages.map((page, i) => {
-              const maxViews = data.topPages[0]?.views ?? 1;
-              const pct = Math.round((page.views / maxViews) * 100);
-              return (
-                <div key={i} className="space-y-1">
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="truncate max-w-[60%]" style={{ color: '#374151' }} title={page.page}>
-                      {page.page || '/'}
-                    </span>
-                    <span style={{ color: '#6b7280' }}>{page.views.toLocaleString()} views</span>
-                  </div>
-                  <div className="h-1.5 rounded-full overflow-hidden" style={{ backgroundColor: '#f3f4f6' }}>
-                    <div
-                      className="h-full rounded-full transition-all"
-                      style={{ width: `${pct}%`, backgroundColor: BRAND }}
-                    />
-                  </div>
-                </div>
-              );
-            })}
+      {/* Monthly Traffic Chart */}
+      {data.monthlyData.length > 0 && (
+        <div style={card} className="p-6">
+          <h2 className="text-base font-semibold mb-4" style={{ color: '#111827' }}>Monthly Traffic — Last 12 Months</h2>
+          <div id="pdf-chart-monthly">
+            <ResponsiveContainer width="100%" height={260}>
+              <BarChart data={data.monthlyData} margin={{ top: 4, right: 16, left: 0, bottom: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" vertical={false} />
+                <XAxis dataKey="month" tick={{ fontSize: 11, fill: '#9ca3af' }} tickLine={false} axisLine={false} />
+                <YAxis tick={{ fontSize: 11, fill: '#9ca3af' }} tickLine={false} axisLine={false} allowDecimals={false} />
+                <Tooltip
+                  contentStyle={{ fontSize: 12, borderRadius: 8, border: '1px solid #e5e7eb', backgroundColor: '#fff', color: '#111827' }}
+                  cursor={{ fill: '#f9fafb' }}
+                />
+                <Legend wrapperStyle={{ fontSize: 12, color: '#6b7280' }} />
+                <Bar dataKey="users" name="Users" fill={BRAND} radius={[4, 4, 0, 0]} />
+                <Bar dataKey="sessions" name="Sessions" fill="#111827" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="pageViews" name="Page Views" fill="#d1d5db" radius={[4, 4, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
           </div>
         </div>
+      )}
 
-        {/* Device Breakdown */}
-        <div style={card} className="p-6">
-          <h2 className="text-base font-semibold mb-4" style={{ color: '#111827' }}>Devices</h2>
-          <div className="space-y-4">
-            {data.deviceData.map((d, i) => {
-              const pct = totalDeviceUsers > 0 ? Math.round((d.users / totalDeviceUsers) * 100) : 0;
-              return (
-                <div key={i} className="space-y-1">
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="flex items-center gap-1.5 capitalize" style={{ color: '#374151' }}>
-                      {deviceIcon(d.device)}
-                      {d.device}
-                    </span>
-                    <span style={{ color: '#6b7280' }}>{pct}%</span>
-                  </div>
-                  <div className="h-1.5 rounded-full overflow-hidden" style={{ backgroundColor: '#f3f4f6' }}>
-                    <div
-                      className="h-full rounded-full"
-                      style={{ width: `${pct}%`, backgroundColor: '#111827' }}
-                    />
-                  </div>
+      {/* Pages — two columns */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <PageList title="Customer Pages" subtitle="Public-facing pages visited by customers" pages={data.customerPages} color={BRAND} />
+        <PageList title="Admin & Internal Pages" subtitle="Dashboard and management pages" pages={data.internalPages} color="#6b7280" />
+      </div>
+
+      {/* Device Breakdown */}
+      <div style={card} className="p-6">
+        <h2 className="text-base font-semibold mb-1" style={{ color: '#111827' }}>Devices</h2>
+        <p className="text-xs mb-4" style={{ color: '#9ca3af' }}>How visitors access the site</p>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+          {data.deviceData.map((d, i) => {
+            const pct = totalDeviceUsers > 0 ? Math.round((d.users / totalDeviceUsers) * 100) : 0;
+            return (
+              <div key={i} className="space-y-2">
+                <div className="flex items-center justify-between text-sm">
+                  <span className="flex items-center gap-1.5 capitalize" style={{ color: '#374151' }}>
+                    {deviceIcon(d.device)}
+                    {d.device}
+                  </span>
+                  <span className="font-semibold" style={{ color: '#111827' }}>{pct}%</span>
                 </div>
-              );
-            })}
-          </div>
+                <div className="h-2 rounded-full overflow-hidden" style={{ backgroundColor: '#f3f4f6' }}>
+                  <div className="h-full rounded-full" style={{ width: `${pct}%`, backgroundColor: '#111827' }} />
+                </div>
+                <p className="text-xs" style={{ color: '#9ca3af' }}>{d.users.toLocaleString()} users</p>
+              </div>
+            );
+          })}
         </div>
       </div>
     </div>

@@ -21,7 +21,7 @@ export async function GET() {
     const client = getAnalyticsClient();
     const property = `properties/${propertyId}`;
 
-    const [dailyResponse, pagesResponse, totalsResponse, deviceResponse] = await Promise.all([
+    const [dailyResponse, pagesResponse, totalsResponse, deviceResponse, monthlyResponse] = await Promise.all([
       // Daily breakdown for last 30 days
       client.runReport({
         property,
@@ -35,14 +35,14 @@ export async function GET() {
         orderBys: [{ dimension: { dimensionName: 'date' } }],
       }),
 
-      // Top pages by views
+      // Top pages by views (fetch more to ensure enough after splitting)
       client.runReport({
         property,
         dateRanges: [{ startDate: '30daysAgo', endDate: 'today' }],
         dimensions: [{ name: 'pagePath' }],
         metrics: [{ name: 'screenPageViews' }, { name: 'activeUsers' }],
         orderBys: [{ metric: { metricName: 'screenPageViews' }, desc: true }],
-        limit: 10,
+        limit: 30,
       }),
 
       // 30-day totals
@@ -65,6 +65,19 @@ export async function GET() {
         metrics: [{ name: 'activeUsers' }],
         orderBys: [{ metric: { metricName: 'activeUsers' }, desc: true }],
       }),
+
+      // Monthly breakdown for last 12 months
+      client.runReport({
+        property,
+        dateRanges: [{ startDate: '365daysAgo', endDate: 'today' }],
+        dimensions: [{ name: 'yearMonth' }],
+        metrics: [
+          { name: 'activeUsers' },
+          { name: 'sessions' },
+          { name: 'screenPageViews' },
+        ],
+        orderBys: [{ dimension: { dimensionName: 'yearMonth' } }],
+      }),
     ]);
 
     const dailyData = dailyResponse[0].rows?.map(row => ({
@@ -74,11 +87,17 @@ export async function GET() {
       pageViews: Number(row.metricValues?.[2]?.value ?? 0),
     })) ?? [];
 
-    const topPages = pagesResponse[0].rows?.map(row => ({
+    const INTERNAL_PREFIXES = ['/admin', '/employee', '/dashboard', '/unauthorized', '/forbidden'];
+    const isInternal = (path: string) => INTERNAL_PREFIXES.some(p => path.startsWith(p));
+
+    const allPages = pagesResponse[0].rows?.map(row => ({
       page: row.dimensionValues?.[0]?.value ?? '',
       views: Number(row.metricValues?.[0]?.value ?? 0),
       users: Number(row.metricValues?.[1]?.value ?? 0),
     })) ?? [];
+
+    const customerPages = allPages.filter(p => !isInternal(p.page)).slice(0, 10);
+    const internalPages = allPages.filter(p => isInternal(p.page)).slice(0, 10);
 
     const totalsRow = totalsResponse[0].rows?.[0];
     const totals = {
@@ -93,7 +112,19 @@ export async function GET() {
       users: Number(row.metricValues?.[0]?.value ?? 0),
     })) ?? [];
 
-    return NextResponse.json({ dailyData, topPages, totals, deviceData });
+    const monthlyData = monthlyResponse[0].rows?.map(row => {
+      const ym = row.dimensionValues?.[0]?.value ?? '';
+      const month = new Date(`${ym.slice(0, 4)}-${ym.slice(4, 6)}-01`)
+        .toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+      return {
+        month,
+        users: Number(row.metricValues?.[0]?.value ?? 0),
+        sessions: Number(row.metricValues?.[1]?.value ?? 0),
+        pageViews: Number(row.metricValues?.[2]?.value ?? 0),
+      };
+    }) ?? [];
+
+    return NextResponse.json({ dailyData, monthlyData, customerPages, internalPages, totals, deviceData });
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : String(err);
     console.error('GA4 Analytics error:', message);

@@ -1,4 +1,4 @@
-import { AnalyticsDashboard } from '@/components/analytics/AnalyticsDashboard';
+import { AnalyticsTabs } from '@/components/analytics/AnalyticsTabs';
 import { RealtimeSection } from '@/components/analytics/RealtimeSection';
 
 export default function AnalyticsPage() {
@@ -11,7 +11,7 @@ export default function AnalyticsPage() {
         </div>
         <RealtimeSection />
       </div>
-      <AnalyticsDashboard />
+      <AnalyticsTabs />
     </div>
   );
 }
