@@ -9,6 +9,7 @@ import "./globals.css";
 import {ConditionalFooter, ConditionalNavbar } from "@/components/general-components/ConditionalFooterAndHeader";
 import { ProductProvider } from "@/contexts/ProductContext";
 import { Toaster } from "@/components/ui/sonner";
+import { GoogleAnalyticsTracker } from "@/components/analytics/GoogleAnalyticsTracker";
 
 const oswald = Oswald({
   subsets: ["latin"],
@@ -53,6 +54,7 @@ export default function RootLayout({
           }>
 
         <ProductProvider>
+          <GoogleAnalyticsTracker />
           <ConditionalNavbar />
           {children}
           <ConditionalFooter />

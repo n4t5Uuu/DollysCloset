@@ -1,9 +1,17 @@
-// app/admin/analytics/page.tsx
+import { AnalyticsDashboard } from '@/components/analytics/AnalyticsDashboard';
+import { RealtimeSection } from '@/components/analytics/RealtimeSection';
+
 export default function AnalyticsPage() {
   return (
     <div>
-      <h1 className="text-3xl font-bold mb-6">Analytics</h1>
-      <p className="text-gray-600">Analytics content here...</p>
+      <div className="flex items-start justify-between mb-6">
+        <div>
+          <h1 className="text-3xl font-bold mb-1">Analytics</h1>
+          <p className="text-gray-500 text-sm">Website traffic and visitor metrics.</p>
+        </div>
+        <RealtimeSection />
+      </div>
+      <AnalyticsDashboard />
     </div>
   );
 }
