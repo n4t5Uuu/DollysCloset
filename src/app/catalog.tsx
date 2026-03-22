@@ -47,6 +47,7 @@ export default function Catalog() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [announcementText, setAnnouncementText] = useState(defaultAnnouncementText);
+    const [currentUserId, setCurrentUserId] = useState<string | null>(null);
 
     const [categories, setCategories] = useState<CatalogCategory[]>([]);
     const [products, setProducts] = useState<CatalogApiProduct[]>([]);
@@ -117,6 +118,26 @@ export default function Catalog() {
         };
 
         fetchAnnouncement();
+    }, []);
+
+    useEffect(() => {
+        /**
+         * Fetches the current user profile to enable product view tracking for authenticated users.
+         */
+        const fetchCurrentUser = async () => {
+            try {
+                const response = await fetch("/api/auth/profile", { cache: "no-store" });
+                const result = await response.json();
+
+                if (response.ok && result.data?.userId) {
+                    setCurrentUserId(result.data.userId);
+                }
+            } catch {
+                // Silently fail - user is likely not authenticated
+            }
+        };
+
+        fetchCurrentUser();
     }, []);
 
     useEffect(() => {
@@ -226,6 +247,15 @@ export default function Catalog() {
     const handleProductClick = (product: Product) => {
         setSelectedProduct(product);
         setIsModalOpen(true);
+        
+        // Log product view for authenticated users only
+        if (currentUserId) {
+            fetch("/api/catalog/log-view", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ product_id: product.id, user_id: currentUserId }),
+            }).catch((err) => console.error("Failed to log product view:", err));
+        }
     };
 
     const handleCloseModal = () => {

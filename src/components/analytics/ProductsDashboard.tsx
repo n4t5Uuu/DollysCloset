@@ -23,10 +23,12 @@ interface StockItem { id: string; name: string; stock: number; }
 interface SimpleItem { id: string; name: string; }
 interface CategoryBreakdown { category: string; count: number; }
 interface MostEdited { name: string; edits: number; }
+interface MostViewed { name: string; views: number; }
 interface ProductsData {
   summary: { totalProducts: number; totalCategories: number; outOfStock: number; lowStock: number; };
   topCategories: CategoryBreakdown[];
   mostEdited: MostEdited[];
+  mostViewed: MostViewed[];
   outOfStockList: StockItem[];
   lowStockList: StockItem[];
   missingImageList: SimpleItem[];
@@ -145,8 +147,8 @@ export function ProductsDashboard() {
         ))}
       </div>
 
-      {/* Category breakdown + Most edited */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      {/* Category breakdown + Most edited + Most viewed */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Category breakdown */}
         <div style={card} className="p-6">
           <h2 className="text-base font-semibold mb-1" style={{ color: '#111827' }}>Products by Category</h2>
@@ -209,6 +211,37 @@ export function ProductsDashboard() {
                         {p.name}
                       </span>
                       <span style={{ color: '#6b7280' }}>{p.edits} {p.edits === 1 ? 'edit' : 'edits'}</span>
+                    </div>
+                    <div className="h-1.5 rounded-full overflow-hidden" style={{ backgroundColor: '#f3f4f6' }}>
+                      <div className="h-full rounded-full" style={{ width: `${pct}%`, backgroundColor: i === 0 ? BRAND : '#d1d5db' }} />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
+        {/* Most viewed */}
+        <div style={card} className="p-6">
+          <div className="flex items-start justify-between gap-2 mb-1">
+            <h2 className="text-base font-semibold" style={{ color: '#111827' }}>Most Viewed Products</h2>
+          </div>
+          <p className="text-xs mb-4" style={{ color: '#9ca3af' }}>Most clicked products from the catalog collection</p>
+          {data.mostViewed.length === 0 ? (
+            <p className="text-sm" style={{ color: '#9ca3af' }}>No view data yet</p>
+          ) : (
+            <div className="space-y-3">
+              {data.mostViewed.map((p, i) => {
+                const maxViews = data.mostViewed[0]?.views ?? 1;
+                const pct = Math.round((p.views / maxViews) * 100);
+                return (
+                  <div key={i} className="space-y-1">
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="truncate max-w-[70%] font-medium" style={{ color: '#374151' }} title={p.name}>
+                        {p.name}
+                      </span>
+                      <span style={{ color: '#6b7280' }}>{p.views} {p.views === 1 ? 'view' : 'views'}</span>
                     </div>
                     <div className="h-1.5 rounded-full overflow-hidden" style={{ backgroundColor: '#f3f4f6' }}>
                       <div className="h-full rounded-full" style={{ width: `${pct}%`, backgroundColor: i === 0 ? BRAND : '#d1d5db' }} />

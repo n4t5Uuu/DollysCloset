@@ -23,19 +23,27 @@ export async function GET(request: Request) {
       .select('product_id')
       .eq('action_type', 'edit_product');
 
+    let viewsQuery = admin
+      .from('tbl_activity_log')
+      .select('product_id')
+      .eq('action_type', 'view_product');
+
     if (sinceDate) {
       logsQuery = logsQuery.gte('created_at', sinceDate);
+      viewsQuery = viewsQuery.gte('created_at', sinceDate);
     }
 
-    const [productsResult, categoriesResult, logsResult] = await Promise.all([
+    const [productsResult, categoriesResult, logsResult, viewsResult] = await Promise.all([
       admin.from('tbl_product').select('product_id, product_name, product_stock, category_id, image_id'),
       admin.from('tbl_category').select('category_id, category_name'),
       logsQuery,
+      viewsQuery,
     ]);
 
     const products = productsResult.data ?? [];
     const categories = categoriesResult.data ?? [];
     const editLogs = logsResult.data ?? [];
+    const viewLogs = viewsResult.data ?? [];
 
     // Summary
     const totalProducts = products.length;
@@ -84,11 +92,27 @@ export async function GET(request: Request) {
       .sort((a, b) => b.edits - a.edits)
       .slice(0, 8);
 
+    // Most viewed products
+    const viewCounts: Record<number, number> = {};
+    for (const log of viewLogs) {
+      if (log.product_id != null) {
+        viewCounts[log.product_id] = (viewCounts[log.product_id] ?? 0) + 1;
+      }
+    }
+    const mostViewed = Object.entries(viewCounts)
+      .map(([id, views]) => ({
+        name: productMap.get(Number(id)) ?? 'Unknown Product',
+        views,
+      }))
+      .sort((a, b) => b.views - a.views)
+      .slice(0, 8);
+
     return NextResponse.json({
       summary: { totalProducts, totalCategories, outOfStock: outOfStockList.length, lowStock: lowStockList.length },
       topCategories,
       bottomCategories,
       mostEdited,
+      mostViewed,
       outOfStockList,
       lowStockList,
       missingImageList,
