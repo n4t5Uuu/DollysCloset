@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { admin } from "@/lib/supabase/admin";
 import { authHelper } from "@/lib/auth-helper";
-import { dataHelper } from "@/lib/data-helper";
+import { productHelper } from "@/lib/products/product-helper";
+import { activityHelper } from "@/lib/activity/activity-helper";
 
 const ALLOWED_IMAGE_MIME_TYPES = new Set([
   "image/jpeg",
@@ -75,11 +76,8 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Invalid product_id" }, { status: 400 });
     }
 
-    // Check max 5 images per product
-    const { data: existingImages, error: fetchError } = await admin
-      .from("tbl_product_image")
-      .select("image_id")
-      .eq("product_id", productIdValue);
+    // Check max 5 images per product using productHelper
+    const { data: existingImages, error: fetchError } = await productHelper.getProductImages(productIdValue, admin);
 
     if (fetchError) {
       return NextResponse.json(
@@ -125,18 +123,14 @@ export async function POST(request: NextRequest) {
       isFirstImage = isPrimaryParam === "true";
     }
 
-    // Insert image record
-    const { data: imageData, error: insertError } = await admin
-      .from("tbl_product_image")
-      .insert({
-        product_id: productIdValue,
-        image_url: publicUrl,
-        is_primary: isFirstImage,
-        display_order: displayOrder,
-        created_at: new Date().toISOString(),
-      })
-      .select()
-      .single();
+    // Insert image record using productHelper
+    const { data: imageData, error: insertError } = await productHelper.createProductImage({
+      product_id: productIdValue,
+      image_url: publicUrl,
+      is_primary: isFirstImage,
+      display_order: displayOrder,
+      created_at: new Date().toISOString(),
+    }, admin);
 
     if (insertError) {
       return NextResponse.json(
@@ -145,25 +139,18 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Update product's image_id if this is the first image or product has no image yet
-    if (imageData.image_id) {
-      const { data: productRow } = await admin
-        .from("tbl_product")
-        .select("image_id")
-        .eq("product_id", productIdValue)
-        .single();
+    // Update product's image_id if this is the first image or product has no image yet using productHelper
+    if (imageData?.image_id) {
+      const { data: productRow } = await productHelper.getProductById(productIdValue, admin);
 
       if (isFirstImage || productRow?.image_id == null) {
-        await admin
-          .from("tbl_product")
-          .update({ image_id: imageData.image_id })
-          .eq("product_id", productIdValue);
+        await productHelper.updateProduct(productIdValue, { image_id: imageData.image_id }, admin);
       }
     }
 
     // Log activity
     const editor = user.email || user.user_metadata?.username || "Unknown";
-    await dataHelper.logActivity({
+    await activityHelper.logActivity({
       actionType: "upload_image",
       productId: productIdValue,
       description: `Uploaded image: ${file.name}`,

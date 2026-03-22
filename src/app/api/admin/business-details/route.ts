@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { admin } from "@/lib/supabase/admin";
 import { authHelper } from "@/lib/auth-helper";
-import { dataHelper } from "@/lib/data-helper";
+import { businessDetailsHelper } from "@/lib/business-details/business-details-helper";
+import { activityHelper } from "@/lib/activity/activity-helper";
 import { createServerSupabase } from "@/lib/supabase/server";
 import {
   ANNOUNCEMENT_SLUG,
@@ -15,7 +16,7 @@ import {
   resolveAboutKey,
   resolveContactKey,
   toText,
-} from "../../../../lib/business-details";
+} from "../../../../lib/business-details/business-details";
 
 const BUSINESS_DETAILS_TABLES = ["tbl_business_details", "business_details"] as const;
 let cachedBusinessDetailsTable: string | null = null;
@@ -32,57 +33,15 @@ function getRowIdColumn(row: BusinessDetailsRow): "business_details_id" | "busin
 }
 
 async function resolveTableName() {
-  if (cachedBusinessDetailsTable) {
-    return { tableName: cachedBusinessDetailsTable, error: null as Error | null };
-  }
-
-  for (const tableName of BUSINESS_DETAILS_TABLES) {
-    const result = await admin.from(tableName).select("slug").limit(1);
-
-    if (!result.error) {
-      cachedBusinessDetailsTable = tableName;
-      return { tableName, error: null as Error | null };
-    }
-
-    if (!result.error.message?.toLowerCase().includes("does not exist")) {
-      return { tableName, error: new Error(result.error.message) };
-    }
-  }
-
-  return {
-    tableName: BUSINESS_DETAILS_TABLES[0],
-    error: new Error("Could not find business details table"),
-  };
+  return businessDetailsHelper.resolveTableName(admin);
 }
 
 async function findLatestBySlug(tableName: string, slug: string) {
-  const result = await admin
-    .from(tableName)
-    .select("*")
-    .eq("slug", slug)
-    .order("updated_at", { ascending: false, nullsFirst: false })
-    .limit(1)
-    .maybeSingle();
-
-  if (result.error) {
-    return { data: null as BusinessDetailsRow | null, error: new Error(result.error.message) };
-  }
-
-  return { data: result.data as BusinessDetailsRow | null, error: null as Error | null };
+  return businessDetailsHelper.findLatestBySlug(tableName, slug, admin);
 }
 
 async function findAllBySlug(tableName: string, slug: string) {
-  const result = await admin
-    .from(tableName)
-    .select("*")
-    .eq("slug", slug)
-    .order("updated_at", { ascending: false, nullsFirst: false });
-
-  if (result.error) {
-    return { data: [] as BusinessDetailsRow[], error: new Error(result.error.message) };
-  }
-
-  return { data: (result.data as BusinessDetailsRow[]) || [], error: null as Error | null };
+  return businessDetailsHelper.findAllBySlug(tableName, slug, admin);
 }
 
 async function validateAdmin(request: NextRequest): Promise<AdminValidationResult> {
@@ -241,29 +200,23 @@ export async function PUT(request: NextRequest) {
       }
 
       for (const updateItem of updates) {
-        const updateResult = await admin
-          .from(tableName)
-          .update({
-            slug,
-            title: updateItem.label,
-            body: updateItem.value,
-            updated_at: now,
-          })
-          .eq("slug", slug)
-          .eq("title", updateItem.label)
-          .select("title");
+        const updateResult = await businessDetailsHelper.updateDetailGeneric(
+          tableName,
+          { slug, title: updateItem.label },
+          { body: updateItem.value, updated_at: now },
+          admin
+        );
 
         if (updateResult.error) {
           return NextResponse.json({ error: updateResult.error.message }, { status: 500 });
         }
 
         if (!updateResult.data || updateResult.data.length === 0) {
-          const insertResult = await admin.from(tableName).insert({
-            slug,
-            title: updateItem.label,
-            body: updateItem.value,
-            updated_at: now,
-          });
+          const insertResult = await businessDetailsHelper.insertDetailGeneric(
+            tableName,
+            { slug, title: updateItem.label, body: updateItem.value, updated_at: now },
+            admin
+          );
 
           if (insertResult.error) {
             return NextResponse.json({ error: insertResult.error.message }, { status: 500 });
@@ -273,7 +226,7 @@ export async function PUT(request: NextRequest) {
 
       const changedLabels = updates.map((item) => item.label);
 
-      await dataHelper.logActivity({
+      await activityHelper.logActivity({
         actionType: isContact ? "edit_contact_details" : "edit_about_details",
         productId: null,
         description:
@@ -297,17 +250,16 @@ export async function PUT(request: NextRequest) {
     if (latest.data) {
       const isAnnouncement = slug === ANNOUNCEMENT_SLUG;
       const idColumn = getRowIdColumn(latest.data);
-      const updateQuery = admin
-        .from(tableName)
-        .update({
-          title: title || "",
-          body: serializedBody,
-          updated_at: now,
-        });
+      const criteria: Record<string, any> = idColumn && latest.data
+        ? { [idColumn]: latest.data[idColumn] }
+        : { slug };
 
-      const executeUpdate = idColumn
-        ? await updateQuery.eq(idColumn, latest.data[idColumn])
-        : await updateQuery.eq("slug", slug);
+      const executeUpdate = await businessDetailsHelper.updateDetailGeneric(
+        tableName,
+        criteria,
+        { title: title || "", body: serializedBody, updated_at: now },
+        admin
+      );
 
       if (executeUpdate.error) {
         return NextResponse.json({ error: executeUpdate.error.message }, { status: 500 });
@@ -320,7 +272,7 @@ export async function PUT(request: NextRequest) {
       if (normalizeTitle(previousTitle) !== normalizeTitle(title || "")) changedParts.push("title");
       if (previousBody !== serializedBody) changedParts.push("body");
 
-      await dataHelper.logActivity({
+      await activityHelper.logActivity({
         actionType: isAnnouncement ? "edit_announcement" : slug === ABOUT_SLUG ? "edit_about_details" : "edit_contact_details",
         productId: null,
         description:
@@ -342,22 +294,19 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json({ data: refreshed.data || null });
     }
 
-    const insertResult = await admin
-      .from(tableName)
-      .insert({
-        slug,
-        title: title || "",
-        body: serializedBody,
-        updated_at: now,
-      })
-      .select("*")
-      .single();
+    const insertResult = await businessDetailsHelper.insertDetailGeneric(
+      tableName,
+      { slug, title: title || "", body: serializedBody, updated_at: now },
+      admin
+    );
 
     if (insertResult.error) {
       return NextResponse.json({ error: insertResult.error.message }, { status: 500 });
     }
 
-    await dataHelper.logActivity({
+    const insertedData = insertResult.data?.[0] || insertResult.data || null;
+
+    await activityHelper.logActivity({
       actionType: slug === ANNOUNCEMENT_SLUG ? "edit_announcement" : slug === ABOUT_SLUG ? "edit_about_details" : "edit_contact_details",
       productId: null,
       description:
@@ -371,7 +320,7 @@ export async function PUT(request: NextRequest) {
       supabase: admin,
     });
 
-    return NextResponse.json({ data: insertResult.data }, { status: 201 });
+    return NextResponse.json({ data: insertedData }, { status: 201 });
   } catch (error: unknown) {
     return NextResponse.json(
       { error: error instanceof Error ? error.message : "Failed to save business detail" },

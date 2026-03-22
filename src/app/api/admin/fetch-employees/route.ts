@@ -1,5 +1,6 @@
 import { createServerSupabase } from '@/lib/supabase/server';
-import { NextResponse } from 'next/server'
+import { NextResponse } from 'next/server';
+import { employeeHelper } from '@/lib/employees/employee-helper';
 
 /**
  * Retrieves all registered staff records mapped inside the system's database.
@@ -9,9 +10,7 @@ import { NextResponse } from 'next/server'
 export async function GET() {
   try {
     const supabase = await createServerSupabase();
-    const { data, error } = await supabase
-      .from('tbl_users')
-      .select('*')
+    const { data, error } = await employeeHelper.getUsers(supabase);
     
     if (error) {
       console.error('Error fetching employees:', error)

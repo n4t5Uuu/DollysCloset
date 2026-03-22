@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { admin } from "@/lib/supabase/admin";
-import { ABOUT_SLUG, CONTACT_SLUG, buildAboutAggregate, buildContactAggregate } from "../../../lib/business-details";
+import { ABOUT_SLUG, CONTACT_SLUG, buildAboutAggregate, buildContactAggregate } from "../../../lib/business-details/business-details";
+import { businessDetailsHelper } from "@/lib/business-details/business-details-helper";
 
 const BUSINESS_DETAILS_TABLES = ["tbl_business_details", "business_details"] as const;
 
@@ -22,31 +23,26 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "Missing slug" }, { status: 400 });
     }
 
-    for (const tableName of BUSINESS_DETAILS_TABLES) {
-      const result = await admin
-        .from(tableName)
-        .select("slug, title, body, updated_at")
-        .eq("slug", slug)
-        .order("updated_at", { ascending: false, nullsFirst: false });
-
-      if (!result.error) {
-        const rows = (result.data as BusinessDetailsRow[]) || [];
-
-        if (slug === CONTACT_SLUG) {
-          return NextResponse.json({ data: buildContactAggregate(rows) });
-        }
-
-        if (slug === ABOUT_SLUG) {
-          return NextResponse.json({ data: buildAboutAggregate(rows) });
-        }
-
-        return NextResponse.json({ data: rows[0] || null });
-      }
-
-      if (!result.error.message.toLowerCase().includes("does not exist")) {
-        return NextResponse.json({ error: result.error.message }, { status: 500 });
-      }
+    const tableResult = await businessDetailsHelper.resolveTableName(admin);
+    if (tableResult.error) {
+      return NextResponse.json({ error: tableResult.error.message }, { status: 500 });
     }
+
+    const { data: rows, error: fetchError } = await businessDetailsHelper.findAllBySlug(tableResult.tableName, slug, admin);
+
+    if (fetchError) {
+      return NextResponse.json({ error: fetchError.message }, { status: 500 });
+    }
+
+    if (slug === CONTACT_SLUG) {
+      return NextResponse.json({ data: buildContactAggregate(rows as any) });
+    }
+
+    if (slug === ABOUT_SLUG) {
+      return NextResponse.json({ data: buildAboutAggregate(rows as any) });
+    }
+
+    return NextResponse.json({ data: rows[0] || null });
 
     return NextResponse.json({ error: "Could not find business details table" }, { status: 500 });
   } catch (error: unknown) {

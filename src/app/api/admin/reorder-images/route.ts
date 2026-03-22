@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { admin } from "@/lib/supabase/admin";
 import { authHelper } from "@/lib/auth-helper";
-import { dataHelper } from "@/lib/data-helper";
+import { productHelper } from "@/lib/products/product-helper";
+import { activityHelper } from "@/lib/activity/activity-helper";
 
 /**
  * Reorders the display sequence of images tied to a specific product.
@@ -37,24 +38,20 @@ export async function PUT(request: NextRequest) {
     }
 
     // Update display_order for each image based on new order (batched for performance)
-    const updatePromises = orderedImageIds.map((imageId, index) =>
-      admin
-        .from("tbl_product_image")
-        .update({ display_order: index + 1 })
-        .eq("image_id", imageId)
-    );
-    await Promise.all(updatePromises);
+    const updates = orderedImageIds.map((imageId, index) => ({
+      image_id: imageId,
+      payload: { display_order: index + 1 }
+    }));
+
+    const { error: batchError } = await productHelper.batchUpdateProductImages(updates, admin);
+    if (batchError) throw batchError;
 
     // Get updated images
-    const { data: updatedImages } = await admin
-      .from("tbl_product_image")
-      .select("*")
-      .eq("product_id", product_id)
-      .order("display_order", { ascending: true });
+    const { data: updatedImages } = await productHelper.getProductImages(product_id, admin);
 
     // Log activity
     const editor = user.email || user.user_metadata?.username || "Unknown";
-    await dataHelper.logActivity({
+    await activityHelper.logActivity({
       actionType: "reorder_images",
       productId: parseInt(product_id),
       description: "Reordered product images",

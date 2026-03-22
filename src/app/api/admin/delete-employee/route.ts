@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { authHelper } from "@/lib/auth-helper";
-import { dataHelper } from "@/lib/data-helper";
+import { employeeHelper } from "@/lib/employees/employee-helper";
+import { activityHelper } from "@/lib/activity/activity-helper";
 import { admin } from "@/lib/supabase/admin";
 
 /**
@@ -42,25 +43,15 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ error: 'Missing employee_id' }, { status: 400 });
     }
 
-    // Delete auth user (this will cascade to tbl_users if foreign key is set up correctly)
-    const { error: deleteAuthError } = await admin.auth.admin.deleteUser(employee_id);
+    // Delete employee account using employeeHelper
+    const { error: deleteError } = await employeeHelper.deleteEmployeeAccount(employee_id, admin);
 
-    if (deleteAuthError) {
-      return NextResponse.json({ error: deleteAuthError.message }, { status: 500 });
-    }
-
-    // If cascade isn't working, manually delete from tbl_users
-    const { error: deleteUserError } = await admin
-      .from('tbl_users')
-      .delete()
-      .eq('user_id', employee_id);
-
-    if (deleteUserError) {
-      return NextResponse.json({ error: deleteUserError.message }, { status: 500 });
+    if (deleteError) {
+      return NextResponse.json({ error: deleteError.message }, { status: 500 });
     }
 
     // Log activity
-    await dataHelper.logActivity({
+    await activityHelper.logActivity({
       actionType: 'delete_employee',
       productId: null,
       description: 'Deleted employee',

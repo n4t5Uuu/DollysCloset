@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { authHelper } from "@/lib/auth-helper";
-import { dataHelper } from "@/lib/data-helper";
+import { productHelper } from "@/lib/products/product-helper";
+import { activityHelper } from "@/lib/activity/activity-helper";
 import { admin } from "@/lib/supabase/admin";
 
 const MAX_META_LENGTH = 9;
@@ -46,12 +47,8 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
     }
 
-    // Fetch current product to track changes
-    const { data: currentProduct } = await admin
-      .from('tbl_product')
-      .select('*')
-      .eq('product_id', product_id)
-      .single();
+    // Fetch current product to track changes using productHelper
+    const { data: currentProduct } = await productHelper.getProductById(product_id, admin);
 
     // Build change description
     const changes: string[] = [];
@@ -72,12 +69,11 @@ export async function PUT(request: NextRequest) {
       const parsedImageId = Number.parseInt(String(image_id), 10);
       const imageIdValue = Number.isNaN(parsedImageId) ? String(image_id).trim() : parsedImageId;
 
-      const { data: linkedImage, error: linkedImageError } = await admin
-        .from('tbl_product_image')
-        .select('image_id')
-        .eq('image_id', imageIdValue)
-        .eq('product_id', product_id)
-        .maybeSingle();
+      const { data: linkedImage, error: linkedImageError } = await productHelper.verifyProductImage(
+        imageIdValue,
+        product_id,
+        admin
+      );
 
       if (linkedImageError) {
         return NextResponse.json({ error: linkedImageError.message }, { status: 500 });
@@ -86,22 +82,19 @@ export async function PUT(request: NextRequest) {
       normalizedImageId = linkedImage?.image_id ?? null;
     }
 
-    // Update tbl_product
-    const { error: updateError } = await admin
-      .from('tbl_product')
-      .update({
-        product_name,
-        category_id,
-        product_price: parseFloat(product_price),
-        product_brand: product_brand || 'Dolly\'s Closet',
-        product_description: product_description || '',
-        product_stock: parseInt(product_stock) || 0,
-        product_condition: normalizedCondition || 'New',
-        size_label: normalizedSizeLabel || 'One Size',
-        show_in_catalog: show_in_catalog !== false,
-        image_id: normalizedImageId,
-      })
-      .eq('product_id', product_id);
+    // Update tbl_product using productHelper
+    const { error: updateError } = await productHelper.updateProduct(product_id, {
+      product_name,
+      category_id,
+      product_price: parseFloat(product_price),
+      product_brand: product_brand || "Dolly's Closet",
+      product_description: product_description || '',
+      product_stock: parseInt(product_stock) || 0,
+      product_condition: normalizedCondition || 'New',
+      size_label: normalizedSizeLabel || 'One Size',
+      show_in_catalog: show_in_catalog !== false,
+      image_id: normalizedImageId,
+    }, admin);
 
     if (updateError) {
       console.error('Update error:', updateError);
@@ -109,7 +102,7 @@ export async function PUT(request: NextRequest) {
     }
 
     // Log activity
-    await dataHelper.logActivity({
+    await activityHelper.logActivity({
       actionType: 'edit_product',
       productId: product_id,
       description: changes.length > 0 ? `Updated product "${product_name}": ${changes.join(', ')}` : `Updated product "${product_name}"`,

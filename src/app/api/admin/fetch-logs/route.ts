@@ -1,5 +1,6 @@
 import { admin } from '@/lib/supabase/admin';
 import { authHelper } from '@/lib/auth-helper';
+import { activityHelper } from '@/lib/activity/activity-helper';
 import { createServerSupabase } from '@/lib/supabase/server';
 import { NextRequest, NextResponse } from 'next/server'
 
@@ -37,10 +38,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const { data, error } = await admin
-      .from('tbl_activity_log')
-      .select('log_id, created_at, action_type, product_id, description, editor, user_id')
-      .order('created_at', { ascending: false })
+    const { data, error } = await activityHelper.fetchLogs(admin);
     
     if (error) {
       console.error('Error fetching logs:', error)

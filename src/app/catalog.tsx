@@ -12,7 +12,7 @@ import { InfiniteSlider } from "@/components/motion-primitives/infinite-slider";
 import { TextEffect } from "@/components/motion-primitives/text-effect";
 import { InView } from "@/components/motion-primitives/in-view";
 import { Button } from "@/components/ui/button";
-import { ANNOUNCEMENT_SLUG, defaultAnnouncementText } from "@/lib/business-details";
+import { ANNOUNCEMENT_SLUG, defaultAnnouncementText } from "@/lib/business-details/business-details";
 import { CatalogCategory, CatalogApiProduct } from "@/types/product.types";
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty";
 import { PackageSearch } from "lucide-react";

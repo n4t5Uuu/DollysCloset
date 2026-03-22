@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { admin } from "@/lib/supabase/admin";
 import { authHelper } from "@/lib/auth-helper";
-import { dataHelper } from "@/lib/data-helper";
+import { productHelper } from "@/lib/products/product-helper";
+import { activityHelper } from "@/lib/activity/activity-helper";
 
 /**
  * Extracts the specific file path portion from a full storage image URL.
@@ -61,12 +62,8 @@ export async function DELETE(request: NextRequest) {
     const parsedImageId = Number.parseInt(imageIdRaw, 10);
     const imageIdValue = Number.isNaN(parsedImageId) ? imageIdRaw : parsedImageId;
 
-    // Get image details
-    const { data: image, error: fetchError } = await admin
-      .from("tbl_product_image")
-      .select("*")
-      .eq("image_id", imageIdValue)
-      .single();
+    // Get image details using productHelper
+    const { data: image, error: fetchError } = await productHelper.getImageById(imageIdValue, admin);
 
     if (fetchError || !image) {
       return NextResponse.json({ error: "Image not found" }, { status: 404 });
@@ -75,12 +72,11 @@ export async function DELETE(request: NextRequest) {
     const { product_id, is_primary, display_order, image_url } = image;
     const productIdValue = product_id;
 
-    const { data: remainingBeforeDelete, error: remainingBeforeDeleteError } = await admin
-      .from("tbl_product_image")
-      .select("image_id, is_primary, display_order")
-      .eq("product_id", productIdValue)
-      .neq("image_id", imageIdValue)
-      .order("display_order", { ascending: true });
+    const { data: remainingBeforeDelete, error: remainingBeforeDeleteError } = await productHelper.getRemainingImagesExcluding(
+      productIdValue,
+      imageIdValue,
+      admin
+    );
 
     if (remainingBeforeDeleteError) {
       return NextResponse.json({ error: remainingBeforeDeleteError.message }, { status: 500 });
@@ -88,11 +84,10 @@ export async function DELETE(request: NextRequest) {
 
     const preferredNextImage = (remainingBeforeDelete || []).find((img) => img.is_primary) || (remainingBeforeDelete || [])[0] || null;
 
-    const { data: productRow, error: productFetchError } = await admin
-      .from("tbl_product")
-      .select("image_id")
-      .eq("product_id", productIdValue)
-      .maybeSingle();
+    const { data: productRow, error: productFetchError } = await productHelper.getProductById(
+      productIdValue,
+      admin
+    );
 
     if (productFetchError && productFetchError.code !== "PGRST116") {
       return NextResponse.json({ error: productFetchError.message }, { status: 500 });
@@ -104,10 +99,11 @@ export async function DELETE(request: NextRequest) {
       String(productRow.image_id) === String(imageIdValue);
 
     if (isProductUsingDeletedImage) {
-      const { error: rebindProductError } = await admin
-        .from("tbl_product")
-        .update({ image_id: preferredNextImage?.image_id || null })
-        .eq("product_id", productIdValue);
+      const { error: rebindProductError } = await productHelper.updateProduct(
+        productIdValue,
+        { image_id: preferredNextImage?.image_id || null },
+        admin
+      );
 
       if (rebindProductError) {
         return NextResponse.json({ error: rebindProductError.message }, { status: 500 });
@@ -134,11 +130,10 @@ export async function DELETE(request: NextRequest) {
 
     if (deleteError) throw deleteError;
 
-    const { data: remainingImages, error: remainingImagesError } = await admin
-      .from("tbl_product_image")
-      .select("*")
-      .eq("product_id", productIdValue)
-      .order("display_order", { ascending: true });
+    const { data: remainingImages, error: remainingImagesError } = await productHelper.getProductImages(
+      productIdValue,
+      admin
+    );
 
     if (remainingImagesError) {
       return NextResponse.json({ error: remainingImagesError.message }, { status: 500 });
@@ -156,27 +151,26 @@ export async function DELETE(request: NextRequest) {
     } else {
       const normalizedPrimaryId = preferredNextImage?.image_id || remainingImages[0].image_id;
 
-      // Batch normalize remaining images for performance
-      const normalizePromises = remainingImages.map((currentImage, index) =>
-        admin
-          .from("tbl_product_image")
-          .update({
-            display_order: index + 1,
-            is_primary: currentImage.image_id === normalizedPrimaryId,
-          })
-          .eq("image_id", currentImage.image_id)
-      );
+      // Batch normalize remaining images using dataHelper
+      const updates = remainingImages.map((currentImage, index) => ({
+        image_id: currentImage.image_id,
+        payload: {
+          display_order: index + 1,
+          is_primary: currentImage.image_id === normalizedPrimaryId,
+        }
+      }));
+
+      const { success, error: normalizeError } = await productHelper.batchUpdateProductImages(updates, admin);
       
-      const normalizeResults = await Promise.all(normalizePromises);
-      const normalizeError = normalizeResults.find(result => result.error)?.error;
-      if (normalizeError) {
+      if (!success && normalizeError) {
         return NextResponse.json({ error: normalizeError.message }, { status: 500 });
       }
 
-      const { error: setProductImageError } = await admin
-        .from("tbl_product")
-        .update({ image_id: normalizedPrimaryId })
-        .eq("product_id", productIdValue);
+      const { error: setProductImageError } = await productHelper.updateProduct(
+        productIdValue,
+        { image_id: normalizedPrimaryId },
+        admin
+      );
 
       if (setProductImageError) {
         return NextResponse.json({ error: setProductImageError.message }, { status: 500 });
@@ -187,7 +181,7 @@ export async function DELETE(request: NextRequest) {
 
     // Log activity
     const editor = user.email || user.user_metadata?.username || "Unknown";
-    await dataHelper.logActivity({
+    await activityHelper.logActivity({
       actionType: "delete_image",
       productId: Number.isNaN(parsedProductIdForLog) ? null : parsedProductIdForLog,
       description: `Deleted image (was displaying as #${display_order}${is_primary ? ", primary" : ""})`,

@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { admin } from "@/lib/supabase/admin";
+import { productHelper } from "@/lib/products/product-helper";
 import { InventoryCategory, InventoryProduct, InventoryProductImage } from "@/types/inventory.types";
 import { resolveProductPlaceholder } from "@/lib/product-placeholder";
 
@@ -119,15 +120,19 @@ function mapProducts(
  */
 export async function GET() {
   try {
-    const [{ data: categories, error: categoriesError }, { data: products, error: productsError }, { data: images, error: imagesError }] = await Promise.all([
-      admin.from("tbl_category").select("*").order("category_id", { ascending: true }),
-      admin
-        .from("tbl_product")
-        .select("*")
-        .eq("show_in_catalog", true)
-        .order("created_at", { ascending: false, nullsFirst: false }),
-      admin.from("tbl_product_image").select("*").order("display_order", { ascending: true }),
+    // Parallelize fetches bridging category boundaries using productHelper
+    const [categoriesResult, productsResult, imagesResult] = await Promise.all([
+      productHelper.getCategories(admin),
+      productHelper.getProductsCatalog(admin),
+      productHelper.getProductImagesAll(admin),
     ]);
+
+    const categories = categoriesResult.data;
+    const categoriesError = categoriesResult.error;
+    const products = productsResult.data;
+    const productsError = productsResult.error;
+    const images = imagesResult.data;
+    const imagesError = imagesResult.error;
 
     if (categoriesError) {
       console.error('Catalog Categories Fetch Error:', categoriesError);

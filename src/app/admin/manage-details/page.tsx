@@ -25,7 +25,7 @@ import {
   defaultContactDetails,
   parseAboutBody,
   parseContactBody,
-} from "../../../lib/business-details";
+} from "../../../lib/business-details/business-details";
 
 export default function ManageDetailsPage() {
   const inputClassName = "border-gray-200 bg-white text-gray-900 placeholder:text-gray-400 focus-visible:border-[#E7A3B0] focus-visible:ring-[#E7A3B0]";

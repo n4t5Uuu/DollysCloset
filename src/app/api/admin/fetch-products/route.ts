@@ -1,5 +1,6 @@
 import { createServerSupabase } from '@/lib/supabase/server';
-import { NextResponse } from 'next/server'
+import { NextResponse } from 'next/server';
+import { productHelper } from '@/lib/products/product-helper';
 
 /**
  * Retrieves the comprehensive raw list of all defined products presently published onto `tbl_product`.
@@ -10,15 +11,7 @@ export async function GET() {
   try {
     const supabase = await createServerSupabase();
     
-    // Optional: Add auth check
-    // const { data: { user }, error: authError } = await supabase.auth.getUser();
-    // if (authError || !user) {
-    //   return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    // }
-    
-    const { data, error } = await supabase
-      .from('tbl_product')
-      .select('*')
+    const { data, error } = await productHelper.getProducts(supabase);
     
     if (error) {
       console.error('Error fetching products:', error)

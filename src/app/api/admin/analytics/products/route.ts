@@ -1,5 +1,7 @@
 import { admin } from '@/lib/supabase/admin';
 import { NextResponse } from 'next/server';
+import { productHelper } from '@/lib/products/product-helper';
+import { activityHelper } from '@/lib/activity/activity-helper';
 
 export async function GET(request: Request) {
   try {
@@ -28,30 +30,11 @@ export async function GET(request: Request) {
       sinceDate = d.toISOString();
     }
 
-    let logsQuery = admin
-      .from('tbl_activity_log')
-      .select('product_id')
-      .eq('action_type', 'edit_product');
-
-    let viewsQuery = admin
-      .from('tbl_activity_log')
-      .select('product_id')
-      .eq('action_type', 'view_product');
-
-    if (sinceDate) {
-      logsQuery = logsQuery.gte('created_at', sinceDate);
-      viewsQuery = viewsQuery.gte('created_at', sinceDate);
-    }
-    if (untilDate) {
-      logsQuery = logsQuery.lt('created_at', untilDate);
-      viewsQuery = viewsQuery.lt('created_at', untilDate);
-    }
-
     const [productsResult, categoriesResult, logsResult, viewsResult] = await Promise.all([
-      admin.from('tbl_product').select('product_id, product_name, product_stock, category_id, image_id'),
-      admin.from('tbl_category').select('category_id, category_name'),
-      logsQuery,
-      viewsQuery,
+      productHelper.getProducts(admin),
+      productHelper.getCategories(admin),
+      activityHelper.fetchLogsByAction('edit_product', sinceDate || undefined, untilDate || undefined, admin),
+      activityHelper.fetchLogsByAction('view_product', sinceDate || undefined, untilDate || undefined, admin),
     ]);
 
     const products = productsResult.data ?? [];

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { admin } from "@/lib/supabase/admin";
+import { activityHelper } from "@/lib/activity/activity-helper";
 
 /**
  * Endpoint for logging product views when authenticated admins/employees click on products.
@@ -20,20 +21,18 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: true }); // Silently succeed
     }
 
-    // Insert view log using admin client with the authenticated user's ID
-    const { error } = await admin
-      .from("tbl_activity_log")
-      .insert({
-        action_type: "view_product",
-        product_id: numericProductId,
-        user_id: user_id,
-        description: 'Product viewed in catalog',
-        created_at: new Date().toISOString(),
-      });
+    // Insert view log using dataHelper
+    const logged = await activityHelper.logActivity({
+      actionType: "view_product",
+      productId: numericProductId,
+      user_id: user_id,
+      description: "Product viewed in catalog",
+      supabase: admin,
+    });
 
-    if (error) {
+    if (!logged) {
       // Log the error for debugging but don't fail the request
-      console.warn("Product view log insert returned:", error?.code, error?.message);
+      console.warn("Product view log insert failed");
     } else {
       console.log("Product view logged successfully:", numericProductId, "by user:", user_id);
     }

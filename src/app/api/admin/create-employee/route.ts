@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { authHelper } from "@/lib/auth-helper";
-import { dataHelper } from "@/lib/data-helper";
+import { employeeHelper } from "@/lib/employees/employee-helper";
+import { activityHelper } from "@/lib/activity/activity-helper";
 import { admin } from "@/lib/supabase/admin";
 
 /**
@@ -42,46 +43,23 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
     }
 
-    // Create auth user using Admin API
-    const { data: authData, error: createError } = await admin.auth.admin.createUser({
-      email: username,
-      password: password,
-      email_confirm: true,
-      user_metadata: {
-        username: username
-      }
-    });
+    // Create employee account using employeeHelper
+    const { data: employeeData, error: createError } = await employeeHelper.createEmployeeAccount({
+      username,
+      password,
+      first_name,
+      last_name
+    }, admin);
 
     if (createError) {
-      console.error('Auth User Creation Error:', createError);
-      return NextResponse.json({ error: createError.message }, { status: 400 });
+      console.error('Employee creation error:', createError);
+      return NextResponse.json({ error: createError.message }, { status: 500 });
     }
 
-    if (!authData.user) {
-      console.error('Failed to create auth user object');
-      return NextResponse.json({ error: 'Failed to create user' }, { status: 500 });
-    }
-
-    // Update tbl_users with additional info
-    const { error: updateError } = await admin
-      .from('tbl_users')
-      .update({
-        username: username,
-        first_name: first_name,
-        last_name: last_name,
-        role: 'employee',
-      })
-      .eq('user_id', authData.user.id);
-
-    if (updateError) {
-      console.error('Employee metadata update error:', updateError);
-      // Rollback: delete auth user if update fails
-      await admin.auth.admin.deleteUser(authData.user.id);
-      return NextResponse.json({ error: updateError.message }, { status: 500 });
-    }
+    // Since metadata is linked successfully inside helper, we can proceed to log activity directly
 
     // Log activity
-    await dataHelper.logActivity({
+    await activityHelper.logActivity({
       actionType: 'create_employee',
       productId: null,
       description: `Created employee: ${first_name} ${last_name} (${username})`,
@@ -93,7 +71,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ 
       success: true, 
       user: {
-        id: authData.user.id,
+        id: employeeData?.id,
         username,
         first_name,
         last_name,

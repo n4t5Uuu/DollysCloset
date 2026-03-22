@@ -14,7 +14,7 @@ import {
   ABOUT_SLUG,
   buildAboutAggregate,
   defaultAboutDetails,
-} from "@/lib/business-details";
+} from "@/lib/business-details/business-details";
 import { AboutDetailsPayload } from "@/types/business-details.types";
 import { admin } from "@/lib/supabase/admin";
 

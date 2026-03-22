@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { authHelper } from "@/lib/auth-helper";
-import { dataHelper } from "@/lib/data-helper";
+import { productHelper } from "@/lib/products/product-helper";
+import { activityHelper } from "@/lib/activity/activity-helper";
 import { admin } from "@/lib/supabase/admin";
 
 const MAX_META_LENGTH = 9;
@@ -46,24 +47,19 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
     }
 
-    // Insert into tbl_product
-    const { data: product, error: insertError } = await admin
-      .from('tbl_product')
-      .insert([
-        {
-          product_name,
-          category_id,
-          product_price: parseFloat(product_price),
-          product_brand: product_brand || 'Dolly\'s Closet',
-          product_description: product_description || '',
-          product_stock: parseInt(product_stock) || 0,
-          product_condition: normalizedCondition || 'New',
-          size_label: normalizedSizeLabel || 'One Size',
-          show_in_catalog: show_in_catalog !== false,
-          image_id: image_id || null,
-        }
-      ])
-      .select();
+    // Insert into tbl_product using productHelper
+    const { data: product, error: insertError } = await productHelper.createProduct({
+      product_name,
+      category_id,
+      product_price: parseFloat(product_price),
+      product_brand: product_brand || "Dolly's Closet",
+      product_description: product_description || '',
+      product_stock: parseInt(product_stock) || 0,
+      product_condition: normalizedCondition || 'New',
+      size_label: normalizedSizeLabel || 'One Size',
+      show_in_catalog: show_in_catalog !== false,
+      image_id: image_id || null,
+    }, admin);
 
     if (insertError) {
       console.error('Insert error:', insertError);
@@ -71,10 +67,10 @@ export async function POST(request: NextRequest) {
     }
 
     // Log activity
-    if (product?.[0]) {
-      await dataHelper.logActivity({
+    if (product) {
+      await activityHelper.logActivity({
         actionType: 'create_product',
-        productId: product[0].product_id,
+        productId: product.product_id,
         description: `Created product: ${product_name}`,
         editor: editor,
         user_id: user.id,
@@ -84,7 +80,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ 
       success: true, 
-      product: product?.[0]
+      product: product
     });
 
   } catch (error: unknown) {

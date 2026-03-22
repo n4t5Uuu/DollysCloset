@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { authHelper } from "@/lib/auth-helper";
-import { dataHelper } from "@/lib/data-helper";
+import { employeeHelper } from "@/lib/employees/employee-helper";
+import { activityHelper } from "@/lib/activity/activity-helper";
 import { admin } from "@/lib/supabase/admin";
 
 /**
@@ -40,33 +41,17 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid or empty employee_ids array' }, { status: 400 });
     }
 
-    // Delete auth users one by one (Supabase admin API doesn't support bulk delete)
-    const deletePromises = employee_ids.map(id => 
-      admin.auth.admin.deleteUser(id)
-    );
+    // Delete employee accounts in bulk using employeeHelper
+    const { error: deleteError, failures } = await employeeHelper.deleteEmployeesBulkAccount(employee_ids, admin);
 
-    const results = await Promise.allSettled(deletePromises);
-    
-    // Check for any failures
-    const failures = results.filter(r => r.status === 'rejected');
-    if (failures.length > 0) {
-      console.error('Some deletions failed:', failures);
-    }
-
-    // Delete from tbl_users (in case cascade didn't work)
-    const { error: deleteUserError } = await admin
-      .from('tbl_users')
-      .delete()
-      .in('user_id', employee_ids);
-
-    if (deleteUserError) {
-      return NextResponse.json({ error: deleteUserError.message }, { status: 500 });
+    if (deleteError) {
+      return NextResponse.json({ error: deleteError.message }, { status: 500 });
     }
 
     // this logs the activity if the user is valid
     if (user) {
       const editor = user?.email || user?.user_metadata?.username || 'Unknown';
-      await dataHelper.logActivity({
+      await activityHelper.logActivity({
         actionType: 'delete_employee',
         productId: null,
         description: `Bulk deleted ${employee_ids.length} employee(s)`,

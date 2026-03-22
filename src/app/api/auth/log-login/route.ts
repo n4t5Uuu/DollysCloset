@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { dataHelper } from "@/lib/data-helper";
+import { activityHelper } from "@/lib/activity/activity-helper";
 import { admin } from "@/lib/supabase/admin";
 
 /**
@@ -14,7 +14,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Insert record with admin client bypassing client insertions
-    const logged = await dataHelper.logActivity({
+    const logged = await activityHelper.logActivity({
       actionType: actionType,
       description: `User ${email} ${actionType === "login" ? "logged in" : "logged out"}`,
       user_id: user_id,

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { admin } from "@/lib/supabase/admin";
+import { productHelper } from "@/lib/products/product-helper";
 
 /**
  * Retrieves an order-sorted sequence of product image mappings tied to a specific `product_id`.
@@ -17,11 +18,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "Missing product_id" }, { status: 400 });
     }
 
-    const { data: images, error } = await admin
-      .from("tbl_product_image")
-      .select("*")
-      .eq("product_id", productId)
-      .order("display_order", { ascending: true });
+    const { data: images, error } = await productHelper.getProductImages(productId, admin);
 
     if (error) throw error;
 

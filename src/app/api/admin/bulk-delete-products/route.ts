@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { authHelper } from "@/lib/auth-helper";
-import { dataHelper } from "@/lib/data-helper";
+import { productHelper } from "@/lib/products/product-helper";
+import { activityHelper } from "@/lib/activity/activity-helper";
 import { admin } from "@/lib/supabase/admin";
 
 /**
@@ -50,11 +51,8 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ error: 'No valid product_ids provided' }, { status: 400 });
     }
 
-    // Fetch product images for cleanup
-    const { data: images, error: imagesError } = await admin
-      .from('tbl_product_image')
-      .select('image_id, image_url')
-      .in('product_id', productIds);
+    // Fetch product images for cleanup using productHelper
+    const { data: images, error: imagesError } = await productHelper.getProductImagesBulk(productIds, admin);
 
     if (imagesError) {
       console.error('Image fetch error:', imagesError);
@@ -62,10 +60,7 @@ export async function DELETE(request: NextRequest) {
     }
 
     if (images && images.length > 0) {
-      const { error: clearImageReferenceError } = await admin
-        .from('tbl_product')
-        .update({ image_id: null })
-        .in('product_id', productIds);
+      const { error: clearImageReferenceError } = await productHelper.updateProductsBulk(productIds, { image_id: null }, admin);
 
       if (clearImageReferenceError) {
         console.error('Clear image reference error:', clearImageReferenceError);
@@ -80,10 +75,7 @@ export async function DELETE(request: NextRequest) {
         await admin.storage.from('product-images').remove(filePaths);
       }
 
-      const { error: imageDeleteError } = await admin
-        .from('tbl_product_image')
-        .delete()
-        .in('product_id', productIds);
+      const { error: imageDeleteError } = await productHelper.deleteProductImagesBulk(productIds, admin);
 
       if (imageDeleteError) {
         console.error('Image delete error:', imageDeleteError);
@@ -91,11 +83,8 @@ export async function DELETE(request: NextRequest) {
       }
     }
 
-    // Delete from tbl_product
-    const { error: deleteError } = await admin
-      .from('tbl_product')
-      .delete()
-      .in('product_id', productIds);
+    // Delete from tbl_product using productHelper
+    const { error: deleteError } = await productHelper.deleteProductsBulk(productIds, admin);
 
     if (deleteError) {
       console.error('Delete error:', deleteError);
@@ -103,7 +92,7 @@ export async function DELETE(request: NextRequest) {
     }
 
     // Log activity for bulk delete
-    await dataHelper.logActivity({
+    await activityHelper.logActivity({
       actionType: 'delete_product',
       productId: null,
       description: `Bulk deleted ${product_ids.length} product(s)`,

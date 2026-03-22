@@ -1,5 +1,6 @@
 import { admin } from "@/lib/supabase/admin";
 import { authHelper } from "@/lib/auth-helper";
+import { activityHelper } from "@/lib/activity/activity-helper";
 import { createServerSupabase } from "@/lib/supabase/server";
 import { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
@@ -37,10 +38,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Forbidden: Admin access required' }, { status: 403 });
     }
 
-    const { error } = await admin
-      .from("tbl_activity_log")
-      .delete()
-      .gte("log_id", 0);
+    const { error } = await activityHelper.clearLogs(admin);
 
     if (error) throw error;
 
