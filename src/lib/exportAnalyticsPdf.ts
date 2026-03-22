@@ -17,7 +17,7 @@ function breakPage(pdf: jsPDF, y: number, needed = 20): number {
   return y;
 }
 
-function drawHeader(pdf: jsPDF): number {
+function drawHeader(pdf: jsPDF, selectedMonth?: string): number {
   let y = MARGIN;
 
   pdf.setFont('helvetica', 'bold');
@@ -35,7 +35,15 @@ function drawHeader(pdf: jsPDF): number {
   pdf.setFont('helvetica', 'normal');
   pdf.setFontSize(10);
   pdf.setTextColor(107, 114, 128);
-  pdf.text('Analytics Report', MARGIN, y);
+
+  let title = 'Analytics Report';
+  if (selectedMonth) {
+    const [year, month] = selectedMonth.split('-');
+    const dateObj = new Date(Number(year), Number(month) - 1, 1);
+    const mName = dateObj.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+    title = `${title} - ${mName}`;
+  }
+  pdf.text(title, MARGIN, y);
 
   y += 4;
   pdf.setDrawColor(229, 231, 235);
@@ -106,8 +114,43 @@ function drawMostEditedThreePeriods(
   all: { name: string; edits: number }[],
   month: { name: string; edits: number }[],
   week: { name: string; edits: number }[],
-  y: number
+  y: number,
+  selectedMonth?: string
 ): number {
+  if (selectedMonth) {
+    const colW = CONTENT_W;
+    const rowH = 7;
+
+    pdf.setFont('helvetica', 'bold');
+    pdf.setFontSize(7.5);
+    pdf.setTextColor(107, 114, 128);
+    pdf.text('Edits In Selected Month', MARGIN, y);
+    y += 5;
+
+    const maxEdits = all[0]?.edits ?? 1;
+    for (let i = 0; i < all.length; i++) {
+      const item = all[i];
+      const ry = y + i * rowH;
+      const name = item.name.length > 40 ? item.name.slice(0, 38) + '…' : item.name;
+
+      pdf.setFont('helvetica', 'normal');
+      pdf.setFontSize(7);
+      pdf.setTextColor(55, 65, 81);
+      pdf.text(name, MARGIN, ry);
+      pdf.setTextColor(107, 114, 128);
+      pdf.text(`${item.edits}`, MARGIN + colW, ry, { align: 'right' });
+
+      // Progress bar
+      const barY = ry + 1.5;
+      const pct = item.edits / maxEdits;
+      pdf.setFillColor(243, 244, 246);
+      pdf.roundedRect(MARGIN, barY, colW, 1.2, 0.3, 0.3, 'F');
+      pdf.setFillColor(...BRAND);
+      pdf.roundedRect(MARGIN, barY, colW * pct, 1.2, 0.3, 0.3, 'F');
+    }
+    return y + all.length * rowH + 4;
+  }
+
   const colW = (CONTENT_W - GAP * 2) / 3;
   const cols = [
     { title: 'All Time', items: all },
@@ -378,12 +421,17 @@ function drawPagesList(
 
 // ── Main export ───────────────────────────────────────────────────────────────
 
-export async function exportAnalyticsPdf() {
+export async function exportAnalyticsPdf(selectedMonth?: string) {
+  const analyticsUrl = selectedMonth ? `/api/admin/analytics?month=${selectedMonth}` : '/api/admin/analytics';
+  const productsAllUrl = selectedMonth ? `/api/admin/analytics/products?period=month&month=${selectedMonth}` : '/api/admin/analytics/products?period=all';
+  const productsMonthUrl = selectedMonth ? `/api/admin/analytics/products?period=month&month=${selectedMonth}` : '/api/admin/analytics/products?period=month';
+  const productsWeekUrl = selectedMonth ? `/api/admin/analytics/products?period=month&month=${selectedMonth}` : '/api/admin/analytics/products?period=week';
+
   const [analyticsRes, productsAllRes, productsMonthRes, productsWeekRes] = await Promise.all([
-    fetch('/api/admin/analytics'),
-    fetch('/api/admin/analytics/products?period=all'),
-    fetch('/api/admin/analytics/products?period=month'),
-    fetch('/api/admin/analytics/products?period=week'),
+    fetch(analyticsUrl),
+    fetch(productsAllUrl),
+    fetch(productsMonthUrl),
+    fetch(productsWeekUrl),
   ]);
 
   const analytics = await analyticsRes.json();
@@ -392,7 +440,7 @@ export async function exportAnalyticsPdf() {
   const productsWeek = await productsWeekRes.json();
 
   const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
-  let y = drawHeader(pdf);
+  let y = drawHeader(pdf, selectedMonth);
 
   // ── OVERVIEW ──────────────────────────────────────────────────
   y = drawSectionDivider(pdf, 'Website Analytics', y);
@@ -404,7 +452,7 @@ export async function exportAnalyticsPdf() {
   ], y);
 
   const monthlyData = analytics.monthlyData ?? [];
-  if (monthlyData.length > 0) {
+  if (monthlyData.length > 0 && !selectedMonth) {
     y = breakPage(pdf, y, 10 + monthlyData.length * 5.5 + 10);
     y = drawSubheading(pdf, 'Monthly Traffic — Last 12 Months', y);
     y = drawMonthlyTable(pdf, monthlyData, y);
@@ -463,7 +511,7 @@ export async function exportAnalyticsPdf() {
     const maxRows = Math.max(allEdited.length, monthEdited.length, weekEdited.length);
     y = breakPage(pdf, y, 10 + maxRows * 7);
     y = drawSubheading(pdf, 'Most Edited Products', y);
-    y = drawMostEditedThreePeriods(pdf, allEdited, monthEdited, weekEdited, y);
+    y = drawMostEditedThreePeriods(pdf, allEdited, monthEdited, weekEdited, y, selectedMonth);
   }
 
   const stockAlerts = [
@@ -484,5 +532,12 @@ export async function exportAnalyticsPdf() {
     );
   }
 
-  pdf.save(`dolly-analytics-${new Date().toISOString().slice(0, 10)}.pdf`);
+  let periodHeader = 'Full';
+  if (selectedMonth) {
+    const [year, month] = selectedMonth.split('-');
+    const dateObj = new Date(Number(year), Number(month) - 1, 1);
+    periodHeader = dateObj.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+  }
+
+  pdf.save(`Dolly's Closet Summary - ${periodHeader}.pdf`);
 }

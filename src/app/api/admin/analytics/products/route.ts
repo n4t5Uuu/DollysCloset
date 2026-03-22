@@ -5,10 +5,20 @@ export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
     const period = searchParams.get('period') ?? 'all'; // 'week' | 'month' | 'all'
+    const monthParam = searchParams.get('month'); // Expects "YYYY-MM"
 
     const now = new Date();
     let sinceDate: string | null = null;
-    if (period === 'week') {
+    let untilDate: string | null = null;
+
+    if (monthParam) {
+      const [year, month] = monthParam.split('-');
+      const d = new Date(Number(year), Number(month) - 1, 1);
+      sinceDate = d.toISOString();
+      // Calculate first day of next month
+      const nextD = new Date(Number(year), Number(month), 1);
+      untilDate = nextD.toISOString();
+    } else if (period === 'week') {
       const d = new Date(now);
       d.setDate(d.getDate() - 7);
       sinceDate = d.toISOString();
@@ -31,6 +41,10 @@ export async function GET(request: Request) {
     if (sinceDate) {
       logsQuery = logsQuery.gte('created_at', sinceDate);
       viewsQuery = viewsQuery.gte('created_at', sinceDate);
+    }
+    if (untilDate) {
+      logsQuery = logsQuery.lt('created_at', untilDate);
+      viewsQuery = viewsQuery.lt('created_at', untilDate);
     }
 
     const [productsResult, categoriesResult, logsResult, viewsResult] = await Promise.all([

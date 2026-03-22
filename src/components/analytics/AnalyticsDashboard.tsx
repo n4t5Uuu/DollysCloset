@@ -118,13 +118,18 @@ function PageList({ title, subtitle, pages, color }: { title: string; subtitle: 
   );
 }
 
-export function AnalyticsDashboard() {
+export function AnalyticsDashboard({ selectedMonth }: { selectedMonth?: string }) {
   const [data, setData] = useState<AnalyticsData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    fetch('/api/admin/analytics')
+    setLoading(true);
+    const url = selectedMonth && selectedMonth !== 'all'
+      ? `/api/admin/analytics?month=${selectedMonth}`
+      : '/api/admin/analytics';
+
+    fetch(url)
       .then(res => res.json())
       .then(json => {
         if (json.error) setError(json.error);
@@ -132,7 +137,7 @@ export function AnalyticsDashboard() {
       })
       .catch(() => setError('Failed to load analytics data'))
       .finally(() => setLoading(false));
-  }, []);
+  }, [selectedMonth]);
 
   if (loading) {
     return (

@@ -51,7 +51,7 @@ function StockBadge({ stock }: { stock: number }) {
 
 type Period = 'all' | 'month' | 'week';
 
-export function ProductsDashboard() {
+export function ProductsDashboard({ selectedMonth }: { selectedMonth?: string }) {
   const [data, setData] = useState<ProductsData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -61,26 +61,36 @@ export function ProductsDashboard() {
   const [period, setPeriod] = useState<Period>('all');
   const [periodLoading, setPeriodLoading] = useState(false);
 
-  const fetchData = useCallback((p: Period = 'all') => {
+  const fetchData = useCallback((p: Period = 'all', m?: string) => {
     setLoading(true);
-    fetch(`/api/admin/analytics/products?period=${p}`)
+    let url = `/api/admin/analytics/products?period=${p}`;
+    if (m && m !== 'all') {
+      url += `&month=${m}`;
+    }
+    fetch(url)
       .then(res => res.json())
       .then(json => { if (json.error) setError(json.error); else setData(json); })
       .catch(() => setError('Failed to load product analytics'))
       .finally(() => setLoading(false));
   }, []);
 
-  useEffect(() => { fetchData('all'); }, [fetchData]);
+  useEffect(() => { 
+    fetchData('all', selectedMonth); 
+  }, [fetchData, selectedMonth]);
 
   const handlePeriodChange = useCallback((p: Period) => {
     setPeriod(p);
     setPeriodLoading(true);
-    fetch(`/api/admin/analytics/products?period=${p}`)
+    let url = `/api/admin/analytics/products?period=${p}`;
+    if (selectedMonth && selectedMonth !== 'all') {
+      url += `&month=${selectedMonth}`;
+    }
+    fetch(url)
       .then(res => res.json())
       .then(json => { if (!json.error) setData(prev => prev ? { ...prev, mostEdited: json.mostEdited } : json); })
       .catch(() => {})
       .finally(() => setPeriodLoading(false));
-  }, []);
+  }, [selectedMonth]);
 
   const handleEditClick = useCallback(async (productId: string) => {
     setLoadingProductId(productId);

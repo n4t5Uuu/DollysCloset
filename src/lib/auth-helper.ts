@@ -34,14 +34,29 @@ export const authHelper = {
 
         if (sessionError) {
             console.warn("Error Getting Session: ", sessionError)
-            if (sessionError.message.includes('Invalid Refresh Token') || sessionError.message.includes('Refresh Token Not Found')) {
+            const errorMsg = sessionError.message.toLowerCase();
+            const shouldClear = errorMsg.includes('invalid') || 
+                                errorMsg.includes('refresh token') || 
+                                errorMsg.includes('grant');
+
+            if (shouldClear) {
                 // Clear the defective token automatically so the user isn't stuck
                 await browserSupabase.auth.signOut().catch(() => {});
-                // Optional: also clear localStorage directly just in case signOut fails
+                
                 if (typeof window !== 'undefined') {
+                    // Clear both localStorage and cookies starting with sb- to ensure full cleanup
                     for (const key of Object.keys(localStorage)) {
-                        if (key.startsWith('supabase-auth-token')) localStorage.removeItem(key);
+                        if (key.startsWith('supabase-auth-token') || key.includes('auth')) {
+                            localStorage.removeItem(key);
+                        }
                     }
+                    
+                    document.cookie.split(';').forEach((cookie) => {
+                        const [name] = cookie.split('=');
+                        if (name.trim().startsWith('sb-')) {
+                            document.cookie = `${name.trim()}=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT;`;
+                        }
+                    });
                 }
             }
             return { user: null, error: sessionError };

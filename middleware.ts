@@ -44,7 +44,11 @@ export async function middleware(request: NextRequest) {
   );
 
   // Get the authenticated user ensuring correct refresh tokens securely
-  const { data: { user } } = await supabase.auth.getUser()
+  const { data: { user }, error: authError } = await supabase.auth.getUser()
+
+  if (authError) {
+    console.warn('Middleware auth error:', authError.message)
+  }
 
   /**
    * Helper function to handle transparent redirects while preserving cookies seamlessly.
@@ -58,7 +62,8 @@ export async function middleware(request: NextRequest) {
     // Crucial: Copy the cookies that were modified/deleted by Supabase
     // If we don't do this, the invalid token stays in the browser!
     response.cookies.getAll().forEach((cookie) => {
-      redirectResponse.cookies.set(cookie.name, cookie.value, cookie)
+      const { name, value, ...options } = cookie;
+      redirectResponse.cookies.set(name, value, options)
     })
     
     return redirectResponse

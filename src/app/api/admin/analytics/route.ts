@@ -1,5 +1,5 @@
 import { BetaAnalyticsDataClient } from '@google-analytics/data';
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 
 function getAnalyticsClient() {
   return new BetaAnalyticsDataClient({
@@ -10,11 +10,24 @@ function getAnalyticsClient() {
   });
 }
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   const propertyId = process.env.GA4_PROPERTY_ID;
 
   if (!propertyId || !process.env.GA4_CLIENT_EMAIL || !process.env.GA4_PRIVATE_KEY) {
     return NextResponse.json({ error: 'Analytics not configured' }, { status: 503 });
+  }
+
+  const { searchParams } = new URL(request.url);
+  const monthParam = searchParams.get('month'); // Expects "YYYY-MM"
+
+  let startDate = '30daysAgo';
+  let endDate = 'today';
+
+  if (monthParam) {
+    const [year, month] = monthParam.split('-');
+    startDate = `${year}-${month}-01`;
+    const lastDay = new Date(Number(year), Number(month), 0).getDate();
+    endDate = `${year}-${month}-${String(lastDay).padStart(2, '0')}`;
   }
 
   try {
@@ -22,10 +35,10 @@ export async function GET() {
     const property = `properties/${propertyId}`;
 
     const [dailyResponse, pagesResponse, totalsResponse, deviceResponse, monthlyResponse] = await Promise.all([
-      // Daily breakdown for last 30 days
+      // Daily breakdown for selected period
       client.runReport({
         property,
-        dateRanges: [{ startDate: '30daysAgo', endDate: 'today' }],
+        dateRanges: [{ startDate, endDate }],
         dimensions: [{ name: 'date' }],
         metrics: [
           { name: 'activeUsers' },
@@ -38,17 +51,17 @@ export async function GET() {
       // Top pages by views (fetch more to ensure enough after splitting)
       client.runReport({
         property,
-        dateRanges: [{ startDate: '30daysAgo', endDate: 'today' }],
+        dateRanges: [{ startDate, endDate }],
         dimensions: [{ name: 'pagePath' }],
         metrics: [{ name: 'screenPageViews' }, { name: 'activeUsers' }],
         orderBys: [{ metric: { metricName: 'screenPageViews' }, desc: true }],
         limit: 30,
       }),
 
-      // 30-day totals
+      // Period totals
       client.runReport({
         property,
-        dateRanges: [{ startDate: '30daysAgo', endDate: 'today' }],
+        dateRanges: [{ startDate, endDate }],
         metrics: [
           { name: 'activeUsers' },
           { name: 'sessions' },
@@ -60,7 +73,7 @@ export async function GET() {
       // Device category breakdown
       client.runReport({
         property,
-        dateRanges: [{ startDate: '30daysAgo', endDate: 'today' }],
+        dateRanges: [{ startDate, endDate }],
         dimensions: [{ name: 'deviceCategory' }],
         metrics: [{ name: 'activeUsers' }],
         orderBys: [{ metric: { metricName: 'activeUsers' }, desc: true }],
@@ -118,6 +131,7 @@ export async function GET() {
         .toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
       return {
         month,
+        value: `${ym.slice(0, 4)}-${ym.slice(4, 6)}`, // "2026-02"
         users: Number(row.metricValues?.[0]?.value ?? 0),
         sessions: Number(row.metricValues?.[1]?.value ?? 0),
         pageViews: Number(row.metricValues?.[2]?.value ?? 0),
