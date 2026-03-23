@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useMemo, useCallback } from "react";
+import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import { Plus, Trash, AlertTriangle, Search, X, Upload } from "lucide-react";
 import { browserSupabase } from "@/lib/supabase/browser";
 import { Button } from "@/components/ui/button";
@@ -40,19 +41,33 @@ interface InventoryManagementProps {
 }
 
 export default function InventoryManagement({ isAdmin = false, initialAvailabilityFilter }: InventoryManagementProps) {
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const pathname = usePathname();
+
+  const rawPage = parseInt(searchParams.get("page") ?? "1", 10);
+  const currentPage = isNaN(rawPage) || rawPage < 1 ? 1 : rawPage;
+
+  const handlePageChange = (page: number) => {
+    if (page <= 1) {
+      router.replace(pathname);
+    } else {
+      router.replace(`${pathname}?page=${page}`);
+    }
+  };
+
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  
+
   const [searchQuery, setSearchQuery] = useState("");
   const [visibilityFilter, setVisibilityFilter] = useState("all");
   const [availabilityFilter, setAvailabilityFilter] = useState(initialAvailabilityFilter ?? "all");
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [dateSort, setDateSort] = useState<"newest" | "oldest">("newest");
   const [selectedProducts, setSelectedProducts] = useState<Set<string>>(new Set());
-  const [currentPage, setCurrentPage] = useState(1);
   const [showAddModal, setShowAddModal] = useState(false);
   const [viewProduct, setViewProduct] = useState<Product | null>(null);
   const [viewImages, setViewImages] = useState<ProductImage[]>([]);
@@ -108,6 +123,10 @@ export default function InventoryManagement({ isAdmin = false, initialAvailabili
     };
     initializeInventory();
   }, [fetchProducts, fetchCategories]);
+
+  useEffect(() => {
+    router.replace(pathname);
+  }, [searchQuery, visibilityFilter, availabilityFilter, categoryFilter, dateSort, router, pathname]);
 
   const categoryById = useMemo(
     () => new Map(categories.map((category) => [Number(category.category_id), category])),
@@ -179,7 +198,8 @@ export default function InventoryManagement({ isAdmin = false, initialAvailabili
   }, [products, searchQuery, filteredCategoryIds, availabilityFilter, visibilityFilter, dateSort, lowStockThreshold]);
 
   const totalPages = Math.max(1, Math.ceil(filteredProducts.length / itemsPerPage));
-  const startIndex = (currentPage - 1) * itemsPerPage;
+  const safePage = Math.min(currentPage, totalPages);
+  const startIndex = (safePage - 1) * itemsPerPage;
   const endIndex = startIndex + itemsPerPage;
   const currentProducts = filteredProducts.slice(startIndex, endIndex);
 
@@ -497,10 +517,10 @@ export default function InventoryManagement({ isAdmin = false, initialAvailabili
       )}
 
       <div className="flex flex-col gap-4 mt-2">
-        <CustomPagination 
-          currentPage={currentPage}
+        <CustomPagination
+          currentPage={safePage}
           totalPages={totalPages}
-          onPageChange={setCurrentPage}
+          onPageChange={handlePageChange}
         />
       </div>
 

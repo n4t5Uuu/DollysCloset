@@ -2,6 +2,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -81,12 +82,26 @@ const employeeManagementActions = new Set([
 ]);
 
 export default function ActivityLogsPage() {
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const pathname = usePathname();
+
+  const rawPage = parseInt(searchParams.get("page") ?? "1", 10);
+  const currentPage = isNaN(rawPage) || rawPage < 1 ? 1 : rawPage;
+
+  const handlePageChange = (page: number) => {
+    if (page <= 1) {
+      router.replace(pathname);
+    } else {
+      router.replace(`${pathname}?page=${page}`);
+    }
+  };
+
   const [logs, setLogs] = useState<ActivityLog[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [sortOrder, setSortOrder] = useState<"desc" | "asc">("desc");
-  const [currentPage, setCurrentPage] = useState(1);
   const [viewLog, setViewLog] = useState<ActivityLog | null>(null);
   const itemsPerPage = 10;
   const isFetchingRef = useRef(false);
@@ -176,8 +191,8 @@ export default function ActivityLogsPage() {
   }, [logs, searchQuery]);
 
   useEffect(() => {
-    setCurrentPage(1);
-  }, [searchQuery, sortOrder, logs.length]);
+    router.replace(pathname);
+  }, [searchQuery, sortOrder, logs.length, router, pathname]);
 
   const sortedLogs = useMemo(() => {
     return [...filteredLogs].sort((a, b) => {
@@ -416,7 +431,7 @@ export default function ActivityLogsPage() {
           className="mt-4"
           currentPage={safePage}
           totalPages={totalPages}
-          onPageChange={setCurrentPage}
+          onPageChange={handlePageChange}
         />
       )}
     </div>

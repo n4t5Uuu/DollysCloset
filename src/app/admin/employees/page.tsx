@@ -2,6 +2,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import { Plus, Search, X, AlertTriangle, Trash, Loader2 } from "lucide-react";
 import { browserSupabase } from "@/lib/supabase/browser";
 import { Button } from "@/components/ui/button";
@@ -18,12 +19,26 @@ import { toast } from "sonner";
 import { Skeleton } from "@/components/ui/skeleton";
 
 export default function EmployeesPage() {
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const pathname = usePathname();
+
+  const rawPage = parseInt(searchParams.get("page") ?? "1", 10);
+  const currentPage = isNaN(rawPage) || rawPage < 1 ? 1 : rawPage;
+
+  const handlePageChange = (page: number) => {
+    if (page <= 1) {
+      router.replace(pathname);
+    } else {
+      router.replace(`${pathname}?page=${page}`);
+    }
+  };
+
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [sortConfig, setSortConfig] = useState({ key: "user_key", direction: "asc" });
   const [selectedRows, setSelectedRows] = useState<Set<string>>(new Set());
-  const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
 
   // Modal states
@@ -95,14 +110,15 @@ export default function EmployeesPage() {
   });
 
   const totalPages = Math.max(1, Math.ceil(sortedEmployees.length / itemsPerPage));
-  const startIndex = (currentPage - 1) * itemsPerPage;
+  const safePage = Math.min(currentPage, totalPages);
+  const startIndex = (safePage - 1) * itemsPerPage;
   const endIndex = startIndex + itemsPerPage;
   const currentEmployees = sortedEmployees.slice(startIndex, endIndex);
 
   // Reset page when search or sort changes
   useEffect(() => {
-    setCurrentPage(1);
-  }, [searchTerm, sortConfig]);
+    router.replace(pathname);
+  }, [searchTerm, sortConfig, router, pathname]);
 
   const toggleSort = (key: string) => {
     setSortConfig({
@@ -355,9 +371,9 @@ export default function EmployeesPage() {
         {/* Footer Stats & Pagination */}
         <div className="flex flex-col gap-4 mt-2">
           <CustomPagination
-            currentPage={currentPage}
+            currentPage={safePage}
             totalPages={totalPages}
-            onPageChange={setCurrentPage}
+            onPageChange={handlePageChange}
           />
         </div>
       </div>

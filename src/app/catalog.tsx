@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState, useCallback } from "react";
+import { useSearchParams, useRouter, usePathname } from "next/navigation";
 
 import FeatureCardCarousel from "@/components/catalog/FeatureCardCarousel";
 import SearchBar from "@/components/general-components/SearchBar";
@@ -15,7 +16,7 @@ import { Button } from "@/components/ui/button";
 import { ANNOUNCEMENT_SLUG, defaultAnnouncementText } from "@/lib/business-details/business-details";
 import { CatalogCategory, CatalogApiProduct } from "@/types/product.types";
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty";
-import { PackageSearch } from "lucide-react";
+import { PackageSearch, ChevronsLeft, ChevronsRight } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 
 function toViewProduct(product: CatalogApiProduct): Product {
@@ -36,11 +37,26 @@ function toViewProduct(product: CatalogApiProduct): Product {
 }
 
 export default function Catalog() {
+    const searchParams = useSearchParams();
+    const router = useRouter();
+    const pathname = usePathname();
+
+    const rawPage = parseInt(searchParams.get("page") ?? "1", 10);
+    const currentPage = isNaN(rawPage) || rawPage < 1 ? 1 : rawPage;
+    const [goInput, setGoInput] = useState("");
+
+    const handlePageChange = (page: number) => {
+        if (page <= 1) {
+            router.replace(pathname);
+        } else {
+            router.replace(`${pathname}?page=${page}`);
+        }
+    };
+
     const normalizeCategoryName = (value: string) => value.trim().toLowerCase();
 
     const [activeFilter, setActiveFilter] = useState("all");
     const [sortBy, setSortBy] = useState("newest");
-    const [currentPage, setCurrentPage] = useState(1);
     const [searchQuery, setSearchQuery] = useState("");
     const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -141,8 +157,8 @@ export default function Catalog() {
     }, []);
 
     useEffect(() => {
-        setCurrentPage(1);
-    }, [activeFilter, sortBy, searchQuery]);
+        router.replace(pathname);
+    }, [activeFilter, sortBy, searchQuery, router, pathname]);
 
     const childrenByParent = useMemo(() => {
         return categories.reduce<Map<number, number[]>>((acc, category) => {
@@ -237,9 +253,10 @@ export default function Catalog() {
     }, [products, activeFilter, sortBy, rootCategoryIdsByName, searchQuery, collectDescendantCategoryIds]);
 
     const totalPages = Math.max(1, Math.ceil(filteredProducts.length / itemsPerPage));
+    const safePage = Math.min(currentPage, totalPages);
     const paginatedProducts = filteredProducts.slice(
-        (currentPage - 1) * itemsPerPage,
-        currentPage * itemsPerPage
+        (safePage - 1) * itemsPerPage,
+        safePage * itemsPerPage
     );
 
     const featuredViewProducts = featuredProducts.map(toViewProduct);
@@ -437,42 +454,113 @@ export default function Catalog() {
                         )}
 
                         {totalPages > 1 && (
-                            <div className="mt-16 flex items-center justify-center gap-2">
-                                <Button
-                                    type="button"
-                                    variant="outline"
-                                    onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
-                                    disabled={currentPage === 1}
-                                    className="border-[#E7A3B0]/50 text-[#cc7f8f] hover:bg-[#fff0f5]"
-                                >
-                                    Prev
-                                </Button>
-
-                                {Array.from({ length: totalPages }, (_, index) => index + 1).map((page) => (
+                            <div className="mt-16 flex flex-col items-center gap-4">
+                                <div className="flex items-center justify-center gap-2">
+                                    {/* First */}
                                     <Button
-                                        key={page}
                                         type="button"
-                                        variant={currentPage === page ? "default" : "outline"}
-                                        onClick={() => setCurrentPage(page)}
-                                        className={
-                                            currentPage === page
-                                                ? "bg-[#E7A3B0] text-white hover:bg-[#d891a0]"
-                                                : "border-[#E7A3B0]/50 text-[#cc7f8f] hover:bg-[#fff0f5]"
-                                        }
+                                        variant="outline"
+                                        onClick={() => handlePageChange(1)}
+                                        disabled={safePage === 1}
+                                        className="border-[#E7A3B0]/50 text-[#cc7f8f] hover:bg-[#fff0f5]"
+                                        aria-label="First page"
                                     >
-                                        {page}
+                                        <ChevronsLeft className="h-4 w-4" />
                                     </Button>
-                                ))}
 
-                                <Button
-                                    type="button"
-                                    variant="outline"
-                                    onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))}
-                                    disabled={currentPage === totalPages}
-                                    className="border-[#E7A3B0]/50 text-[#cc7f8f] hover:bg-[#fff0f5]"
-                                >
-                                    Next
-                                </Button>
+                                    <Button
+                                        type="button"
+                                        variant="outline"
+                                        onClick={() => handlePageChange(Math.max(1, safePage - 1))}
+                                        disabled={safePage === 1}
+                                        className="border-[#E7A3B0]/50 text-[#cc7f8f] hover:bg-[#fff0f5]"
+                                    >
+                                        Prev
+                                    </Button>
+
+                                    {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                                        const page = totalPages <= 5
+                                            ? i + 1
+                                            : safePage <= 3
+                                                ? i + 1
+                                                : safePage >= totalPages - 2
+                                                    ? totalPages - 4 + i
+                                                    : safePage - 2 + i;
+                                        return (
+                                            <Button
+                                                key={page}
+                                                type="button"
+                                                variant={safePage === page ? "default" : "outline"}
+                                                onClick={() => handlePageChange(page)}
+                                                className={
+                                                    safePage === page
+                                                        ? "bg-[#E7A3B0] text-white hover:bg-[#d891a0]"
+                                                        : "border-[#E7A3B0]/50 text-[#cc7f8f] hover:bg-[#fff0f5]"
+                                                }
+                                            >
+                                                {page}
+                                            </Button>
+                                        );
+                                    })}
+
+                                    <Button
+                                        type="button"
+                                        variant="outline"
+                                        onClick={() => handlePageChange(Math.min(totalPages, safePage + 1))}
+                                        disabled={safePage === totalPages}
+                                        className="border-[#E7A3B0]/50 text-[#cc7f8f] hover:bg-[#fff0f5]"
+                                    >
+                                        Next
+                                    </Button>
+
+                                    {/* Last */}
+                                    <Button
+                                        type="button"
+                                        variant="outline"
+                                        onClick={() => handlePageChange(totalPages)}
+                                        disabled={safePage === totalPages}
+                                        className="border-[#E7A3B0]/50 text-[#cc7f8f] hover:bg-[#fff0f5]"
+                                        aria-label="Last page"
+                                    >
+                                        <ChevronsRight className="h-4 w-4" />
+                                    </Button>
+                                </div>
+                                <div className="flex items-center gap-3 text-sm text-gray-400">
+                                    <span>Page {safePage} of {totalPages}</span>
+                                    <span className="text-gray-300">•</span>
+                                    <span>Go to page</span>
+                                    <input
+                                        type="number"
+                                        min={1}
+                                        max={totalPages}
+                                        value={goInput}
+                                        onChange={(e) => setGoInput(e.target.value)}
+                                        onKeyDown={(e) => {
+                                            if (e.key === "Enter") {
+                                                const page = parseInt(goInput, 10);
+                                                if (!isNaN(page) && page >= 1 && page <= totalPages) {
+                                                    handlePageChange(page);
+                                                }
+                                                setGoInput("");
+                                            }
+                                        }}
+                                        className="w-16 h-9 text-center border border-[#E7A3B0]/50 rounded text-sm text-[#cc7f8f] bg-white focus:outline-none focus:ring-1 focus:ring-[#E7A3B0]"
+                                    />
+                                    <Button
+                                        type="button"
+                                        variant="outline"
+                                        onClick={() => {
+                                            const page = parseInt(goInput, 10);
+                                            if (!isNaN(page) && page >= 1 && page <= totalPages) {
+                                                handlePageChange(page);
+                                            }
+                                            setGoInput("");
+                                        }}
+                                        className="border-[#E7A3B0]/50 text-[#cc7f8f] hover:bg-[#fff0f5]"
+                                    >
+                                        Go
+                                    </Button>
+                                </div>
                             </div>
                         )}
                     </div>
