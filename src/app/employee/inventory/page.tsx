@@ -1,7 +1,6 @@
-"use client";
-
 import InventoryManagement from "@/components/inventory/InventoryManagement";
 
-export default function EmployeeInventoryPage() {
-  return <InventoryManagement isAdmin={false} />;
+export default async function EmployeeInventoryPage({ searchParams }: { searchParams: Promise<{ availability?: string }> }) {
+  const params = await searchParams;
+  return <InventoryManagement isAdmin={false} initialAvailabilityFilter={params.availability} />;
 }

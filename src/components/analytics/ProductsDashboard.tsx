@@ -280,9 +280,9 @@ export function ProductsDashboard({ selectedMonth }: { selectedMonth?: string })
               <div className="p-4 space-y-2">
                 {stockAlerts.map((p, i) => (
                   <div key={i} className="flex items-center justify-between gap-3 rounded-lg px-4 py-3" style={{ border: '1px solid #f3f4f6' }}>
-                    <div className="min-w-0">
+                    <div className="min-w-0 flex-1 flex items-center gap-2">
                       <p className="text-sm font-medium truncate" style={{ color: '#111827' }}>{p.name}</p>
-                      <div className="mt-1"><StockBadge stock={p.stock} /></div>
+                      <div className="shrink-0"><StockBadge stock={p.stock} /></div>
                     </div>
                     <Button
                       size="icon"

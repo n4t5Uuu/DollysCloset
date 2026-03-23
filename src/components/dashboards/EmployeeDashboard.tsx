@@ -1,11 +1,13 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { AlertTriangle, Package, Pencil } from "lucide-react";
+import { AlertTriangle, Package, Pencil, ImageOff, ArrowRight, Loader2 } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Button } from "@/components/ui/button";
+import AddProduct from "@/components/modals/AddProduct";
 
 import { ActivityLog } from "@/types/logs.types";
-import { InventoryProduct } from "@/types/inventory.types";
+import { InventoryProduct, InventoryCategory } from "@/types/inventory.types";
 
 const actionLabels: Record<string, string> = {
     create_product: "Listed",
@@ -49,6 +51,9 @@ export default function EmployeeDashboard() {
     const [displayName, setDisplayName] = useState("there");
     const [currentUserId, setCurrentUserId] = useState<string | null>(null);
     const [firstName, setFirstName] = useState<string>("");
+    const [editingProduct, setEditingProduct] = useState<InventoryProduct | null>(null);
+    const [categories, setCategories] = useState<InventoryCategory[]>([]);
+    const [loadingProductId, setLoadingProductId] = useState<string | null>(null);
     const fetchProfile = useCallback(async () => {
         const response = await fetch("/api/auth/profile", { cache: "no-store" });
         if (!response.ok) {
@@ -117,6 +122,24 @@ export default function EmployeeDashboard() {
                 setLoading(false);
             }
         }
+    }, []);
+
+    const handleEditClick = useCallback(async (productId: string) => {
+        setLoadingProductId(productId);
+        try {
+            const [productsRes, categoriesRes] = await Promise.all([
+                fetch("/api/admin/fetch-products"),
+                fetch("/api/admin/fetch-categories"),
+            ]);
+            const productsJson = await productsRes.json();
+            const categoriesJson = await categoriesRes.json();
+            const product = (productsJson.data as InventoryProduct[]).find(p => String(p.product_id) === productId);
+            if (product) {
+                setCategories(categoriesJson.data ?? []);
+                setEditingProduct(product);
+            }
+        } catch { /* silently fail */ }
+        finally { setLoadingProductId(null); }
     }, []);
 
     useEffect(() => {
@@ -189,35 +212,6 @@ export default function EmployeeDashboard() {
     const lowStockItems = useMemo(() => products.filter((product) => product.product_stock > 0 && product.product_stock < lowStockThreshold), [products]);
     const outOfStockItems = useMemo(() => products.filter((product) => product.product_stock === 0), [products]);
     const missingPhotoItems = useMemo(() => products.filter((product) => !product.image_id), [products]);
-    const noPriceItems = useMemo(() => products.filter((product) => !product.product_price || Number(product.product_price) <= 0), [products]);
-
-    const needsAttention = useMemo(() => {
-        const list = [
-            ...missingPhotoItems.slice(0, 3).map((product) => ({
-                key: `photo-${product.product_id}`,
-                label: "Missing photo",
-                productName: product.product_name,
-            })),
-            ...noPriceItems.slice(0, 2).map((product) => ({
-                key: `price-${product.product_id}`,
-                label: "No price set",
-                productName: product.product_name,
-            })),
-            ...lowStockItems.slice(0, 3).map((product) => ({
-                key: `stock-${product.product_id}`,
-                label: "Low stock",
-                productName: `${product.product_name} (${product.product_stock} left)`,
-            })),
-            ...outOfStockItems.slice(0, 3).map((product) => ({
-                key: `out-stock-${product.product_id}`,
-                label: "Out of stock",
-                productName: product.product_name,
-            })),
-        ];
-
-        return list.slice(0, 6);
-    }, [missingPhotoItems, noPriceItems, lowStockItems, outOfStockItems]);
-
     const recentlyEdited = useMemo(() => {
         return myProductLogs
             .slice()
@@ -286,8 +280,8 @@ export default function EmployeeDashboard() {
                         </div>
                         <div className="rounded-xl border border-[#f2dfb3] bg-[#fffaf0] p-4">
                             <p className="text-xs uppercase tracking-wider text-gray-400">Alerts</p>
-                            <p className="text-3xl font-bold text-[#121212] mt-1">{needsAttention.length}</p>
-                            <p className="text-sm text-[#c28b16] mt-1">{missingPhotoItems.length} missing photos</p>
+                            <p className="text-3xl font-bold text-[#121212] mt-1">{outOfStockItems.length + lowStockItems.length + missingPhotoItems.length}</p>
+                            <p className="text-sm text-[#c28b16] mt-1">{outOfStockItems.length} out of stock</p>
                         </div>
                     </>
                 )}
@@ -295,33 +289,100 @@ export default function EmployeeDashboard() {
 
             <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
                 <section className="rounded-xl border border-gray-200 bg-white overflow-hidden">
-                    <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
+                    <div className="px-4 py-4 border-b border-gray-100">
                         <h2 className="text-sm font-semibold text-[#121212] flex items-center gap-2">
-                            <AlertTriangle className="w-4 h-4 text-[#E7A3B0]" />
-                            Needs Attention
+                            <AlertTriangle className="w-4 h-4 text-red-500" />
+                            Stock Alerts
                         </h2>
-                        <span className="text-xs text-gray-400">{needsAttention.length} items</span>
+                        <p className="text-xs text-gray-400 mt-0.5">Out of stock or running low (10 or fewer remaining)</p>
                     </div>
-                    <div className="p-4 space-y-3">
+                    <div className="p-4 space-y-2">
                         {loading ? (
                             Array.from({ length: 4 }).map((_, i) => (
                                 <Skeleton key={i} className="h-14 w-full rounded-lg" />
                             ))
-                        ) : needsAttention.length === 0 ? (
-                            <p className="text-sm text-gray-500">Everything looks good right now.</p>
+                        ) : outOfStockItems.length === 0 && lowStockItems.length === 0 ? (
+                            <p className="text-sm text-gray-500">All products are well stocked.</p>
                         ) : (
-                            needsAttention.map((item) => (
-                                <div key={item.key} className="flex items-start justify-between gap-3 rounded-lg border border-gray-100 px-3 py-2">
-                                    <div>
-                                        <p className="text-xs uppercase tracking-wide text-[#E7A3B0]">{item.label}</p>
-                                        <p className="text-sm text-gray-700 font-medium">{item.productName}</p>
+                            [...outOfStockItems.map(p => ({ ...p, status: "out" as const })), ...lowStockItems.map(p => ({ ...p, status: "low" as const }))]
+                                .slice(0, 5)
+                                .map((p) => (
+                                    <div key={p.product_id} className="flex items-center justify-between gap-3 rounded-lg border border-gray-100 px-3 py-2">
+                                        <div className="min-w-0 flex-1 flex items-center gap-2">
+                                            <p className="text-sm font-medium text-[#121212] truncate">{p.product_name}</p>
+                                            <span className={`shrink-0 text-xs font-semibold px-2 py-0.5 rounded-full ${p.status === "out" ? "bg-red-50 text-red-500" : "bg-amber-50 text-amber-500"}`}>
+                                                {p.status === "out" ? "Out of stock" : `${p.product_stock} left`}
+                                            </span>
+                                        </div>
+                                        <Button
+                                            size="icon"
+                                            variant="outline"
+                                            className="shrink-0 border-blue-200 text-blue-600 bg-blue-50 hover:bg-blue-200 hover:text-blue-700 hover:border-blue-300"
+                                            onClick={() => handleEditClick(String(p.product_id))}
+                                            disabled={loadingProductId === String(p.product_id)}
+                                        >
+                                            {loadingProductId === String(p.product_id)
+                                                ? <Loader2 className="h-4 w-4 animate-spin" />
+                                                : <Pencil className="h-4 w-4" />}
+                                        </Button>
                                     </div>
+                                ))
+                        )}
+                    </div>
+                    {(outOfStockItems.length + lowStockItems.length) > 0 && (
+                        <div className="px-4 pb-4">
+                            <a href="/employee/inventory?availability=stock-alerts" className="flex items-center gap-1 text-xs font-medium text-[#E7A3B0]">
+                                View all {outOfStockItems.length + lowStockItems.length} in Inventory <ArrowRight className="w-3 h-3" />
+                            </a>
+                        </div>
+                    )}
+                </section>
+
+                <section className="rounded-xl border border-gray-200 bg-white overflow-hidden">
+                    <div className="px-4 py-4 border-b border-gray-100">
+                        <h2 className="text-sm font-semibold text-[#121212] flex items-center gap-2">
+                            <ImageOff className="w-4 h-4 text-amber-500" />
+                            Missing Images
+                        </h2>
+                        <p className="text-xs text-gray-400 mt-0.5">Products without a photo — add one so they show up in the catalog</p>
+                    </div>
+                    <div className="p-4 space-y-2">
+                        {loading ? (
+                            Array.from({ length: 4 }).map((_, i) => (
+                                <Skeleton key={i} className="h-14 w-full rounded-lg" />
+                            ))
+                        ) : missingPhotoItems.length === 0 ? (
+                            <p className="text-sm text-gray-500">All products have images.</p>
+                        ) : (
+                            missingPhotoItems.slice(0, 5).map((p) => (
+                                <div key={p.product_id} className="flex items-center justify-between gap-3 rounded-lg border border-gray-100 px-3 py-2">
+                                    <p className="text-sm font-medium text-[#121212] truncate">{p.product_name}</p>
+                                    <Button
+                                        size="icon"
+                                        variant="outline"
+                                        className="shrink-0 border-blue-200 text-blue-600 bg-blue-50 hover:bg-blue-200 hover:text-blue-700 hover:border-blue-300"
+                                        onClick={() => handleEditClick(String(p.product_id))}
+                                        disabled={loadingProductId === String(p.product_id)}
+                                    >
+                                        {loadingProductId === String(p.product_id)
+                                            ? <Loader2 className="h-4 w-4 animate-spin" />
+                                            : <Pencil className="h-4 w-4" />}
+                                    </Button>
                                 </div>
                             ))
                         )}
                     </div>
+                    {missingPhotoItems.length > 0 && (
+                        <div className="px-4 pb-4">
+                            <a href="/employee/inventory?availability=no-image" className="flex items-center gap-1 text-xs font-medium text-[#E7A3B0]">
+                                View all {missingPhotoItems.length} in Inventory <ArrowRight className="w-3 h-3" />
+                            </a>
+                        </div>
+                    )}
                 </section>
+            </div>
 
+            <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
                 <section className="rounded-xl border border-gray-200 bg-white overflow-hidden">
                     <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
                         <h2 className="text-sm font-semibold text-[#121212] flex items-center gap-2">
@@ -356,9 +417,8 @@ export default function EmployeeDashboard() {
                         )}
                     </div>
                 </section>
-            </div>
 
-            <section className="rounded-xl border border-gray-200 bg-white overflow-hidden">
+                <section className="rounded-xl border border-gray-200 bg-white overflow-hidden">
                 <div className="px-4 py-3 border-b border-gray-100 flex items-center gap-2">
                     <Package className="w-4 h-4 text-[#E7A3B0]" />
                     <h2 className="text-sm font-semibold text-[#121212]">Activity Log</h2>
@@ -381,7 +441,18 @@ export default function EmployeeDashboard() {
                         ))
                     )}
                 </div>
-            </section>
+                </section>
+            </div>
+
+            {editingProduct && (
+                <AddProduct
+                    isOpen={true}
+                    onClose={() => setEditingProduct(null)}
+                    categories={categories}
+                    productToEdit={editingProduct}
+                    onProductSaved={() => { setEditingProduct(null); fetchDashboardData(true); }}
+                />
+            )}
         </div>
     );
 }

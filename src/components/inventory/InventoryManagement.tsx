@@ -36,9 +36,10 @@ import {
 
 interface InventoryManagementProps {
   isAdmin?: boolean;
+  initialAvailabilityFilter?: string;
 }
 
-export default function InventoryManagement({ isAdmin = false }: InventoryManagementProps) {
+export default function InventoryManagement({ isAdmin = false, initialAvailabilityFilter }: InventoryManagementProps) {
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
@@ -47,7 +48,7 @@ export default function InventoryManagement({ isAdmin = false }: InventoryManage
   
   const [searchQuery, setSearchQuery] = useState("");
   const [visibilityFilter, setVisibilityFilter] = useState("all");
-  const [availabilityFilter, setAvailabilityFilter] = useState("all");
+  const [availabilityFilter, setAvailabilityFilter] = useState(initialAvailabilityFilter ?? "all");
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [dateSort, setDateSort] = useState<"newest" | "oldest">("newest");
   const [selectedProducts, setSelectedProducts] = useState<Set<string>>(new Set());
@@ -162,7 +163,9 @@ export default function InventoryManagement({ isAdmin = false }: InventoryManage
         const matchesAvailability = availabilityFilter === "all" ||
           (availabilityFilter === "in-stock" && product.product_stock >= lowStockThreshold) ||
           (availabilityFilter === "low-stock" && product.product_stock > 0 && product.product_stock < lowStockThreshold) ||
-          (availabilityFilter === "out-of-stock" && product.product_stock === 0);
+          (availabilityFilter === "out-of-stock" && product.product_stock === 0) ||
+          (availabilityFilter === "stock-alerts" && product.product_stock < lowStockThreshold) ||
+          (availabilityFilter === "no-image" && !product.image_id);
         const matchesVisibility = visibilityFilter === "all" ||
           (visibilityFilter === "published" && product.show_in_catalog) ||
           (visibilityFilter === "unpublished" && !product.show_in_catalog);
@@ -400,6 +403,8 @@ export default function InventoryManagement({ isAdmin = false }: InventoryManage
             <SelectItem value="in-stock">In Stock</SelectItem>
             <SelectItem value="low-stock">Low Stock</SelectItem>
             <SelectItem value="out-of-stock">Out of Stock</SelectItem>
+            <SelectItem value="stock-alerts">Stock Alerts</SelectItem>
+            <SelectItem value="no-image">No Image</SelectItem>
           </SelectContent>
         </Select>
 

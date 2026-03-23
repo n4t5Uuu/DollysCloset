@@ -30,19 +30,19 @@ export const authHelper = {
      * @returns An object containing the current user, if any, and an error if one occurred.
      */
     async getUser() {
-        const { data: { session }, error: sessionError } = await browserSupabase.auth.getSession();
+        const { data: { user }, error: userError } = await browserSupabase.auth.getUser();
 
-        if (sessionError) {
-            console.warn("Error Getting Session: ", sessionError)
-            const errorMsg = sessionError.message.toLowerCase();
-            const shouldClear = errorMsg.includes('invalid') || 
-                                errorMsg.includes('refresh token') || 
+        if (userError) {
+            console.warn("Error Getting User: ", userError)
+            const errorMsg = userError.message.toLowerCase();
+            const shouldClear = errorMsg.includes('invalid') ||
+                                errorMsg.includes('refresh token') ||
                                 errorMsg.includes('grant');
 
             if (shouldClear) {
                 // Clear the defective token automatically so the user isn't stuck
                 await browserSupabase.auth.signOut().catch(() => {});
-                
+
                 if (typeof window !== 'undefined') {
                     // Clear both localStorage and cookies starting with sb- to ensure full cleanup
                     for (const key of Object.keys(localStorage)) {
@@ -50,7 +50,7 @@ export const authHelper = {
                             localStorage.removeItem(key);
                         }
                     }
-                    
+
                     document.cookie.split(';').forEach((cookie) => {
                         const [name] = cookie.split('=');
                         if (name.trim().startsWith('sb-')) {
@@ -59,14 +59,14 @@ export const authHelper = {
                     });
                 }
             }
-            return { user: null, error: sessionError };
+            return { user: null, error: userError };
         }
 
-        if (!session?.user) {
+        if (!user) {
             return { user: null, error: null };
         }
 
-        return { user: session.user, error: null };
+        return { user, error: null };
     },
 
     
