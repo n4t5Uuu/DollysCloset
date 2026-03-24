@@ -6,9 +6,10 @@ import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { AlertTriangle, Search, X, Eye } from "lucide-react";
+import { AlertTriangle, Calendar, ChevronDown, ChevronLeft, ChevronRight, ClipboardList, Search, X, Eye } from "lucide-react";
 import CustomPagination from "@/components/general-components/CustomPagination";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -20,6 +21,8 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+
+const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
 interface ActivityLog {
   log_id: number;
@@ -101,8 +104,11 @@ export default function ActivityLogsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
-  const [sortOrder, setSortOrder] = useState<"desc" | "asc">("desc");
+  const [selectedMonth, setSelectedMonth] = useState<{ month: number; year: number } | null>(null);
+  const [pickerYear, setPickerYear] = useState(new Date().getFullYear());
+  const [showPicker, setShowPicker] = useState(false);
   const [viewLog, setViewLog] = useState<ActivityLog | null>(null);
+  const pickerRef = useRef<HTMLDivElement>(null);
   const itemsPerPage = 10;
   const isFetchingRef = useRef(false);
   const isMountedRef = useRef(true);
@@ -177,30 +183,43 @@ export default function ActivityLogsPage() {
     };
   }, [fetchLogs]);
 
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (pickerRef.current && !pickerRef.current.contains(e.target as Node)) {
+        setShowPicker(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
   const filteredLogs = useMemo(() => {
     const query = searchQuery.trim().toLowerCase();
-    if (!query) return logs;
-
-    return logs.filter((log) =>
-      log.description?.toLowerCase().includes(query) ||
-      log.action_type?.toLowerCase().includes(query) ||
-      log.product_id?.toString().includes(query) ||
-      log.editor?.toLowerCase().includes(query) ||
-      log.user_id?.toString().includes(query)
-    );
-  }, [logs, searchQuery]);
+    return logs.filter((log) => {
+      const matchesSearch = !query || (
+        log.description?.toLowerCase().includes(query) ||
+        log.action_type?.toLowerCase().includes(query) ||
+        log.product_id?.toString().includes(query) ||
+        log.editor?.toLowerCase().includes(query) ||
+        log.user_id?.toString().includes(query)
+      );
+      const matchesMonth = !selectedMonth || (() => {
+        const d = new Date(log.created_at);
+        return d.getMonth() === selectedMonth.month && d.getFullYear() === selectedMonth.year;
+      })();
+      return matchesSearch && matchesMonth;
+    });
+  }, [logs, searchQuery, selectedMonth]);
 
   useEffect(() => {
     router.replace(pathname);
-  }, [searchQuery, sortOrder, logs.length, router, pathname]);
+  }, [searchQuery, selectedMonth, logs.length, router, pathname]);
 
   const sortedLogs = useMemo(() => {
-    return [...filteredLogs].sort((a, b) => {
-      const timeA = new Date(a.created_at).getTime();
-      const timeB = new Date(b.created_at).getTime();
-      return sortOrder === "desc" ? timeB - timeA : timeA - timeB;
-    });
-  }, [filteredLogs, sortOrder]);
+    return [...filteredLogs].sort((a, b) =>
+      new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+    );
+  }, [filteredLogs]);
 
   const totalPages = Math.max(1, Math.ceil(sortedLogs.length / itemsPerPage));
   const safePage = Math.min(currentPage, totalPages);
@@ -240,7 +259,7 @@ export default function ActivityLogsPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold">Activity Logs</h1>
-          <p className="text-gray-600">Inventory actions by admin or employee.</p>
+          <p className="text-gray-500 text-sm">Inventory actions by admin or employee.</p>
         </div>
         <AlertDialog>
           <AlertDialogTrigger asChild>
@@ -288,12 +307,62 @@ export default function ActivityLogsPage() {
             className="pl-10"
           />
         </div>
-        <Button
-          variant="outline"
-          onClick={() => setSortOrder((prev) => (prev === "desc" ? "asc" : "desc"))}
-        >
-          Sort: {sortOrder === "desc" ? "Newest" : "Oldest"}
-        </Button>
+        <div className="relative" ref={pickerRef}>
+          <Button
+            variant="outline"
+            onClick={() => setShowPicker((p) => !p)}
+            className="flex items-center gap-2"
+          >
+            <Calendar className="w-4 h-4" />
+            {selectedMonth ? `${MONTHS[selectedMonth.month]} ${selectedMonth.year}` : "All Months"}
+            <ChevronDown className="w-4 h-4" />
+          </Button>
+          {showPicker && (
+            <div className="absolute left-0 z-10 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg p-3 w-60">
+              <div className="flex items-center justify-between mb-3">
+                <button
+                  onClick={() => setPickerYear((y) => y - 1)}
+                  className="p-1 hover:bg-gray-100 rounded cursor-pointer"
+                >
+                  <ChevronLeft className="w-4 h-4" />
+                </button>
+                <span className="font-medium text-sm">{pickerYear}</span>
+                <button
+                  onClick={() => setPickerYear((y) => y + 1)}
+                  className="p-1 hover:bg-gray-100 rounded cursor-pointer"
+                >
+                  <ChevronRight className="w-4 h-4" />
+                </button>
+              </div>
+              <div className="grid grid-cols-3 gap-1.5">
+                {MONTHS.map((month, index) => (
+                  <button
+                    key={month}
+                    onClick={() => {
+                      setSelectedMonth({ month: index, year: pickerYear });
+                      setShowPicker(false);
+                    }}
+                    className={`text-xs py-2 rounded-md transition-colors cursor-pointer ${
+                      selectedMonth?.month === index && selectedMonth?.year === pickerYear
+                        ? "bg-[#E7A3B0] text-white"
+                        : "hover:bg-gray-100 text-gray-700"
+                    }`}
+                  >
+                    {month}
+                  </button>
+                ))}
+              </div>
+              {selectedMonth && (
+                <button
+                  onClick={() => { setSelectedMonth(null); setShowPicker(false); }}
+                  className="w-full mt-2 text-xs text-gray-500 hover:text-gray-700 py-1.5 hover:bg-gray-50 rounded-md transition-colors cursor-pointer"
+                >
+                  Clear filter
+                </button>
+              )}
+            </div>
+          )}
+        </div>
         <span className="text-sm text-gray-600">
           {filteredLogs.length > 0
             ? `Showing ${startIndex + 1}-${Math.min(endIndex, filteredLogs.length)} of ${filteredLogs.length} logs`
@@ -308,26 +377,23 @@ export default function ActivityLogsPage() {
             <Skeleton key={i} className="h-14 w-full rounded-md" />
           ))}
         </div>
-      ) : filteredLogs.length === 0 ? (
-        <div className="rounded-lg border border-dashed border-gray-300 p-12 text-center text-gray-600">
-          {logs.length === 0 ? "No activity logs yet." : "No logs match your search."}
-        </div>
       ) : (
-        <div className="bg-white rounded-lg border overflow-hidden">
-            <Table className="w-full table-fixed">
-              <TableHeader className="border-b bg-gray-50">
-                <TableRow>
-                  <TableHead className="p-4 font-bold w-[194px]">Date & Time</TableHead>
-                  <TableHead className="p-4 font-bold w-[235px]">Action</TableHead>
-                  <TableHead className="p-4 font-bold w-[115px]">Product ID</TableHead>
-                  <TableHead className="p-4 font-bold w-[158px]">User ID</TableHead>
-                  <TableHead className="p-4 font-bold">Description</TableHead>
-                  <TableHead className="p-4 font-bold w-[190px]">Editor</TableHead>
-                  <TableHead className="p-4 font-bold w-[70px] text-center">View</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {paginatedLogs.map((log) => (
+        <div className="bg-white rounded-lg border overflow-x-auto">
+          <Table className="w-full">
+            <TableHeader className="border-b bg-gray-50">
+              <TableRow>
+                <TableHead className="p-4 font-bold">Date & Time</TableHead>
+                <TableHead className="p-4 font-bold">Action</TableHead>
+                <TableHead className="p-4 font-bold">Product ID</TableHead>
+                <TableHead className="p-4 font-bold">User ID</TableHead>
+                <TableHead className="p-4 font-bold w-[30%]">Description</TableHead>
+                <TableHead className="p-4 font-bold">Editor</TableHead>
+                <TableHead className="p-4 font-bold text-center w-[100px]">Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {paginatedLogs.length > 0 ? (
+                paginatedLogs.map((log) => (
                   <TableRow key={log.log_id} className="border-b hover:bg-gray-50">
                     <TableCell className="p-4 text-sm text-gray-700">
                       <div className="line-clamp-2 wrap-break-word">{new Date(log.created_at).toLocaleString()}</div>
@@ -347,28 +413,47 @@ export default function ActivityLogsPage() {
                         {employeeManagementActions.has(log.action_type) ? (log.user_id || "—") : "—"}
                       </div>
                     </TableCell>
-                    <TableCell className="p-4 text-sm text-gray-600">
-                      <div className="line-clamp-2">{log.description || "—"}</div>
+                    <TableCell className="p-4 text-sm text-gray-600 max-w-0 overflow-hidden">
+                      <div className="line-clamp-2 break-words">{log.description || "—"}</div>
                     </TableCell>
                     <TableCell className="p-4 text-sm text-gray-600">
                       <div className="line-clamp-2 break-all">
                         {log.editor || "—"}
                       </div>
                     </TableCell>
-                    <TableCell className="p-4 text-center">
-                      <Button
-                        size="icon"
-                        variant="outline"
-                        className="border-pink-200 text-pink-600 bg-pink-50 hover:bg-pink-200 hover:text-pink-700 hover:border-pink-300"
-                        onClick={() => setViewLog(log)}
-                      >
-                        <Eye className="h-4 w-4" />
-                      </Button>
+                    <TableCell className="p-4">
+                      <div className="flex justify-center">
+                        <Button
+                          size="icon"
+                          variant="outline"
+                          className="border-pink-200 text-pink-600 bg-pink-50 hover:bg-pink-200 hover:text-pink-700 hover:border-pink-300"
+                          onClick={() => setViewLog(log)}
+                        >
+                          <Eye className="h-4 w-4" />
+                        </Button>
+                      </div>
                     </TableCell>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                ))
+              ) : (
+                <TableRow>
+                  <TableCell colSpan={7} className="p-0 border-none">
+                    <Empty className="border-none rounded-none py-12">
+                      <EmptyHeader>
+                        <EmptyMedia variant="icon">
+                          <ClipboardList className="size-6 text-[#E7A3B0]" />
+                        </EmptyMedia>
+                        <EmptyTitle>No activity logs found</EmptyTitle>
+                        <EmptyDescription>
+                          {logs.length === 0 ? "No activity has been recorded yet." : "No logs match your current search or filter."}
+                        </EmptyDescription>
+                      </EmptyHeader>
+                    </Empty>
+                  </TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
         </div>
       )}
 

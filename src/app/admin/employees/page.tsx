@@ -37,7 +37,6 @@ export default function EmployeesPage() {
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
-  const [sortConfig, setSortConfig] = useState({ key: "user_key", direction: "asc" });
   const [selectedRows, setSelectedRows] = useState<Set<string>>(new Set());
   const itemsPerPage = 10;
 
@@ -100,32 +99,16 @@ export default function EmployeesPage() {
   });
 
 
-  const sortedEmployees = [...filteredEmployees].sort((a, b) => {
-    const aValue = a[sortConfig.key as keyof typeof a];
-    const bValue = b[sortConfig.key as keyof typeof b];
-
-    if (aValue < bValue) return sortConfig.direction === "asc" ? -1 : 1;
-    if (aValue > bValue) return sortConfig.direction === "asc" ? 1 : -1;
-    return 0;
-  });
-
-  const totalPages = Math.max(1, Math.ceil(sortedEmployees.length / itemsPerPage));
+  const totalPages = Math.max(1, Math.ceil(filteredEmployees.length / itemsPerPage));
   const safePage = Math.min(currentPage, totalPages);
   const startIndex = (safePage - 1) * itemsPerPage;
   const endIndex = startIndex + itemsPerPage;
-  const currentEmployees = sortedEmployees.slice(startIndex, endIndex);
+  const currentEmployees = filteredEmployees.slice(startIndex, endIndex);
 
-  // Reset page when search or sort changes
+  // Reset page when search changes
   useEffect(() => {
     router.replace(pathname);
-  }, [searchTerm, sortConfig, router, pathname]);
-
-  const toggleSort = (key: string) => {
-    setSortConfig({
-      key,
-      direction: sortConfig.key === key && sortConfig.direction === "asc" ? "desc" : "asc",
-    });
-  };
+  }, [searchTerm, router, pathname]);
 
   const toggleSelectAll = () => {
     if (selectedRows.size === currentEmployees.length && currentEmployees.length > 0) {
@@ -282,24 +265,20 @@ export default function EmployeesPage() {
 
 
   return (
-    <div className="p-6 min-h-screen bg-linear-to-br from-[#faf8f8] via-white to-[#f5f0f0]">
-      <div className="w-full space-y-6">
-        {/* Header */}
-        <div className="mb-8">
-          <div className="flex items-center justify-between mb-2">
-            <h1 className="text-4xl font-bold bg-linear-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent">
-              Manage Employees
-            </h1>
-            <button
-              onClick={openAddModal}
-              className="flex items-center gap-2 px-5 py-2.5 bg-linear-to-r from-[#E7A3B0] to-[#f0b8c3] hover:from-[#d891a0] hover:to-[#E7A3B0] text-white rounded-lg font-medium transition-all duration-300 shadow-md hover:shadow-lg hover:scale-105 cursor-pointer"
-            >
-              <Plus size={18} />
-              Add Employee
-            </button>
-          </div>
-          <p className="text-gray-600 text-sm">Manage staff members, roles, and permissions</p>
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold">Manage Employees</h1>
+          <p className="text-gray-500 text-sm">Manage staff members, roles, and permissions</p>
         </div>
+        <button
+          onClick={openAddModal}
+          className="flex items-center gap-2 px-5 py-2.5 bg-linear-to-r from-[#E7A3B0] to-[#f0b8c3] hover:from-[#d891a0] hover:to-[#E7A3B0] text-white rounded-lg font-medium transition-all duration-300 shadow-md hover:shadow-lg hover:scale-105 cursor-pointer"
+        >
+          <Plus size={18} />
+          Add Employee
+        </button>
+      </div>
 
         {/* Global Error Message */}
         {error && (
@@ -331,7 +310,7 @@ export default function EmployeesPage() {
 
         <div className="flex items-center justify-between flex-wrap gap-4 mb-4">
           <div className="text-sm text-gray-600">
-            Showing {currentEmployees.length > 0 ? startIndex + 1 : 0}-{Math.min(endIndex, sortedEmployees.length)} of {sortedEmployees.length} employees
+            Showing {currentEmployees.length > 0 ? startIndex + 1 : 0}-{Math.min(endIndex, filteredEmployees.length)} of {filteredEmployees.length} employees
           </div>
           <div className="flex gap-3">
             {selectedRows.size > 0 && (
@@ -360,22 +339,19 @@ export default function EmployeesPage() {
             selectedRows={selectedRows}
             toggleSelectAll={toggleSelectAll}
             toggleSelectRow={toggleSelectRow}
-            sortConfig={sortConfig}
-            toggleSort={toggleSort}
             openViewModal={openViewModal}
             openEditModal={openEditModal}
             openDeleteModal={openDeleteModal}
           />
         )}
         
-        {/* Footer Stats & Pagination */}
-        <div className="flex flex-col gap-4 mt-2">
-          <CustomPagination
-            currentPage={safePage}
-            totalPages={totalPages}
-            onPageChange={handlePageChange}
-          />
-        </div>
+      {/* Footer Stats & Pagination */}
+      <div className="flex flex-col gap-4 mt-2">
+        <CustomPagination
+          currentPage={safePage}
+          totalPages={totalPages}
+          onPageChange={handlePageChange}
+        />
       </div>
 
       {/* Add Employee Modal */}

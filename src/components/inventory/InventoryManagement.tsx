@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useEffect, useMemo, useCallback } from "react";
+import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { useSearchParams, useRouter, usePathname } from "next/navigation";
-import { Plus, Trash, AlertTriangle, Search, X, Upload } from "lucide-react";
+import { Plus, Trash, AlertTriangle, Search, X, Upload, SlidersHorizontal } from "lucide-react";
 import { browserSupabase } from "@/lib/supabase/browser";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -68,6 +68,8 @@ export default function InventoryManagement({ isAdmin = false, initialAvailabili
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [dateSort, setDateSort] = useState<"newest" | "oldest">("newest");
   const [selectedProducts, setSelectedProducts] = useState<Set<string>>(new Set());
+  const [showFilters, setShowFilters] = useState(false);
+  const filtersRef = useRef<HTMLDivElement>(null);
   const [showAddModal, setShowAddModal] = useState(false);
   const [viewProduct, setViewProduct] = useState<Product | null>(null);
   const [viewImages, setViewImages] = useState<ProductImage[]>([]);
@@ -123,6 +125,16 @@ export default function InventoryManagement({ isAdmin = false, initialAvailabili
     };
     initializeInventory();
   }, [fetchProducts, fetchCategories]);
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (filtersRef.current && !filtersRef.current.contains(e.target as Node)) {
+        setShowFilters(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   useEffect(() => {
     router.replace(pathname);
@@ -352,30 +364,28 @@ export default function InventoryManagement({ isAdmin = false, initialAvailabili
   };
 
   return (
-    <div className="p-6 space-y-6">
-      <div className="mb-8">
-        <div className="flex items-center justify-between mb-2">
-          <h1 className="text-4xl font-bold bg-linear-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent">
-            Manage Inventory
-          </h1>
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => setShowBulkImport(true)}
-              className="flex items-center gap-2 px-5 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-800 rounded-lg font-medium transition-all duration-300 shadow-sm hover:shadow-md hover:scale-105 cursor-pointer"
-            >
-              <Upload size={18} />
-              Import
-            </button>
-            <button
-              onClick={openAddModal}
-              className="flex items-center gap-2 px-5 py-2.5 bg-linear-to-r from-[#E7A3B0] to-[#f0b8c3] hover:from-[#d891a0] hover:to-[#E7A3B0] text-white rounded-lg font-medium transition-all duration-300 shadow-md hover:shadow-lg hover:scale-105 cursor-pointer"
-            >
-              <Plus size={18} />
-              Add Product
-            </button>
-          </div>
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold">Manage Inventory</h1>
+          <p className="text-gray-500 text-sm">Create, update, and organize products and categories.</p>
         </div>
-        <p className="text-gray-600 text-sm">Create, update, and organize products and categories.</p>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setShowBulkImport(true)}
+            className="flex items-center gap-2 px-5 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-800 rounded-lg font-medium transition-all duration-300 shadow-sm hover:shadow-md hover:scale-105 cursor-pointer"
+          >
+            <Upload size={18} />
+            Import
+          </button>
+          <button
+            onClick={openAddModal}
+            className="flex items-center gap-2 px-5 py-2.5 bg-linear-to-r from-[#E7A3B0] to-[#f0b8c3] hover:from-[#d891a0] hover:to-[#E7A3B0] text-white rounded-lg font-medium transition-all duration-300 shadow-md hover:shadow-lg hover:scale-105 cursor-pointer"
+          >
+            <Plus size={18} />
+            Add Product
+          </button>
+        </div>
       </div>
 
       {error && (
@@ -391,7 +401,7 @@ export default function InventoryManagement({ isAdmin = false, initialAvailabili
         </div>
       )}
 
-      <div className="flex items-center gap-4 mb-6 flex-wrap">
+      <div className="flex items-center gap-3 flex-wrap">
         <div className="relative flex-1 min-w-[200px]">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
           <Input
@@ -403,39 +413,96 @@ export default function InventoryManagement({ isAdmin = false, initialAvailabili
           />
         </div>
 
-        <Select value={visibilityFilter} onValueChange={setVisibilityFilter}>
-          <SelectTrigger className="w-[180px] text-gray-900 bg-white">
-            <SelectValue placeholder="Visibility" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All</SelectItem>
-            <SelectItem value="published">Published</SelectItem>
-            <SelectItem value="unpublished">Unpublished</SelectItem>
-          </SelectContent>
-        </Select>
-
-        <Select value={availabilityFilter} onValueChange={setAvailabilityFilter}>
-          <SelectTrigger className="w-[180px] text-gray-900 bg-white">
-            <SelectValue placeholder="Availability" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All</SelectItem>
-            <SelectItem value="in-stock">In Stock</SelectItem>
-            <SelectItem value="low-stock">Low Stock</SelectItem>
-            <SelectItem value="out-of-stock">Out of Stock</SelectItem>
-            <SelectItem value="stock-alerts">Stock Alerts</SelectItem>
-            <SelectItem value="no-image">No Image</SelectItem>
-          </SelectContent>
-        </Select>
-
-        <CategoryCascadingFilter
-          categories={categories}
-          value={categoryFilter}
-          onValueChange={setCategoryFilter}
-        />
+        {/* Filters popover */}
+        <div className="relative" ref={filtersRef}>
+          <Button
+            variant="outline"
+            onClick={() => setShowFilters((p) => !p)}
+            className="flex items-center gap-2"
+          >
+            <SlidersHorizontal className="w-4 h-4" />
+            Filters
+            {[visibilityFilter !== "all", availabilityFilter !== "all", categoryFilter !== "all"].filter(Boolean).length > 0 && (
+              <span className="ml-1 flex h-5 w-5 items-center justify-center rounded-full bg-[#E7A3B0] text-[10px] font-semibold text-white">
+                {[visibilityFilter !== "all", availabilityFilter !== "all", categoryFilter !== "all"].filter(Boolean).length}
+              </span>
+            )}
+          </Button>
+          {showFilters && (
+            <div className="absolute left-0 z-20 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg p-4 w-72 space-y-4">
+              {/* Visibility */}
+              <div>
+                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Visibility</p>
+                <div className="flex gap-1.5 flex-wrap">
+                  {[["all", "All"], ["published", "Published"], ["unpublished", "Unpublished"]].map(([v, l]) => (
+                    <button
+                      key={v}
+                      onClick={() => setVisibilityFilter(v)}
+                      className={`px-3 py-1.5 text-xs rounded-full border transition-colors cursor-pointer ${
+                        visibilityFilter === v
+                          ? "bg-[#E7A3B0] text-white border-[#E7A3B0]"
+                          : "border-gray-200 text-gray-600 hover:border-gray-300 hover:bg-gray-50"
+                      }`}
+                    >
+                      {l}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              {/* Availability */}
+              <div>
+                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Availability</p>
+                <div className="flex gap-1.5 flex-wrap">
+                  {[
+                    ["all", "All"],
+                    ["in-stock", "In Stock"],
+                    ["low-stock", "Low Stock"],
+                    ["out-of-stock", "Out of Stock"],
+                    ["stock-alerts", "Stock Alerts"],
+                    ["no-image", "No Image"],
+                  ].map(([v, l]) => (
+                    <button
+                      key={v}
+                      onClick={() => setAvailabilityFilter(v)}
+                      className={`px-3 py-1.5 text-xs rounded-full border transition-colors cursor-pointer ${
+                        availabilityFilter === v
+                          ? "bg-[#E7A3B0] text-white border-[#E7A3B0]"
+                          : "border-gray-200 text-gray-600 hover:border-gray-300 hover:bg-gray-50"
+                      }`}
+                    >
+                      {l}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              {/* Category */}
+              <div>
+                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Category</p>
+                <CategoryCascadingFilter
+                  categories={categories}
+                  value={categoryFilter}
+                  onValueChange={setCategoryFilter}
+                />
+              </div>
+              {/* Clear all */}
+              {(visibilityFilter !== "all" || availabilityFilter !== "all" || categoryFilter !== "all") && (
+                <button
+                  onClick={() => {
+                    setVisibilityFilter("all");
+                    setAvailabilityFilter("all");
+                    setCategoryFilter("all");
+                  }}
+                  className="w-full text-xs text-gray-500 hover:text-gray-700 py-1.5 hover:bg-gray-50 rounded-md transition-colors cursor-pointer border border-gray-200"
+                >
+                  Clear all filters
+                </button>
+              )}
+            </div>
+          )}
+        </div>
 
         <Select value={dateSort} onValueChange={(value) => setDateSort(value as "newest" | "oldest")}>
-          <SelectTrigger className="w-[180px] text-gray-900 bg-white">
+          <SelectTrigger className="w-[150px] text-gray-900 bg-white">
             <SelectValue placeholder="Sort Date" />
           </SelectTrigger>
           <SelectContent>
@@ -464,7 +531,6 @@ export default function InventoryManagement({ isAdmin = false, initialAvailabili
       <div className="flex items-center justify-between flex-wrap gap-4 mb-4">
         <div className="text-sm text-gray-600">
           Showing {filteredProducts.length > 0 ? startIndex + 1 : 0}-{Math.min(endIndex, filteredProducts.length)} of {filteredProducts.length} items
-          <span className="ml-2 text-gray-500">• Date Sort: {dateSortLabel}</span>
         </div>
         <div className="flex gap-3">
           {selectedProducts.size > 0 && (

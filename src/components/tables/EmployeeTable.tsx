@@ -1,8 +1,7 @@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
-import { Eye, Pencil, Trash2, Search, Users } from "lucide-react";
-import { SortableHeader } from "./SortableHeader";
+import { Eye, Pencil, Trash2, Users } from "lucide-react";
 import { Employee } from "@/types/employee.types";
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty";
 
@@ -11,8 +10,6 @@ interface EmployeeTableProps {
   selectedRows: Set<string>;
   toggleSelectAll: () => void;
   toggleSelectRow: (id: string) => void;
-  sortConfig: { key: string; direction: string };
-  toggleSort: (key: string) => void;
   openViewModal: (employee: Employee) => void;
   openEditModal: (employee: Employee) => void;
   openDeleteModal: (employee: Employee) => void;
@@ -23,8 +20,6 @@ export function EmployeeTable({
   selectedRows,
   toggleSelectAll,
   toggleSelectRow,
-  sortConfig,
-  toggleSort,
   openViewModal,
   openEditModal,
   openDeleteModal,
@@ -42,12 +37,12 @@ export function EmployeeTable({
                   onCheckedChange={toggleSelectAll}
                 />
               </TableHead>
-              <SortableHeader label="User ID" sortKey="user_key" sortConfig={sortConfig} onSort={toggleSort} />
-              <SortableHeader label="Username" sortKey="username" sortConfig={sortConfig} onSort={toggleSort} />
-              <SortableHeader label="First Name" sortKey="first_name" sortConfig={sortConfig} onSort={toggleSort} />
-              <SortableHeader label="Last Name" sortKey="last_name" sortConfig={sortConfig} onSort={toggleSort} />
-              <SortableHeader label="Joined" sortKey="created_at" sortConfig={sortConfig} onSort={toggleSort} />
-              <SortableHeader label="Last Updated" sortKey="updated_at" sortConfig={sortConfig} onSort={toggleSort} />
+              <TableHead className="p-4 font-bold">User ID</TableHead>
+              <TableHead className="p-4 font-bold">Username</TableHead>
+              <TableHead className="p-4 font-bold">First Name</TableHead>
+              <TableHead className="p-4 font-bold">Last Name</TableHead>
+              <TableHead className="p-4 font-bold">Joined</TableHead>
+              <TableHead className="p-4 font-bold">Last Updated</TableHead>
               <TableHead className="p-4 text-center font-bold w-[200px]">Actions</TableHead>
             </TableRow>
           </TableHeader>
