@@ -31,7 +31,7 @@ export default async function EmployeeLayout({
         <div className="flex min-h-screen w-full bg-gray-50">
           <EmployeeSidebar />
           <SidebarInset className="flex-1 flex flex-col">
-<div className="flex-1 p-8">
+            <div className="flex-1 p-8">
               {children}
             </div>
           </SidebarInset>
