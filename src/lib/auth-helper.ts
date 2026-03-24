@@ -85,7 +85,7 @@ export const authHelper = {
 
         if (error) {
             console.error(`Error Fetching Role for User ${user_id}: `, error);
-            throw error;
+            return { data: null, error };
         }
 
         return { data, error };
@@ -121,5 +121,41 @@ export const authHelper = {
         }
         
         return { success: true, error: null };
+    },
+
+    /**
+     * Sends a password reset email to the specified user email address.
+     * @param email - The email address to send the reset link to.
+     * @param redirectTo - The URL that the user will be redirected to after clicking the email link.
+     */
+    async resetPasswordForEmail(email: string, redirectTo: string) {
+        const { data, error } = await browserSupabase.auth.resetPasswordForEmail(email, {
+            redirectTo: redirectTo
+        });
+        if (error) {
+            console.warn("Error Sending Reset Email: ", error);
+            return { data: null, error };
+        }
+        return { data, error };
+    },
+
+    /**
+     * Updates the user's password.
+     * @param password - The new password that the user wants to set.
+     */
+    async updatePassword(password: string) {
+        try {
+            const { data, error } = await browserSupabase.auth.updateUser({
+                password: password
+            });
+            if (error) {
+                console.warn("Error Updating Password: ", error);
+                return { data: null, error };
+            }
+            return { data, error };
+        } catch (err: any) {
+            console.error("Critical Exception Updating Password: ", err);
+            return { data: null, error: err };
+        }
     }
 }

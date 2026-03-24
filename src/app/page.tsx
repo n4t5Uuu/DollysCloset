@@ -211,10 +211,16 @@ export default function Home() {
             </button>
           </div>
 
+          <div className="flex justify-center mt-2">
+            <a href="/forgot-password" className="text-[13px] font-medium text-[#828282] hover:text-[#E7A3B0] transition-colors duration-200">
+              Forgot Password?
+            </a>
+          </div>
+
           <button 
             type="submit" 
             disabled={loading}
-            className="w-full bg-linear-to-r from-[#E7A3B0] to-[#E2899A] text-white font-bold py-[18px] rounded-xl hover:from-[#E2899A] hover:to-[#DE7588] transition-all duration-300 mt-10 text-[15px] tracking-widest uppercase shadow-[0_8px_20px_-6px_rgba(231,163,176,0.6)] hover:shadow-[0_12px_24px_-6px_rgba(231,163,176,0.8)] hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.98]"
+            className="w-full bg-linear-to-r from-[#E7A3B0] to-[#E2899A] text-white font-bold py-[18px] rounded-xl hover:from-[#E2899A] hover:to-[#DE7588] transition-all duration-300 mt-6 text-[15px] tracking-widest uppercase shadow-[0_8px_20px_-6px_rgba(231,163,176,0.6)] hover:shadow-[0_12px_24px_-6px_rgba(231,163,176,0.8)] hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.98]"
           >
             {loading ? "Logging in..." : "Log In"}
           </button>
