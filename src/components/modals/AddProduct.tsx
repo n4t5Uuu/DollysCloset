@@ -344,11 +344,16 @@ export default function AddProduct({ isOpen, onClose, categories, productToEdit,
                 failedUploads = uploadResult.failedFiles;
             }
 
-            await onProductSaved();
             if (failedUploads.length > 0) {
                 toast.warning(`Product saved, but ${failedUploads.length} image(s) failed to upload. You can re-open Edit Product and upload again.`);
             } else {
                 toast.success(productToEdit ? "Product updated successfully." : "Product added successfully.");
+            }
+
+            try {
+                await onProductSaved();
+            } catch {
+                // Product was saved — don't show an error, the success toast already fired
             }
         } catch (err: unknown) {
             const errorMessage = err instanceof Error ? err.message : 'Failed to save product';

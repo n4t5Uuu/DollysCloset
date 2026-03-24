@@ -120,8 +120,11 @@ export default function InventoryManagement({ isAdmin = false, initialAvailabili
   useEffect(() => {
     const initializeInventory = async () => {
       setLoading(true);
-      await Promise.all([fetchProducts(false), fetchCategories()]);
-      setLoading(false);
+      try {
+        await Promise.all([fetchProducts(false), fetchCategories()]);
+      } finally {
+        setLoading(false);
+      }
     };
     initializeInventory();
   }, [fetchProducts, fetchCategories]);
@@ -319,6 +322,7 @@ export default function InventoryManagement({ isAdmin = false, initialAvailabili
       });
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || 'Failed to delete product');
+      setError(null);
       await fetchProducts();
       toast.success("Product deleted successfully.");
     } catch (err: unknown) {
@@ -352,6 +356,7 @@ export default function InventoryManagement({ isAdmin = false, initialAvailabili
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || 'Failed to delete products');
       setSelectedProducts(new Set());
+      setError(null);
       await fetchProducts();
       toast.success("Selected products deleted successfully.");
     } catch (err: unknown) {

@@ -1,32 +1,16 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useState } from "react";
 import { authHelper } from "@/lib/auth-helper";
-import { browserSupabase } from "@/lib/supabase/browser";
 
 import { Eye, EyeOff } from "lucide-react";
 import { toast } from "sonner";
 
 export default function Home() {
-  const router = useRouter();
-
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
-
-  // Sign out any existing sessions when accessing the login page
-  useEffect(() => {
-    async function signOutExistingUser() {
-        const { user } = await authHelper.getUser();
-        if (user) {
-            await authHelper.signOut();
-        }
-    }
-  
-    signOutExistingUser();
-  }, [])
 
   /**
    * Handles the form submission for user login.
@@ -118,7 +102,7 @@ export default function Home() {
       }
 
       toast.success("Login successful. Redirecting to dashboard...");
-      router.push('/dashboard');
+      window.location.href = '/dashboard';
       // Note: We don't set loading to false here to prevent button re-enable during redirect
 
     } catch (err: unknown) {

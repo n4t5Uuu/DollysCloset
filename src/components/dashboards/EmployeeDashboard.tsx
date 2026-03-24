@@ -38,15 +38,10 @@ function extractProductName(description: string, productId: number | string | nu
     return "Product";
 }
 
-let globalEmployeeCache: {
-    products: InventoryProduct[];
-    logs: ActivityLog[];
-} | null = null;
-
 export default function EmployeeDashboard() {
-    const [products, setProducts] = useState<InventoryProduct[]>(globalEmployeeCache?.products || []);
-    const [logs, setLogs] = useState<ActivityLog[]>(globalEmployeeCache?.logs || []);
-    const [loading, setLoading] = useState(globalEmployeeCache === null);
+    const [products, setProducts] = useState<InventoryProduct[]>([]);
+    const [logs, setLogs] = useState<ActivityLog[]>([]);
+    const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [displayName, setDisplayName] = useState("there");
     const [currentUserId, setCurrentUserId] = useState<string | null>(null);
@@ -73,16 +68,12 @@ export default function EmployeeDashboard() {
      */
     const fetchDashboardData = useCallback(async (isBackground = false) => {
         try {
-            if (!isBackground && !globalEmployeeCache) {
-                setLoading(true);
-            }
+            if (!isBackground) setLoading(true);
             setError(null);
 
             const [productsResponse, logsResponse] = await Promise.all([
                 fetch("/api/admin/fetch-products", { cache: "no-store" }),
-                fetch("/api/admin/fetch-logs", {
-                    cache: "no-store",
-                }),
+                fetch("/api/admin/fetch-logs", { cache: "no-store" }),
             ]);
 
             if (!productsResponse.ok) {
@@ -98,17 +89,12 @@ export default function EmployeeDashboard() {
             const productsResult = await productsResponse.json();
             const logsResult = await logsResponse.json();
 
-            const fetchedProducts = productsResult.data || [];
-            const fetchedLogs = logsResult.data || [];
-
-            globalEmployeeCache = { products: fetchedProducts, logs: fetchedLogs };
-
-            setProducts(fetchedProducts);
-            setLogs(fetchedLogs);
+            setProducts(productsResult.data || []);
+            setLogs(logsResult.data || []);
         } catch (err: unknown) {
             console.error("Error loading employee dashboard:", err);
             const errorMsg = err instanceof Error ? err.message : "Failed to load dashboard";
-            
+
             if (errorMsg === "Not authenticated") {
                 window.location.replace("/unauthorized");
                 return;
@@ -116,31 +102,23 @@ export default function EmployeeDashboard() {
 
             setError(errorMsg);
         } finally {
-            if (!isBackground && !globalEmployeeCache) {
-                setLoading(false);
-            } else if (globalEmployeeCache) {
-                setLoading(false);
-            }
+            if (!isBackground) setLoading(false);
         }
     }, []);
 
     const handleEditClick = useCallback(async (productId: string) => {
         setLoadingProductId(productId);
         try {
-            const [productsRes, categoriesRes] = await Promise.all([
-                fetch("/api/admin/fetch-products"),
-                fetch("/api/admin/fetch-categories"),
-            ]);
-            const productsJson = await productsRes.json();
+            const product = products.find(p => String(p.product_id) === productId);
+            if (!product) return;
+
+            const categoriesRes = await fetch("/api/admin/fetch-categories");
             const categoriesJson = await categoriesRes.json();
-            const product = (productsJson.data as InventoryProduct[]).find(p => String(p.product_id) === productId);
-            if (product) {
-                setCategories(categoriesJson.data ?? []);
-                setEditingProduct(product);
-            }
+            setCategories(categoriesJson.data ?? []);
+            setEditingProduct(product);
         } catch { /* silently fail */ }
         finally { setLoadingProductId(null); }
-    }, []);
+    }, [products]);
 
     useEffect(() => {
         fetchProfile().catch(() => {

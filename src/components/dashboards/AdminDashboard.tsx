@@ -38,15 +38,10 @@ function extractProductName(description: string, productId: number | string | nu
     return "Product";
 }
 
-let globalAdminCache: {
-    products: InventoryProduct[];
-    logs: ActivityLog[];
-} | null = null;
-
 export default function AdminDashboard() {
-    const [products, setProducts] = useState<InventoryProduct[]>(globalAdminCache?.products || []);
-    const [logs, setLogs] = useState<ActivityLog[]>(globalAdminCache?.logs || []);
-    const [loading, setLoading] = useState(globalAdminCache === null);
+    const [products, setProducts] = useState<InventoryProduct[]>([]);
+    const [logs, setLogs] = useState<ActivityLog[]>([]);
+    const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [currentUserId, setCurrentUserId] = useState<string | null>(null);
     const [firstName, setFirstName] = useState<string>("");
@@ -67,16 +62,12 @@ export default function AdminDashboard() {
 
     const fetchDashboardData = useCallback(async (isBackground = false) => {
         try {
-            if (!isBackground && !globalAdminCache) {
-                setLoading(true);
-            }
+            if (!isBackground) setLoading(true);
             setError(null);
 
             const [productsResponse, logsResponse] = await Promise.all([
                 fetch("/api/admin/fetch-products", { cache: "no-store" }),
-                fetch("/api/admin/fetch-logs", {
-                    cache: "no-store",
-                }),
+                fetch("/api/admin/fetch-logs", { cache: "no-store" }),
             ]);
 
             if (!productsResponse.ok) {
@@ -92,13 +83,8 @@ export default function AdminDashboard() {
             const productsResult = await productsResponse.json();
             const logsResult = await logsResponse.json();
 
-            const fetchedProducts = productsResult.data || [];
-            const fetchedLogs = logsResult.data || [];
-
-            globalAdminCache = { products: fetchedProducts, logs: fetchedLogs };
-
-            setProducts(fetchedProducts);
-            setLogs(fetchedLogs);
+            setProducts(productsResult.data || []);
+            setLogs(logsResult.data || []);
         } catch (err: unknown) {
             console.error("Error loading admin dashboard:", err);
             const errorMsg = err instanceof Error ? err.message : "Failed to load dashboard";
@@ -110,31 +96,23 @@ export default function AdminDashboard() {
 
             setError(errorMsg);
         } finally {
-            if (!isBackground && !globalAdminCache) {
-                setLoading(false);
-            } else if (globalAdminCache) {
-                setLoading(false);
-            }
+            if (!isBackground) setLoading(false);
         }
     }, []);
 
     const handleEditClick = useCallback(async (productId: string) => {
         setLoadingProductId(productId);
         try {
-            const [productsRes, categoriesRes] = await Promise.all([
-                fetch("/api/admin/fetch-products"),
-                fetch("/api/admin/fetch-categories"),
-            ]);
-            const productsJson = await productsRes.json();
+            const product = products.find(p => String(p.product_id) === productId);
+            if (!product) return;
+
+            const categoriesRes = await fetch("/api/admin/fetch-categories");
             const categoriesJson = await categoriesRes.json();
-            const product = (productsJson.data as InventoryProduct[]).find(p => String(p.product_id) === productId);
-            if (product) {
-                setCategories(categoriesJson.data ?? []);
-                setEditingProduct(product);
-            }
+            setCategories(categoriesJson.data ?? []);
+            setEditingProduct(product);
         } catch { /* silently fail */ }
         finally { setLoadingProductId(null); }
-    }, []);
+    }, [products]);
 
     useEffect(() => {
         fetchProfile().catch(() => {

@@ -24,7 +24,8 @@ export const employeeHelper = {
     async getUsers(supabase = browserSupabase) {
         const { data, error } = await supabase
             .from("tbl_users")
-            .select("*");
+            .select("*")
+            .order("user_key", { ascending: true });
 
         if (error) {
             console.error("Error Fetching Users: ", error);

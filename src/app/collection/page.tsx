@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import Catalog from "@/app/catalog"
 
 export const metadata = {
@@ -7,6 +8,8 @@ export const metadata = {
 
 export default function CollectionPage() {
     return (
-        <Catalog />
+        <Suspense>
+            <Catalog />
+        </Suspense>
     );
 }
