@@ -6,7 +6,6 @@ import { createServerSupabase } from "@/lib/supabase/server";
 
 import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
 import ClientAuthGuard from "@/components/auth/ClientAuthGuard";
-import LogoutButton from "@/components/general-components/LogoutButton";
 
 export const dynamic = "force-dynamic";
 
@@ -37,9 +36,6 @@ export default async function AdminLayout({
         <div className="flex min-h-screen w-full bg-gray-50">
           <AdminSidebar />
           <SidebarInset className="flex-1 flex flex-col">
-            <header className="flex items-center justify-end px-8 py-4 border-b border-gray-200 bg-white">
-              <LogoutButton />
-            </header>
             <div className="flex-1 p-8">
               {children}
             </div>

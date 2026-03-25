@@ -200,7 +200,7 @@ export function AnalyticsDashboard({ selectedMonth }: { selectedMonth?: string }
         <h2 className="text-base font-semibold mb-4" style={{ color: '#111827' }}>Daily Traffic — Last 30 Days</h2>
         <div id="pdf-chart-traffic">
         <ResponsiveContainer width="100%" height={280}>
-          <LineChart data={chartData} margin={{ top: 4, right: 16, left: 0, bottom: 0 }}>
+          <LineChart data={chartData} margin={{ top: 4, right: 40, left: 0, bottom: 0 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" />
             <XAxis
               dataKey="date"
@@ -209,7 +209,8 @@ export function AnalyticsDashboard({ selectedMonth }: { selectedMonth?: string }
               tickLine={false}
               axisLine={false}
             />
-            <YAxis tick={{ fontSize: 11, fill: '#9ca3af' }} tickLine={false} axisLine={false} />
+            <YAxis yAxisId="left" tick={{ fontSize: 11, fill: '#9ca3af' }} tickLine={false} axisLine={false} allowDecimals={false} />
+            <YAxis yAxisId="right" orientation="right" tick={{ fontSize: 11, fill: '#9ca3af' }} tickLine={false} axisLine={false} allowDecimals={false} />
             <Tooltip
               contentStyle={{
                 fontSize: 12,
@@ -221,9 +222,9 @@ export function AnalyticsDashboard({ selectedMonth }: { selectedMonth?: string }
               }}
             />
             <Legend wrapperStyle={{ fontSize: 12, color: '#6b7280' }} />
-            <Line type="monotone" dataKey="users" stroke={BRAND} strokeWidth={2} dot={false} name="Users" />
-            <Line type="monotone" dataKey="sessions" stroke="#111827" strokeWidth={2} dot={false} name="Sessions" />
-            <Line type="monotone" dataKey="pageViews" stroke="#9ca3af" strokeWidth={2} dot={false} name="Page Views" />
+            <Line yAxisId="left" type="linear" dataKey="users" stroke={BRAND} strokeWidth={2} dot={false} name="Users" />
+            <Line yAxisId="left" type="linear" dataKey="sessions" stroke="#111827" strokeWidth={2} dot={false} name="Sessions" />
+            <Line yAxisId="right" type="linear" dataKey="pageViews" stroke="#9ca3af" strokeWidth={2} dot={false} name="Page Views" />
           </LineChart>
         </ResponsiveContainer>
         </div>
@@ -235,18 +236,19 @@ export function AnalyticsDashboard({ selectedMonth }: { selectedMonth?: string }
           <h2 className="text-base font-semibold mb-4" style={{ color: '#111827' }}>Monthly Traffic — Last 12 Months</h2>
           <div id="pdf-chart-monthly">
             <ResponsiveContainer width="100%" height={260}>
-              <BarChart data={data.monthlyData} margin={{ top: 4, right: 16, left: 0, bottom: 0 }}>
+              <BarChart data={data.monthlyData} margin={{ top: 4, right: 40, left: 0, bottom: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" vertical={false} />
                 <XAxis dataKey="month" tick={{ fontSize: 11, fill: '#9ca3af' }} tickLine={false} axisLine={false} />
-                <YAxis tick={{ fontSize: 11, fill: '#9ca3af' }} tickLine={false} axisLine={false} allowDecimals={false} />
+                <YAxis yAxisId="left" tick={{ fontSize: 11, fill: '#9ca3af' }} tickLine={false} axisLine={false} allowDecimals={false} />
+                <YAxis yAxisId="right" orientation="right" tick={{ fontSize: 11, fill: '#9ca3af' }} tickLine={false} axisLine={false} allowDecimals={false} />
                 <Tooltip
                   contentStyle={{ fontSize: 12, borderRadius: 8, border: '1px solid #e5e7eb', backgroundColor: '#fff', color: '#111827' }}
                   cursor={{ fill: '#f9fafb' }}
                 />
                 <Legend wrapperStyle={{ fontSize: 12, color: '#6b7280' }} />
-                <Bar dataKey="users" name="Users" fill={BRAND} radius={[4, 4, 0, 0]} />
-                <Bar dataKey="sessions" name="Sessions" fill="#111827" radius={[4, 4, 0, 0]} />
-                <Bar dataKey="pageViews" name="Page Views" fill="#d1d5db" radius={[4, 4, 0, 0]} />
+                <Bar yAxisId="left" dataKey="users" name="Users" fill={BRAND} radius={[4, 4, 0, 0]} />
+                <Bar yAxisId="left" dataKey="sessions" name="Sessions" fill="#111827" radius={[4, 4, 0, 0]} />
+                <Bar yAxisId="right" dataKey="pageViews" name="Page Views" fill="#d1d5db" radius={[4, 4, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </div>

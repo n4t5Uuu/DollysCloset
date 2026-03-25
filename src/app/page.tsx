@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { authHelper } from "@/lib/auth-helper";
+import { browserSupabase } from "@/lib/supabase/browser";
 
 import { Eye, EyeOff } from "lucide-react";
 import { toast } from "sonner";
@@ -11,6 +12,31 @@ export default function Home() {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [callbackError, setCallbackError] = useState(false);
+
+  // Reset loading if browser restores this page from bfcache (back-forward cache)
+  useEffect(() => {
+    const handlePageShow = (e: PageTransitionEvent) => {
+      if (e.persisted) setLoading(false);
+    };
+    window.addEventListener("pageshow", handlePageShow);
+    return () => window.removeEventListener("pageshow", handlePageShow);
+  }, []);
+
+  // Redirect to dashboard if already authenticated
+  useEffect(() => {
+    browserSupabase.auth.getSession().then(({ data: { session } }) => {
+      if (session) window.location.replace('/dashboard');
+    });
+  }, []);
+
+  // Show error if redirected back from a failed auth callback
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("error") === "auth_callback_failed") {
+      setCallbackError(true);
+    }
+  }, []);
 
   /**
    * Handles the form submission for user login.
@@ -28,7 +54,7 @@ export default function Home() {
     setLoading(true);
 
     const trimmedEmail = email.trim();
-    const trimmedPassword = password.trim();
+    const trimmedPassword = password; // passwords must not be trimmed — spaces are valid characters
 
     // Basic client-side validation
     if (!trimmedEmail || !trimmedPassword) {
@@ -49,8 +75,6 @@ export default function Home() {
     }
 
     try {
-      console.log("Attempting login for:", trimmedEmail);
-      
       // Attempt generic login with Supabase
       const { data, error: signInError } = await authHelper.signIn(trimmedEmail, trimmedPassword);
 
@@ -140,6 +164,12 @@ export default function Home() {
           </h1>
           <p className="text-sm font-montserrat text-[#828282] tracking-wide">Sign in to Dolly's Closet</p>
         </div>
+
+        {callbackError && (
+          <p className="text-sm text-red-500 text-center -mt-4 mb-2">
+            Authentication failed. Please try again.
+          </p>
+        )}
 
         <form onSubmit={handleSubmit} className="space-y-6">
 
