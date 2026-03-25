@@ -48,9 +48,8 @@ export function useUser() {
 
                 if (user) {
                     await fetchUserRole(user.id);
-                } else {
-                    setLoading(false);
                 }
+                setLoading(false);
             } catch (error) {
                 console.error("Error fetching user:", error);
                 setUser(null);

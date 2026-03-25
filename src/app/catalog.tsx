@@ -329,38 +329,17 @@ export default function Catalog() {
 
             {/* For the Collections */}
             <div className="w-full flex flex-col items-center">
-                <div className="sticky top-[80px] z-30 w-full bg-[#fffcfd]/95 backdrop-blur-md border-b border-[#E7A3B0]/30 shadow-sm py-6 transition-all duration-300">
-                    <div className="w-full px-8 md:px-12 flex flex-col md:flex-row justify-between items-end gap-6">
-                        <InView 
-                            variants={{
-                                hidden: { opacity: 0, x: -20 },
-                                visible: { opacity: 1, x: 0 }
-                            }}
-                            transition={{ duration: 0.6 }}
-                            className="space-y-1"
-                        >
-                            <p className="font-oswald text-xs font-bold tracking-[0.3em] text-[#E7A3B0] uppercase mb-1">
-                                <TextEffect as="span" per="word" preset="fade">Explore</TextEffect>
-                            </p>
-                            <h2 className="font-playfair-display text-5xl text-[#121212]">
-                                <TextEffect as="span" per="char" preset="fade-in-blur" delay={0.2}>Our Collections</TextEffect>
-                            </h2>
-                        </InView>
-                        <InView 
-                            variants={{
-                                hidden: { opacity: 0, x: 20 },
-                                visible: { opacity: 1, x: 0 }
-                            }}
-                            transition={{ duration: 0.6, delay: 0.2 }}
-                            className="w-full md:w-auto pb-1"
-                        >
+                <div className="sticky top-[80px] z-30 w-full bg-[#fffcfd]/95 backdrop-blur-md border-b border-[#E7A3B0]/30 shadow-sm py-3 transition-all duration-300">
+                    <div className="w-full px-8 md:px-12 flex flex-col md:flex-row justify-between items-center gap-4">
+                        <h2 className="font-playfair-display text-2xl text-[#121212]">Our Collections</h2>
+                        <div className="w-full md:w-auto">
                             <SearchBar onSearch={setSearchQuery} />
-                        </InView>
+                        </div>
                     </div>
                 </div>
 
                 <div className="w-full px-8 md:px-12 py-12 pb-24 grid grid-cols-1 lg:grid-cols-[260px_1fr] gap-12">
-                    <div className="hidden lg:block h-fit sticky top-[240px]">
+                    <div className="hidden lg:block h-fit sticky top-[148px]">
                         <InView
                             variants={{
                                 hidden: { opacity: 0, x: -30 },

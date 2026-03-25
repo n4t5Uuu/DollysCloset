@@ -99,7 +99,8 @@ export const authHelper = {
         try {
             const { data: { user } } = await browserSupabase.auth.getUser();
             if (user) {
-                await fetch("/api/auth/log-login", {
+                // Fire and forget — logging is not critical path
+                fetch("/api/auth/log-login", {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({
@@ -107,7 +108,7 @@ export const authHelper = {
                         email: user.email,
                         actionType: "logout"
                     })
-                });
+                }).catch(() => {});
             }
         } catch (logErr) {
             console.warn("Failed to log logout activity:", logErr);
