@@ -67,7 +67,7 @@ export default function Catalog() {
         });
 
         const nextQuery = nextParams.toString();
-        router.replace(nextQuery ? `${pathname}?${nextQuery}` : pathname);
+        router.replace(nextQuery ? `${pathname}?${nextQuery}` : pathname, { scroll: false });
     }, [pathname, router, searchParams]);
 
     const handlePageChange = useCallback((page: number) => {

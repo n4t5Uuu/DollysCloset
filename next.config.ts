@@ -20,7 +20,7 @@ const nextConfig: NextConfig = {
         headers: [
           {
             key: "Content-Security-Policy",
-            value: "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.googletagmanager.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: https: blob:; connect-src 'self' https: https://www.google-analytics.com https://analytics.google.com https://region1.google-analytics.com; font-src 'self' data:; frame-ancestors 'none';",
+            value: "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.googletagmanager.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: https: blob:; connect-src 'self' https: https://www.google-analytics.com https://analytics.google.com https://region1.google-analytics.com; font-src 'self' data:; frame-src 'self' https://www.openstreetmap.org; frame-ancestors 'none';",
           },
           {
             key: "X-Frame-Options",

@@ -29,7 +29,7 @@ const defaultContactDetails: ContactDetailsPayload = {
 };
 
 const STORE_ADDRESS_CANONICAL = "04 Admiral, Talon Tres, Las Piñas City";
-const STORE_OSM_URL = "https://www.openstreetmap.org/way/1324242705#map=19/14.441548/121.000948";
+const STORE_OSM_EMBED_URL = "https://www.openstreetmap.org/export/embed.html?bbox=120.9996%2C14.4409%2C121.0019%2C14.4420&layer=mapnik&marker=14.441534%2C121.000729";
 
 function normalizeUrl(url: string): string {
   const trimmed = url.trim();
@@ -82,10 +82,6 @@ export default function Contact() {
   const displayAddress = (details.address || "").toLowerCase().includes("admiral")
     ? STORE_ADDRESS_CANONICAL
     : details.address;
-
-  const openStoreMap = async () => {
-    window.open(STORE_OSM_URL, "_blank", "noopener,noreferrer");
-  };
 
   useEffect(() => {
     /**
@@ -314,7 +310,7 @@ export default function Contact() {
                   },
                 }}
                 viewOptions={{ once: true }}
-                className="grid grid-cols-1 sm:grid-cols-2 gap-4"
+                className="grid grid-cols-1 sm:grid-cols-2 gap-4 items-stretch"
               >
                 {contactMethods.map((method, index) => {
                   const Icon = method.icon;
@@ -334,22 +330,22 @@ export default function Contact() {
                           transition: { duration: 0.4 },
                         },
                       }}
-                      className="group relative bg-white rounded-2xl p-6 shadow-md hover:shadow-xl transition-all duration-300 border border-gray-100 overflow-hidden cursor-pointer h-full min-h-[140px] block"
+                      className="group relative bg-white rounded-2xl px-4 py-3 shadow-md hover:shadow-xl transition-all duration-300 border border-gray-100 overflow-hidden cursor-pointer h-[92px] block"
                     >
-                      <div className="relative z-10 space-y-3">
+                      <div className="relative z-10 flex h-full items-center gap-3">
                         {/* Icon */}
                         <div
-                          className={`w-12 h-12 rounded-xl bg-linear-to-br ${method.color} flex items-center justify-center shadow-md group-hover:scale-110 transition-transform duration-300`}
+                          className={`w-11 h-11 rounded-xl bg-linear-to-br ${method.color} flex items-center justify-center shadow-md group-hover:scale-110 transition-transform duration-300 shrink-0`}
                         >
-                          <Icon className="w-6 h-6 text-white" />
+                          <Icon className="w-5 h-5 text-white" />
                         </div>
 
                         {/* Label */}
-                        <div>
-                          <p className="font-montserrat text-xs text-gray-500 uppercase tracking-wide">
+                        <div className="min-w-0 flex flex-col justify-center leading-tight">
+                          <p className="font-montserrat text-xs text-gray-500 uppercase tracking-wide mb-1">
                             {method.label}
                           </p>
-                          <p className="font-montserrat font-semibold text-gray-800 mt-1">
+                          <p className="font-montserrat font-semibold text-gray-800 truncate">
                             {method.value}
                           </p>
                         </div>
@@ -390,17 +386,22 @@ export default function Contact() {
                 </div>
 
                 <div className="space-y-4">
-                    <button
-                      type="button"
-                      onClick={openStoreMap}
-                      className="group block w-full text-left bg-linear-to-br from-[#E7A3B0]/10 to-pink-100/50 rounded-xl p-4 border border-[#E7A3B0]/20 hover:border-[#E7A3B0]/40 transition-colors cursor-pointer"
-                    >
+                    <div className="w-full text-left bg-linear-to-br from-[#E7A3B0]/10 to-pink-100/50 rounded-xl p-4 border border-[#E7A3B0]/20">
                       <p className="font-montserrat text-gray-700">
                         <span className="font-bold text-[#E7A3B0]">Address:</span>
                         <br />
                         {displayAddress}
                       </p>
-                    </button>
+                    </div>
+
+                    <div className="rounded-xl overflow-hidden border border-gray-200 shadow-sm">
+                      <iframe
+                        title="Dolly's Closet Store Location"
+                        src={STORE_OSM_EMBED_URL}
+                        className="w-full h-52"
+                        loading="lazy"
+                      />
+                    </div>
 
                     {/* Store Hours (Optional) */}
                     <div className="grid grid-cols-2 gap-3 text-sm font-montserrat">
