@@ -226,4 +226,16 @@ export const productHelper = {
         }
         return { data, error: null };
     },
+
+    /**
+     * Deletes a single product image reference from the database inventory.
+     */
+    async deleteImageById(imageId: number | string, supabase = browserSupabase) {
+        const { error } = await supabase.from("tbl_product_image").delete().eq("image_id", imageId);
+        if (error) {
+            console.error("Error Deleting Image Reference: ", error);
+            return { success: false, error };
+        }
+        return { success: true, error: null };
+    },
 };

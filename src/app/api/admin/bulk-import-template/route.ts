@@ -155,7 +155,7 @@ export async function GET(request: NextRequest) {
 
     const outputBytes = injectCategoriesIntoTemplate(templateBytes, categoryOptions);
 
-    return new NextResponse(outputBytes, {
+    return new NextResponse(Buffer.from(outputBytes), {
       headers: {
         "Content-Type":
           "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",

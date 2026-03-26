@@ -114,11 +114,8 @@ export async function DELETE(request: NextRequest) {
       }
     }
 
-    // Delete from database
-    const { error: deleteError } = await admin
-      .from("tbl_product_image")
-      .delete()
-      .eq("image_id", imageIdValue);
+    // Delete from database using productHelper
+    const { error: deleteError } = await productHelper.deleteImageById(imageIdValue, admin);
 
     if (deleteError) throw deleteError;
 
@@ -132,10 +129,11 @@ export async function DELETE(request: NextRequest) {
     }
 
     if (!remainingImages || remainingImages.length === 0) {
-      const { error: clearProductImageError } = await admin
-        .from("tbl_product")
-        .update({ image_id: null })
-        .eq("product_id", productIdValue);
+      const { error: clearProductImageError } = await productHelper.updateProduct(
+        productIdValue,
+        { image_id: null },
+        admin
+      );
 
       if (clearProductImageError) {
         return NextResponse.json({ error: clearProductImageError.message }, { status: 500 });
