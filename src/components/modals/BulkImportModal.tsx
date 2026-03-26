@@ -38,6 +38,7 @@ interface ValidatedRow {
   raw: ParsedRow;
   index: number;
   errors: string[];
+  warnings: string[];
   isValid: boolean;
 }
 
@@ -59,9 +60,16 @@ function normalizeBoolean(value: string): boolean {
   return true; // default to true
 }
 
+function hasMixedChars(value: string): boolean {
+  // Contains at least one digit AND at least one non-numeric character (ignoring leading minus)
+  const stripped = value.replace(/^-/, "");
+  return /\d/.test(stripped) && /[^0-9.]/.test(stripped);
+}
+
 function validateRows(rows: ParsedRow[]): ValidatedRow[] {
   return rows.map((row, index) => {
     const errors: string[] = [];
+    const warnings: string[] = [];
 
     if (!row.product_name?.trim()) {
       errors.push("product_name is required");
@@ -70,21 +78,32 @@ function validateRows(rows: ParsedRow[]): ValidatedRow[] {
     const categoryIdStr = row.category_id?.trim() ?? "";
     const categoryId = Number(categoryIdStr);
     if (!categoryIdStr || !Number.isInteger(categoryId) || categoryId <= 0) {
-      errors.push(`category_id "${categoryIdStr || "empty"}" must be a whole number (e.g. 11)`);
+      errors.push(`category_id "${categoryIdStr || "empty"}" must be a whole number (e.g. 11) — this row will be skipped`);
     }
 
     const priceStr = row.product_price?.trim() ?? "";
     const price = Number(priceStr);
     if (!priceStr || Number.isNaN(price) || price < 0) {
-      errors.push(`product_price "${priceStr || "empty"}" must be a plain number with no letters or symbols (e.g. 150 or 150.00)`);
+      errors.push(`product_price "${priceStr || "empty"}" must be a plain number with no letters or symbols (e.g. 150 or 150.00) — this row will be skipped`);
     }
 
-    const stock = Number.parseInt(row.product_stock || "0", 10);
-    if (!Number.isNaN(stock) && stock < 0) {
-      errors.push("product_stock must be 0 or greater");
+    const stockStr = row.product_stock?.trim() ?? "";
+    if (stockStr && /[^0-9]/.test(stockStr)) {
+      const parsed = Number.parseInt(stockStr, 10);
+      const usedValue = Number.isNaN(parsed) || parsed < 0 ? 0 : parsed;
+      if (hasMixedChars(stockStr)) {
+        warnings.push(`product_stock "${stockStr}" contains non-numeric characters — will be imported as ${usedValue}`);
+      } else {
+        warnings.push(`product_stock "${stockStr}" is not a plain number — will default to ${usedValue}`);
+      }
+    } else {
+      const stock = Number.parseInt(stockStr || "0", 10);
+      if (!Number.isNaN(stock) && stock < 0) {
+        errors.push("product_stock must be 0 or greater — this row will be skipped");
+      }
     }
 
-    return { raw: row, index, errors, isValid: errors.length === 0 };
+    return { raw: row, index, errors, warnings, isValid: errors.length === 0 };
   });
 }
 
@@ -292,6 +311,7 @@ export default function BulkImportModal({ isOpen, onClose, onImportComplete }: B
 
   const validCount = validatedRows.filter((r) => r.isValid).length;
   const invalidCount = validatedRows.filter((r) => !r.isValid).length;
+  const warnCount = validatedRows.filter((r) => r.isValid && r.warnings.length > 0).length;
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
@@ -401,6 +421,11 @@ export default function BulkImportModal({ isOpen, onClose, onImportComplete }: B
                 <span className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-green-100 text-green-700 font-medium">
                   <CheckCircle2 className="w-3 h-3" /> {validCount} valid
                 </span>
+                {warnCount > 0 && (
+                  <span className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 font-medium">
+                    <AlertTriangle className="w-3 h-3" /> {warnCount} with warnings
+                  </span>
+                )}
                 {invalidCount > 0 && (
                   <span className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-red-100 text-red-700 font-medium">
                     <AlertTriangle className="w-3 h-3" /> {invalidCount} will be skipped
@@ -429,7 +454,7 @@ export default function BulkImportModal({ isOpen, onClose, onImportComplete }: B
                       <tr
                         key={row.index}
                         className={`border-b last:border-0 ${
-                          row.isValid ? "bg-white" : "bg-red-50"
+                          !row.isValid ? "bg-red-50" : row.warnings.length > 0 ? "bg-amber-50" : "bg-white"
                         }`}
                       >
                         <td className="px-3 py-2 text-gray-400">{row.index + 2}</td>
@@ -441,13 +466,17 @@ export default function BulkImportModal({ isOpen, onClose, onImportComplete }: B
                         <td className="px-3 py-2 text-gray-700">{row.raw.size_label || <span className="text-gray-400">One Size</span>}</td>
                         <td className="px-3 py-2 text-gray-700">{row.raw.product_condition || <span className="text-gray-400">New</span>}</td>
                         <td className="px-3 py-2 text-gray-700">{row.raw.show_in_catalog || "true"}</td>
-                        <td className="px-3 py-2">
-                          {row.isValid ? (
-                            <span className="text-green-600 font-medium">✓ OK</span>
-                          ) : (
-                            <span className="text-red-600 font-medium" title={row.errors.join(", ")}>
+                        <td className="px-3 py-2 whitespace-nowrap">
+                          {!row.isValid ? (
+                            <span className="text-red-600 font-medium" title={row.errors.join("; ")}>
                               ✕ Skip
                             </span>
+                          ) : row.warnings.length > 0 ? (
+                            <span className="text-amber-600 font-medium" title={row.warnings.join("; ")}>
+                              ⚠ Warn
+                            </span>
+                          ) : (
+                            <span className="text-green-600 font-medium">✓ OK</span>
                           )}
                         </td>
                       </tr>
@@ -456,16 +485,32 @@ export default function BulkImportModal({ isOpen, onClose, onImportComplete }: B
                 </table>
               </div>
 
-              {/* Validation error details */}
+              {/* Rows that will be skipped */}
               {invalidCount > 0 && (
-                <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 space-y-1">
-                  <p className="text-xs font-medium text-amber-800">Rows that will be skipped:</p>
+                <div className="bg-red-50 border border-red-200 rounded-lg p-3 space-y-1">
+                  <p className="text-xs font-semibold text-red-800">Rows that will be skipped ({invalidCount}):</p>
                   {validatedRows
                     .filter((r) => !r.isValid)
                     .map((r) => (
-                      <p key={r.index} className="text-xs text-amber-700">
-                        Row {r.index + 2}: {r.errors.join(", ")}
-                      </p>
+                      <div key={r.index} className="text-xs text-red-700">
+                        <span className="font-medium">Row {r.index + 2}:</span> {r.errors.join(" · ")}
+                      </div>
+                    ))}
+                </div>
+              )}
+
+              {/* Rows with warnings — will still be imported */}
+              {warnCount > 0 && (
+                <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 space-y-1">
+                  <p className="text-xs font-semibold text-amber-800">
+                    Rows with warnings — these will still be imported ({warnCount}):
+                  </p>
+                  {validatedRows
+                    .filter((r) => r.isValid && r.warnings.length > 0)
+                    .map((r) => (
+                      <div key={r.index} className="text-xs text-amber-700">
+                        <span className="font-medium">Row {r.index + 2}:</span> {r.warnings.join(" · ")}
+                      </div>
                     ))}
                 </div>
               )}
