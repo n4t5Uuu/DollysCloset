@@ -3,6 +3,7 @@ import { admin } from "@/lib/supabase/admin";
 import { productHelper } from "@/lib/products/product-helper";
 import { InventoryCategory, InventoryProduct, InventoryProductImage } from "@/types/inventory.types";
 import { resolveProductPlaceholder } from "@/lib/product-placeholder";
+import { normalizeImageUrl } from "@/lib/normalize-image-url";
 
 type CatalogProduct = {
   id: string;
@@ -80,11 +81,11 @@ function mapProducts(
         if (a.is_primary === b.is_primary) return a.display_order - b.display_order;
         return a.is_primary ? -1 : 1;
       })
-      .map((image) => image.image_url)
+      .map((image) => normalizeImageUrl(image.image_url))
       .filter(Boolean);
 
     const fallbackPrimary = product.image_id
-      ? (imageByProductId.get(productId) || []).find((image) => image.image_id === product.image_id)?.image_url
+      ? normalizeImageUrl((imageByProductId.get(productId) || []).find((image) => image.image_id === product.image_id)?.image_url)
       : null;
 
     const imagesWithFallback = orderedImages.length > 0

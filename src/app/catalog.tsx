@@ -7,7 +7,6 @@ import FeatureCardCarousel from "@/components/catalog/FeatureCardCarousel";
 import SearchBar from "@/components/general-components/SearchBar";
 import CatalogSidebar from "@/components/sidebar/CatalogSidebar";
 import ProductCard from "@/components/catalog/ProductCard";
-import ProductModal from "@/components/modals/ProductModal";
 import { Product } from "@/types/product.types";
 import { InfiniteSlider } from "@/components/motion-primitives/infinite-slider";
 import { TextEffect } from "@/components/motion-primitives/text-effect";
@@ -36,34 +35,86 @@ function toViewProduct(product: CatalogApiProduct): Product {
     };
 }
 
+const COLLECTION_ROUTE = "/collection";
+
+function buildCollectionPath(searchParams: URLSearchParams) {
+    const query = searchParams.toString();
+    return query ? `${COLLECTION_ROUTE}?${query}` : COLLECTION_ROUTE;
+}
+
 export default function Catalog() {
     const searchParams = useSearchParams();
     const router = useRouter();
-    const pathname = usePathname();
+    const pathname = usePathname() || COLLECTION_ROUTE;
 
     const rawPage = parseInt(searchParams.get("page") ?? "1", 10);
     const currentPage = isNaN(rawPage) || rawPage < 1 ? 1 : rawPage;
+    const activeFilter = searchParams.get("filter") ?? "all";
+    const sortBy = searchParams.get("sort") ?? "newest";
+    const searchQuery = searchParams.get("q") ?? "";
     const [goInput, setGoInput] = useState("");
 
-    const handlePageChange = (page: number) => {
-        if (page <= 1) {
-            router.replace(pathname);
-        } else {
-            router.replace(`${pathname}?page=${page}`);
-        }
-    };
+    const updateCollectionParams = useCallback((updates: Record<string, string | null>) => {
+        const nextParams = new URLSearchParams(searchParams.toString());
+
+        Object.entries(updates).forEach(([key, value]) => {
+            if (value === null || value === "") {
+                nextParams.delete(key);
+                return;
+            }
+
+            nextParams.set(key, value);
+        });
+
+        const nextQuery = nextParams.toString();
+        router.replace(nextQuery ? `${pathname}?${nextQuery}` : pathname);
+    }, [pathname, router, searchParams]);
+
+    const handlePageChange = useCallback((page: number) => {
+        updateCollectionParams({ page: page <= 1 ? null : String(page) });
+    }, [updateCollectionParams]);
+
+    const handleFilterChange = useCallback((filter: string) => {
+        updateCollectionParams({
+            filter: filter === "all" ? null : filter,
+            page: null,
+        });
+    }, [updateCollectionParams]);
+
+    const handleSortChange = useCallback((sort: string) => {
+        updateCollectionParams({
+            sort: sort === "newest" ? null : sort,
+            page: null,
+        });
+    }, [updateCollectionParams]);
+
+    const handleSearchChange = useCallback((query: string) => {
+        updateCollectionParams({
+            q: query.trim() ? query : null,
+            page: null,
+        });
+    }, [updateCollectionParams]);
+
+    const handleProductNavigation = useCallback((productId: string) => {
+        const fromPath = buildCollectionPath(new URLSearchParams(searchParams.toString()));
+        const productPath = `/product/${productId}?from=${encodeURIComponent(fromPath)}`;
+        router.push(productPath);
+    }, [router, searchParams]);
+
+    const handleProductCardClick = useCallback((product: CatalogApiProduct) => {
+        handleProductNavigation(product.id);
+    }, [handleProductNavigation]);
+
+    const handleFeaturedProductClick = useCallback((product: Product) => {
+        handleProductNavigation(product.id);
+    }, [handleProductNavigation]);
+
+    const handleProductCopy = useCallback((product: CatalogApiProduct) => toViewProduct(product), []);
 
     const normalizeCategoryName = (value: string) => value.trim().toLowerCase();
-
-    const [activeFilter, setActiveFilter] = useState("all");
-    const [sortBy, setSortBy] = useState("newest");
-    const [searchQuery, setSearchQuery] = useState("");
-    const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
-    const [isModalOpen, setIsModalOpen] = useState(false);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [announcementText, setAnnouncementText] = useState(defaultAnnouncementText);
-    const [currentUserId, setCurrentUserId] = useState<string | null>(null);
 
     const [categories, setCategories] = useState<CatalogCategory[]>([]);
     const [products, setProducts] = useState<CatalogApiProduct[]>([]);
@@ -135,30 +186,6 @@ export default function Catalog() {
 
         fetchAnnouncement();
     }, []);
-
-    useEffect(() => {
-        /**
-         * Fetches the current user profile to enable product view tracking for authenticated users.
-         */
-        const fetchCurrentUser = async () => {
-            try {
-                const response = await fetch("/api/auth/profile", { cache: "no-store" });
-                const result = await response.json();
-
-                if (response.ok && result.data?.userId) {
-                    setCurrentUserId(result.data.userId);
-                }
-            } catch {
-                // Silently fail - user is likely not authenticated
-            }
-        };
-
-        fetchCurrentUser();
-    }, []);
-
-    useEffect(() => {
-        router.replace(pathname);
-    }, [activeFilter, sortBy, searchQuery, router, pathname]);
 
     const childrenByParent = useMemo(() => {
         return categories.reduce<Map<number, number[]>>((acc, category) => {
@@ -258,26 +285,15 @@ export default function Catalog() {
         (safePage - 1) * itemsPerPage,
         safePage * itemsPerPage
     );
+    const goToPage = (value: string) => {
+        const page = parseInt(value, 10);
+        if (!isNaN(page) && page >= 1 && page <= totalPages) {
+            handlePageChange(page);
+        }
+        setGoInput("");
+    };
 
     const featuredViewProducts = featuredProducts.map(toViewProduct);
-
-    const handleProductClick = (product: Product) => {
-        setSelectedProduct(product);
-        setIsModalOpen(true);
-        
-        // Log product view for authenticated users only
-        if (currentUserId) {
-            fetch("/api/catalog/log-view", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ product_id: product.id, user_id: currentUserId }),
-            }).catch((err) => console.error("Failed to log product view:", err));
-        }
-    };
-
-    const handleCloseModal = () => {
-        setIsModalOpen(false);
-    };
 
     return (
         <main className="w-full flex flex-col items-center">
@@ -323,7 +339,7 @@ export default function Catalog() {
                         ))}
                     </div>
                 ) : (
-                    <FeatureCardCarousel products={featuredViewProducts} onProductClick={handleProductClick} />
+                    <FeatureCardCarousel products={featuredViewProducts} onProductClick={handleFeaturedProductClick} />
                 )}
             </InView>
 
@@ -333,7 +349,7 @@ export default function Catalog() {
                     <div className="w-full px-8 md:px-12 flex flex-col md:flex-row justify-between items-center gap-4">
                         <h2 className="font-playfair-display text-2xl text-[#121212]">Our Collections</h2>
                         <div className="w-full md:w-auto">
-                            <SearchBar onSearch={setSearchQuery} />
+                            <SearchBar onSearch={handleSearchChange} initialQuery={searchQuery} />
                         </div>
                     </div>
                 </div>
@@ -365,8 +381,8 @@ export default function Catalog() {
                                     categories={categories}
                                     activeFilter={activeFilter}
                                     sortBy={sortBy}
-                                    onFilterChange={setActiveFilter}
-                                    onSortChange={setSortBy}
+                                    onFilterChange={handleFilterChange}
+                                    onSortChange={handleSortChange}
                                 />
                             )}
                         </InView>
@@ -410,8 +426,8 @@ export default function Catalog() {
                                 {paginatedProducts.map((product) => (
                                     <ProductCard 
                                         key={product.id} 
-                                        product={toViewProduct(product)}
-                                        onClick={() => handleProductClick(toViewProduct(product))}
+                                        product={handleProductCopy(product)}
+                                        onClick={() => handleProductCardClick(product)}
                                     />
                                 ))}
                             </InView>
@@ -424,7 +440,7 @@ export default function Catalog() {
                                         </EmptyMedia>
                                         <EmptyTitle className="font-playfair-display text-2xl">No products matched</EmptyTitle>
                                         <EmptyDescription className="font-montserrat">
-                                            We couldn't find any pieces in our collection that match your current search or filters. 
+                                            We couldn&apos;t find any pieces in our collection that match your current search or filters. 
                                             Try exploring a different category or clearing your search.
                                         </EmptyDescription>
                                     </EmptyHeader>
@@ -516,11 +532,7 @@ export default function Catalog() {
                                         onChange={(e) => setGoInput(e.target.value)}
                                         onKeyDown={(e) => {
                                             if (e.key === "Enter") {
-                                                const page = parseInt(goInput, 10);
-                                                if (!isNaN(page) && page >= 1 && page <= totalPages) {
-                                                    handlePageChange(page);
-                                                }
-                                                setGoInput("");
+                                                goToPage(goInput);
                                             }
                                         }}
                                         className="w-16 h-9 text-center border border-[#E7A3B0]/50 rounded text-sm text-[#cc7f8f] bg-white focus:outline-none focus:ring-1 focus:ring-[#E7A3B0]"
@@ -528,13 +540,7 @@ export default function Catalog() {
                                     <Button
                                         type="button"
                                         variant="outline"
-                                        onClick={() => {
-                                            const page = parseInt(goInput, 10);
-                                            if (!isNaN(page) && page >= 1 && page <= totalPages) {
-                                                handlePageChange(page);
-                                            }
-                                            setGoInput("");
-                                        }}
+                                        onClick={() => goToPage(goInput)}
                                         className="border-[#E7A3B0]/50 text-[#cc7f8f] hover:bg-[#fff0f5]"
                                     >
                                         Go
@@ -545,16 +551,6 @@ export default function Catalog() {
                     </div>
                 </div>
             </div>
-
-            {/* Product Modal */}
-            {selectedProduct && (
-                <ProductModal
-                    product={selectedProduct}
-                    isOpen={isModalOpen}
-                    onClose={handleCloseModal}
-                    onExitComplete={() => setSelectedProduct(null)}
-                />
-            )}
         </main>
     )
 }
