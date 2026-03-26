@@ -127,7 +127,7 @@ export default function ActivityLogsPage() {
   const itemsPerPage = 10;
   const isFetchingRef = useRef(false);
   const isMountedRef = useRef(true);
-  const fetchLogsRef = useRef<(isBackground?: boolean) => Promise<void>>();
+  const fetchLogsRef = useRef<((isBackground?: boolean) => Promise<void>) | undefined>(undefined);
 
   useEffect(() => {
     const t = setTimeout(() => setDebouncedSearch(searchQuery), 400);
@@ -467,7 +467,7 @@ export default function ActivityLogsPage() {
                       </div>
                     </TableCell>
                     <TableCell className="p-4 text-sm text-gray-600 max-w-0 overflow-hidden">
-                      <div className="line-clamp-2 break-words">{log.description || "—"}</div>
+                      <div className="line-clamp-2 wrap-break-word">{log.description || "—"}</div>
                     </TableCell>
                     <TableCell className="p-4 text-sm text-gray-600">
                       <div className="line-clamp-2 break-all">
