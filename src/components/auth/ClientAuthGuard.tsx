@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { browserSupabase } from "@/lib/supabase/browser";
 import { buildLoginPath } from "@/lib/auth-routing";
 import { Loader2 } from "lucide-react";
+import { toast } from "sonner";
 
 export default function ClientAuthGuard({ children }: { children: React.ReactNode }) {
     const [isAuthorized, setIsAuthorized] = useState<boolean | null>(null);
@@ -22,7 +23,8 @@ export default function ClientAuthGuard({ children }: { children: React.ReactNod
 
             if (event === 'SIGNED_OUT' || (!session && event !== 'INITIAL_SESSION')) {
                 setIsAuthorized(false);
-                window.location.replace(buildLoginPath({ nextPath, reason: "signed-out-elsewhere" }));
+                toast.warning("You have been signed out because this account was logged in on another device.", { duration: 4000 });
+                setTimeout(() => window.location.replace(buildLoginPath({ nextPath, reason: "signed-out-elsewhere" })), 2000);
                 return;
             }
 
@@ -44,8 +46,12 @@ export default function ClientAuthGuard({ children }: { children: React.ReactNod
 
             if (!user) {
                 setIsAuthorized(false);
-                const reason = localSession ? "signed-out-elsewhere" : "login-required";
-                window.location.replace(buildLoginPath({ nextPath, reason }));
+                if (localSession) {
+                    toast.warning("You have been signed out because this account was logged in on another device.", { duration: 4000 });
+                    setTimeout(() => window.location.replace(buildLoginPath({ nextPath, reason: "signed-out-elsewhere" })), 2000);
+                } else {
+                    window.location.replace(buildLoginPath({ nextPath, reason: "login-required" }));
+                }
             } else if (!isBackground) {
                 setIsAuthorized(true);
             }
