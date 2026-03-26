@@ -31,7 +31,7 @@ export default function ClientAuthGuard({ children }: { children: React.ReactNod
             }
         });
 
-        async function checkAuth() {
+        async function checkAuth(isBackground = false) {
             // getSession() reads the local cookie — tells us if the browser thinks
             // it has a session. getUser() validates that session with the server.
             // If there's a local session but the server rejects it, the session was
@@ -46,15 +46,26 @@ export default function ClientAuthGuard({ children }: { children: React.ReactNod
                 setIsAuthorized(false);
                 const reason = localSession ? "signed-out-elsewhere" : "login-required";
                 window.location.replace(buildLoginPath({ nextPath, reason }));
-            } else {
+            } else if (!isBackground) {
                 setIsAuthorized(true);
             }
         }
         checkAuth();
 
-        return () => { 
-            isMounted = false; 
+        // Poll every 30 seconds to detect remote session revocation without
+        // requiring user interaction. Also re-check immediately when the tab
+        // regains focus (e.g. user switches back from another tab/window).
+        const pollInterval = window.setInterval(() => checkAuth(true), 30_000);
+        const onVisibilityChange = () => {
+            if (document.visibilityState === "visible") checkAuth(true);
+        };
+        document.addEventListener("visibilitychange", onVisibilityChange);
+
+        return () => {
+            isMounted = false;
             subscription.unsubscribe();
+            window.clearInterval(pollInterval);
+            document.removeEventListener("visibilitychange", onVisibilityChange);
         };
     }, []);
 
