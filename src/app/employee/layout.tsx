@@ -1,10 +1,10 @@
 // src/app/employee/layout.tsx
 import { redirect } from "next/navigation";
-import { authHelper } from "@/lib/auth-helper";
-import { createServerSupabase } from "@/lib/supabase/server";
 import EmployeeSidebar from "@/components/sidebar/EmployeeSidebar";
 import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
 import ClientAuthGuard from "@/components/auth/ClientAuthGuard";
+import { getServerAuthState } from "@/lib/auth-server";
+import { buildLoginPath, buildUnauthorizedPath } from "@/lib/auth-routing";
 
 
 export const dynamic = "force-dynamic";
@@ -14,20 +14,15 @@ export default async function EmployeeLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const supabase = await createServerSupabase();
+  const authState = await getServerAuthState();
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  // Only employees may continue into this branch.
+  if (!authState.ok) {
+    redirect(buildLoginPath({ reason: authState.reason }));
+  }
 
-  if (!user) redirect("/unauthorized");
-
-  // Check user role
-  const { data: userData, error } = await authHelper.getUserRole(user.id, supabase);
-
-  // If user is admin, redirect to admin dashboard
-  if (error || userData?.role === 'admin') {
-    redirect('/admin/dashboard');
+  if (authState.role !== "employee") {
+    redirect(authState.role === "admin" ? "/dashboard" : buildUnauthorizedPath("access-denied"));
   }
 
   return (

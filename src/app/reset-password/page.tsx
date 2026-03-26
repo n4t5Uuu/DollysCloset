@@ -15,29 +15,26 @@ export default function ResetPassword() {
     e.preventDefault();
     setLoading(true);
 
-    const trimmedPassword = password.trim();
-    const trimmedConfirm = confirmPassword.trim();
-
-    if (!trimmedPassword || !trimmedConfirm) {
+    if (!password || !confirmPassword) {
       toast.error("Please fill in all fields.");
       setLoading(false);
       return;
     }
 
-    if (trimmedPassword !== trimmedConfirm) {
+    if (password !== confirmPassword) {
       toast.error("Passwords do not match.");
       setLoading(false);
       return;
     }
 
-    if (trimmedPassword.length < 6) {
-      toast.error("Password must be at least 6 characters.");
+    if (password.length < 12) {
+      toast.error("Password must be at least 12 characters.");
       setLoading(false);
       return;
     }
 
     try {
-      const { error } = await updatePasswordAction(trimmedPassword);
+      const { error } = await updatePasswordAction(password);
 
       if (error === "expired") {
         toast.error("Your reset link has expired. Please request a new one.");

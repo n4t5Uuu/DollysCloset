@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { admin } from "@/lib/supabase/admin";
 import { productHelper } from "@/lib/products/product-helper";
+import { requireRequestAuth } from "@/lib/auth-server";
 
 /**
  * Retrieves an order-sorted sequence of product image mappings tied to a specific `product_id`.
@@ -11,6 +12,15 @@ import { productHelper } from "@/lib/products/product-helper";
  */
 export async function GET(request: NextRequest) {
   try {
+    const authResult = await requireRequestAuth(request, {
+      allowCookieAuth: true,
+      allowedRoles: ["admin", "employee"],
+    });
+
+    if (!authResult.ok) {
+      return authResult.response;
+    }
+
     const { searchParams } = new URL(request.url);
     const productId = searchParams.get("product_id");
 

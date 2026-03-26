@@ -2,9 +2,19 @@ import { admin } from '@/lib/supabase/admin';
 import { NextResponse } from 'next/server';
 import { productHelper } from '@/lib/products/product-helper';
 import { activityHelper } from '@/lib/activity/activity-helper';
+import { requireRequestAuth } from '@/lib/auth-server';
 
 export async function GET(request: Request) {
   try {
+    const authResult = await requireRequestAuth(request, {
+      allowCookieAuth: true,
+      allowedRoles: ["admin"],
+    });
+
+    if (!authResult.ok) {
+      return authResult.response;
+    }
+
     const { searchParams } = new URL(request.url);
     const period = searchParams.get('period') ?? 'all'; // 'week' | 'month' | 'all'
     const monthParam = searchParams.get('month'); // Expects "YYYY-MM"

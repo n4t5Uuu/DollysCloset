@@ -1,5 +1,34 @@
 import { browserSupabase } from "./supabase/browser";
 
+type AuthAuditAction = "login" | "logout";
+
+function clearBrowserAuthState() {
+    if (typeof window === "undefined") {
+        return;
+    }
+
+    const storagePrefixes = ["supabase-auth-token", "sb-"];
+
+    for (const key of Object.keys(localStorage)) {
+        if (storagePrefixes.some((prefix) => key.startsWith(prefix))) {
+            localStorage.removeItem(key);
+        }
+    }
+
+    document.cookie.split(";").forEach((cookie) => {
+        const [rawName] = cookie.split("=");
+        const name = rawName?.trim();
+
+        if (!name) {
+            return;
+        }
+
+        if (name.startsWith("sb-") || name.startsWith("supabase-auth-token")) {
+            document.cookie = `${name}=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT;`;
+        }
+    });
+}
+
 /**
  * A helper object containing methods for handling user authentication via Supabase.
  */
@@ -42,22 +71,7 @@ export const authHelper = {
             if (shouldClear) {
                 // Clear the defective token automatically so the user isn't stuck
                 await browserSupabase.auth.signOut().catch(() => {});
-
-                if (typeof window !== 'undefined') {
-                    // Clear both localStorage and cookies starting with sb- to ensure full cleanup
-                    for (const key of Object.keys(localStorage)) {
-                        if (key.startsWith('supabase-auth-token') || key.includes('auth')) {
-                            localStorage.removeItem(key);
-                        }
-                    }
-
-                    document.cookie.split(';').forEach((cookie) => {
-                        const [name] = cookie.split('=');
-                        if (name.trim().startsWith('sb-')) {
-                            document.cookie = `${name.trim()}=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT;`;
-                        }
-                    });
-                }
+                clearBrowserAuthState();
             }
             return { user: null, error: userError };
         }
@@ -84,7 +98,7 @@ export const authHelper = {
             .maybeSingle();
 
         if (error) {
-            console.error(`Error Fetching Role for User ${user_id}: `, error);
+            console.error(`Error Fetching Role for User ${user_id}: `, error.message ?? error.code ?? JSON.stringify(error));
             return { data: null, error };
         }
 
@@ -96,32 +110,54 @@ export const authHelper = {
      * @returns An object indicating the success status of the sign-out operation and any associated error.
      */
     async signOut() {
-        try {
-            const { data: { user } } = await browserSupabase.auth.getUser();
-            if (user) {
-                // Fire and forget — logging is not critical path
-                fetch("/api/auth/log-login", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({
-                        user_id: user.id,
-                        email: user.email,
-                        actionType: "logout"
-                    })
-                }).catch(() => {});
-            }
-        } catch (logErr) {
-            console.warn("Failed to log logout activity:", logErr);
-        }
-
-        const { error } = await browserSupabase.auth.signOut();
+        const { error } = await browserSupabase.auth.signOut({ scope: "global" });
 
         if (error) {
             console.warn("Error Signing Out: ", error);
+            clearBrowserAuthState();
             return { success: false, error };
         }
-        
+
+        clearBrowserAuthState();
         return { success: true, error: null };
+    },
+
+    /**
+     * Records a verified auth event. The server derives the acting user from a session or bearer token.
+     */
+    async logAuthEvent(actionType: AuthAuditAction, accessToken?: string) {
+        try {
+            const headers: HeadersInit = {
+                "Content-Type": "application/json",
+            };
+
+            if (accessToken) {
+                headers.Authorization = `Bearer ${accessToken}`;
+            }
+
+            const response = await fetch("/api/auth/log-login", {
+                method: "POST",
+                headers,
+                body: JSON.stringify({ actionType }),
+                keepalive: true,
+            });
+
+            if (!response.ok) {
+                const errorText = await response.text().catch(() => response.statusText);
+                return {
+                    success: false,
+                    error: new Error(errorText || `Failed to record ${actionType} activity.`),
+                };
+            }
+
+            return { success: true, error: null };
+        } catch (error) {
+            console.warn(`Failed to record ${actionType} activity:`, error);
+            return {
+                success: false,
+                error: error instanceof Error ? error : new Error(`Failed to record ${actionType} activity.`),
+            };
+        }
     },
 
     /**
@@ -154,7 +190,7 @@ export const authHelper = {
                 return { data: null, error };
             }
             return { data, error };
-        } catch (err: any) {
+        } catch (err: unknown) {
             console.error("Critical Exception Updating Password: ", err);
             return { data: null, error: err };
         }

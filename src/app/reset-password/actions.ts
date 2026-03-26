@@ -1,24 +1,24 @@
 "use server";
 
 import { createServerSupabase } from "@/lib/supabase/server";
-import { admin } from "@/lib/supabase/admin";
 
 export async function updatePasswordAction(password: string): Promise<{ error: string | null }> {
   const supabase = await createServerSupabase();
+  const { data: { user }, error: userError } = await supabase.auth.getUser();
 
-  // getSession reads from cookies locally — no network round-trip needed
-  const { data: { session } } = await supabase.auth.getSession();
-
-  if (!session) {
+  if (userError || !user) {
     return { error: "expired" };
   }
 
-  const { error } = await admin.auth.admin.updateUserById(session.user.id, { password });
+  const { error } = await supabase.auth.updateUser({ password });
 
   if (error) {
-    console.error("Admin updateUserById error:", error);
+    console.error("User-context update password error:", error.message);
     return { error: "Failed to update password. Please try again." };
   }
+
+  // Invalidate all sessions so any stolen session cannot persist after a password change
+  await supabase.auth.signOut({ scope: "global" }).catch(() => {});
 
   return { error: null };
 }

@@ -20,6 +20,7 @@ export default function ImageSelector({
   const [isCompressing, setIsCompressing] = useState(false);
   // limits the files to 5
   const canAddMore = stagedFiles.length < 5;
+  const remainingSlots = Math.max(0, 5 - stagedFiles.length);
 
   const handleDrag = (e: React.DragEvent) => {
     e.preventDefault();
@@ -35,9 +36,13 @@ export default function ImageSelector({
       return;
     }
 
-    const files = Array.from(e.dataTransfer.files).filter((file) =>
-      isImageFile(file)
-    );
+    const files = Array.from(e.dataTransfer.files)
+      .filter((file) => isImageFile(file))
+      .slice(0, remainingSlots);
+
+    if (e.dataTransfer.files.length > files.length) {
+      alert(`Only ${remainingSlots} more image(s) can be added.`);
+    }
 
     if (files.length > 0) {
       setIsCompressing(true);
@@ -58,6 +63,7 @@ export default function ImageSelector({
   const handleFileInput = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFiles = Array.from(e.target.files || []);
     const imageFiles = selectedFiles.filter(isImageFile);
+    const limitedImageFiles = imageFiles.slice(0, remainingSlots);
 
     if (selectedFiles.length > 0 && imageFiles.length === 0) {
       alert("Only image files are allowed.");
@@ -67,11 +73,15 @@ export default function ImageSelector({
       alert("Some files were skipped because only image files are allowed.");
     }
 
-    if (imageFiles.length > 0) {
+    if (imageFiles.length > limitedImageFiles.length) {
+      alert(`Only ${remainingSlots} more image(s) can be added.`);
+    }
+
+    if (limitedImageFiles.length > 0) {
       setIsCompressing(true);
       try {
         const compressedFiles: File[] = [];
-        for (const file of imageFiles) {
+        for (const file of limitedImageFiles) {
           compressedFiles.push(await compressImage(file));
         }
         onFilesAdd(compressedFiles);

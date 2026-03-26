@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { admin } from "@/lib/supabase/admin";
-import { authHelper } from "@/lib/auth-helper";
 import { productHelper } from "@/lib/products/product-helper";
 import { activityHelper } from "@/lib/activity/activity-helper";
+import { requireRequestAuth } from "@/lib/auth-server";
 
 /**
  * Reorders the display sequence of images tied to a specific product.
@@ -14,23 +14,15 @@ import { activityHelper } from "@/lib/activity/activity-helper";
  */
 export async function PUT(request: NextRequest) {
   try {
-    const authorization = request.headers.get("authorization");
-    if (!authorization) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    const authResult = await requireRequestAuth(request, {
+      allowedRoles: ["admin"],
+    });
+
+    if (!authResult.ok) {
+      return authResult.response;
     }
 
-    const token = authorization.replace("Bearer ", "");
-    const { data: { user }, error: userError } = await admin.auth.getUser(token);
-
-    if (userError || !user) {
-      return NextResponse.json({ error: "Invalid token" }, { status: 401 });
-    }
-
-    const roleResponse = await authHelper.getUserRole(user.id, admin);
-    if (roleResponse.error || roleResponse.data?.role !== "admin") {
-      return NextResponse.json({ error: "Admin access required" }, { status: 403 });
-    }
-
+    const { user } = authResult;
     const { product_id, orderedImageIds } = await request.json();
 
     if (!product_id || !orderedImageIds || !Array.isArray(orderedImageIds)) {

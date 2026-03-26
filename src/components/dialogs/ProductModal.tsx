@@ -41,6 +41,7 @@ export default function ProductModal({ product, isOpen, onClose }: ProductModalP
                 src={product.images[selectedImage] || resolveProductPlaceholder(product.category)}
                 alt={product.name}
                 fill
+                sizes="(max-width: 768px) 100vw, 50vw"
                 className="object-cover"
               />
             </div>
@@ -60,6 +61,7 @@ export default function ProductModal({ product, isOpen, onClose }: ProductModalP
                       src={image}
                       alt={`${product.name} ${index + 1}`}
                       fill
+                      sizes="(max-width: 768px) 25vw, 12vw"
                       className="object-cover"
                     />
                   </button>

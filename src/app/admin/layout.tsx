@@ -1,11 +1,10 @@
 // src/app/admin/layout.tsx
 import AdminSidebar from "@/components/sidebar/AdminSidebar";
 import { redirect } from "next/navigation";
-import { authHelper } from "@/lib/auth-helper";
-import { createServerSupabase } from "@/lib/supabase/server";
-
 import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
 import ClientAuthGuard from "@/components/auth/ClientAuthGuard";
+import { getServerAuthState } from "@/lib/auth-server";
+import { buildLoginPath, buildUnauthorizedPath } from "@/lib/auth-routing";
 
 export const dynamic = "force-dynamic";
 
@@ -14,20 +13,14 @@ export default async function AdminLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const supabase = await createServerSupabase();
+  const authState = await getServerAuthState();
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  if (!authState.ok) {
+    redirect(buildLoginPath({ reason: authState.reason }));
+  }
 
-  if (!user) redirect("/unauthorized");
-
-  // Check user role
-  const { data: userData, error } = await authHelper.getUserRole(user.id, supabase);
-
-  // If user is not admin, redirect to employee dashboard
-  if (error || userData?.role !== 'admin') {
-    redirect('/employee/dashboard');
+  if (authState.role !== "admin") {
+    redirect(authState.role === "employee" ? "/dashboard" : buildUnauthorizedPath("access-denied"));
   }
 
   return (

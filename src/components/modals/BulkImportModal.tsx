@@ -51,34 +51,6 @@ interface ImportResult {
 
 const MAX_META_LENGTH = 9;
 
-const CATEGORIES = [
-  "1 - Men", "2 - Women", "3 - Men > T-Shirt", "4 - Women > T-Shirt",
-  "5 - Men > Co-ords", "6 - Women > Co-ords", "7 - Men > Bottoms",
-  "8 - Women > Bottoms", "9 - Women > Dresses", "10 - Men > T-Shirt > Dri-Fit",
-  "11 - Men > T-Shirt > Cotton", "12 - Women > Tops", "13 - Women > Tops > Blouse",
-  "14 - Women > Tops > Croptop", "16 - Women > Tops > Sando",
-  "17 - Women > Tops > Jacket", "18 - Women > Shorts", "19 - Women > Pants",
-  "20 - Women > Skirts", "21 - Women > Skirts > Short", "22 - Women > Skirts > Long",
-  "23 - Women > Terno", "24 - Women > Terno > Formal",
-  "25 - Women > Terno > Semi-Formal", "26 - Women > Terno > Casual",
-  "27 - Women > Nightwear & Undergarments",
-  "28 - Women > Beauty Products & Hygiene",
-  "29 - Women > Beauty Products & Hygiene > Perfumes",
-  "30 - Women > Beauty Products & Hygiene > Bodywash",
-  "31 - Women > Beauty Products & Hygiene > Hair Products",
-  "32 - Women > Footwear", "33 - Women > Footwear > Sandals",
-  "34 - Women > Footwear > Shoes", "35 - Women > Footwear > Slippers",
-  "36 - Women > Hair Accessories", "37 - Children", "38 - Children > Dresses",
-  "39 - Children > Dresses > Formal", "40 - Children > Dresses > Semi-Formal",
-  "41 - Children > Dresses > Casual", "42 - Children > Terno",
-  "43 - Children > Tops", "44 - Children > Bottoms", "45 - Children > Footwear",
-  "46 - Children > Accessories", "47 - Men > Polo", "48 - Men > Shorts",
-  "49 - Men > Pants", "50 - Men > Footwear", "51 - Men > Footwear > Slippers",
-  "52 - Men > Footwear > Shoes",
-];
-
-const CATEGORY_COUNT = CATEGORIES.length; // 51
-
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
 function normalizeBoolean(value: string): boolean {
@@ -132,107 +104,6 @@ function parseRawRows(data: Record<string, string>[]): ParsedRow[] {
       product_description: String(row["product_description"] ?? "").trim(),
       show_in_catalog: String(row["show_in_catalog"] ?? "true").trim(),
     }));
-}
-
-function downloadTemplate() {
-  const wb = XLSX.utils.book_new();
-  const DATA_ROWS = 100; // number of fillable rows
-
-  // ── Sheet 1: Instructions ───────────────────────────────────────────────────
-  const categoryRef = CATEGORIES.map((cat) => {
-    const dashIdx = cat.indexOf(" - ");
-    const id = Number(cat.slice(0, dashIdx));
-    const path = cat.slice(dashIdx + 3);
-    const parentMatch = path.lastIndexOf(" > ");
-    const parent = parentMatch === -1 ? "—" : path.slice(parentMatch + 3);
-    return [id, path, parent];
-  });
-
-  const wsInstructions = XLSX.utils.aoa_to_sheet([
-    ["Bulk Product Import — Instructions", "", ""],
-    ["", "", ""],
-    ["Column", "Description", ""],
-    ["product_name", "Name of the product (required)", ""],
-    ["category", "Select from dropdown — shows full hierarchy e.g. '13 - Women > Tops > Blouse' (required)", ""],
-    ["product_price", "Numeric price (e.g. 299.00)", ""],
-    ["product_brand", "Brand name (text)", ""],
-    ["product_stock", "Quantity in stock (whole number)", ""],
-    ["size_label", "Dropdown: XS, S, M, L, XL, XXL, Free Size — editable if needed", ""],
-    ["product_condition", "Dropdown: Brand New, Like New, Gently Used, Used — editable if needed", ""],
-    ["product_description", "Product description (text)", ""],
-    ["show_in_catalog", "Dropdown: 0 (hidden) or 1 (visible)", ""],
-    ["", "", ""],
-    ["How to use", "", ""],
-    ["1. Fill in products on the 'Product Import' tab using the dropdowns.", "", ""],
-    ["2. The 'Export Ready' tab auto-generates with category_id as a plain number.", "", ""],
-    ["3. Use the 'Export Ready' sheet for your actual database import.", "", ""],
-    ["", "", ""],
-    ["Full Category Reference", "", ""],
-    ["ID", "Full Path", "Parent"],
-    ...categoryRef,
-  ]);
-  wsInstructions["!cols"] = [{ wch: 12 }, { wch: 55 }, { wch: 20 }];
-  XLSX.utils.book_append_sheet(wb, wsInstructions, "Instructions");
-
-  // ── Sheet 2: Product Import ─────────────────────────────────────────────────
-  const importHeader = ["product_name", "category", "product_price", "product_brand", "product_stock", "size_label", "product_condition", "product_description", "show_in_catalog"];
-  const importExamples = [
-    ["Classic Cotton Tee", "11 - Men > T-Shirt > Cotton", 299, "Bench", 50, "L", "Brand New", "Comfortable everyday cotton t-shirt for men", 1],
-    ["Floral Croptop", "14 - Women > Tops > Croptop", 199, "Shein", 30, "S", "Brand New", "Trendy floral print croptop, lightweight fabric", 1],
-    ["Kids Casual Dress", "41 - Children > Dresses > Casual", 450, "Gingersnaps", 15, "Free Size", "Like New", "Cute casual dress for kids, fits ages 3-5", 1],
-  ];
-  const importEmptyRows = Array.from({ length: DATA_ROWS - importExamples.length }, () => Array(9).fill(""));
-  const wsImport = XLSX.utils.aoa_to_sheet([importHeader, ...importExamples, ...importEmptyRows]);
-  wsImport["!cols"] = [
-    { wch: 24 }, { wch: 36 }, { wch: 14 }, { wch: 18 },
-    { wch: 12 }, { wch: 12 }, { wch: 16 }, { wch: 40 }, { wch: 14 },
-  ];
-  // Data validation dropdowns
-  wsImport["!dataValidations"] = [
-    { sqref: `B2:B${DATA_ROWS + 1}`, type: "list", formula1: `Categories!$A$1:$A$${CATEGORY_COUNT}`, showDropDown: false },
-    { sqref: `F2:F${DATA_ROWS + 1}`, type: "list", formula1: '"XS,S,M,L,XL,XXL,Free Size"', showDropDown: false },
-    { sqref: `G2:G${DATA_ROWS + 1}`, type: "list", formula1: '"Brand New,Like New,Gently Used,Used"', showDropDown: false },
-    { sqref: `I2:I${DATA_ROWS + 1}`, type: "list", formula1: '"0,1"', showDropDown: false },
-  ];
-  XLSX.utils.book_append_sheet(wb, wsImport, "Product Import");
-
-  // ── Sheet 3: Categories ─────────────────────────────────────────────────────
-  const wsCategories = XLSX.utils.aoa_to_sheet(CATEGORIES.map((c) => [c]));
-  wsCategories["!cols"] = [{ wch: 48 }];
-  XLSX.utils.book_append_sheet(wb, wsCategories, "Categories");
-
-  // ── Sheet 4: Export Ready ───────────────────────────────────────────────────
-  const exportHeader = ["product_name", "category_id", "product_price", "product_brand", "product_stock", "size_label", "product_condition", "product_description", "show_in_catalog"];
-
-  // Formula rows: each row references the corresponding row in "Product Import"
-  // category_id extracts the number before " - " from the category string
-  const exportFormulaRows = Array.from({ length: DATA_ROWS }, (_, i) => {
-    const r = i + 2; // Excel row (data starts at row 2 in Product Import)
-    return [
-      { t: "f", f: `='Product Import'!A${r}` },
-      { t: "f", f: `=IF('Product Import'!B${r}="","",VALUE(LEFT('Product Import'!B${r},FIND(" - ",'Product Import'!B${r})-1)))` },
-      { t: "f", f: `='Product Import'!C${r}` },
-      { t: "f", f: `='Product Import'!D${r}` },
-      { t: "f", f: `='Product Import'!E${r}` },
-      { t: "f", f: `='Product Import'!F${r}` },
-      { t: "f", f: `='Product Import'!G${r}` },
-      { t: "f", f: `='Product Import'!H${r}` },
-      { t: "f", f: `='Product Import'!I${r}` },
-    ];
-  });
-
-  const wsExport = XLSX.utils.aoa_to_sheet([
-    ["This sheet auto-populates from 'Product Import'. Use this for your actual import/export.", "", "", "", "", "", "", "", ""],
-    exportHeader,
-    ...exportFormulaRows,
-  ]);
-  wsExport["!cols"] = [
-    { wch: 24 }, { wch: 12 }, { wch: 14 }, { wch: 18 },
-    { wch: 12 }, { wch: 12 }, { wch: 16 }, { wch: 40 }, { wch: 14 },
-  ];
-  XLSX.utils.book_append_sheet(wb, wsExport, "Export Ready");
-
-  XLSX.writeFile(wb, "bulk_import_template.xlsx");
 }
 
 // ─── Component ───────────────────────────────────────────────────────────────
@@ -430,14 +301,14 @@ export default function BulkImportModal({ isOpen, onClose, onImportComplete }: B
             <CardTitle className="text-gray-900">Bulk Import Products</CardTitle>
           </div>
           <div className="flex items-center gap-3">
-            <button
-              type="button"
-              onClick={downloadTemplate}
+            <a
+              href="/product_bulk_import_template.xlsx"
+              download="product_bulk_import_template.xlsx"
               className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-800 transition-colors"
             >
               <Download className="w-4 h-4" />
               Download Template
-            </button>
+            </a>
             <button
               type="button"
               onClick={handleClose}

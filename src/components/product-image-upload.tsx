@@ -5,6 +5,7 @@ import { Upload, X, Star } from "lucide-react";
 import { compressImage } from "@/lib/image-compression";
 import { InventoryProductImage as ProductImage } from "@/types/inventory.types";
 import { toast } from "sonner";
+import { uploadProductImageFile } from "@/lib/upload-product-image";
 
 interface ProductImageUploadProps {
   productId: string | null;
@@ -119,61 +120,26 @@ export default function ProductImageUpload({
       }
 
       const uploadedImages: ProductImage[] = [];
-
-      // 1. Compress all files in parallel first to save CPU time
-      const compressedFilesData = await Promise.all(
-        files.map(async (file) => {
-          try {
-            const compressed = await compressImage(file);
-            return { file, compressed };
-          } catch (err) {
-            console.error("Compression error for:", file.name, err);
-            return null;
-          }
-        })
-      );
-
-      // Filter out files that failed compression
-      const validFiles = compressedFilesData.filter(
-        (item): item is { file: File; compressed: File } => item !== null
-      );
-
-      if (validFiles.length < files.length) {
-        toast.warning("Some images failed to compress and were skipped.");
-      }
-
+      const failedFiles: string[] = [];
       const currentCount = images.length;
 
-      // 2. Upload in parallel securely with explicit display_order and is_primary
-      const uploadPromises = validFiles.map(async (item, index) => {
-        const formData = new FormData();
-        formData.append("file", item.compressed);
-        formData.append("product_id", productId!);
-        formData.append("display_order", String(currentCount + index + 1));
-        formData.append("is_primary", String(currentCount === 0 && index === 0 ? "true" : "false"));
+      for (const [index, file] of files.entries()) {
+        try {
+          const compressed = await compressImage(file);
+          const newImage = await uploadProductImageFile({
+            accessToken: session.access_token,
+            displayOrder: currentCount + index + 1,
+            file: compressed,
+            isPrimary: currentCount === 0 && index === 0,
+            productId: productId!,
+          });
 
-        const response = await fetch("/api/admin/upload-image", {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${session.access_token}`,
-          },
-          body: formData,
-        });
-
-        if (!response.ok) {
-          const error = await response.json();
-          const message = error.details
-            ? `${error.error}: ${error.details}`
-            : (error.error || "Upload failed");
-          throw new Error(message);
+          uploadedImages.push(newImage);
+        } catch (error) {
+          console.error("Upload error for:", file.name, error);
+          failedFiles.push(file.name);
         }
-
-        const newImage = await response.json();
-        return newImage;
-      });
-
-      const results = await Promise.all(uploadPromises);
-      uploadedImages.push(...results);
+      }
 
       if (uploadedImages.length > 0) {
         const refreshResponse = await fetch(`/api/admin/fetch-images?product_id=${encodeURIComponent(String(productId))}`);
@@ -188,7 +154,14 @@ export default function ProductImageUpload({
           onImagesChange(mergedImages);
         }
       }
-      toast.success("Images uploaded successfully.");
+
+      if (failedFiles.length > 0 && uploadedImages.length > 0) {
+        toast.warning(`Uploaded ${uploadedImages.length} image(s), but ${failedFiles.length} failed.`);
+      } else if (failedFiles.length > 0) {
+        throw new Error(`Failed image(s): ${failedFiles.join(", ")}`);
+      } else {
+        toast.success("Images uploaded successfully.");
+      }
     } catch (error) {
       toast.error(`Upload failed: ${(error as Error).message}`);
     } finally {

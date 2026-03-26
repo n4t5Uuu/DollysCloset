@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { authHelper } from "@/lib/auth-helper";
 import { employeeHelper } from "@/lib/employees/employee-helper";
 import { activityHelper } from "@/lib/activity/activity-helper";
 import { admin } from "@/lib/supabase/admin";
+import { requireRequestAuth } from "@/lib/auth-server";
 
 /**
  * Handles modification logic surrounding existing employee accounts on the system.
@@ -13,26 +13,15 @@ import { admin } from "@/lib/supabase/admin";
  */
 export async function PUT(request: NextRequest) {
   try {
-    // Verify the requesting user is an admin
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    const authResult = await requireRequestAuth(request, {
+      allowedRoles: ["admin"],
+    });
+
+    if (!authResult.ok) {
+      return authResult.response;
     }
 
-    const token = authHeader.replace('Bearer ', '');
-    const { data: { user }, error: authError } = await admin.auth.getUser(token);
-    
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    // Check if user is admin
-    const { data: userData, error: userError } = await authHelper.getUserRole(user.id, admin);
-
-    if (userError || userData?.role !== 'admin') {
-      return NextResponse.json({ error: 'Forbidden: Admin access required' }, { status: 403 });
-    }
-
+    const { user } = authResult;
     const editor = user.email || user.user_metadata?.username || 'Unknown';
 
     // Get employee data from request

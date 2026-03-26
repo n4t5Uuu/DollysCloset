@@ -146,6 +146,7 @@ export default function ProductModal({ product, isOpen, onClose, onExitComplete 
                         src={currentImageSrc}
                         alt={product.name}
                         fill
+                        sizes="(max-width: 768px) 100vw, 50vw"
                         className="object-cover"
                         draggable={false}
                       />
@@ -194,6 +195,7 @@ export default function ProductModal({ product, isOpen, onClose, onExitComplete 
                           src={image}
                           alt={`${product.name} ${index + 1}`}
                           fill
+                          sizes="(max-width: 768px) 25vw, 12vw"
                           className="object-cover"
                         />
                       </button>

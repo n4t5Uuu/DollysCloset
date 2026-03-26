@@ -61,8 +61,8 @@ export function ProductsDashboard({ selectedMonth }: { selectedMonth?: string })
   const [period, setPeriod] = useState<Period>('all');
   const [periodLoading, setPeriodLoading] = useState(false);
 
-  const fetchData = useCallback((p: Period = 'all', m?: string) => {
-    setLoading(true);
+  const fetchData = useCallback((p: Period = 'all', m?: string, silent = false) => {
+    if (!silent) setLoading(true);
     let url = `/api/admin/analytics/products?period=${p}`;
     if (m && m !== 'all') {
       url += `&month=${m}`;
@@ -71,7 +71,7 @@ export function ProductsDashboard({ selectedMonth }: { selectedMonth?: string })
       .then(res => res.json())
       .then(json => { if (json.error) setError(json.error); else setData(json); })
       .catch(() => setError('Failed to load product analytics'))
-      .finally(() => setLoading(false));
+      .finally(() => { if (!silent) setLoading(false); });
   }, []);
 
   useEffect(() => { 
@@ -354,7 +354,7 @@ export function ProductsDashboard({ selectedMonth }: { selectedMonth?: string })
           onClose={() => setEditingProduct(null)}
           categories={categories}
           productToEdit={editingProduct}
-          onProductSaved={() => { setEditingProduct(null); fetchData(); }}
+          onProductSaved={() => { setEditingProduct(null); fetchData(period, selectedMonth, true); }}
         />
       )}
     </div>

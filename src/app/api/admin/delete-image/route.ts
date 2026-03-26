@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { admin } from "@/lib/supabase/admin";
-import { authHelper } from "@/lib/auth-helper";
 import { productHelper } from "@/lib/products/product-helper";
 import { activityHelper } from "@/lib/activity/activity-helper";
+import { requireRequestAuth } from "@/lib/auth-server";
 
 /**
  * Extracts the specific file path portion from a full storage image URL.
@@ -35,23 +35,15 @@ function getStorageObjectPath(imageUrl: string) {
  */
 export async function DELETE(request: NextRequest) {
   try {
-    const authorization = request.headers.get("authorization");
-    if (!authorization) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    const authResult = await requireRequestAuth(request, {
+      allowedRoles: ["admin", "employee"],
+    });
+
+    if (!authResult.ok) {
+      return authResult.response;
     }
 
-    const token = authorization.replace("Bearer ", "");
-    const { data: { user }, error: userError } = await admin.auth.getUser(token);
-
-    if (userError || !user) {
-      return NextResponse.json({ error: "Invalid token" }, { status: 401 });
-    }
-
-    const roleResponse = await authHelper.getUserRole(user.id, admin);
-    if (roleResponse.error || !["admin", "employee"].includes(roleResponse.data?.role || "")) {
-      return NextResponse.json({ error: "Inventory access required" }, { status: 403 });
-    }
-
+    const { user } = authResult;
     const { searchParams } = new URL(request.url);
     const imageIdRaw = searchParams.get("image_id")?.trim();
 

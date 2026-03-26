@@ -22,13 +22,28 @@ export function useUser() {
     const [userRole, setUserRole] = useState<'admin' | 'employee' | null>(null);
     const [loading, setLoading] = useState(true);
 
-    /**
-     * Fetches the user's role from the 'tbl_users' table.
-     * This is critical for determining if the user should see the Admin or Employee dashboard.
-     */
     async function fetchUserRole(userId: string) {
-        const { data } = await authHelper.getUserRole(userId);
-        setUserRole(data?.role || null);
+        try {
+            const response = await fetch("/api/auth/profile", { cache: "no-store" });
+
+            if (!response.ok) {
+                setUserRole(null);
+                return;
+            }
+
+            const result = await response.json();
+            const role = result?.data?.role;
+
+            if (userId === result?.data?.userId && (role === "admin" || role === "employee")) {
+                setUserRole(role);
+                return;
+            }
+
+            setUserRole(null);
+        } catch (error) {
+            console.error("Error fetching user role:", error);
+            setUserRole(null);
+        }
     }
 
     // Initialize user state and set up realtime auth listener
@@ -73,33 +88,15 @@ export function useUser() {
         return () => subscription.unsubscribe();
     }, []);
 
-    // Log logout securely on window/tab closing
-    useEffect(() => {
-        const handleBeforeUnload = () => {
-            if (user) {
-                const payload = JSON.stringify({
-                    user_id: user.id,
-                    email: user.email,
-                    actionType: "logout"
-                });
-                
-                const blob = new Blob([payload], { type: "application/json" });
-                navigator.sendBeacon("/api/auth/log-login", blob);
-            }
-        };
-
-        window.addEventListener("beforeunload", handleBeforeUnload);
-        return () => window.removeEventListener("beforeunload", handleBeforeUnload);
-    }, [user]);
-
     /**
      * Signs out the current user and clears local state.
      * Redirects are typically handled by the component calling this or the auth listener.
      */
     const signOut = async () => {
-        await authHelper.signOut();
+        const result = await authHelper.signOut();
         setUser(null);
         setUserRole(null);
+        return result;
     };
 
     return {

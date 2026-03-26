@@ -1,22 +1,19 @@
 import { redirect } from "next/navigation";
-import { authHelper } from "@/lib/auth-helper";
-import { createServerSupabase } from "@/lib/supabase/server";
 import AdminSidebar from "@/components/sidebar/AdminSidebar";
 import EmployeeSidebar from "@/components/sidebar/EmployeeSidebar";
 import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
 import ClientAuthGuard from "@/components/auth/ClientAuthGuard";
+import { getServerAuthState } from "@/lib/auth-server";
+import { buildLoginPath, buildUnauthorizedPath } from "@/lib/auth-routing";
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
-    const supabase = await createServerSupabase();
-    const { data: { user } } = await supabase.auth.getUser();
+    const authState = await getServerAuthState();
 
-    if (!user) redirect("/unauthorized");
+    if (!authState.ok) redirect(buildLoginPath({ reason: authState.reason }));
 
-    const { data: userData, error } = await authHelper.getUserRole(user.id, supabase);
+    if (!authState.role) redirect(buildUnauthorizedPath("access-denied"));
 
-    if (error || !userData) redirect("/unauthorized");
-
-    if (userData.role === 'admin') {
+    if (authState.role === 'admin') {
         return (
             <ClientAuthGuard>
                 <SidebarProvider>
@@ -31,7 +28,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
                 </SidebarProvider>
             </ClientAuthGuard>
         );
-    } else if (userData.role === 'employee') {
+    } else if (authState.role === 'employee') {
         return (
             <ClientAuthGuard>
                 <SidebarProvider>
@@ -47,6 +44,6 @@ export default async function DashboardLayout({ children }: { children: React.Re
             </ClientAuthGuard>
         );
     } else {
-        redirect("/");
+        redirect(buildUnauthorizedPath("access-denied"));
     }
 }

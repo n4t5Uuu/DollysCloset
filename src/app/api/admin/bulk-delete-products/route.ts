@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { authHelper } from "@/lib/auth-helper";
 import { productHelper } from "@/lib/products/product-helper";
 import { activityHelper } from "@/lib/activity/activity-helper";
 import { admin } from "@/lib/supabase/admin";
+import { requireRequestAuth } from "@/lib/auth-server";
 
 /**
  * Handles the bulk deletion of products and their associated images.
@@ -14,26 +14,15 @@ import { admin } from "@/lib/supabase/admin";
  */
 export async function DELETE(request: NextRequest) {
   try {
-    // Verify the requesting user is an admin
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    const authResult = await requireRequestAuth(request, {
+      allowedRoles: ["admin", "employee"],
+    });
+
+    if (!authResult.ok) {
+      return authResult.response;
     }
 
-    const token = authHeader.replace('Bearer ', '');
-    const { data: { user }, error: authError } = await admin.auth.getUser(token);
-    
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    // Check if user can manage inventory
-    const { data: userData, error: userError } = await authHelper.getUserRole(user.id, admin);
-
-    if (userError || !['admin', 'employee'].includes(userData?.role || '')) {
-      return NextResponse.json({ error: 'Forbidden: Inventory access required' }, { status: 403 });
-    }
-
+    const { user } = authResult;
     const editor = user.email || user.user_metadata?.username || 'Unknown';
 
     // Get product_ids from request

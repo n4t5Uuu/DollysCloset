@@ -1,5 +1,6 @@
 import { BetaAnalyticsDataClient } from '@google-analytics/data';
 import { NextRequest, NextResponse } from 'next/server';
+import { requireRequestAuth } from '@/lib/auth-server';
 
 function getAnalyticsClient() {
   return new BetaAnalyticsDataClient({
@@ -11,6 +12,15 @@ function getAnalyticsClient() {
 }
 
 export async function GET(request: NextRequest) {
+  const authResult = await requireRequestAuth(request, {
+    allowCookieAuth: true,
+    allowedRoles: ["admin"],
+  });
+
+  if (!authResult.ok) {
+    return authResult.response;
+  }
+
   const propertyId = process.env.GA4_PROPERTY_ID;
 
   if (!propertyId || !process.env.GA4_CLIENT_EMAIL || !process.env.GA4_PRIVATE_KEY) {

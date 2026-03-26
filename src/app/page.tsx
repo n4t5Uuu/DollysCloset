@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { authHelper } from "@/lib/auth-helper";
 import { browserSupabase } from "@/lib/supabase/browser";
+import { getAuthReasonCopy, getSafeInternalPath } from "@/lib/auth-routing";
 
 import { Eye, EyeOff } from "lucide-react";
 import { toast } from "sonner";
@@ -12,7 +13,28 @@ export default function Home() {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [callbackError, setCallbackError] = useState(false);
+  const [callbackError] = useState(() => {
+    if (typeof window === "undefined") {
+      return false;
+    }
+
+    return new URLSearchParams(window.location.search).get("error") === "auth_callback_failed";
+  });
+  const [loginReason] = useState<string | null>(() => {
+    if (typeof window === "undefined") {
+      return null;
+    }
+
+    return new URLSearchParams(window.location.search).get("reason");
+  });
+  const [nextPath] = useState(() => {
+    if (typeof window === "undefined") {
+      return "/dashboard";
+    }
+
+    const params = new URLSearchParams(window.location.search);
+    return getSafeInternalPath(params.get("next"), "/dashboard");
+  });
 
   // Reset loading if browser restores this page from bfcache (back-forward cache)
   useEffect(() => {
@@ -23,20 +45,13 @@ export default function Home() {
     return () => window.removeEventListener("pageshow", handlePageShow);
   }, []);
 
-  // Redirect to dashboard if already authenticated
+  // Redirect to dashboard if already authenticated (uses getUser to validate server-side,
+  // preventing a redirect loop when the middleware rejects a stale local session)
   useEffect(() => {
-    browserSupabase.auth.getSession().then(({ data: { session } }) => {
-      if (session) window.location.replace('/dashboard');
+    browserSupabase.auth.getUser().then(({ data: { user } }) => {
+      if (user) window.location.replace(nextPath);
     });
-  }, []);
-
-  // Show error if redirected back from a failed auth callback
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    if (params.get("error") === "auth_callback_failed") {
-      setCallbackError(true);
-    }
-  }, []);
+  }, [nextPath]);
 
   /**
    * Handles the form submission for user login.
@@ -75,23 +90,32 @@ export default function Home() {
     }
 
     try {
-      // Attempt generic login with Supabase
-      const { data, error: signInError } = await authHelper.signIn(trimmedEmail, trimmedPassword);
+      // Attempt login via server-side route (includes rate limiting)
+      const loginResponse = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: trimmedEmail, password: trimmedPassword }),
+      });
 
-      // Handle Supabase auth errors
-      if (signInError) {
-        console.error("Backend Login Error:", signInError);
-        
+      const loginResult = await loginResponse.json();
+
+      // Handle login errors
+      if (!loginResponse.ok) {
+        const errorMessage: string = loginResult.error ?? "";
+        console.error("Backend Login Error:", errorMessage);
+
         // Map backend errors to friendly user messages
-        if (signInError.message.includes("Invalid login credentials")) {
+        if (loginResponse.status === 429) {
+          toast.error("Too many failed attempts. Please try again in 15 minutes.");
+        } else if (errorMessage.includes("Invalid login credentials")) {
           toast.error("Invalid email or password.");
-        } else if (signInError.message.includes("Email not confirmed")) {
+        } else if (errorMessage.includes("Email not confirmed")) {
           toast.error("Please confirm your email address.");
         } else {
-          // Fallback for other backend errors (e.g. rate limits, network)
+          // Fallback for other backend errors (e.g. network)
           toast.error("Unable to log in. Please try again later.");
         }
-        
+
         // Reset inputs on error as requested
         setEmail("");
         setPassword("");
@@ -100,7 +124,7 @@ export default function Home() {
       }
 
       // Verify user data was returned
-      if (!data?.user) {
+      if (!loginResult.user) {
         console.error("System Error: Login successful but no user returned");
         toast.error("An unexpected error occurred. Please try again.");
         setEmail("");
@@ -110,23 +134,13 @@ export default function Home() {
       }
 
       console.log("Login successful, redirecting to dashboard...");
-      
-      // Log login activity securely via backend bypass API
-      try {
-        await fetch("/api/auth/log-login", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            user_id: data.user.id,
-            email: data.user.email || trimmedEmail,
-          }),
-        });
-      } catch (logErr) {
-        console.warn("Failed to log login activity:", logErr);
+
+      if (loginResult.accessToken) {
+        void authHelper.logAuthEvent("login", loginResult.accessToken);
       }
 
       toast.success("Login successful. Redirecting to dashboard...");
-      window.location.href = '/dashboard';
+      window.location.replace(nextPath);
       // Note: We don't set loading to false here to prevent button re-enable during redirect
 
     } catch (err: unknown) {
@@ -162,8 +176,14 @@ export default function Home() {
           <h1 className="text-[2.75rem] leading-none font-oswald font-bold text-[#1A1A1A] tracking-wider mb-3 uppercase">
             Log In
           </h1>
-          <p className="text-sm font-montserrat text-[#828282] tracking-wide">Sign in to Dolly's Closet</p>
+          <p className="text-sm font-montserrat text-[#828282] tracking-wide">Sign in to Dolly&apos;s Closet</p>
         </div>
+
+        {!callbackError && loginReason && (
+          <p className="text-sm text-[#8A5B64] text-center -mt-4 mb-2">
+            {getAuthReasonCopy(loginReason).description}
+          </p>
+        )}
 
         {callbackError && (
           <p className="text-sm text-red-500 text-center -mt-4 mb-2">

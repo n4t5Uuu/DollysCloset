@@ -1,12 +1,12 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import { LogOut, Loader2 } from "lucide-react";
 import { useUser } from "@/hooks/useUser";
+import { browserSupabase } from "@/lib/supabase/browser";
+import { authHelper } from "@/lib/auth-helper";
 
 export default function LogoutButton() {
-    const router = useRouter();
     const { user, loading, signOut } = useUser();
     const [isLoggingOut, setIsLoggingOut] = useState(false);
 
@@ -14,12 +14,20 @@ export default function LogoutButton() {
         setIsLoggingOut(true);
 
         try {
+            const { data: { session } } = await browserSupabase.auth.getSession();
+            const accessToken = session?.access_token;
+
+            // Log before signOut so the token is still valid when the audit request lands
+            if (accessToken) {
+                await authHelper.logAuthEvent("logout", accessToken);
+            }
+
             await signOut();
         } catch (error) {
             console.error(error);
         }
 
-        window.location.assign('/');
+        window.location.replace("/");
     };
 
     // Don't render anything if loading or not logged in

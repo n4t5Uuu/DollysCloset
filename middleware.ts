@@ -1,6 +1,7 @@
 // middleware.ts
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
+import { buildLoginPath, buildUnauthorizedPath } from '@/lib/auth-routing'
 
 /**
  * Next.js Middleware for Route Protection and Authentication
@@ -69,14 +70,18 @@ export async function middleware(request: NextRequest) {
     return redirectResponse
   }
 
-  // Redirect unauthenticated overarching users accessing protected environments explicitly back toward explicit unauthorized handlers.
+  // Redirect unauthenticated users to the login page
   if (!user && (
-    request.nextUrl.pathname.startsWith('/admin') || 
+    request.nextUrl.pathname.startsWith('/admin') ||
     request.nextUrl.pathname.startsWith('/employee') ||
     request.nextUrl.pathname.startsWith('/dashboard')
   )) {
-    console.log('User not authenticated, redirecting to unauthorized')
-    return redirect('/unauthorized')
+    console.log('User not authenticated, redirecting to login')
+    const nextPath = `${request.nextUrl.pathname}${request.nextUrl.search}`
+    return redirect(buildLoginPath({
+      nextPath,
+      reason: authError ? 'session-expired' : 'login-required',
+    }))
   }
 
   // Post-authentication validation to implement accurate systemic Role-Based Access Control logic
@@ -92,24 +97,23 @@ export async function middleware(request: NextRequest) {
       // Log any errors gracefully
       if (error) {
         console.error('Middleware DB error:', error)
-        return response // Allow through if there's an error cleanly rather than crashing aggressively
+        return redirect(buildUnauthorizedPath('access-denied'))
       }
 
       const userRole = userData?.role
 
-      // PREVENT EMPLOYEE FROM ACCESSING ADMIN ROUTES natively explicitly natively
+      // Redirect users away from routes they don't have access to
       if (request.nextUrl.pathname.startsWith('/admin') && userRole !== 'admin') {
-        console.log('Redirecting employee away from admin route')
-        return redirect('/employee/dashboard')
+        console.log('Redirecting non-admin away from admin route')
+        return redirect(userRole === 'employee' ? '/dashboard' : buildUnauthorizedPath('access-denied'))
       }
 
-      // PREVENT ADMIN FROM ACCESSING EMPLOYEE ROUTES efficiently optionally
-      if (request.nextUrl.pathname.startsWith('/employee') && userRole === 'admin') {
-        return redirect('/admin/dashboard')
+      if (request.nextUrl.pathname.startsWith('/employee') && userRole !== 'employee') {
+        return redirect(userRole === 'admin' ? '/dashboard' : buildUnauthorizedPath('access-denied'))
       }
     } catch (error) {
       console.error('Middleware error:', error)
-      return response // Allow through if there's an internal validation schema error
+      return redirect(buildUnauthorizedPath('access-denied'))
     }
   }
 
@@ -132,5 +136,5 @@ export async function middleware(request: NextRequest) {
  * Route matcher configuration object limiting middleware applicability exclusively towards restrictive segments.
  */
 export const config = {
-  matcher: ['/admin/:path*', '/employee/:path*', '/dashboard/:path*'],
+  matcher: ['/admin/:path*', '/employee/:path*', '/dashboard/:path*', '/reset-password'],
 }

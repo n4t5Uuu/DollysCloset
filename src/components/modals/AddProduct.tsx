@@ -24,7 +24,7 @@ import {
 } from "@/components/ui/card";
 import { InventoryProduct as Product, InventoryCategory as Category, InventoryProductImage as ProductImage } from "@/types/inventory.types";
 import DiscardChangesDialog from "@/components/dialogs/DiscardChangesDialog";
-import { compressImage } from "@/lib/image-compression";
+import { uploadProductImageFile } from "@/lib/upload-product-image";
 
 // Define interfaces locally to match the usage in the inventory page
 // Ideally these should be in a shared types file
@@ -198,7 +198,7 @@ export default function AddProduct({ isOpen, onClose, categories, productToEdit,
     };
 
     const addStagedFiles = (files: File[]) => {
-        setStagedFiles((prev) => [...prev, ...files]);
+        setStagedFiles((prev) => [...prev, ...files].slice(0, 5));
     };
 
     const removeStagedFile = (index: number) => {
@@ -217,60 +217,22 @@ export default function AddProduct({ isOpen, onClose, categories, productToEdit,
 
         const failedFiles: string[] = [];
 
-        try {
-            // 1. Compress all files in parallel first to speed up the process
-            const compressedFilesData = await Promise.all(
-                stagedFiles.map(async (file) => {
-                    try {
-                        const compressed = await compressImage(file);
-                        return { file, compressed };
-                    } catch (err) {
-                        console.error("Compression error for:", file.name, err);
-                        failedFiles.push(file.name);
-                        return null;
-                    }
-                })
-            );
-
-            // Filter out any files that failed compression
-            const validCompressedFiles = compressedFilesData.filter(
-                (item): item is { file: File; compressed: File } => item !== null
-            );
-
-            // 2. Upload in parallel securely
-            const uploadPromises = validCompressedFiles.map(async (item, index) => {
-                try {
-                    const imageFormData = new FormData();
-                    imageFormData.append("file", item.compressed);
-                    imageFormData.append("product_id", productId);
-                    imageFormData.append("display_order", String(index + 1));
-                    imageFormData.append("is_primary", String(index === 0 ? "true" : "false"));
-
-                    const response = await fetch("/api/admin/upload-image", {
-                        method: "POST",
-                        headers: {
-                            Authorization: `Bearer ${session.access_token}`,
-                        },
-                        body: imageFormData,
-                    });
-
-                    if (!response.ok) {
-                        failedFiles.push(item.file.name);
-                    }
-                } catch (err) {
-                    console.error("Upload error for:", item.file.name, err);
-                    failedFiles.push(item.file.name);
-                }
-            });
-
-            await Promise.all(uploadPromises);
-        } catch (err) {
-            console.error("Global upload error:", err);
+        for (const [index, file] of stagedFiles.entries()) {
+            try {
+                await uploadProductImageFile({
+                    accessToken: session.access_token,
+                    displayOrder: index + 1,
+                    file,
+                    isPrimary: index === 0,
+                    productId,
+                });
+            } catch (err) {
+                console.error("Upload error for:", file.name, err);
+                failedFiles.push(file.name);
+            }
         }
 
-        if (failedFiles.length === 0) {
-            setStagedFiles([]);
-        }
+        setStagedFiles([]);
 
         return { failedFiles };
     };
