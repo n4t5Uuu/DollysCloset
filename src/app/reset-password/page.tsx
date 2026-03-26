@@ -27,8 +27,8 @@ export default function ResetPassword() {
       return;
     }
 
-    if (password.length < 12) {
-      toast.error("Password must be at least 12 characters.");
+    if (password.length < 6) {
+      toast.error("Password must be at least 6 characters.");
       setLoading(false);
       return;
     }

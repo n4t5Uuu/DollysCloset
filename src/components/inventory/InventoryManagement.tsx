@@ -237,20 +237,7 @@ export default function InventoryManagement({ isAdmin = false, initialAvailabili
     return path.join(" > ");
   }, [categoryById]);
 
-  const activeCategoryLabel = useMemo(() => {
-    if (categoryFilter === "all") return null;
-    if (categoryFilter.startsWith("rootgroup:")) {
-      const key = categoryFilter.slice("rootgroup:".length);
-      const rootCat = categories.find(
-        (c) => c.parent_category === null && c.category_name.trim().toLowerCase() === key
-      );
-      return rootCat?.category_name ?? key;
-    }
-    const id = parseInt(categoryFilter);
-    return isNaN(id) ? null : getCategoryName(id);
-  }, [categoryFilter, categories, getCategoryName]);
-
-  const openAddModal = () => {
+const openAddModal = () => {
     setEditingProduct(null);
     setShowAddModal(true);
   };
@@ -427,9 +414,9 @@ export default function InventoryManagement({ isAdmin = false, initialAvailabili
           >
             <SlidersHorizontal className="w-4 h-4" />
             Filters
-            {[visibilityFilter !== "all", availabilityFilter !== "all", categoryFilter !== "all"].filter(Boolean).length > 0 && (
+            {[visibilityFilter !== "all", availabilityFilter !== "all"].filter(Boolean).length > 0 && (
               <span className="ml-1 flex h-5 w-5 items-center justify-center rounded-full bg-[#E7A3B0] text-[10px] font-semibold text-white">
-                {[visibilityFilter !== "all", availabilityFilter !== "all", categoryFilter !== "all"].filter(Boolean).length}
+                {[visibilityFilter !== "all", availabilityFilter !== "all"].filter(Boolean).length}
               </span>
             )}
           </Button>
@@ -480,22 +467,12 @@ export default function InventoryManagement({ isAdmin = false, initialAvailabili
                   ))}
                 </div>
               </div>
-              {/* Category */}
-              <div>
-                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Category</p>
-                <CategoryCascadingFilter
-                  categories={categories}
-                  value={categoryFilter}
-                  onValueChange={setCategoryFilter}
-                />
-              </div>
               {/* Clear all */}
-              {(visibilityFilter !== "all" || availabilityFilter !== "all" || categoryFilter !== "all") && (
+              {(visibilityFilter !== "all" || availabilityFilter !== "all") && (
                 <button
                   onClick={() => {
                     setVisibilityFilter("all");
                     setAvailabilityFilter("all");
-                    setCategoryFilter("all");
                   }}
                   className="w-full text-xs text-gray-500 hover:text-gray-700 py-1.5 hover:bg-gray-50 rounded-md transition-colors cursor-pointer border border-gray-200"
                 >
@@ -505,6 +482,13 @@ export default function InventoryManagement({ isAdmin = false, initialAvailabili
             </div>
           )}
         </div>
+
+        {/* Category filter — inline beside the Filters button */}
+        <CategoryCascadingFilter
+          categories={categories}
+          value={categoryFilter}
+          onValueChange={setCategoryFilter}
+        />
 
         <Select value={dateSort} onValueChange={(value) => setDateSort(value as "newest" | "oldest")}>
           <SelectTrigger className="w-[150px] text-gray-900 bg-white">
@@ -517,31 +501,25 @@ export default function InventoryManagement({ isAdmin = false, initialAvailabili
         </Select>
       </div>
 
-      {activeCategoryLabel && (
-        <div className="flex items-center gap-2 mb-3">
-          <span className="text-xs text-gray-500">Category:</span>
-          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-gray-100 text-gray-700 text-xs font-medium">
-            {activeCategoryLabel}
-            <button
-              onClick={() => setCategoryFilter("all")}
-              className="text-gray-400 hover:text-gray-700 transition-colors cursor-pointer"
-              aria-label="Clear category filter"
-            >
-              <X className="w-3 h-3" />
-            </button>
-          </span>
-        </div>
-      )}
-
-      <div className="flex items-center justify-between flex-wrap gap-4 mb-4">
+<div className="flex items-center justify-between flex-wrap gap-4 mb-4">
         <div className="text-sm text-gray-600">
           Showing {filteredProducts.length > 0 ? startIndex + 1 : 0}-{Math.min(endIndex, filteredProducts.length)} of {filteredProducts.length} items
         </div>
         <div className="flex gap-3">
-          {selectedProducts.size > 0 && (
+          {selectedProducts.size === 1 && (
+            <Button
+              className="bg-red-500 hover:bg-red-600 text-white"
+              disabled={actionLoading}
+              onClick={handleBulkDelete}
+            >
+              <Trash className="w-4 h-4 mr-2" />
+              Delete (1)
+            </Button>
+          )}
+          {selectedProducts.size > 1 && (
             <AlertDialog>
               <AlertDialogTrigger asChild>
-                <Button 
+                <Button
                   className="bg-red-500 hover:bg-red-600 text-white"
                   disabled={actionLoading}
                 >
@@ -553,7 +531,7 @@ export default function InventoryManagement({ isAdmin = false, initialAvailabili
                 <AlertDialogHeader>
                   <AlertDialogTitle className="text-gray-900">Delete Multiple Products</AlertDialogTitle>
                   <AlertDialogDescription>
-                    Are you sure you want to delete <span className="font-semibold">{selectedProducts.size}</span> selected product(s)? This action cannot be undone.
+                    Are you sure you want to delete <span className="font-semibold">{selectedProducts.size}</span> products? This action cannot be undone.
                   </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>

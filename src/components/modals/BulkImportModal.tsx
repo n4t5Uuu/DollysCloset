@@ -67,14 +67,16 @@ function validateRows(rows: ParsedRow[]): ValidatedRow[] {
       errors.push("product_name is required");
     }
 
-    const categoryId = Number.parseInt(row.category_id, 10);
-    if (!row.category_id?.trim() || Number.isNaN(categoryId)) {
-      errors.push("category_id must be a valid integer");
+    const categoryIdStr = row.category_id?.trim() ?? "";
+    const categoryId = Number(categoryIdStr);
+    if (!categoryIdStr || !Number.isInteger(categoryId) || categoryId <= 0) {
+      errors.push(`category_id "${categoryIdStr || "empty"}" must be a whole number (e.g. 11)`);
     }
 
-    const price = Number.parseFloat(row.product_price);
-    if (!row.product_price?.trim() || Number.isNaN(price) || price < 0) {
-      errors.push("product_price must be a valid non-negative number");
+    const priceStr = row.product_price?.trim() ?? "";
+    const price = Number(priceStr);
+    if (!priceStr || Number.isNaN(price) || price < 0) {
+      errors.push(`product_price "${priceStr || "empty"}" must be a plain number with no letters or symbols (e.g. 150 or 150.00)`);
     }
 
     const stock = Number.parseInt(row.product_stock || "0", 10);
@@ -236,7 +238,7 @@ export default function BulkImportModal({ isOpen, onClose, onImportComplete }: B
         const payload = {
           product_name: row.raw.product_name.trim(),
           category_id: Number.parseInt(row.raw.category_id, 10),
-          product_price: Number.parseFloat(row.raw.product_price),
+          product_price: Number(row.raw.product_price.trim()),
           product_brand: row.raw.product_brand.trim() || "Dolly's Closet",
           product_stock: Number.parseInt(row.raw.product_stock || "0", 10),
           size_label: (row.raw.size_label.trim() || "One Size").slice(0, MAX_META_LENGTH),
@@ -302,7 +304,7 @@ export default function BulkImportModal({ isOpen, onClose, onImportComplete }: B
           </div>
           <div className="flex items-center gap-3">
             <a
-              href="/product_bulk_import_template.xlsx"
+              href="/api/admin/bulk-import-template"
               download="product_bulk_import_template.xlsx"
               className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-800 transition-colors"
             >
@@ -344,7 +346,8 @@ export default function BulkImportModal({ isOpen, onClose, onImportComplete }: B
                     ))}
                   </div>
                   <p className="text-xs text-gray-500 pt-1">
-                    <strong>category_id</strong> must be a number (e.g. <code className="bg-white border border-gray-200 px-1 rounded">11</code>).{" "}
+                    <strong>category_id</strong> must be a whole number (e.g. <code className="bg-white border border-gray-200 px-1 rounded">11</code>).{" "}
+                    <strong>product_price</strong> must be digits only — no currency symbols or text (e.g. <code className="bg-white border border-gray-200 px-1 rounded">150</code> or <code className="bg-white border border-gray-200 px-1 rounded">150.00</code>).{" "}
                     <strong>show_in_catalog</strong>: <code className="bg-white border border-gray-200 px-1 rounded">1</code> = visible,{" "}
                     <code className="bg-white border border-gray-200 px-1 rounded">0</code> = hidden.
                   </p>
