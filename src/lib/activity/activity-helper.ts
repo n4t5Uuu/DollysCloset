@@ -21,6 +21,61 @@ export const activityHelper = {
     },
 
     /**
+     * Retrieves a single page of activity logs with optional server-side filtering.
+     * Uses .range() to bypass Supabase's 1000-row default cap.
+     */
+    async fetchLogsPaginated(supabase = browserSupabase, {
+        page = 1,
+        pageSize = 10,
+        search = "",
+        month,
+        year,
+        actionTypes = [],
+    }: {
+        page?: number;
+        pageSize?: number;
+        search?: string;
+        month?: number;
+        year?: number;
+        actionTypes?: string[];
+    } = {}) {
+        const from = (page - 1) * pageSize;
+        const to = from + pageSize - 1;
+
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        let query: any = supabase
+            .from("tbl_activity_log")
+            .select("log_id, created_at, action_type, product_id, description, editor, user_id", { count: "exact" })
+            .order("created_at", { ascending: false })
+            .range(from, to);
+
+        if (search.trim()) {
+            query = query.or(
+                `description.ilike.%${search.trim()}%,action_type.ilike.%${search.trim()}%,editor.ilike.%${search.trim()}%,product_id::text.ilike.%${search.trim()}%`
+            );
+        }
+
+        if (actionTypes.length > 0) {
+            query = query.in("action_type", actionTypes);
+        }
+
+        if (month !== undefined && year !== undefined) {
+            const start = new Date(year, month, 1).toISOString();
+            const end = new Date(year, month + 1, 1).toISOString();
+            query = query.gte("created_at", start).lt("created_at", end);
+        }
+
+        const { data, error, count } = await query;
+
+        if (error) {
+            console.error("Error Fetching Paginated Logs:", error);
+            return { data: null, count: 0, error };
+        }
+
+        return { data: data || [], count: count ?? 0, error: null };
+    },
+
+    /**
      * Clears all items in the activity log table.
      */
     async clearLogs(supabase = browserSupabase) {

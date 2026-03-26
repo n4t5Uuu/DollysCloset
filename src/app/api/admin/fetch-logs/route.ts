@@ -38,8 +38,22 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const { data, error } = await activityHelper.fetchLogs(admin);
-    
+    const { searchParams } = new URL(request.url);
+    const page = Math.max(1, parseInt(searchParams.get('page') ?? '1', 10));
+    const pageSize = Math.min(200, Math.max(1, parseInt(searchParams.get('pageSize') ?? '10', 10)));
+    const search = searchParams.get('search') ?? '';
+    const monthParam = searchParams.get('month');
+    const yearParam = searchParams.get('year');
+    const actionTypesParam = searchParams.get('actionTypes');
+
+    const month = monthParam !== null ? parseInt(monthParam, 10) : undefined;
+    const year = yearParam !== null ? parseInt(yearParam, 10) : undefined;
+    const actionTypes = actionTypesParam ? actionTypesParam.split(',').filter(Boolean) : [];
+
+    const { data, count, error } = await activityHelper.fetchLogsPaginated(admin, {
+      page, pageSize, search, month, year, actionTypes,
+    });
+
     if (error) {
       console.error('Error fetching logs:', error)
       return NextResponse.json(
@@ -47,8 +61,8 @@ export async function GET(request: NextRequest) {
         { status: 500 }
       )
     }
-    
-    return NextResponse.json({ data: data || [] })
+
+    return NextResponse.json({ data: data || [], count: count ?? 0 })
     
   } catch (err: unknown) {
     console.error('Unexpected error:', err)

@@ -1,12 +1,12 @@
 // app/admin/activity-logs/page.tsx
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { AlertTriangle, Calendar, ChevronDown, ChevronLeft, ChevronRight, ClipboardList, Search, X, Eye } from "lucide-react";
+import { AlertTriangle, Calendar, ChevronDown, ChevronLeft, ChevronRight, ClipboardList, Search, X, Eye, SlidersHorizontal } from "lucide-react";
 import CustomPagination from "@/components/general-components/CustomPagination";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty";
@@ -84,6 +84,16 @@ const employeeManagementActions = new Set([
   "logout",
 ]);
 
+const actionTypeGroups: Record<string, { label: string; actions: string[] }> = {
+  products:   { label: "Products",   actions: ["create_product", "edit_product", "delete_product"] },
+  categories: { label: "Categories", actions: ["create_category", "edit_category", "delete_category"] },
+  employees:  { label: "Employees",  actions: ["create_employee", "edit_employee", "delete_employee"] },
+  images:     { label: "Images",     actions: ["upload_image", "set_primary_image", "delete_image", "reorder_images"] },
+  content:    { label: "Content",    actions: ["edit_contact_details", "edit_about_details", "edit_announcement"] },
+  auth:       { label: "Auth",       actions: ["login", "logout"] },
+};
+
+
 export default function ActivityLogsPage() {
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -101,134 +111,125 @@ export default function ActivityLogsPage() {
   };
 
   const [logs, setLogs] = useState<ActivityLog[]>([]);
+  const [totalCount, setTotalCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
   const [selectedMonth, setSelectedMonth] = useState<{ month: number; year: number } | null>(null);
   const [pickerYear, setPickerYear] = useState(new Date().getFullYear());
   const [showPicker, setShowPicker] = useState(false);
   const [viewLog, setViewLog] = useState<ActivityLog | null>(null);
+  const [actionTypeFilter, setActionTypeFilter] = useState<Set<string>>(new Set());
+  const [showFilters, setShowFilters] = useState(false);
   const pickerRef = useRef<HTMLDivElement>(null);
+  const filtersRef = useRef<HTMLDivElement>(null);
   const itemsPerPage = 10;
   const isFetchingRef = useRef(false);
   const isMountedRef = useRef(true);
+  const fetchLogsRef = useRef<(isBackground?: boolean) => Promise<void>>();
 
-  /**
-   * Fetches activity logs from the backend and handles token refreshing if the session has expired.
-   * Updates component state with the fetched logs on success.
-   * @param isBackground - If true, prevents the global loading indicator from showing during the request.
-   */
+  useEffect(() => {
+    const t = setTimeout(() => setDebouncedSearch(searchQuery), 400);
+    return () => clearTimeout(t);
+  }, [searchQuery]);
+
   const fetchLogs = useCallback(async (isBackground = false) => {
     if (isFetchingRef.current) return;
     isFetchingRef.current = true;
 
     try {
-      if (!isBackground) {
-        setLoading(true);
-      }
+      if (!isBackground) setLoading(true);
       setError(null);
 
-      const response = await fetch('/api/admin/fetch-logs', {
-        cache: 'no-store',
-      });
-      
+      const params = new URLSearchParams();
+      params.set("page", String(currentPage));
+      params.set("pageSize", String(itemsPerPage));
+      if (debouncedSearch) params.set("search", debouncedSearch);
+      if (selectedMonth) {
+        params.set("month", String(selectedMonth.month));
+        params.set("year", String(selectedMonth.year));
+      }
+      if (actionTypeFilter.size > 0) {
+        const allActions = [...actionTypeFilter].flatMap((k) => actionTypeGroups[k]?.actions ?? []);
+        params.set("actionTypes", allActions.join(","));
+      }
+
+      const response = await fetch(`/api/admin/fetch-logs?${params}`, { cache: "no-store" });
+
       if (!response.ok) {
         const data = await response.json();
-        throw new Error(data.error || 'Failed to fetch logs');
+        throw new Error(data.error || "Failed to fetch logs");
       }
-      
+
       const result = await response.json();
       if (isMountedRef.current) {
         setLogs(result.data || []);
+        setTotalCount(result.count ?? 0);
       }
-
     } catch (err: unknown) {
-      console.error('Error fetching logs:', err);
+      console.error("Error fetching logs:", err);
       if (isMountedRef.current) {
-        setError(err instanceof Error ? err.message : 'Failed to load activity logs');
+        setError(err instanceof Error ? err.message : "Failed to load activity logs");
       }
     } finally {
       isFetchingRef.current = false;
-      if (!isBackground) {
-        if (isMountedRef.current) {
-          setLoading(false);
-        }
-      }
+      if (!isBackground && isMountedRef.current) setLoading(false);
     }
-  }, []);
+  }, [currentPage, debouncedSearch, selectedMonth, actionTypeFilter]);
+
+  useEffect(() => {
+    fetchLogsRef.current = fetchLogs;
+  }, [fetchLogs]);
 
   useEffect(() => {
     isMountedRef.current = true;
     fetchLogs();
-
-    return () => {
-      isMountedRef.current = false;
-    };
+    return () => { isMountedRef.current = false; };
   }, [fetchLogs]);
 
   useEffect(() => {
-    const refreshInterval = window.setInterval(() => {
-      fetchLogs(true);
-    }, 30000);
-
-    const onFocus = () => {
-      fetchLogs(true);
-    };
-
+    const interval = window.setInterval(() => fetchLogsRef.current?.(true), 30000);
+    const onFocus = () => fetchLogsRef.current?.(true);
     window.addEventListener("focus", onFocus);
-
     return () => {
-      window.clearInterval(refreshInterval);
+      window.clearInterval(interval);
       window.removeEventListener("focus", onFocus);
     };
-  }, [fetchLogs]);
+  }, []);
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
       if (pickerRef.current && !pickerRef.current.contains(e.target as Node)) {
         setShowPicker(false);
       }
+      if (filtersRef.current && !filtersRef.current.contains(e.target as Node)) {
+        setShowFilters(false);
+      }
     };
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  const filteredLogs = useMemo(() => {
-    const query = searchQuery.trim().toLowerCase();
-    return logs.filter((log) => {
-      const matchesSearch = !query || (
-        log.description?.toLowerCase().includes(query) ||
-        log.action_type?.toLowerCase().includes(query) ||
-        log.product_id?.toString().includes(query) ||
-        log.editor?.toLowerCase().includes(query) ||
-        log.user_id?.toString().includes(query)
-      );
-      const matchesMonth = !selectedMonth || (() => {
-        const d = new Date(log.created_at);
-        return d.getMonth() === selectedMonth.month && d.getFullYear() === selectedMonth.year;
-      })();
-      return matchesSearch && matchesMonth;
+  const toggleActionType = (key: string) => {
+    setActionTypeFilter((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key); else next.add(key);
+      return next;
     });
-  }, [logs, searchQuery, selectedMonth]);
+  };
+
+  const activeFilterCount = actionTypeFilter.size;
 
   useEffect(() => {
     router.replace(pathname);
-  }, [searchQuery, selectedMonth, logs.length, router, pathname]);
+  // Reset to page 1 whenever filters or search change
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [debouncedSearch, selectedMonth, actionTypeFilter]);
 
-  const sortedLogs = useMemo(() => {
-    return [...filteredLogs].sort((a, b) =>
-      new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-    );
-  }, [filteredLogs]);
-
-  const totalPages = Math.max(1, Math.ceil(sortedLogs.length / itemsPerPage));
+  const totalPages = Math.max(1, Math.ceil(totalCount / itemsPerPage));
   const safePage = Math.min(currentPage, totalPages);
   const startIndex = (safePage - 1) * itemsPerPage;
-  const endIndex = startIndex + itemsPerPage;
-  const paginatedLogs = useMemo(
-    () => sortedLogs.slice(startIndex, endIndex),
-    [sortedLogs, startIndex, endIndex]
-  );
 
 
   /**
@@ -247,6 +248,7 @@ export default function ActivityLogsPage() {
       }
 
       setLogs([]);
+      setTotalCount(0);
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Failed to reset logs');
     }
@@ -297,8 +299,8 @@ export default function ActivityLogsPage() {
         </div>
       )}
 
-      <div className="flex items-center gap-3">
-        <div className="relative flex-1 max-w-md">
+      <div className="flex items-center gap-3 flex-wrap">
+        <div className="relative flex-1 min-w-[200px]">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
           <Input
             placeholder="Search by action, product ID, or description..."
@@ -307,6 +309,57 @@ export default function ActivityLogsPage() {
             className="pl-10"
           />
         </div>
+
+        {/* Filters popover */}
+        <div className="relative" ref={filtersRef}>
+          <Button
+            variant="outline"
+            onClick={() => setShowFilters((p) => !p)}
+            className="flex items-center gap-2"
+          >
+            <SlidersHorizontal className="w-4 h-4" />
+            Filters
+            {activeFilterCount > 0 && (
+              <span className="ml-1 flex h-5 w-5 items-center justify-center rounded-full bg-[#E7A3B0] text-[10px] font-semibold text-white">
+                {activeFilterCount}
+              </span>
+            )}
+          </Button>
+          {showFilters && (
+            <div className="absolute left-0 z-20 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg p-4 w-72 space-y-4">
+              {/* Action Type */}
+              <div>
+                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Action Type</p>
+                <div className="flex gap-1.5 flex-wrap">
+                  {Object.entries(actionTypeGroups).map(([key, { label }]) => (
+                    <button
+                      key={key}
+                      onClick={() => toggleActionType(key)}
+                      className={`px-3 py-1.5 text-xs rounded-full border transition-colors cursor-pointer ${
+                        actionTypeFilter.has(key)
+                          ? "bg-[#E7A3B0] text-white border-[#E7A3B0]"
+                          : "border-gray-200 text-gray-600 hover:border-gray-300 hover:bg-gray-50"
+                      }`}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Clear all */}
+              {activeFilterCount > 0 && (
+                <button
+                  onClick={() => setActionTypeFilter(new Set())}
+                  className="w-full text-xs text-gray-500 hover:text-gray-700 py-1.5 hover:bg-gray-50 rounded-md transition-colors cursor-pointer border border-gray-200"
+                >
+                  Clear all filters
+                </button>
+              )}
+            </div>
+          )}
+        </div>
+
         <div className="relative" ref={pickerRef}>
           <Button
             variant="outline"
@@ -364,8 +417,8 @@ export default function ActivityLogsPage() {
           )}
         </div>
         <span className="text-sm text-gray-600">
-          {filteredLogs.length > 0
-            ? `Showing ${startIndex + 1}-${Math.min(endIndex, filteredLogs.length)} of ${filteredLogs.length} logs`
+          {totalCount > 0
+            ? `Showing ${startIndex + 1}–${Math.min(startIndex + itemsPerPage, totalCount)} of ${totalCount} logs`
             : "Showing 0 logs"}
         </span>
       </div>
@@ -392,8 +445,8 @@ export default function ActivityLogsPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {paginatedLogs.length > 0 ? (
-                paginatedLogs.map((log) => (
+              {logs.length > 0 ? (
+                logs.map((log) => (
                   <TableRow key={log.log_id} className="border-b hover:bg-gray-50">
                     <TableCell className="p-4 text-sm text-gray-700">
                       <div className="line-clamp-2 wrap-break-word">{new Date(log.created_at).toLocaleString()}</div>
@@ -445,7 +498,9 @@ export default function ActivityLogsPage() {
                         </EmptyMedia>
                         <EmptyTitle>No activity logs found</EmptyTitle>
                         <EmptyDescription>
-                          {logs.length === 0 ? "No activity has been recorded yet." : "No logs match your current search or filter."}
+                          {totalCount === 0 && !debouncedSearch && !selectedMonth && actionTypeFilter.size === 0
+                            ? "No activity has been recorded yet."
+                            : "No logs match your current search or filter."}
                         </EmptyDescription>
                       </EmptyHeader>
                     </Empty>
@@ -511,7 +566,7 @@ export default function ActivityLogsPage() {
         </div>
       )}
 
-      {filteredLogs.length > 0 && (
+      {totalCount > 0 && (
         <CustomPagination
           className="mt-4"
           currentPage={safePage}

@@ -10,9 +10,22 @@ import { ActivityLog } from "@/types/logs.types";
 import { InventoryProduct, InventoryCategory } from "@/types/inventory.types";
 
 const actionLabels: Record<string, string> = {
-    create_product: "Listed",
-    edit_product: "Updated",
-    delete_product: "Deleted",
+    create_product: "Listed Product",
+    edit_product: "Edited Product",
+    delete_product: "Deleted Product",
+    create_category: "Created Category",
+    edit_category: "Edited Category",
+    delete_category: "Deleted Category",
+    create_employee: "Created Employee",
+    edit_employee: "Edited Employee",
+    delete_employee: "Deleted Employee",
+    upload_image: "Uploaded Image",
+    set_primary_image: "Updated Image",
+    delete_image: "Deleted Image",
+    reorder_images: "Reordered Images",
+    edit_contact_details: "Updated Contact Details",
+    edit_about_details: "Updated About Details",
+    edit_announcement: "Edited Announcement",
     login: "Logged In",
     logout: "Logged Out",
 };
@@ -73,7 +86,7 @@ export default function EmployeeDashboard() {
 
             const [productsResponse, logsResponse] = await Promise.all([
                 fetch("/api/admin/fetch-products", { cache: "no-store" }),
-                fetch("/api/admin/fetch-logs", { cache: "no-store" }),
+                fetch("/api/admin/fetch-logs?pageSize=200", { cache: "no-store" }),
             ]);
 
             if (!productsResponse.ok) {
@@ -209,12 +222,16 @@ export default function EmployeeDashboard() {
             });
     }, [myProductLogs, productById]);
 
+    const myAllLogs = useMemo(() => {
+        return logs.filter((log) => currentUserId !== null && String(log.user_id) === currentUserId);
+    }, [logs, currentUserId]);
+
     const recentActivity = useMemo(() => {
-        return myProductLogs
+        return myAllLogs
             .slice()
             .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
-            .slice(0, 5);
-    }, [myProductLogs]);
+            .slice(0, 8);
+    }, [myAllLogs]);
 
 
 
@@ -396,29 +413,36 @@ export default function EmployeeDashboard() {
                     </div>
                 </section>
 
-                <section className="rounded-xl border border-gray-200 bg-white overflow-hidden">
-                <div className="px-4 py-3 border-b border-gray-100 flex items-center gap-2">
-                    <Package className="w-4 h-4 text-[#E7A3B0]" />
-                    <h2 className="text-sm font-semibold text-[#121212]">Activity Log</h2>
-                    <span className="text-xs text-gray-400 ml-auto">your activity only</span>
-                </div>
-                <div className="p-4 space-y-3">
-                    {recentActivity.length === 0 ? (
-                        <p className="text-sm text-gray-500">No activity yet.</p>
-                    ) : (
-                        recentActivity.map((log) => (
-                            <div key={log.log_id} className="flex items-start justify-between gap-3 border-l-2 border-[#E7A3B0]/30 pl-3">
-                                <div>
-                                    <p className="text-sm font-medium text-[#121212]">
-                                        {actionLabels[log.action_type] || "Updated"} — {extractProductName(log.description || "", log.product_id)}
-                                    </p>
-                                    <p className="text-xs text-gray-500">{log.description || "No description"}</p>
+                <section className="rounded-xl border border-gray-200 bg-white overflow-hidden flex flex-col">
+                    <div className="px-4 py-3 border-b border-gray-100 flex items-center gap-2">
+                        <Package className="w-4 h-4 text-[#E7A3B0]" />
+                        <h2 className="text-sm font-semibold text-[#121212]">Activity Log</h2>
+                        <span className="text-xs text-gray-400 ml-auto">your activity only</span>
+                    </div>
+                    <div className="p-4 space-y-3 flex-1">
+                        {loading ? (
+                            Array.from({ length: 4 }).map((_, i) => (
+                                <Skeleton key={i} className="h-12 w-full rounded-lg" />
+                            ))
+                        ) : recentActivity.length === 0 ? (
+                            <p className="text-sm text-gray-500">No activity yet.</p>
+                        ) : (
+                            recentActivity.map((log) => (
+                                <div key={log.log_id} className="rounded-lg border border-gray-100 px-3 py-2.5 flex items-start justify-between gap-3">
+                                    <div className="min-w-0 flex-1">
+                                        <p className="text-sm font-medium text-[#121212] truncate">
+                                            {actionLabels[log.action_type] || log.action_type}
+                                            {log.product_id ? ` — ${extractProductName(log.description || "", log.product_id)}` : ""}
+                                        </p>
+                                        <p className="text-xs text-gray-400 mt-0.5">{formatDateTime(log.created_at)}</p>
+                                    </div>
+                                    <span className="shrink-0 text-xs font-medium px-2 py-0.5 rounded-full bg-[#fdf2f5] text-[#E7A3B0] border border-[#f5d4dc]">
+                                        {actionLabels[log.action_type]?.split(" ")[0] || "Action"}
+                                    </span>
                                 </div>
-                                <span className="text-xs text-gray-400 shrink-0">{formatDateTime(log.created_at)}</span>
-                            </div>
-                        ))
-                    )}
-                </div>
+                            ))
+                        )}
+                    </div>
                 </section>
             </div>
 
