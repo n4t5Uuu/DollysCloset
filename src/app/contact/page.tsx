@@ -28,6 +28,9 @@ const defaultContactDetails: ContactDetailsPayload = {
   weekendHours: "10:00 AM - 5:00 PM",
 };
 
+const STORE_ADDRESS_CANONICAL = "04 Admiral, Talon Tres, Las Piñas City";
+const STORE_OSM_URL = "https://www.openstreetmap.org/way/1324242705#map=19/14.441548/121.000948";
+
 function normalizeUrl(url: string): string {
   const trimmed = url.trim();
   if (!trimmed || trimmed === "#") return "#";
@@ -76,6 +79,13 @@ export default function Contact() {
   // 'idle' | 'submitting' | 'success' | 'error'
   const [status, setStatus] = useState("idle");
   const [errorMessage, setErrorMessage] = useState("");
+  const displayAddress = (details.address || "").toLowerCase().includes("admiral")
+    ? STORE_ADDRESS_CANONICAL
+    : details.address;
+
+  const openStoreMap = async () => {
+    window.open(STORE_OSM_URL, "_blank", "noopener,noreferrer");
+  };
 
   useEffect(() => {
     /**
@@ -380,13 +390,17 @@ export default function Contact() {
                 </div>
 
                 <div className="space-y-4">
-                    <div className="bg-linear-to-br from-[#E7A3B0]/10 to-pink-100/50 rounded-xl p-4 border border-[#E7A3B0]/20">
-                    <p className="font-montserrat text-gray-700">
+                    <button
+                      type="button"
+                      onClick={openStoreMap}
+                      className="group block w-full text-left bg-linear-to-br from-[#E7A3B0]/10 to-pink-100/50 rounded-xl p-4 border border-[#E7A3B0]/20 hover:border-[#E7A3B0]/40 transition-colors cursor-pointer"
+                    >
+                      <p className="font-montserrat text-gray-700">
                         <span className="font-bold text-[#E7A3B0]">Address:</span>
                         <br />
-                      {details.address}
-                    </p>
-                    </div>
+                        {displayAddress}
+                      </p>
+                    </button>
 
                     {/* Store Hours (Optional) */}
                     <div className="grid grid-cols-2 gap-3 text-sm font-montserrat">

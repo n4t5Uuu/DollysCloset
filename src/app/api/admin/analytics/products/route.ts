@@ -1,8 +1,18 @@
+import { BetaAnalyticsDataClient } from '@google-analytics/data';
 import { admin } from '@/lib/supabase/admin';
 import { NextResponse } from 'next/server';
 import { productHelper } from '@/lib/products/product-helper';
 import { activityHelper } from '@/lib/activity/activity-helper';
 import { requireRequestAuth } from '@/lib/auth-server';
+
+function getAnalyticsClient() {
+  return new BetaAnalyticsDataClient({
+    credentials: {
+      client_email: process.env.GA4_CLIENT_EMAIL,
+      private_key: process.env.GA4_PRIVATE_KEY?.replace(/\\n/g, '\n'),
+    },
+  });
+}
 
 export async function GET(request: Request) {
   try {
@@ -40,17 +50,15 @@ export async function GET(request: Request) {
       sinceDate = d.toISOString();
     }
 
-    const [productsResult, categoriesResult, logsResult, viewsResult] = await Promise.all([
+    const [productsResult, categoriesResult, logsResult] = await Promise.all([
       productHelper.getProducts(admin),
       productHelper.getCategories(admin),
       activityHelper.fetchLogsByAction('edit_product', sinceDate || undefined, untilDate || undefined, admin),
-      activityHelper.fetchLogsByAction('view_product', sinceDate || undefined, untilDate || undefined, admin),
     ]);
 
     const products = productsResult.data ?? [];
     const categories = categoriesResult.data ?? [];
     const editLogs = logsResult.data ?? [];
-    const viewLogs = viewsResult.data ?? [];
 
     // Summary
     const totalProducts = products.length;
@@ -84,31 +92,69 @@ export async function GET(request: Request) {
       .reverse();
 
     // Most edited products
-    const editCounts: Record<number, number> = {};
+    const editCounts: Record<string, number> = {};
     for (const log of editLogs) {
       if (log.product_id != null) {
-        editCounts[log.product_id] = (editCounts[log.product_id] ?? 0) + 1;
+        const productId = String(log.product_id);
+        editCounts[productId] = (editCounts[productId] ?? 0) + 1;
       }
     }
-    const productMap = new Map(products.map(p => [p.product_id, p.product_name]));
+    const productMap = new Map(products.map(p => [String(p.product_id), p.product_name]));
     const mostEdited = Object.entries(editCounts)
       .map(([id, edits]) => ({
-        name: productMap.get(Number(id)) ?? 'Unknown Product',
+        name: productMap.get(id) ?? 'Unknown Product',
         edits,
       }))
       .sort((a, b) => b.edits - a.edits)
       .slice(0, 8);
 
-    // Most viewed products
-    const viewCounts: Record<number, number> = {};
-    for (const log of viewLogs) {
-      if (log.product_id != null) {
-        viewCounts[log.product_id] = (viewCounts[log.product_id] ?? 0) + 1;
+    // Most viewed products from GA4 product page paths (/product/:id)
+    const propertyId = process.env.GA4_PROPERTY_ID;
+    const hasGaConfig = Boolean(propertyId && process.env.GA4_CLIENT_EMAIL && process.env.GA4_PRIVATE_KEY);
+    const gaStartDate = monthParam
+      ? sinceDate!.slice(0, 10)
+      : period === 'week'
+        ? '7daysAgo'
+        : period === 'month'
+          ? '30daysAgo'
+          : '365daysAgo';
+    const gaEndDate = monthParam ? new Date(new Date(untilDate!).getTime() - 1000).toISOString().slice(0, 10) : 'today';
+
+    const viewCounts: Record<string, number> = {};
+
+    if (hasGaConfig) {
+      const client = getAnalyticsClient();
+      const [viewsResponse] = await client.runReport({
+        property: `properties/${propertyId}`,
+        dateRanges: [{ startDate: gaStartDate, endDate: gaEndDate }],
+        dimensions: [{ name: 'pagePath' }],
+        metrics: [{ name: 'screenPageViews' }],
+        orderBys: [{ metric: { metricName: 'screenPageViews' }, desc: true }],
+        limit: 200,
+      });
+
+      const rows = viewsResponse.rows ?? [];
+      for (const row of rows) {
+        const path = row.dimensionValues?.[0]?.value ?? '';
+        const views = Number(row.metricValues?.[0]?.value ?? 0);
+        const productMatch = path.match(/^\/product\/([^/?#]+)/);
+
+        if (!productMatch || views <= 0) {
+          continue;
+        }
+
+        const productId = decodeURIComponent(productMatch[1]);
+        if (!productMap.has(productId)) {
+          continue;
+        }
+
+        viewCounts[productId] = (viewCounts[productId] ?? 0) + views;
       }
     }
+
     const mostViewed = Object.entries(viewCounts)
       .map(([id, views]) => ({
-        name: productMap.get(Number(id)) ?? 'Unknown Product',
+        name: productMap.get(id) ?? 'Unknown Product',
         views,
       }))
       .sort((a, b) => b.views - a.views)

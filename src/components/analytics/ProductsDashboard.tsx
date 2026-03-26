@@ -67,7 +67,7 @@ export function ProductsDashboard({ selectedMonth }: { selectedMonth?: string })
     if (m && m !== 'all') {
       url += `&month=${m}`;
     }
-    fetch(url)
+    fetch(url, { cache: 'no-store' })
       .then(res => res.json())
       .then(json => { if (json.error) setError(json.error); else setData(json); })
       .catch(() => setError('Failed to load product analytics'))
@@ -85,9 +85,17 @@ export function ProductsDashboard({ selectedMonth }: { selectedMonth?: string })
     if (selectedMonth && selectedMonth !== 'all') {
       url += `&month=${selectedMonth}`;
     }
-    fetch(url)
+    fetch(url, { cache: 'no-store' })
       .then(res => res.json())
-      .then(json => { if (!json.error) setData(prev => prev ? { ...prev, mostEdited: json.mostEdited } : json); })
+      .then(json => {
+        if (!json.error) {
+          setData(prev => prev ? {
+            ...prev,
+            mostEdited: json.mostEdited,
+            mostViewed: json.mostViewed,
+          } : json);
+        }
+      })
       .catch(() => {})
       .finally(() => setPeriodLoading(false));
   }, [selectedMonth]);

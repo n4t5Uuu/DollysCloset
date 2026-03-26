@@ -80,12 +80,10 @@ export default function ProductDetailsPage() {
   const [error, setError] = useState<string | null>(null);
   const [selectedImage, setSelectedImage] = useState(0);
   const [slideDirection, setSlideDirection] = useState(1);
-  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [isZoomed, setIsZoomed] = useState(false);
   const [lensPos, setLensPos] = useState({ x: 0, y: 0 });
   const [zoomPanelStyle, setZoomPanelStyle] = useState<CSSProperties>({});
   const [bgPos, setBgPos] = useState({ x: 0, y: 0 });
-  const loggedProductIdRef = useRef<string | null>(null);
   const imageContainerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -147,39 +145,10 @@ export default function ProductDetailsPage() {
   }, []);
 
   useEffect(() => {
-    const fetchCurrentUser = async () => {
-      try {
-        const response = await fetch("/api/auth/profile", { cache: "no-store" });
-        const result = await response.json();
-
-        if (response.ok && result.data?.userId) {
-          setCurrentUserId(result.data.userId);
-        }
-      } catch {
-      }
-    };
-
-    fetchCurrentUser();
-  }, []);
-
-  useEffect(() => {
     setSelectedImage(0);
     setSlideDirection(1);
     setIsZoomed(false);
   }, [productId]);
-
-  useEffect(() => {
-    if (!product || !currentUserId || loggedProductIdRef.current === product.id) {
-      return;
-    }
-
-    loggedProductIdRef.current = product.id;
-    fetch("/api/catalog/log-view", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ product_id: product.id, user_id: currentUserId }),
-    }).catch((err) => console.error("Failed to log product view:", err));
-  }, [currentUserId, product]);
 
   const breadcrumbSegments = useMemo(() => {
     if (!product) {

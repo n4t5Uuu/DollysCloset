@@ -50,9 +50,26 @@ export const activityHelper = {
             .range(from, to);
 
         if (search.trim()) {
-            query = query.or(
-                `description.ilike.%${search.trim()}%,action_type.ilike.%${search.trim()}%,editor.ilike.%${search.trim()}%,product_id::text.ilike.%${search.trim()}%`
-            );
+            const rawSearch = search.trim();
+            // Avoid PostgREST logic parser conflicts from reserved characters in user input.
+            const safeSearch = rawSearch.replace(/[(),]/g, " ").trim();
+
+            const orClauses = [
+                `editor.ilike.%${safeSearch}%`,
+            ];
+
+            if (/^\d+$/.test(safeSearch)) {
+                const numericSearch = Number(safeSearch);
+                orClauses.push(`product_id.eq.${numericSearch}`);
+                orClauses.push(`log_id.eq.${numericSearch}`);
+            }
+
+            // UUID columns cannot use ilike; support exact user_id matching when the input is a UUID.
+            if (/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(safeSearch)) {
+                orClauses.push(`user_id.eq.${safeSearch}`);
+            }
+
+            query = query.or(orClauses.join(","));
         }
 
         if (actionTypes.length > 0) {
