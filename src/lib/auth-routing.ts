@@ -1,4 +1,4 @@
-export type AuthRedirectReason = "access-denied" | "login-required" | "session-expired";
+export type AuthRedirectReason = "access-denied" | "login-required" | "session-expired" | "signed-out-elsewhere";
 
 const FALLBACK_REDIRECT_PATH = "/dashboard";
 
@@ -37,6 +37,11 @@ export function buildUnauthorizedPath(reason: AuthRedirectReason = "access-denie
 
 export function getAuthReasonCopy(reason?: string | null) {
   switch (reason) {
+    case "signed-out-elsewhere":
+      return {
+        description: "Your account was signed in on another device. You have been signed out.",
+        title: "Signed Out Remotely",
+      };
     case "session-expired":
       return {
         description: "Your session expired. Please sign in again to continue.",

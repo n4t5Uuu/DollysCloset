@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServerSupabase } from "@/lib/supabase/server";
+import { admin } from "@/lib/supabase/admin";
 
 // Simple in-memory sliding-window rate limiter
 // Note: resets on serverless cold starts — provides best-effort protection.
@@ -76,9 +77,22 @@ export async function POST(request: NextRequest) {
     }
 
     clearFailedAttempts(ip);
+
+    // Revoke all other active sessions for this account so only one device
+    // can be logged in at a time. Uses scope "others" to preserve the new session.
+    let otherSessionsRevoked = false;
+    if (data.session?.access_token) {
+      const { error: revokeError } = await admin.auth.admin.signOut(
+        data.session.access_token,
+        "others"
+      );
+      otherSessionsRevoked = !revokeError;
+    }
+
     return NextResponse.json({
       user: { id: data.user.id, email: data.user.email },
       accessToken: data.session?.access_token,
+      otherSessionsRevoked,
     });
   } catch (err) {
     console.error("Login API error:", err instanceof Error ? err.message : err);

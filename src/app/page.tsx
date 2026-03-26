@@ -139,7 +139,11 @@ export default function Home() {
         void authHelper.logAuthEvent("login", loginResult.accessToken);
       }
 
-      toast.success("Login successful. Redirecting to dashboard...");
+      if (loginResult.otherSessionsRevoked) {
+        toast.success("Signed in. All other active sessions for this account have been ended.");
+      } else {
+        toast.success("Login successful. Redirecting to dashboard...");
+      }
       window.location.replace(nextPath);
       // Note: We don't set loading to false here to prevent button re-enable during redirect
 
@@ -180,7 +184,11 @@ export default function Home() {
         </div>
 
         {!callbackError && loginReason && (
-          <p className="text-sm text-[#8A5B64] text-center -mt-4 mb-2">
+          <p className={`text-sm text-center -mt-4 mb-2 ${
+            loginReason === "signed-out-elsewhere"
+              ? "text-amber-600 font-medium"
+              : "text-[#8A5B64]"
+          }`}>
             {getAuthReasonCopy(loginReason).description}
           </p>
         )}
