@@ -19,7 +19,7 @@ export default function GlobalError({
         <DynamicError 
         code="500" 
         title="Something went wrong" 
-        message="We encountered an unexpected error while processing your request. Our team has been notified."
+        message="We encountered an unexpected error while processing your request. Please try again later."
         onRetry={() => reset()}
         />
     );

@@ -56,9 +56,11 @@ export default function Navbar() {
 
                 {/* User Profile Dropdown */}
                 <div className="flex items-center gap-4">
-                    <div className="hidden md:block">
-                        <UserProfileDropdown />
-                    </div>
+                    {!isDashboard && (
+                        <div className="hidden md:block">
+                            <UserProfileDropdown />
+                        </div>
+                    )}
                     
                     {/* Mobile Menu Trigger */}
                     <button 
@@ -85,9 +87,11 @@ export default function Navbar() {
                                 </Link>
                             ))}
                             <hr className="w-full border-[#E7A3B0]/10 my-1" />
-                            <div className="w-full">
-                                <UserProfileDropdown variant="link" />
-                            </div>
+                            {!isDashboard && (
+                                <div className="w-full">
+                                    <UserProfileDropdown variant="link" />
+                                </div>
+                            )}
                         </div>
                     </div>
                 )}

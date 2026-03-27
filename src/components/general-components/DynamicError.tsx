@@ -111,10 +111,7 @@ export default function DynamicError({
           )}
         </div>
 
-        {/* Footer text for support - subtle */}
-        <p className="text-xs text-gray-400 mt-12 font-medium">
-          If you think this is a mistake, please contact our support team.
-        </p>
+        {/* Actions Section */}
       </div>
     </div>
   );

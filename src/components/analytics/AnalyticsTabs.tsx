@@ -24,7 +24,8 @@ type Tab = typeof tabs[number]['key'];
 export function AnalyticsTabs() {
   const [active, setActive] = useState<Tab>('overview');
   const [exporting, setExporting] = useState(false);
-    const [selectedMonth, setSelectedMonth] = useState<string>('all');
+    const currentYearMonth = new Date().toISOString().slice(0, 7); // e.g., "2026-03"
+    const [selectedMonth, setSelectedMonth] = useState<string>(currentYearMonth);
     const [activeMonths, setActiveMonths] = useState<{ value: string; label: string }[]>([]);
 
     useEffect(() => {
@@ -93,7 +94,7 @@ export function AnalyticsTabs() {
 
                 <div className="flex items-center gap-2">
                     <Select
-                        value={selectedMonth === 'all' ? undefined : selectedMonth}
+                        value={selectedMonth}
                         onValueChange={setSelectedMonth}
                         disabled={exporting}
                     >
@@ -101,6 +102,7 @@ export function AnalyticsTabs() {
                             <SelectValue placeholder="Full Summary" />
                         </SelectTrigger>
                         <SelectContent>
+                            <SelectItem value="all">Full Summary (All)</SelectItem>
                             {activeMonths.map((m) => (
                                 <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>
                             ))}

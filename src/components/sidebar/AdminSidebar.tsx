@@ -16,11 +16,12 @@ import {
   SidebarContent,
   SidebarGroup,
   SidebarGroupContent,
-  SidebarHeader,
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
+  SidebarFooter,
 } from "@/components/ui/sidebar";
+import LogoutButton from "@/components/general-components/LogoutButton";
 
 export default function AdminSidebar() {
   const pathname = usePathname();
@@ -73,7 +74,9 @@ export default function AdminSidebar() {
         </SidebarGroup>
       </SidebarContent>
 
-
+      <SidebarFooter className="px-4 pb-6">
+        <LogoutButton variant="sidebar" />
+      </SidebarFooter>
     </Sidebar>
   );
 }
