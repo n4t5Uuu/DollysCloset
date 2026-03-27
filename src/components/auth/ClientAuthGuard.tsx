@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { browserSupabase } from "@/lib/supabase/browser";
-import { buildLoginPath } from "@/lib/auth-routing";
+import { buildLoginPath } from "@/lib/auth/auth-routing";
 import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 

@@ -19,7 +19,7 @@ import { Button } from "@/components/ui/button";
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ANNOUNCEMENT_SLUG, defaultAnnouncementText } from "@/lib/business-details/business-details";
-import { getSafeInternalPath } from "@/lib/auth-routing";
+import { getSafeInternalPath } from "@/lib/auth/auth-routing";
 import { resolveProductPlaceholder } from "@/lib/product-placeholder";
 import { CatalogApiProduct, Product } from "@/types/product.types";
 

@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { productHelper } from '@/lib/products/product-helper';
-import { requireRequestAuth } from '@/lib/auth-server';
+import { requireRequestAuth } from '@/lib/auth/auth-server';
 import { admin } from '@/lib/supabase/admin';
 
 /**

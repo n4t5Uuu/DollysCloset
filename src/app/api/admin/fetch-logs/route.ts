@@ -1,5 +1,5 @@
 import { admin } from '@/lib/supabase/admin';
-import { authHelper } from '@/lib/auth-helper';
+import { authHelper } from '@/lib/auth/auth-helper';
 import { activityHelper } from '@/lib/activity/activity-helper';
 import { createServerSupabase } from '@/lib/supabase/server';
 import { NextRequest, NextResponse } from 'next/server'

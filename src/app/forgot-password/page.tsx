@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { authHelper } from "@/lib/auth-helper";
+import { authHelper } from "@/lib/auth/auth-helper";
 import { toast } from "sonner";
 import { ArrowLeft, Mail } from "lucide-react";
 

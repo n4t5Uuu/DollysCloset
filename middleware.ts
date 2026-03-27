@@ -1,7 +1,7 @@
 // middleware.ts
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
-import { buildLoginPath, buildUnauthorizedPath } from '@/lib/auth-routing'
+import { buildLoginPath, buildUnauthorizedPath } from '@/lib/auth/auth-routing'
 
 /**
  * Next.js Middleware for Route Protection and Authentication

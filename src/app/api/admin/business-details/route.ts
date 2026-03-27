@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { admin } from "@/lib/supabase/admin";
-import { authHelper } from "@/lib/auth-helper";
+import { authHelper } from "@/lib/auth/auth-helper";
 import { businessDetailsHelper } from "@/lib/business-details/business-details-helper";
 import { activityHelper } from "@/lib/activity/activity-helper";
 import { createServerSupabase } from "@/lib/supabase/server";

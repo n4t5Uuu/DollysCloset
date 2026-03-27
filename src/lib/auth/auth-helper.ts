@@ -1,4 +1,4 @@
-import { browserSupabase } from "./supabase/browser";
+import { browserSupabase } from "../supabase/browser";
 
 type AuthAuditAction = "login" | "logout";
 

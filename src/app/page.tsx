@@ -1,9 +1,9 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { authHelper } from "@/lib/auth-helper";
+import { authHelper } from "@/lib/auth/auth-helper";
 import { browserSupabase } from "@/lib/supabase/browser";
-import { getAuthReasonCopy, getSafeInternalPath } from "@/lib/auth-routing";
+import { getAuthReasonCopy, getSafeInternalPath } from "@/lib/auth/auth-routing";
 
 import { Eye, EyeOff } from "lucide-react";
 import { toast } from "sonner";

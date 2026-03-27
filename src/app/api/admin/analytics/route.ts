@@ -1,6 +1,6 @@
 import { BetaAnalyticsDataClient } from '@google-analytics/data';
 import { NextRequest, NextResponse } from 'next/server';
-import { requireRequestAuth } from '@/lib/auth-server';
+import { requireRequestAuth } from '@/lib/auth/auth-server';
 
 function getAnalyticsClient() {
   return new BetaAnalyticsDataClient({

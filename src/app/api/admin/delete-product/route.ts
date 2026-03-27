@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { productHelper } from "@/lib/products/product-helper";
 import { activityHelper } from "@/lib/activity/activity-helper";
 import { admin } from "@/lib/supabase/admin";
-import { requireRequestAuth } from "@/lib/auth-server";
+import { requireRequestAuth } from "@/lib/auth/auth-server";
 
 /**
  * Eradicates a single specified product from the catalog table alongside all assigned image bucket uploads.

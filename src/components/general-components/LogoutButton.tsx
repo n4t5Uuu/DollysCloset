@@ -4,7 +4,7 @@ import { useState } from "react";
 import { LogOut, Loader2 } from "lucide-react";
 import { useUser } from "@/hooks/useUser";
 import { browserSupabase } from "@/lib/supabase/browser";
-import { authHelper } from "@/lib/auth-helper";
+import { authHelper } from "@/lib/auth/auth-helper";
 
 interface LogoutButtonProps {
     variant?: "pill" | "link" | "sidebar";

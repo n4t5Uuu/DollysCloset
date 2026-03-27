@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { productHelper } from "@/lib/products/product-helper";
 import { activityHelper } from "@/lib/activity/activity-helper";
 import { admin } from "@/lib/supabase/admin";
-import { requireRequestAuth } from "@/lib/auth-server";
+import { requireRequestAuth } from "@/lib/auth/auth-server";
 
 /**
  * Handles the bulk deletion of products and their associated images.

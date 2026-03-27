@@ -3,8 +3,8 @@ import AdminSidebar from "@/components/sidebar/AdminSidebar";
 import { redirect } from "next/navigation";
 import { SidebarProvider, SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
 import ClientAuthGuard from "@/components/auth/ClientAuthGuard";
-import { getServerAuthState } from "@/lib/auth-server";
-import { buildLoginPath, buildUnauthorizedPath } from "@/lib/auth-routing";
+import { getServerAuthState } from "@/lib/auth/auth-server";
+import { buildLoginPath, buildUnauthorizedPath } from "@/lib/auth/auth-routing";
 
 export const dynamic = "force-dynamic";
 

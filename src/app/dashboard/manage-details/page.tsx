@@ -1,7 +1,7 @@
 import ManageDetailsClient from "./ManageDetailsClient";
-import { getServerAuthState } from "@/lib/auth-server";
+import { getServerAuthState } from "@/lib/auth/auth-server";
 import { redirect } from "next/navigation";
-import { buildLoginPath, buildUnauthorizedPath } from "@/lib/auth-routing";
+import { buildLoginPath, buildUnauthorizedPath } from "@/lib/auth/auth-routing";
 
 export default async function ManageDetailsPage() {
     const authState = await getServerAuthState();

@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { employeeHelper } from "@/lib/employees/employee-helper";
 import { activityHelper } from "@/lib/activity/activity-helper";
 import { admin } from "@/lib/supabase/admin";
-import { requireRequestAuth } from "@/lib/auth-server";
+import { requireRequestAuth } from "@/lib/auth/auth-server";
 
 /**
  * Handles the bulk deletion of employee accounts.

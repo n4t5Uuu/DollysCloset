@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { employeeHelper } from '@/lib/employees/employee-helper';
-import { requireRequestAuth } from '@/lib/auth-server';
+import { requireRequestAuth } from '@/lib/auth/auth-server';
 import { admin } from '@/lib/supabase/admin';
 
 /**

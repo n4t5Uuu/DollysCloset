@@ -1,5 +1,5 @@
 import DynamicError from "@/components/general-components/DynamicError";
-import { getAuthReasonCopy, readSearchParam } from "@/lib/auth-routing";
+import { getAuthReasonCopy, readSearchParam } from "@/lib/auth/auth-routing";
 
 export default async function UnauthorizedPage({
   searchParams,

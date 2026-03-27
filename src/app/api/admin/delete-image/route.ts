@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { admin } from "@/lib/supabase/admin";
 import { productHelper } from "@/lib/products/product-helper";
 import { activityHelper } from "@/lib/activity/activity-helper";
-import { requireRequestAuth } from "@/lib/auth-server";
+import { requireRequestAuth } from "@/lib/auth/auth-server";
 
 /**
  * Extracts the specific file path portion from a full storage image URL.

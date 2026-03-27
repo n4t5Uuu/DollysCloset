@@ -1,7 +1,7 @@
 import { User } from "@supabase/supabase-js";
 import { NextResponse } from "next/server";
-import { authHelper } from "@/lib/auth-helper";
-import { AuthRedirectReason } from "@/lib/auth-routing";
+import { authHelper } from "@/lib/auth/auth-helper";
+import { AuthRedirectReason } from "@/lib/auth/auth-routing";
 import { createServerSupabase } from "@/lib/supabase/server";
 import { admin } from "@/lib/supabase/admin";
 

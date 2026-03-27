@@ -3,7 +3,7 @@ import path from "node:path";
 import { NextRequest, NextResponse } from "next/server";
 import { strFromU8, strToU8, unzipSync, zipSync } from "fflate";
 
-import { requireRequestAuth } from "@/lib/auth-server";
+import { requireRequestAuth } from "@/lib/auth/auth-server";
 import { productHelper } from "@/lib/products/product-helper";
 import { admin } from "@/lib/supabase/admin";
 
