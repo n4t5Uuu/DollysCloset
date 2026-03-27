@@ -323,7 +323,7 @@ export default function Catalog() {
                         <TextEffect as="span" per="word" preset="fade">Curated For You</TextEffect>
                     </p>
                     <h3 className="text-[#121212] font-playfair-display text-5xl mb-4">
-                        <TextEffect as="span" per="char" preset="fade-in-blur">Featured Collection</TextEffect>
+                        <TextEffect as="span" per="char" preset="fade-in-blur">New Arrivals</TextEffect>
                     </h3>
                 </div>
                 {loading ? (

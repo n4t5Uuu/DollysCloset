@@ -11,6 +11,8 @@ interface FeatureCardCarouselProps {
     onProductClick?: (product: Product) => void;
 }
 
+const AUTO_ADVANCE_MS = 5500;
+
 export default function FeatureCardCarousel({ products, onProductClick }: FeatureCardCarouselProps) {
     const [centerIndex, setCenterIndex] = useState(0);
 
@@ -19,12 +21,12 @@ export default function FeatureCardCarousel({ products, onProductClick }: Featur
     useEffect(() => {
         if (featuredProducts.length <= 1) return;
 
-        const interval = setInterval(() => {
+        const timeout = setTimeout(() => {
             setCenterIndex((prev) => (prev + 1) % featuredProducts.length);
-        }, 3200);
+        }, AUTO_ADVANCE_MS);
 
-        return () => clearInterval(interval);
-    }, [featuredProducts.length]);
+        return () => clearTimeout(timeout);
+    }, [featuredProducts.length, centerIndex]);
 
 
 

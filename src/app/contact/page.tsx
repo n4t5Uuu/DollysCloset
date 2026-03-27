@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { motion } from "motion/react";
-import { MapPin, Send, Loader2, CheckCircle2, XCircle, X, Facebook, Instagram, MessageCircle, Phone } from "lucide-react";
+import { MapPin, Send, Loader2, CheckCircle2, XCircle, X, Facebook, Instagram, MessageCircle, Phone, Maximize2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -38,6 +38,17 @@ function normalizeUrl(url: string): string {
     return trimmed;
   }
   return `https://${trimmed}`;
+}
+
+function normalizePhoneHref(rawValue: string): string {
+  const trimmed = rawValue.trim();
+  if (!trimmed || trimmed === "#") return "#";
+  if (trimmed.toLowerCase().startsWith("tel:")) return trimmed;
+
+  const digitsOnly = trimmed.replace(/[^\d+]/g, "");
+  if (!digitsOnly) return "#";
+
+  return `tel:${digitsOnly}`;
 }
 
 function parseContactBody(rawBody: unknown): ContactDetailsPayload {
@@ -79,6 +90,7 @@ export default function Contact() {
   // 'idle' | 'submitting' | 'success' | 'error'
   const [status, setStatus] = useState("idle");
   const [errorMessage, setErrorMessage] = useState("");
+  const [isMapModalOpen, setIsMapModalOpen] = useState(false);
   const displayAddress = (details.address || "").toLowerCase().includes("admiral")
     ? STORE_ADDRESS_CANONICAL
     : details.address;
@@ -104,6 +116,19 @@ export default function Contact() {
 
     fetchContactDetails();
   }, []);
+
+  useEffect(() => {
+    if (!isMapModalOpen) return;
+
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setIsMapModalOpen(false);
+      }
+    };
+
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [isMapModalOpen]);
 
   const contactMethods = [
     {
@@ -131,7 +156,7 @@ export default function Contact() {
       icon: Phone,
       label: "Contact Number",
       value: details.contactNumberDisplay,
-      link: details.contactNumberLink || "#",
+      link: normalizePhoneHref(details.contactNumberLink || details.contactNumberDisplay),
       color: "from-green-500 to-green-600",
     },
   ];
@@ -251,6 +276,31 @@ export default function Contact() {
                 </Button>
               </div>
             )}
+          </div>
+        </div>
+      )}
+
+      {isMapModalOpen && (
+        <div className="fixed inset-0 z-40 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+          <div className="w-full max-w-6xl bg-white rounded-2xl border border-gray-200 shadow-2xl overflow-hidden">
+            <div className="flex items-center justify-between px-4 md:px-6 py-3 border-b border-gray-100">
+              <h3 className="font-oswald text-xl uppercase tracking-wide text-gray-800">Store Location</h3>
+              <button
+                type="button"
+                onClick={() => setIsMapModalOpen(false)}
+                className="text-gray-500 hover:text-gray-700 transition-colors"
+                aria-label="Close enlarged map"
+              >
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+
+            <iframe
+              title="Dolly's Closet Store Location - Expanded"
+              src={STORE_OSM_EMBED_URL}
+              className="w-full h-[65vh]"
+              loading="lazy"
+            />
           </div>
         </div>
       )}
@@ -394,7 +444,16 @@ export default function Contact() {
                       </p>
                     </div>
 
-                    <div className="rounded-xl overflow-hidden border border-gray-200 shadow-sm">
+                    <div className="relative rounded-xl overflow-hidden border border-gray-200 shadow-sm">
+                      <button
+                        type="button"
+                        onClick={() => setIsMapModalOpen(true)}
+                        className="absolute top-3 right-3 z-10 inline-flex items-center gap-2 rounded-lg bg-white/95 px-3 py-1.5 text-xs font-semibold text-gray-700 border border-gray-200 shadow-sm hover:bg-white transition-colors"
+                        aria-label="Open larger map"
+                      >
+                        <Maximize2 className="w-3.5 h-3.5" />
+                        View Larger Map
+                      </button>
                       <iframe
                         title="Dolly's Closet Store Location"
                         src={STORE_OSM_EMBED_URL}
