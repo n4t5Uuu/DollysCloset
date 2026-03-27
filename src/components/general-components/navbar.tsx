@@ -21,7 +21,7 @@ export default function Navbar() {
                     <div className="shrink-0">
                         <Image src={noBgLogo} alt="Dolly's Closet Logo" width={40} height={40} className="md:w-[50px] md:h-[50px]" />
                     </div>
-                    <h2 className="text-[#E7A3B0] font-great-vices! text-2xl md:text-4xl whitespace-nowrap">Dolly&apos;s Closet</h2>
+                    <h2 className="text-[#E7A3B0] font-great-vibes! text-3xl md:text-5xl whitespace-nowrap">Dolly&apos;s Closet</h2>
                 </div>
 
                 <div className="hidden md:flex absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 items-center justify-center gap-10">

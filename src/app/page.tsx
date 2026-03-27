@@ -1,14 +1,9 @@
 "use client";
 
-<<<<<<< Updated upstream
 import { useState, useEffect } from "react";
 import { authHelper } from "@/lib/auth-helper";
 import { browserSupabase } from "@/lib/supabase/browser";
 import { getAuthReasonCopy, getSafeInternalPath } from "@/lib/auth-routing";
-=======
-import { useState } from "react";
-import { authHelper } from "@/lib/auth-helper";
->>>>>>> Stashed changes
 
 import { Eye, EyeOff } from "lucide-react";
 import { toast } from "sonner";
@@ -22,7 +17,6 @@ export default function Home() {
   const [loginReason, setLoginReason] = useState<string | null>(null);
   const [nextPath, setNextPath] = useState("/dashboard");
 
-<<<<<<< Updated upstream
   useEffect(() => {
     if (typeof window !== "undefined") {
       const params = new URLSearchParams(window.location.search);
@@ -48,9 +42,6 @@ export default function Home() {
       if (user) window.location.replace(nextPath);
     });
   }, [nextPath]);
-
-=======
->>>>>>> Stashed changes
   /**
    * Handles the form submission for user login.
    * 
@@ -142,11 +133,7 @@ export default function Home() {
       }
       
       toast.success("Login successful. Redirecting to dashboard...");
-<<<<<<< Updated upstream
       window.location.replace(nextPath);
-=======
-      window.location.href = '/dashboard';
->>>>>>> Stashed changes
       // Note: We don't set loading to false here to prevent button re-enable during redirect
 
     } catch (err: unknown) {

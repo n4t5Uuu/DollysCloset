@@ -15,7 +15,6 @@ import { Button } from "@/components/ui/button";
 import { ANNOUNCEMENT_SLUG, defaultAnnouncementText } from "@/lib/business-details/business-details";
 import { CatalogCategory, CatalogApiProduct } from "@/types/product.types";
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty";
-<<<<<<< Updated upstream
 import { PackageSearch, ChevronsLeft, ChevronsRight, Filter } from "lucide-react";
 import {
     Sheet,
@@ -24,9 +23,6 @@ import {
     SheetTitle,
     SheetTrigger,
 } from "@/components/ui/sheet";
-=======
-import { PackageSearch, ChevronsLeft, ChevronsRight } from "lucide-react";
->>>>>>> Stashed changes
 import { Skeleton } from "@/components/ui/skeleton";
 
 function toViewProduct(product: CatalogApiProduct): Product {
@@ -46,7 +42,6 @@ function toViewProduct(product: CatalogApiProduct): Product {
     };
 }
 
-<<<<<<< Updated upstream
 const COLLECTION_ROUTE = "/collection";
 
 function buildCollectionPath(searchParams: URLSearchParams) {
@@ -124,32 +119,6 @@ export default function Catalog() {
     const handleProductCopy = useCallback((product: CatalogApiProduct) => toViewProduct(product), []);
 
     const normalizeCategoryName = (value: string) => value.trim().toLowerCase();
-=======
-export default function Catalog() {
-    const searchParams = useSearchParams();
-    const router = useRouter();
-    const pathname = usePathname();
-
-    const rawPage = parseInt(searchParams.get("page") ?? "1", 10);
-    const currentPage = isNaN(rawPage) || rawPage < 1 ? 1 : rawPage;
-    const [goInput, setGoInput] = useState("");
-
-    const handlePageChange = (page: number) => {
-        if (page <= 1) {
-            router.replace(pathname);
-        } else {
-            router.replace(`${pathname}?page=${page}`);
-        }
-    };
-
-    const normalizeCategoryName = (value: string) => value.trim().toLowerCase();
-
-    const [activeFilter, setActiveFilter] = useState("all");
-    const [sortBy, setSortBy] = useState("newest");
-    const [searchQuery, setSearchQuery] = useState("");
-    const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
-    const [isModalOpen, setIsModalOpen] = useState(false);
->>>>>>> Stashed changes
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [announcementText, setAnnouncementText] = useState(defaultAnnouncementText);
@@ -225,33 +194,6 @@ export default function Catalog() {
         fetchAnnouncement();
     }, []);
 
-<<<<<<< Updated upstream
-=======
-    useEffect(() => {
-        /**
-         * Fetches the current user profile to enable product view tracking for authenticated users.
-         */
-        const fetchCurrentUser = async () => {
-            try {
-                const response = await fetch("/api/auth/profile", { cache: "no-store" });
-                const result = await response.json();
-
-                if (response.ok && result.data?.userId) {
-                    setCurrentUserId(result.data.userId);
-                }
-            } catch {
-                // Silently fail - user is likely not authenticated
-            }
-        };
-
-        fetchCurrentUser();
-    }, []);
-
-    useEffect(() => {
-        router.replace(pathname);
-    }, [activeFilter, sortBy, searchQuery, router, pathname]);
-
->>>>>>> Stashed changes
     const childrenByParent = useMemo(() => {
         return categories.reduce<Map<number, number[]>>((acc, category) => {
             if (category.parent_category === null) return acc;

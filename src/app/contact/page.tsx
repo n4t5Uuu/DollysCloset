@@ -311,7 +311,7 @@ export default function Contact() {
           <TextEffect 
             per="char" 
             preset="blur" 
-            className="font-great-vices! text-5xl md:text-7xl text-[#E7A3B0] mb-2 inline-block"
+            className="font-great-vibes! text-5xl md:text-7xl text-[#E7A3B0] mb-2 inline-block"
           >
             {pageTitle}
           </TextEffect>
@@ -610,7 +610,7 @@ export default function Contact() {
             }}
             viewOptions={{ once: true }}
           >
-            <p className="!font-great-vices text-5xl text-[#E7A3B0]">
+            <p className="font-great-vibes! text-5xl text-[#E7A3B0]">
               We cannot wait to hear from you! 💌
             </p>
           </InView>

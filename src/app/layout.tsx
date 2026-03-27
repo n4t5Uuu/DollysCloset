@@ -26,9 +26,9 @@ const playfairDisplay = Playfair_Display({
   variable: "--font-playfair-display"
 })
 
-const greatVices = Great_Vibes({
+const greatVibes = Great_Vibes({
   subsets: ["latin"],
-  variable: "--font-great-vices",
+  variable: "--font-great-vibes",
   weight: "400"
 })
 
@@ -49,7 +49,7 @@ export default function RootLayout({
             ${oswald.variable} 
             ${montserrat.variable} 
             ${playfairDisplay.variable} 
-            ${greatVices.variable} 
+            ${greatVibes.variable} 
             antialiased`
           }>
 

@@ -86,11 +86,7 @@ export default function EmployeeDashboard() {
 
             const [productsResponse, logsResponse] = await Promise.all([
                 fetch("/api/admin/fetch-products", { cache: "no-store" }),
-<<<<<<< Updated upstream
                 fetch("/api/admin/fetch-logs?pageSize=200", { cache: "no-store" }),
-=======
-                fetch("/api/admin/fetch-logs", { cache: "no-store" }),
->>>>>>> Stashed changes
             ]);
 
             if (!productsResponse.ok) {
@@ -416,8 +412,6 @@ export default function EmployeeDashboard() {
                         )}
                     </div>
                 </section>
-<<<<<<< Updated upstream
-
                 <section className="rounded-xl border border-gray-200 bg-white overflow-hidden flex flex-col">
                     <div className="px-4 py-3 border-b border-gray-100 flex items-center gap-2">
                         <Package className="w-4 h-4 text-[#E7A3B0]" />
@@ -450,36 +444,6 @@ export default function EmployeeDashboard() {
                     </div>
                 </section>
             </div>
-
-=======
-
-                <section className="rounded-xl border border-gray-200 bg-white overflow-hidden">
-                <div className="px-4 py-3 border-b border-gray-100 flex items-center gap-2">
-                    <Package className="w-4 h-4 text-[#E7A3B0]" />
-                    <h2 className="text-sm font-semibold text-[#121212]">Activity Log</h2>
-                    <span className="text-xs text-gray-400 ml-auto">your activity only</span>
-                </div>
-                <div className="p-4 space-y-3">
-                    {recentActivity.length === 0 ? (
-                        <p className="text-sm text-gray-500">No activity yet.</p>
-                    ) : (
-                        recentActivity.map((log) => (
-                            <div key={log.log_id} className="flex items-start justify-between gap-3 border-l-2 border-[#E7A3B0]/30 pl-3">
-                                <div>
-                                    <p className="text-sm font-medium text-[#121212]">
-                                        {actionLabels[log.action_type] || "Updated"} — {extractProductName(log.description || "", log.product_id)}
-                                    </p>
-                                    <p className="text-xs text-gray-500">{log.description || "No description"}</p>
-                                </div>
-                                <span className="text-xs text-gray-400 shrink-0">{formatDateTime(log.created_at)}</span>
-                            </div>
-                        ))
-                    )}
-                </div>
-                </section>
-            </div>
-
->>>>>>> Stashed changes
             {editingProduct && (
                 <AddProduct
                     isOpen={true}

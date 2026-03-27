@@ -101,7 +101,7 @@ export default async function About() {
             viewOptions={{ margin: "0px 0px -200px 0px" }}
             transition={{ duration: 0.3, ease: "easeInOut" }}
           >
-            <h1 className="font-great-vices! text-6xl md:text-[10rem] text-[#FF9EAA] drop-shadow-lg">
+            <h1 className="font-great-vibes! text-6xl md:text-[10rem] text-[#FF9EAA] drop-shadow-lg">
               Elegance Redefined
             </h1>
           </InView>

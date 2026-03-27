@@ -80,11 +80,7 @@ export default function AdminDashboard() {
 
             const [productsResponse, logsResponse] = await Promise.all([
                 fetch("/api/admin/fetch-products", { cache: "no-store" }),
-<<<<<<< Updated upstream
                 fetch("/api/admin/fetch-logs?pageSize=200", { cache: "no-store" }),
-=======
-                fetch("/api/admin/fetch-logs", { cache: "no-store" }),
->>>>>>> Stashed changes
             ]);
 
             if (!productsResponse.ok) {
@@ -409,17 +405,12 @@ export default function AdminDashboard() {
                     </div>
                 </section>
 
-<<<<<<< Updated upstream
                 <section className="rounded-xl border border-gray-200 bg-white overflow-hidden flex flex-col">
-=======
-                <section className="rounded-xl border border-gray-200 bg-white overflow-hidden">
->>>>>>> Stashed changes
                     <div className="px-4 py-3 border-b border-gray-100 flex items-center gap-2">
                         <Package className="w-4 h-4 text-[#E7A3B0]" />
                         <h2 className="text-sm font-semibold text-[#121212]">Activity Log</h2>
                         <span className="text-xs text-gray-400 ml-auto">your activity only</span>
                     </div>
-<<<<<<< Updated upstream
                     <div className="p-4 space-y-3 flex-1">
                         {loading ? (
                             Array.from({ length: 4 }).map((_, i) => (
@@ -440,21 +431,6 @@ export default function AdminDashboard() {
                                     <span className="shrink-0 text-xs font-medium px-2 py-0.5 rounded-full bg-[#fdf2f5] text-[#E7A3B0] border border-[#f5d4dc]">
                                         {actionLabels[log.action_type]?.split(" ")[0] || "Action"}
                                     </span>
-=======
-                    <div className="p-4 space-y-3">
-                        {recentActivity.length === 0 ? (
-                            <p className="text-sm text-gray-500">No activity yet.</p>
-                        ) : (
-                            recentActivity.map((log) => (
-                                <div key={log.log_id} className="flex items-start justify-between gap-3 border-l-2 border-[#E7A3B0]/30 pl-3">
-                                    <div>
-                                        <p className="text-sm font-medium text-[#121212]">
-                                            {actionLabels[log.action_type] || "Updated"} - {extractProductName(log.description || "", log.product_id)}
-                                        </p>
-                                        <p className="text-xs text-gray-500">{log.description || "No description"}</p>
-                                    </div>
-                                    <span className="text-xs text-gray-400 shrink-0">{formatDateTime(log.created_at)}</span>
->>>>>>> Stashed changes
                                 </div>
                             ))
                         )}

@@ -20,32 +20,7 @@ const defaultFooterContactDetails: FooterContactDetails = {
     address: "04 Admiral, Talon Tres, Las Piñas City",
 };
 
-function parseFooterContactBody(rawBody: unknown): FooterContactDetails {
-    if (!rawBody) {
-        return defaultFooterContactDetails;
-    }
 
-    if (typeof rawBody === "object") {
-        return {
-            ...defaultFooterContactDetails,
-            ...(rawBody as Partial<FooterContactDetails>),
-        };
-    }
-
-    if (typeof rawBody !== "string") {
-        return defaultFooterContactDetails;
-    }
-
-    try {
-        const parsed = JSON.parse(rawBody) as Partial<FooterContactDetails>;
-        return {
-            ...defaultFooterContactDetails,
-            ...parsed,
-        };
-    } catch {
-        return defaultFooterContactDetails;
-    }
-}
 
 function normalizeExternalLink(url: string): string {
     const trimmed = url.trim();
@@ -63,14 +38,25 @@ export default function Footer() {
     useEffect(() => {
         const fetchContactDetails = async () => {
             try {
-                const response = await fetch("/api/business-details?slug=contact", { cache: "no-store" });
+                const response = await fetch("/api/business-details?slug=contact", { 
+                    cache: "no-store",
+                    next: { revalidate: 0 } // Extra safety for Next.js caching
+                });
                 if (!response.ok) return;
 
                 const result = await response.json();
+                // The public API returns result.data which contains result.data.body (ContactDetailsPayload)
                 if (!result?.data?.body) return;
 
-                setContactDetails(parseFooterContactBody(result.data.body));
-            } catch {
+                // Use the shared parsing logic to ensure consistency with the admin side
+                const parsedBody = result.data.body;
+                setContactDetails({
+                    facebookLink: parsedBody.facebookLink || defaultFooterContactDetails.facebookLink,
+                    instagramLink: parsedBody.instagramLink || defaultFooterContactDetails.instagramLink,
+                    address: parsedBody.address || defaultFooterContactDetails.address,
+                });
+            } catch (error) {
+                console.error("Footer fetch error:", error);
             }
         };
 
@@ -137,14 +123,11 @@ export default function Footer() {
 
                     <div className={headerContentSpace}>
                         <h2 className={headerStyle}>Address</h2>
-                        <a 
-                            href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(contactDetails.address)}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className={`${addressStyle} hover:text-[#E7A3B0] transition-colors duration-300`}
+                        <div 
+                            className={addressStyle}
                         >
                             {contactDetails.address}
-                        </a>
+                        </div>
                     </div>
                 </div>
             </div>
