@@ -311,7 +311,7 @@ export default function Contact() {
           <TextEffect 
             per="char" 
             preset="blur" 
-            className="!font-great-vices text-5xl md:text-7xl text-[#E7A3B0] mb-2 inline-block"
+            className="font-great-vices! text-5xl md:text-7xl text-[#E7A3B0] mb-2 inline-block"
           >
             {pageTitle}
           </TextEffect>

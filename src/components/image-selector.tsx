@@ -3,6 +3,15 @@
 import { useState } from "react";
 import { Upload, X, Loader2 } from "lucide-react";
 import { compressImage } from "@/lib/image-compression";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 interface ImageSelectorProps {
   stagedFiles: File[];
@@ -18,6 +27,15 @@ export default function ImageSelector({
   onFileRemove,
 }: ImageSelectorProps) {
   const [isCompressing, setIsCompressing] = useState(false);
+  const [alertConfig, setAlertConfig] = useState<{
+    isOpen: boolean;
+    title: string;
+    description: string;
+  }>({
+    isOpen: false,
+    title: "",
+    description: "",
+  });
   // limits the files to 5
   const canAddMore = stagedFiles.length < 5;
   const remainingSlots = Math.max(0, 5 - stagedFiles.length);
@@ -32,7 +50,11 @@ export default function ImageSelector({
     e.stopPropagation();
 
     if (!canAddMore) {
-      alert("Maximum 5 images per product");
+      setAlertConfig({
+        isOpen: true,
+        title: "Maximum Images Reached",
+        description: "You can only add up to 5 images per product.",
+      });
       return;
     }
 
@@ -41,7 +63,11 @@ export default function ImageSelector({
       .slice(0, remainingSlots);
 
     if (e.dataTransfer.files.length > files.length) {
-      alert(`Only ${remainingSlots} more image(s) can be added.`);
+      setAlertConfig({
+        isOpen: true,
+        title: "Some Images Skipped",
+        description: `Only ${remainingSlots} more image(s) can be added to reach the limit of 5.`,
+      });
     }
 
     if (files.length > 0) {
@@ -66,15 +92,27 @@ export default function ImageSelector({
     const limitedImageFiles = imageFiles.slice(0, remainingSlots);
 
     if (selectedFiles.length > 0 && imageFiles.length === 0) {
-      alert("Only image files are allowed.");
+      setAlertConfig({
+        isOpen: true,
+        title: "Invalid File Type",
+        description: "Only image files (PNG, JPG, WebP) are allowed.",
+      });
     }
 
     if (selectedFiles.length > imageFiles.length) {
-      alert("Some files were skipped because only image files are allowed.");
+      setAlertConfig({
+        isOpen: true,
+        title: "Files Skipped",
+        description: "Some files were skipped because only image files are allowed.",
+      });
     }
 
     if (imageFiles.length > limitedImageFiles.length) {
-      alert(`Only ${remainingSlots} more image(s) can be added.`);
+      setAlertConfig({
+        isOpen: true,
+        title: "Limit Exceeded",
+        description: `Only ${remainingSlots} more image(s) can be added. The maximum is 5 images per product.`,
+      });
     }
 
     if (limitedImageFiles.length > 0) {
@@ -173,6 +211,25 @@ export default function ImageSelector({
           No images selected. You can add them now or add them later.
         </p>
       )}
+
+      <AlertDialog 
+        open={alertConfig.isOpen} 
+        onOpenChange={(open) => setAlertConfig(prev => ({ ...prev, isOpen: open }))}
+      >
+        <AlertDialogContent className="bg-white">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-gray-900">{alertConfig.title}</AlertDialogTitle>
+            <AlertDialogDescription>
+              {alertConfig.description}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogAction className="bg-[#E7A3B0] hover:bg-[#ca8c98] text-white cursor-pointer">
+              Understood
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

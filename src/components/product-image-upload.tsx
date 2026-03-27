@@ -6,6 +6,15 @@ import { compressImage } from "@/lib/image-compression";
 import { InventoryProductImage as ProductImage } from "@/types/inventory.types";
 import { toast } from "sonner";
 import { uploadProductImageFile } from "@/lib/upload-product-image";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 interface ProductImageUploadProps {
   productId: string | null;
@@ -23,6 +32,15 @@ export default function ProductImageUpload({
 }: ProductImageUploadProps) {
   const [uploading, setUploading] = useState(false);
   const [dragActive, setDragActive] = useState(false);
+  const [alertConfig, setAlertConfig] = useState<{
+    isOpen: boolean;
+    title: string;
+    description: string;
+  }>({
+    isOpen: false,
+    title: "",
+    description: "",
+  });
 
   const canUploadMore = images.length < 5;
   const remainingSlots = Math.max(0, 5 - images.length);
@@ -46,7 +64,11 @@ export default function ProductImageUpload({
     }
 
     if (!canUploadMore) {
-      toast.warning("Maximum 5 images per product");
+      setAlertConfig({
+        isOpen: true,
+        title: "Maximum Images Reached",
+        description: "You already have 5 images for this product. Please delete some before uploading new ones.",
+      });
       return;
     }
 
@@ -55,7 +77,11 @@ export default function ProductImageUpload({
       .slice(0, remainingSlots);
 
     if (e.dataTransfer.files.length > files.length) {
-      toast.warning(`Only ${remainingSlots} more image(s) can be uploaded.`);
+      setAlertConfig({
+        isOpen: true,
+        title: "Some Images Skipped",
+        description: `Only ${remainingSlots} more image(s) can be uploaded to stay within the 5-image limit.`,
+      });
     }
 
     if (files.length > 0) {
@@ -82,7 +108,11 @@ export default function ProductImageUpload({
     }
 
     if (imageFiles.length > limitedImageFiles.length) {
-      toast.warning(`Only ${remainingSlots} more image(s) can be uploaded.`);
+      setAlertConfig({
+        isOpen: true,
+        title: "Upload Limit Exceeded",
+        description: `Only ${remainingSlots} more image(s) can be uploaded. The maximum allowed is 5 per product.`,
+      });
     }
 
     if (limitedImageFiles.length > 0) {
@@ -105,7 +135,11 @@ export default function ProductImageUpload({
     }
 
     if (files.length > remainingSlots) {
-      toast.warning(`Only ${remainingSlots} more image(s) can be uploaded.`);
+      setAlertConfig({
+        isOpen: true,
+        title: "Batch Limit Exceeded",
+        description: `You are trying to upload ${files.length} images, but only ${remainingSlots} slot(s) are available.`,
+      });
       return;
     }
 
@@ -303,6 +337,25 @@ export default function ProductImageUpload({
           No images yet. Upload at least one image.
         </p>
       )}
+
+      <AlertDialog 
+        open={alertConfig.isOpen} 
+        onOpenChange={(open) => setAlertConfig(prev => ({ ...prev, isOpen: open }))}
+      >
+        <AlertDialogContent className="bg-white">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-gray-900">{alertConfig.title}</AlertDialogTitle>
+            <AlertDialogDescription>
+              {alertConfig.description}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogAction className="bg-[#E7A3B0] hover:bg-[#ca8c98] text-white cursor-pointer">
+              Understood
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
