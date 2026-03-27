@@ -79,7 +79,7 @@ export default function ClientAuthGuard({ children }: { children: React.ReactNod
     // This prevents the page layout from "flashing" onto the screen
     if (isAuthorized !== true) {
         return (
-            <div className="flex h-screen w-full items-center justify-center bg-gray-50/50 backdrop-blur-sm">
+            <div className="fixed inset-0 z-9999 flex h-screen w-full items-center justify-center bg-white/80 backdrop-blur-md">
                 <Loader2 className="h-8 w-8 animate-spin text-[#E7A3B0]" />
             </div>
         );
