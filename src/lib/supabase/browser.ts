@@ -7,6 +7,10 @@ export const browserSupabase = createBrowserClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
+        auth: {
+            persistSession: true,
+            storage: typeof window !== "undefined" ? window.sessionStorage : undefined,
+        },
         cookieOptions: {
             // By omitting maxAge/expires or setting them to undefined/0 in some SSR versions, 
             // the generated cookies will be bound dynamically to the browser's "Session" instead of persisting for 1 year.

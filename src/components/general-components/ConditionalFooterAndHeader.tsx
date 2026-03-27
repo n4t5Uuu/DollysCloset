@@ -6,7 +6,7 @@ import Navbar from "@/components/general-components/navbar";
 
 export function ConditionalNavbar() {
     const pathname = usePathname();
-    const hiddenNavbarPaths = ["/unauthorized", "/login", "/forgot-password", "/reset-password"];
+    const hiddenNavbarPaths = ["/", "/unauthorized", "/login", "/forgot-password", "/reset-password"];
     const hiddenNavbarPrefixes = ["/admin", "/employee"];
 
     const isHiddenByPath = hiddenNavbarPaths.includes(pathname) || 

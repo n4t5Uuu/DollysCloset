@@ -15,6 +15,12 @@ function clearBrowserAuthState() {
         }
     }
 
+    for (const key of Object.keys(sessionStorage)) {
+        if (storagePrefixes.some((prefix) => key.startsWith(prefix))) {
+            sessionStorage.removeItem(key);
+        }
+    }
+
     document.cookie.split(";").forEach((cookie) => {
         const [rawName] = cookie.split("=");
         const name = rawName?.trim();

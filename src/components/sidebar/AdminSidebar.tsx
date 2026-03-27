@@ -38,8 +38,12 @@ export default function AdminSidebar() {
 
 
   return (
-    <Sidebar className="bg-white border-r border-gray-200 pt-[80px]" collapsible="icon">
-      <SidebarContent className="px-4 pb-4 pt-0">
+    <Sidebar 
+      variant="floating"
+      className="pt-[80px] z-30 transition-all duration-500 border-none bg-[#F7F2F2]/95 backdrop-blur-xl shadow-[8px_0_30px_-5px_rgba(231,163,176,0.15)] **:data-[sidebar=sidebar]:border-none" 
+      collapsible="icon"
+    >
+      <SidebarContent className="px-4 pb-4 pt-8">
         <SidebarGroup>
           <SidebarGroupContent>
             <SidebarMenu className="space-y-2">
@@ -50,10 +54,10 @@ export default function AdminSidebar() {
                     <SidebarMenuButton
                       asChild
                       isActive={isActive}
-                      className={`h-auto px-4 py-3 rounded-xl transition-all duration-300 ease-out group/item ${
+                      className={`h-auto px-4 py-3.5 rounded-2xl transition-all duration-300 ease-out group/item ${
                         isActive
-                          ? "bg-black text-[#E7A3B0] shadow-xl shadow-[#E7A3B0]/20 [&_svg]:text-[#E7A3B0] scale-[1.02] font-semibold hover:bg-black/90"
-                          : "text-zinc-500 hover:bg-[#E7A3B0]/10 hover:text-[#E7A3B0] hover:translate-x-1 hover:shadow-sm [&_svg]:transition-colors"
+                          ? "bg-black text-white shadow-[0_12px_30px_-5px_rgba(231,163,176,0.35)] [&_svg]:text-[#E7A3B0] scale-[1.04] font-bold hover:bg-black/90"
+                          : "text-zinc-600 hover:bg-white hover:text-[#E7A3B0] hover:translate-x-1 hover:shadow-[0_4px_12px_-4px_rgba(231,163,176,0.2)] [&_svg]:transition-colors"
                       }`}
                     >
                       <Link href={item.href} className="flex items-center gap-3">
