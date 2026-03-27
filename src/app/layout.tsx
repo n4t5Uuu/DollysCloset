@@ -8,6 +8,7 @@ import {
 import "./globals.css";
 import {ConditionalFooter, ConditionalNavbar } from "@/components/general-components/ConditionalFooterAndHeader";
 import { ProductProvider } from "@/contexts/ProductContext";
+import { SidebarProvider } from "@/components/ui/sidebar";
 import { Toaster } from "@/components/ui/sonner";
 import { GoogleAnalyticsTracker } from "@/components/analytics/GoogleAnalyticsTracker";
 
@@ -54,11 +55,15 @@ export default function RootLayout({
           }>
 
         <ProductProvider>
-          <GoogleAnalyticsTracker />
-          <ConditionalNavbar />
-          {children}
-          <ConditionalFooter />
-          <Toaster duration={3000} />
+          <SidebarProvider>
+            <div className="flex flex-col min-h-screen w-full">
+              <GoogleAnalyticsTracker />
+              <ConditionalNavbar />
+              {children}
+              <ConditionalFooter />
+              <Toaster duration={3000} />
+            </div>
+          </SidebarProvider>
         </ProductProvider>
       </body>
     </html>

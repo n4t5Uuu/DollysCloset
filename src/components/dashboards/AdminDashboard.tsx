@@ -250,24 +250,24 @@ export default function AdminDashboard() {
                     <>
                         <div className="rounded-xl border border-gray-200 bg-white p-4">
                             <p className="text-xs uppercase tracking-wider text-gray-400">Items Added</p>
-                            <p className="text-3xl font-bold text-[#121212] mt-1">{itemsAddedThisMonth}</p>
+                            <p className="text-2xl font-bold text-[#121212] mt-1">{itemsAddedThisMonth}</p>
                             <p className="text-sm text-green-600 mt-1">+{itemsAddedThisWeek} this week</p>
                         </div>
                         <div className="rounded-xl border border-gray-200 bg-white p-4">
                             <p className="text-xs uppercase tracking-wider text-gray-400">Listed</p>
-                            <p className="text-3xl font-bold text-[#121212] mt-1">{listedCount}</p>
+                            <p className="text-2xl font-bold text-[#121212] mt-1">{listedCount}</p>
                             <p className="text-sm text-gray-500 mt-1">Live in catalog</p>
                         </div>
                         <div className="rounded-xl border border-gray-200 bg-white p-4">
                             <p className="text-xs uppercase tracking-wider text-gray-400">Unpublished</p>
-                            <p className="text-3xl font-bold text-[#121212] mt-1">{unlistedCount}</p>
+                            <p className="text-2xl font-bold text-[#121212] mt-1">{unlistedCount}</p>
                             <p className={`text-sm mt-1 ${unlistedCount > 0 ? "text-amber-600" : "text-green-600"}`}>
                                 {unlistedCount > 0 ? "Needs attention" : "All published"}
                             </p>
                         </div>
                         <div className="rounded-xl border border-[#f2dfb3] bg-[#fffaf0] p-4">
                             <p className="text-xs uppercase tracking-wider text-gray-400">Alerts</p>
-                            <p className="text-3xl font-bold text-[#121212] mt-1">{outOfStockItems.length + lowStockItems.length + missingPhotoItems.length}</p>
+                            <p className="text-2xl font-bold text-[#121212] mt-1">{outOfStockItems.length + lowStockItems.length + missingPhotoItems.length}</p>
                             <p className="text-sm text-[#c28b16] mt-1">{outOfStockItems.length} out of stock</p>
                         </div>
                     </>

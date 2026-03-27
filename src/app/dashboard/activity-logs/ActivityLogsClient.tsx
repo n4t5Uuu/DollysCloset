@@ -247,15 +247,15 @@ export default function ActivityLogsClient() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold">Activity Logs</h1>
+          <h1 className="text-2xl font-bold">Activity Logs</h1>
           <p className="text-gray-500 text-sm">Inventory actions by admin or employee.</p>
         </div>
         <AlertDialog>
           <AlertDialogTrigger asChild>
             <button
-              className="bg-red-500 hover:bg-red-600 text-white font-medium px-5 py-2.5 rounded-lg transition-all duration-300 shadow-md hover:shadow-lg hover:scale-105 cursor-pointer"
+              className="bg-red-500 hover:bg-red-600 text-white text-sm font-medium px-4 py-2 rounded-lg transition-all duration-300 shadow-md hover:shadow-lg hover:scale-105 cursor-pointer sm:shrink-0"
             >
               Reset Logs
             </button>
@@ -290,25 +290,26 @@ export default function ActivityLogsClient() {
 
       <div className="flex items-center gap-3 flex-wrap">
         <div className="relative flex-1 min-w-[200px]">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-3.5 h-3.5" />
           <Input
             placeholder="Search by IDs (log, product, user UUID) or editor..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-10"
+            className="pl-9 h-9 text-sm rounded-lg border-gray-300 text-gray-900 bg-white"
           />
         </div>
 
         <div className="relative" ref={filtersRef}>
           <Button
             variant="outline"
+            size="sm"
             onClick={() => setShowFilters((p) => !p)}
-            className="flex items-center gap-2 hover:bg-[#fff5f7] hover:text-[#E7A3B0] hover:border-[#E7A3B0] hover:scale-105 hover:shadow-md active:scale-95 transition-all duration-300"
+            className="flex items-center gap-2 h-9 text-xs hover:bg-[#fff5f7] hover:text-[#E7A3B0] hover:border-[#E7A3B0] hover:scale-105 hover:shadow-md active:scale-95 transition-all duration-300"
           >
-            <SlidersHorizontal className="w-4 h-4" />
+            <SlidersHorizontal className="w-3.5 h-3.5" />
             Filters
             {activeFilterCount > 0 && (
-              <span className="ml-1 flex h-5 w-5 items-center justify-center rounded-full bg-[#E7A3B0] text-[10px] font-semibold text-white">
+              <span className="ml-1 flex h-4 w-4 items-center justify-center rounded-full bg-[#E7A3B0] text-[9px] font-semibold text-white">
                 {activeFilterCount}
               </span>
             )}
@@ -348,12 +349,13 @@ export default function ActivityLogsClient() {
         <div className="relative" ref={pickerRef}>
           <Button
             variant="outline"
+            size="sm"
             onClick={() => setShowPicker((p) => !p)}
-            className="flex items-center gap-2 hover:bg-[#fff5f7] hover:text-[#E7A3B0] hover:border-[#E7A3B0] hover:scale-105 hover:shadow-md active:scale-95 transition-all duration-300"
+            className="flex items-center gap-2 h-9 text-xs hover:bg-[#fff5f7] hover:text-[#E7A3B0] hover:border-[#E7A3B0] hover:scale-105 hover:shadow-md active:scale-95 transition-all duration-300"
           >
-            <Calendar className="w-4 h-4" />
+            <Calendar className="w-3.5 h-3.5" />
             {selectedMonth ? `${MONTHS[selectedMonth.month]} ${selectedMonth.year}` : "All Months"}
-            <ChevronDown className="w-4 h-4" />
+            <ChevronDown className="w-3.5 h-3.5" />
           </Button>
           {showPicker && (
             <div className="absolute left-0 z-10 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg p-3 w-60">

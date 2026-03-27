@@ -362,24 +362,24 @@ const openAddModal = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold">Manage Inventory</h1>
+          <h1 className="text-2xl font-bold">Manage Inventory</h1>
           <p className="text-gray-500 text-sm">Create, update, and organize products and categories.</p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 sm:shrink-0">
           <button
             onClick={() => setShowBulkImport(true)}
-            className="flex items-center gap-2 px-5 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-800 rounded-lg font-medium transition-all duration-300 shadow-sm hover:shadow-md hover:scale-105 cursor-pointer"
+            className="flex items-center gap-2 px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-800 rounded-lg text-sm font-medium transition-all duration-300 shadow-sm hover:shadow-md hover:scale-105 cursor-pointer"
           >
-            <Upload size={18} />
+            <Upload size={16} />
             Import
           </button>
           <button
             onClick={openAddModal}
-            className="flex items-center gap-2 px-5 py-2.5 bg-linear-to-r from-[#E7A3B0] to-[#f0b8c3] hover:from-[#d891a0] hover:to-[#E7A3B0] text-white rounded-lg font-medium transition-all duration-300 shadow-md hover:shadow-lg hover:scale-105 cursor-pointer"
+            className="flex items-center gap-2 px-4 py-2 bg-linear-to-r from-[#E7A3B0] to-[#f0b8c3] hover:from-[#d891a0] hover:to-[#E7A3B0] text-white rounded-lg text-sm font-medium transition-all duration-300 shadow-md hover:shadow-lg hover:scale-105 cursor-pointer"
           >
-            <Plus size={18} />
+            <Plus size={16} />
             Add Product
           </button>
         </div>
@@ -400,13 +400,13 @@ const openAddModal = () => {
 
       <div className="flex items-center gap-3 flex-wrap">
         <div className="relative flex-1 min-w-[200px]">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-3.5 h-3.5" />
           <Input
             type="text"
             placeholder="Search products..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-10 rounded-full border-gray-300 text-gray-900 bg-white"
+            className="w-full pl-9 h-9 rounded-full border-gray-300 text-sm text-gray-900 bg-white"
           />
         </div>
 
@@ -414,13 +414,14 @@ const openAddModal = () => {
         <div className="relative" ref={filtersRef}>
           <Button
             variant="outline"
+            size="sm"
             onClick={() => setShowFilters((p) => !p)}
-            className="flex items-center gap-2 hover:bg-[#fff5f7] hover:text-[#E7A3B0] hover:border-[#E7A3B0] hover:scale-105 hover:shadow-md active:scale-95 transition-all duration-300"
+            className="flex items-center gap-2 h-9 text-xs hover:bg-[#fff5f7] hover:text-[#E7A3B0] hover:border-[#E7A3B0] hover:scale-105 hover:shadow-md active:scale-95 transition-all duration-300"
           >
-            <SlidersHorizontal className="w-4 h-4" />
+            <SlidersHorizontal className="w-3.5 h-3.5" />
             Filters
             {[visibilityFilter !== "all", availabilityFilter !== "all"].filter(Boolean).length > 0 && (
-              <span className="ml-1 flex h-5 w-5 items-center justify-center rounded-full bg-[#E7A3B0] text-[10px] font-semibold text-white">
+              <span className="ml-1 flex h-4 w-4 items-center justify-center rounded-full bg-[#E7A3B0] text-[9px] font-semibold text-white">
                 {[visibilityFilter !== "all", availabilityFilter !== "all"].filter(Boolean).length}
               </span>
             )}
@@ -499,7 +500,7 @@ const openAddModal = () => {
         />
 
         <Select value={dateSort} onValueChange={(value) => setDateSort(value as "newest" | "oldest")}>
-          <SelectTrigger className="w-[150px] text-gray-900 bg-white">
+          <SelectTrigger className="w-[140px] h-9 text-xs text-gray-900 bg-white">
             <SelectValue placeholder="Sort Date" />
           </SelectTrigger>
           <SelectContent className="bg-white border-gray-200 text-black">

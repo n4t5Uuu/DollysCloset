@@ -199,16 +199,16 @@ export default function EmployeesClient() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold">Manage Employees</h1>
+          <h1 className="text-2xl font-bold">Manage Employees</h1>
           <p className="text-gray-500 text-sm">Manage staff members, roles, and permissions</p>
         </div>
         <button
           onClick={openAddModal}
-          className="flex items-center gap-2 px-5 py-2.5 bg-linear-to-r from-[#E7A3B0] to-[#f0b8c3] hover:from-[#d891a0] hover:to-[#E7A3B0] text-white rounded-lg font-medium transition-all duration-300 shadow-md hover:shadow-lg hover:scale-105 cursor-pointer"
+          className="flex items-center gap-2 px-4 py-2 bg-linear-to-r from-[#E7A3B0] to-[#f0b8c3] hover:from-[#d891a0] hover:to-[#E7A3B0] text-white rounded-lg text-sm font-medium transition-all duration-300 shadow-md hover:shadow-lg hover:scale-105 cursor-pointer sm:shrink-0"
         >
-          <Plus size={18} />
+          <Plus size={16} />
           Add Employee
         </button>
       </div>
@@ -228,13 +228,13 @@ export default function EmployeesClient() {
 
         <div className="flex items-center gap-4 mb-6 flex-wrap">
           <div className="relative flex-1 min-w-[200px]">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-3.5 h-3.5" />
             <Input
               type="text"
               placeholder="Search by name or email..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 rounded-full border-gray-300 text-gray-900 bg-white"
+              className="w-full pl-9 h-9 rounded-full border-gray-300 text-sm text-gray-900 bg-white"
             />
           </div>
         </div>
@@ -246,7 +246,8 @@ export default function EmployeesClient() {
           <div className="flex gap-3">
             {selectedRows.size > 0 && (
               <Button
-                className="bg-red-500 hover:bg-red-600 text-white"
+                size="sm"
+                className="bg-red-500 hover:bg-red-600 text-white h-9 text-xs font-medium"
                 onClick={() => setShowBulkDeleteModal(true)}
               >
                 <Trash className="w-4 h-4 mr-2" />

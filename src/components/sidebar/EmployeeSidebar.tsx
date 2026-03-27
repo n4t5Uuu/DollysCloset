@@ -16,11 +16,13 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarFooter,
+  useSidebar,
 } from "@/components/ui/sidebar";
 import LogoutButton from "@/components/general-components/LogoutButton";
 
 export default function EmployeeSidebar() {
   const pathname = usePathname();
+  const { setOpenMobile } = useSidebar();
 
 
   const navItems = [
@@ -33,7 +35,7 @@ export default function EmployeeSidebar() {
   return (
     <Sidebar 
       variant="floating"
-      className="pt-[80px] z-30 transition-all duration-500 border-none bg-[#F7F2F2]/95 backdrop-blur-xl shadow-[8px_0_30px_-5px_rgba(231,163,176,0.15)] **:data-[sidebar=sidebar]:border-none" 
+      className="md:pt-[80px] z-30 transition-all duration-500 border-none bg-[#F7F2F2]/95 backdrop-blur-xl shadow-[8px_0_30px_-5px_rgba(231,163,176,0.15)] **:data-[sidebar=sidebar]:border-none" 
       collapsible="icon"
     >
       <SidebarContent className="px-4 pb-4 pt-8">
@@ -53,7 +55,11 @@ export default function EmployeeSidebar() {
                           : "text-zinc-600 hover:bg-white hover:text-[#E7A3B0] hover:translate-x-1 hover:shadow-[0_4px_12px_-4px_rgba(231,163,176,0.2)] [&_svg]:transition-colors"
                       }`}
                     >
-                      <Link href={item.href} className="flex items-center gap-3">
+                      <Link 
+                        href={item.href} 
+                        className="flex items-center gap-3"
+                        onClick={() => setOpenMobile(false)}
+                      >
                         <item.icon className="w-5 h-5" />
                         <span className="font-medium">{item.label}</span>
                       </Link>

@@ -209,7 +209,7 @@ export default function ManageDetailsClient() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold">Manage Details</h1>
+        <h1 className="text-2xl font-bold">Manage Details</h1>
         <p className="text-gray-500 text-sm">Edit website contact details and links.</p>
       </div>
 

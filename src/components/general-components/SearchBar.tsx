@@ -29,6 +29,21 @@ export default function SearchBar({ onSearch, initialQuery = "" }: SearchBarProp
         onSearch?.(value);
     }
 
+    const [placeholder, setPlaceholder] = useState("Search Products");
+
+    useEffect(() => {
+        if (typeof window !== "undefined") {
+            setPlaceholder(window.innerWidth < 380 ? "Search..." : "Search Products");
+            
+            const handleResize = () => {
+                setPlaceholder(window.innerWidth < 380 ? "Search..." : "Search Products");
+            };
+            
+            window.addEventListener("resize", handleResize);
+            return () => window.removeEventListener("resize", handleResize);
+        }
+    }, []);
+
     return (
         // check kung ano ilalagay here sa action pero baka iba sa supabase (?)
         <form 
@@ -37,7 +52,7 @@ export default function SearchBar({ onSearch, initialQuery = "" }: SearchBarProp
             className="relative w-full md:w-80">
                 <Input 
                     type="text"
-                    placeholder={window.innerWidth < 380 ? "Search..." : "Search Products"}
+                    placeholder={placeholder}
                     className="w-full h-9 pl-4 pr-12 rounded-2xl border-black bg-white placeholder:text-black placeholder:font-montserrat"
                     value={query}
                     onChange={handleChange}

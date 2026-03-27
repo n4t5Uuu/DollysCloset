@@ -65,10 +65,9 @@ export function AnalyticsTabs() {
 
     return (
         <div>
-            {/* Tab bar + Export button */}
-            <div className="flex items-center justify-between mb-6">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
                 <div
-                    className="inline-flex items-center rounded-xl p-1"
+                    className="inline-flex items-center rounded-xl p-1 w-fit"
                     style={{ backgroundColor: '#f3f4f6', border: '1px solid #e5e7eb' }}
                 >
                     {tabs.map(tab => {
@@ -92,13 +91,13 @@ export function AnalyticsTabs() {
                     })}
                 </div>
 
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 overflow-x-auto sm:overflow-visible pb-1 sm:pb-0">
                     <Select
                         value={selectedMonth}
                         onValueChange={setSelectedMonth}
                         disabled={exporting}
                     >
-                        <SelectTrigger className="w-[160px] h-9">
+                        <SelectTrigger className="w-[160px] h-9 shrink-0">
                             <SelectValue placeholder="Full Summary" />
                         </SelectTrigger>
                         <SelectContent>
@@ -109,25 +108,25 @@ export function AnalyticsTabs() {
                         </SelectContent>
                     </Select>
 
-          <button
-            onClick={handleExport}
-            disabled={exporting}
-            className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all"
-            style={{
-              backgroundColor: 'white',
-              border: '1px solid #e5e7eb',
-              color: exporting ? '#9ca3af' : '#374151',
-              cursor: exporting ? 'not-allowed' : 'pointer',
-              boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
-            }}
-          >
-            {exporting
-              ? <Loader2 className="w-4 h-4 animate-spin" />
-              : <Download className="w-4 h-4" />}
-            {exporting ? 'Exporting…' : 'Export PDF'}
-          </button>
-        </div>
-      </div>
+                    <button
+                        onClick={handleExport}
+                        disabled={exporting}
+                        className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all shrink-0"
+                        style={{
+                            backgroundColor: 'white',
+                            border: '1px solid #e5e7eb',
+                            color: exporting ? '#9ca3af' : '#374151',
+                            cursor: exporting ? 'not-allowed' : 'pointer',
+                            boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
+                        }}
+                    >
+                        {exporting
+                            ? <Loader2 className="w-4 h-4 animate-spin" />
+                            : <Download className="w-4 h-4" />}
+                        {exporting ? 'Exporting…' : 'Export PDF'}
+                    </button>
+                </div>
+            </div>
 
       {/* Always render both so charts are in the DOM for PDF capture.
           Wrapper clips the off-screen dashboard so it doesn't add phantom scroll. */}

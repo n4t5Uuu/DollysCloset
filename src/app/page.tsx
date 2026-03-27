@@ -173,11 +173,7 @@ export default function Home() {
         </div>
 
         {!callbackError && loginReason && (
-          <p className={`text-sm text-center -mt-2 mb-6 ${
-            loginReason === "signed-out-elsewhere"
-              ? "text-amber-600 font-medium"
-              : "text-[#8A5B64]"
-          }`}>
+          <p className="text-sm text-red-500 text-center -mt-2 mb-6 font-medium">
             {getAuthReasonCopy(loginReason).description}
           </p>
         )}

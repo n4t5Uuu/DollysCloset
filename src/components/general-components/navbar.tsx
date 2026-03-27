@@ -8,6 +8,7 @@ import noBgLogo from "@/assets/images/logo/no-bg-logo.png";
 import Link from "next/link";
 import { Menu, X } from "lucide-react";
 import UserProfileDropdown from "./LogoutButton";
+import { SidebarTrigger } from "@/components/ui/sidebar";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 
@@ -23,13 +24,32 @@ export default function Navbar() {
             "w-full h-[80px] bg-white fixed top-0 z-50 transition-all duration-300",
             !isDashboard && "shadow-md"
         )}>
-            <nav className="relative w-full h-full flex items-center justify-between px-6 md:px-8 lg:px-12 xl:px-20">
+            <nav className="relative w-full h-full flex items-center px-6 md:px-8 lg:px-12 xl:px-20">
                 
-                <div className="flex items-center gap-2 md:gap-3 shrink-0">
+                {/* Left Section: Sidebar Trigger (Mobile Dashboard) */}
+                <div className="flex-1 flex items-center md:hidden shrink-0">
+                    {isDashboard && (
+                        <SidebarTrigger className="text-gray-700 hover:text-[#E7A3B0] transition-colors" />
+                    )}
+                </div>
+
+                {/* Center Section (Mobile) / Left Section (Desktop): Logo */}
+                <div className={cn(
+                    "flex items-center gap-2 md:gap-3 transition-all duration-300 shrink-0 md:flex-1",
+                    "absolute left-1/2 -translate-x-1/2 md:static md:translate-x-0"
+                )}>
                     <div className="shrink-0">
-                        <Image src={noBgLogo} alt="Dolly's Closet Logo" width={40} height={40} className="w-[35px] h-[35px] md:w-[40px] md:h-[40px] lg:w-[45px] lg:h-[45px] xl:w-[50px] xl:h-[50px]" />
+                        <Image 
+                            src={noBgLogo} 
+                            alt="Dolly's Closet Logo" 
+                            width={50} 
+                            height={50} 
+                            className="w-[45px] h-[45px] md:w-[40px] md:h-[40px] lg:w-[45px] lg:h-[45px] xl:w-[50px] xl:h-[50px]" 
+                        />
                     </div>
-                    <h2 className="text-[#E7A3B0] font-great-vibes! text-xl md:text-xl lg:text-2xl xl:text-4xl whitespace-nowrap">Dolly&apos;s Closet</h2>
+                    <h2 className="text-[#E7A3B0] font-great-vibes! text-xl md:text-xl lg:text-2xl xl:text-4xl whitespace-nowrap hidden md:block">
+                        Dolly&apos;s Closet
+                    </h2>
                 </div>
 
                 {/* Desktop Navigation Links - Now flex-based for better flow */}
@@ -56,8 +76,8 @@ export default function Navbar() {
                     ))}
                 </div>
 
-                {/* User Profile Dropdown */}
-                <div className="flex items-center gap-4 shrink-0">
+                {/* Right Section: Hamburger / User Dropdown */}
+                <div className="flex-1 flex items-center justify-end gap-4 shrink-0">
                     {!isDashboard && (
                         <div className="hidden md:block">
                             <UserProfileDropdown />
