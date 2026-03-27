@@ -37,7 +37,7 @@ export default function DynamicError({
   };
 
   return (
-    <div className="min-h-screen w-full flex flex-col items-center justify-center bg-[#FFFBFB] font-montserrat px-4 relative overflow-hidden">
+    <div className="fixed inset-0 z-[60] w-full flex flex-col items-center justify-center bg-[#FFFBFB] font-montserrat px-4 overflow-y-auto">
       
       {/* Soft aesthetic background layers */}
       <div 
