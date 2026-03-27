@@ -28,22 +28,18 @@ export default function AdminSidebar() {
 
   const navItems = [
     { href: "/dashboard", label: "Home", icon: Home },
-    { href: "/admin/analytics", label: "Analytics", icon: BarChart3 },
-    { href: "/admin/employees", label: "Manage Employees", icon: Users },
-    { href: "/admin/activity-logs", label: "Activity Logs", icon: Activity },
-    { href: "/admin/inventory", label: "Manage Inventory", icon: Package },
-    { href: "/admin/manage-details", label: "Manage Details", icon: FileText },
+    { href: "/dashboard/analytics", label: "Analytics", icon: BarChart3 },
+    { href: "/dashboard/employees", label: "Manage Employees", icon: Users },
+    { href: "/dashboard/activity-logs", label: "Activity Logs", icon: Activity },
+    { href: "/dashboard/inventory", label: "Manage Inventory", icon: Package },
+    { href: "/dashboard/manage-details", label: "Manage Details", icon: FileText },
   ];
 
 
 
   return (
-    <Sidebar className="bg-white border-r border-gray-200" collapsible="icon">
-      <SidebarHeader className="p-6 border-b border-gray-200">
-        <h1 className="text-xl font-bold">Admin Panel</h1>
-      </SidebarHeader>
-
-      <SidebarContent className="p-4">
+    <Sidebar className="bg-white border-r border-gray-200 pt-[80px]" collapsible="icon">
+      <SidebarContent className="px-4 pb-4 pt-0">
         <SidebarGroup>
           <SidebarGroupContent>
             <SidebarMenu className="space-y-2">

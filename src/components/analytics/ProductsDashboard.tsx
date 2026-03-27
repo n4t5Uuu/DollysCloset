@@ -319,7 +319,7 @@ export function ProductsDashboard({ selectedMonth }: { selectedMonth?: string })
               </div>
               {allStockAlerts.length > ALERT_CAP && (
                 <div className="px-4 pb-4">
-                  <a href="/admin/inventory" className="flex items-center gap-1 text-xs font-medium" style={{ color: BRAND }}>
+                  <a href="/dashboard/inventory" className="flex items-center gap-1 text-xs font-medium" style={{ color: BRAND }}>
                     View all {allStockAlerts.length} alerts in Inventory <ArrowRight className="w-3 h-3" />
                   </a>
                 </div>
@@ -357,7 +357,7 @@ export function ProductsDashboard({ selectedMonth }: { selectedMonth?: string })
               </div>
               {data.missingImageList.length > ALERT_CAP && (
                 <div className="px-4 pb-4">
-                  <a href="/admin/inventory" className="flex items-center gap-1 text-xs font-medium" style={{ color: BRAND }}>
+                  <a href="/dashboard/inventory" className="flex items-center gap-1 text-xs font-medium" style={{ color: BRAND }}>
                     View all {data.missingImageList.length} in Inventory <ArrowRight className="w-3 h-3" />
                   </a>
                 </div>

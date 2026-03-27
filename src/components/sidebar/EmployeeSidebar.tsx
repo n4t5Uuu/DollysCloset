@@ -24,18 +24,14 @@ export default function EmployeeSidebar() {
 
   const navItems = [
     { href: "/dashboard", label: "Home", icon: Home },
-    { href: "/employee/inventory", label: "Manage Inventory", icon: Package },
+    { href: "/dashboard/inventory", label: "Manage Inventory", icon: Package },
   ];
 
 
 
   return (
-    <Sidebar className="bg-white border-r border-gray-200" collapsible="icon">
-      <SidebarHeader className="p-6 border-b border-gray-200">
-        <h1 className="text-xl font-bold">Employee Portal</h1>
-      </SidebarHeader>
-
-      <SidebarContent className="p-4">
+    <Sidebar className="bg-white border-r border-gray-200 pt-[80px]" collapsible="icon">
+      <SidebarContent className="px-4 pb-4 pt-0">
         <SidebarGroup>
           <SidebarGroupContent>
             <SidebarMenu className="space-y-2">

@@ -7,14 +7,21 @@ import noBgLogo from "@/assets/images/logo/no-bg-logo.png";
 import Link from "next/link";
 import { Menu, X } from "lucide-react";
 import UserProfileDropdown from "./LogoutButton";
+import { usePathname } from "next/navigation";
+import { cn } from "@/lib/utils";
 
 const navLinks = ["Dashboard","Collection", "About", "Contact"];
 
 export default function Navbar() {
     const [isMenuOpen, setIsMenuOpen] = useState(false);
+    const pathname = usePathname();
+    const isDashboard = pathname.startsWith("/dashboard");
 
     return (
-        <header className="w-full h-[80px] bg-[#fcfcfc] fixed top-0 z-50 shadow-md">
+        <header className={cn(
+            "w-full h-[80px] bg-white fixed top-0 z-50 transition-all duration-300",
+            !isDashboard && "shadow-md"
+        )}>
             <nav className="relative w-full h-full flex items-center justify-between px-6 md:px-20">
                 
                 <div className="flex items-center gap-2 md:gap-3">

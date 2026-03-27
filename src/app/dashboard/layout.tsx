@@ -19,12 +19,12 @@ export default async function DashboardLayout({ children }: { children: React.Re
                 <SidebarProvider>
                 <div className="flex min-h-screen w-full bg-gray-50 overflow-hidden">
                     <AdminSidebar />
-                    <SidebarInset className="flex flex-1 flex-col overflow-hidden">
+                    <SidebarInset className="flex flex-1 flex-col overflow-hidden pt-[80px]">
                         <header className="flex h-14 items-center gap-2 border-b bg-white px-4 md:hidden">
                             <SidebarTrigger className="-ml-1" />
                             <span className="font-semibold text-sm">Menu</span>
                         </header>
-                        <div className="flex-1 overflow-y-auto p-4 md:p-8">
+                        <div className="flex-1 overflow-y-auto px-4 pb-4 md:px-8 md:pb-8 pt-0 md:pt-0">
                             {children}
                         </div>
                     </SidebarInset>
@@ -38,12 +38,12 @@ export default async function DashboardLayout({ children }: { children: React.Re
                 <SidebarProvider>
                 <div className="flex min-h-screen w-full bg-gray-50 overflow-hidden">
                     <EmployeeSidebar />
-                    <SidebarInset className="flex flex-1 flex-col overflow-hidden">
+                    <SidebarInset className="flex flex-1 flex-col overflow-hidden pt-[80px]">
                         <header className="flex h-14 items-center gap-2 border-b bg-white px-4 md:hidden">
                             <SidebarTrigger className="-ml-1" />
                             <span className="font-semibold text-sm">Menu</span>
                         </header>
-                        <div className="flex-1 overflow-y-auto p-4 md:p-8">
+                        <div className="flex-1 overflow-y-auto px-4 pb-4 md:px-8 md:pb-8 pt-0 md:pt-0">
                             {children}
                         </div>
                     </SidebarInset>

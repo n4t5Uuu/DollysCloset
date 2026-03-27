@@ -318,7 +318,7 @@ export default function AdminDashboard() {
                     </div>
                     {(outOfStockItems.length + lowStockItems.length) > 0 && (
                         <div className="px-4 pb-4">
-                            <a href="/admin/inventory?availability=stock-alerts" className="flex items-center gap-1 text-xs font-medium text-[#E7A3B0]">
+                            <a href="/dashboard/inventory?availability=stock-alerts" className="flex items-center gap-1 text-xs font-medium text-[#E7A3B0]">
                                 View all {outOfStockItems.length + lowStockItems.length} in Inventory <ArrowRight className="w-3 h-3" />
                             </a>
                         </div>
@@ -361,7 +361,7 @@ export default function AdminDashboard() {
                     </div>
                     {missingPhotoItems.length > 0 && (
                         <div className="px-4 pb-4">
-                            <a href="/admin/inventory?availability=no-image" className="flex items-center gap-1 text-xs font-medium text-[#E7A3B0]">
+                            <a href="/dashboard/inventory?availability=no-image" className="flex items-center gap-1 text-xs font-medium text-[#E7A3B0]">
                                 View all {missingPhotoItems.length} in Inventory <ArrowRight className="w-3 h-3" />
                             </a>
                         </div>
