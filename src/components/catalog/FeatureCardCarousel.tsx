@@ -126,7 +126,7 @@ export default function FeatureCardCarousel({ products, onProductClick }: Featur
                                         opacity: { duration: 0.2 },
                                         scale: { duration: 0.3 }
                                     }}
-                                    className={`text-left w-full ${item.gridOffset === 0 ? "cursor-pointer" : "cursor-default"}`}
+                                    className={`text-left w-full max-w-[280px] md:max-w-none mx-auto ${item.gridOffset === 0 ? "cursor-pointer" : "cursor-default"}`}
                                 >
                                     <div className="aspect-3/4 w-full bg-[#f5f5f5] rounded-xl relative overflow-hidden shadow-sm hover:shadow-lg transition-shadow duration-300">
                                         <Image

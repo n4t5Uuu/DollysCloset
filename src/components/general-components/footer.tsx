@@ -67,37 +67,37 @@ export default function Footer() {
     const instagramHref = normalizeExternalLink(contactDetails.instagramLink);
     const socialIconClassName = "text-white transition-all duration-300 hover:text-[#E7A3B0] hover:-translate-y-1";
 
-    const headerStyle = "uppercase text-[#E7A3B0] font-bold text-xl mb-4";
-    const headerContentSpace = "flex flex-col space-y-3 text-lg";
+    const headerStyle = "uppercase text-[#E7A3B0] font-bold text-lg md:text-xl mb-3 md:mb-4";
+    const headerContentSpace = "flex flex-col space-y-2 md:space-y-3 text-base md:text-lg";
     const linkStyle = "text-[#F1F1F1] transition-colors duration-300 hover:text-[#E7A3B0] w-fit";
-    const addressStyle = "text-[#F1F1F1]";
+    const addressStyle = "text-[#F1F1F1] text-sm md:text-base";
 
     return (
         <footer className="w-full bg-[#262626] h-auto mt-12 md:mt-[100px] flex items-center justify-center py-12 md:py-16">
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-10 md:gap-4 px-10 md:px-20 w-full max-w-7xl">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-10 md:gap-4 px-6 md:px-20 w-full max-w-7xl text-center md:text-left">
                 <div className="flex justify-center md:justify-start">
                     <Image 
                         src={logo} 
                         alt="Dolly's Closet Logo" 
                         width={180}
                         height={180}
-                        className="rounded-xl object-cover w-[180px] h-[180px]"
+                        className="rounded-xl object-cover w-[130px] h-[130px] md:w-[180px] md:h-[180px]"
                     />
                 </div>
 
-                <div className={headerContentSpace}>
+                <div className={`${headerContentSpace} items-center md:items-start`}>
                     <h2 className={headerStyle}>Shop</h2>
                     <Link href="/" className={linkStyle}>Browse Products</Link>
                 </div>
 
-                <div className={headerContentSpace}>
+                <div className={`${headerContentSpace} items-center md:items-start`}>
                     <h2 className={headerStyle}>Support</h2>
                     <Link href="/contact" className={linkStyle}>Contact Us</Link>
                     <Link href="/about" className={linkStyle}>FAQ</Link>
                 </div>
 
-                <div className="space-y-8">
-                    <div className={headerContentSpace}>
+                <div className="space-y-8 flex flex-col items-center md:items-start">
+                    <div className={`${headerContentSpace} items-center md:items-start`}>
                         <h2 className={headerStyle}>Social Media</h2>
                         <div className="flex items-center gap-5 mt-1">
                             <a
@@ -121,7 +121,7 @@ export default function Footer() {
                         </div>
                     </div>
 
-                    <div className={headerContentSpace}>
+                    <div className={`${headerContentSpace} items-center md:items-start`}>
                         <h2 className={headerStyle}>Address</h2>
                         <div 
                             className={addressStyle}

@@ -34,20 +34,20 @@ export default function SearchBar({ onSearch, initialQuery = "" }: SearchBarProp
         <form 
             onSubmit={handleSearch} 
             action="GET" 
-            className="relative">
+            className="relative w-full md:w-80">
                 <Input 
                     type="text"
-                    placeholder="Search Products"
-                    className="w-80 h-9 pl-4 rounded-2xl border-black bg-white placeholder:text-black placeholder:font-montserrat"
+                    placeholder={window.innerWidth < 380 ? "Search..." : "Search Products"}
+                    className="w-full h-9 pl-4 pr-12 rounded-2xl border-black bg-white placeholder:text-black placeholder:font-montserrat"
                     value={query}
                     onChange={handleChange}
                 />
 
-                <div className="absolute right-10 top-1/2 -translate-y-1/2 h-9 w-px bg-black"></div>
+                <div className="absolute right-10 top-1/2 -translate-y-1/2 h-6 w-px bg-black/20"></div>
 
                 <button 
                     type="submit"
-                    className="absolute right-3.5 top-1/2 -translate-y-[8.5px] text-black hover:text-black/70 transition-colors cursor-pointer"
+                    className="absolute right-3.5 top-1/2 -translate-y-1/2 text-black hover:text-[#E7A3B0] transition-colors cursor-pointer"
                     aria-label="Search"
                 >
                     <Search className="w-4 h-4" />

@@ -8,8 +8,9 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
-import noBgLogo from "@/assets/images/logo/no-bg-logo.png";
+import { cn } from "@/lib/utils";
 import { InView } from "@/components/motion-primitives/in-view";
+import noBgLogo from "@/assets/images/logo/no-bg-logo.png";
 import {
   ABOUT_SLUG,
   buildAboutAggregate,
@@ -77,9 +78,13 @@ export default async function About() {
         {images.map((img, index) => (
           <div 
             key={index} 
-            className={`relative flex-1 h-full border-r border-white/10 last:border-r-0 ${
-              index > 1 ? "hidden md:block" : ""
-            }`}
+            className={cn(
+                "relative h-full transition-all duration-700 ease-in-out cursor-pointer group/item",
+                "flex-1 hover:flex-[1.5]", 
+                index === 1 && "hidden md:block",
+                index === 2 && "hidden lg:block",
+                index >= 3 && "hidden xl:block"
+            )}
           >
             <Image
               src={img.imagePath}
@@ -88,7 +93,7 @@ export default async function About() {
               className="object-cover transition-transform duration-700 hover:scale-105"
               placeholder="blur"
             />
-            <div className="absolute inset-0 bg-black/40" />
+            <div className="absolute inset-0 bg-black/40 transition-colors duration-700 group-hover/item:bg-black/20" />
           </div>
         ))}
 
@@ -101,7 +106,7 @@ export default async function About() {
             viewOptions={{ margin: "0px 0px -200px 0px" }}
             transition={{ duration: 0.3, ease: "easeInOut" }}
           >
-            <h1 className="font-great-vibes! text-6xl md:text-[10rem] text-[#FF9EAA] drop-shadow-lg">
+            <h1 className="font-great-vibes! text-5xl md:text-7xl lg:text-8xl xl:text-[10rem] text-[#FF9EAA] drop-shadow-lg leading-tight md:leading-none">
               Elegance Redefined
             </h1>
           </InView>
@@ -113,7 +118,7 @@ export default async function About() {
             viewOptions={{ margin: "0px 0px -200px 0px" }}
             transition={{ duration: 0.3, ease: "easeInOut" }}
           >
-            <p className="mt-6 text-white text-lg md:text-xl font-light tracking-wider max-w-3xl drop-shadow-md">
+            <p className="mt-4 md:mt-6 text-white text-base md:text-lg xl:text-xl font-light tracking-wider max-w-3xl drop-shadow-md px-4">
               Discover timeless pieces, collect your favorites, and elevate your wardrobe with curated style made to stand out.
             </p>
           </InView>
@@ -127,7 +132,7 @@ export default async function About() {
           >
             <Link
               href="/collection"
-              className="inline-block mt-10 px-10 py-4 bg-white/20 backdrop-blur-md border border-white/50 text-white rounded-md uppercase tracking-widest hover:bg-white/40 transition-all duration-300 shadow-lg"
+              className="inline-block mt-6 md:mt-10 px-6 md:px-10 py-3 md:py-4 bg-white/20 backdrop-blur-md border border-white/50 text-white rounded-md uppercase tracking-widest hover:bg-white/40 transition-all duration-300 shadow-lg text-sm md:text-base"
             >
               Explore the Catalog
             </Link>
