@@ -81,7 +81,7 @@ export default function DynamicError({
           </h1>
           
           <div className="space-y-2 px-6">
-            <h2 className="text-3xl font-great-vibes text-gray-900 font-medium">
+            <h2 className="text-4xl !font-great-vices text-gray-900 font-medium">
               {title}
             </h2>
             <p className="text-gray-500 font-medium leading-relaxed">

@@ -17,7 +17,7 @@ type FooterContactDetails = {
 const defaultFooterContactDetails: FooterContactDetails = {
     facebookLink: "#",
     instagramLink: "#",
-    address: "04 Admiral, Talon Tres, Las Pinas City",
+    address: "04 Admiral, Talon Tres, Las Piñas City",
 };
 
 function parseFooterContactBody(rawBody: unknown): FooterContactDetails {
@@ -87,7 +87,7 @@ export default function Footer() {
     const addressStyle = "text-[#F1F1F1]";
 
     return (
-        <footer className="w-full bg-[#262626] h-auto md:h-[280px] mt-[100px] flex items-center justify-center py-12 md:py-0">
+        <footer className="w-full bg-[#262626] h-auto mt-12 md:mt-[100px] flex items-center justify-center py-12 md:py-16">
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-10 md:gap-4 px-10 md:px-20 w-full max-w-7xl">
                 <div className="flex justify-center md:justify-start">
                     <Image 
@@ -137,7 +137,14 @@ export default function Footer() {
 
                     <div className={headerContentSpace}>
                         <h2 className={headerStyle}>Address</h2>
-                        <p className={addressStyle}>{contactDetails.address}</p>
+                        <a 
+                            href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(contactDetails.address)}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className={`${addressStyle} hover:text-[#E7A3B0] transition-colors duration-300`}
+                        >
+                            {contactDetails.address}
+                        </a>
                     </div>
                 </div>
             </div>

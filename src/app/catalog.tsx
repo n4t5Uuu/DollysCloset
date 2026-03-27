@@ -15,7 +15,18 @@ import { Button } from "@/components/ui/button";
 import { ANNOUNCEMENT_SLUG, defaultAnnouncementText } from "@/lib/business-details/business-details";
 import { CatalogCategory, CatalogApiProduct } from "@/types/product.types";
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty";
+<<<<<<< Updated upstream
+import { PackageSearch, ChevronsLeft, ChevronsRight, Filter } from "lucide-react";
+import {
+    Sheet,
+    SheetContent,
+    SheetHeader,
+    SheetTitle,
+    SheetTrigger,
+} from "@/components/ui/sheet";
+=======
 import { PackageSearch, ChevronsLeft, ChevronsRight } from "lucide-react";
+>>>>>>> Stashed changes
 import { Skeleton } from "@/components/ui/skeleton";
 
 function toViewProduct(product: CatalogApiProduct): Product {
@@ -35,6 +46,7 @@ function toViewProduct(product: CatalogApiProduct): Product {
     };
 }
 
+<<<<<<< Updated upstream
 const COLLECTION_ROUTE = "/collection";
 
 function buildCollectionPath(searchParams: URLSearchParams) {
@@ -112,6 +124,32 @@ export default function Catalog() {
     const handleProductCopy = useCallback((product: CatalogApiProduct) => toViewProduct(product), []);
 
     const normalizeCategoryName = (value: string) => value.trim().toLowerCase();
+=======
+export default function Catalog() {
+    const searchParams = useSearchParams();
+    const router = useRouter();
+    const pathname = usePathname();
+
+    const rawPage = parseInt(searchParams.get("page") ?? "1", 10);
+    const currentPage = isNaN(rawPage) || rawPage < 1 ? 1 : rawPage;
+    const [goInput, setGoInput] = useState("");
+
+    const handlePageChange = (page: number) => {
+        if (page <= 1) {
+            router.replace(pathname);
+        } else {
+            router.replace(`${pathname}?page=${page}`);
+        }
+    };
+
+    const normalizeCategoryName = (value: string) => value.trim().toLowerCase();
+
+    const [activeFilter, setActiveFilter] = useState("all");
+    const [sortBy, setSortBy] = useState("newest");
+    const [searchQuery, setSearchQuery] = useState("");
+    const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+    const [isModalOpen, setIsModalOpen] = useState(false);
+>>>>>>> Stashed changes
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [announcementText, setAnnouncementText] = useState(defaultAnnouncementText);
@@ -187,6 +225,33 @@ export default function Catalog() {
         fetchAnnouncement();
     }, []);
 
+<<<<<<< Updated upstream
+=======
+    useEffect(() => {
+        /**
+         * Fetches the current user profile to enable product view tracking for authenticated users.
+         */
+        const fetchCurrentUser = async () => {
+            try {
+                const response = await fetch("/api/auth/profile", { cache: "no-store" });
+                const result = await response.json();
+
+                if (response.ok && result.data?.userId) {
+                    setCurrentUserId(result.data.userId);
+                }
+            } catch {
+                // Silently fail - user is likely not authenticated
+            }
+        };
+
+        fetchCurrentUser();
+    }, []);
+
+    useEffect(() => {
+        router.replace(pathname);
+    }, [activeFilter, sortBy, searchQuery, router, pathname]);
+
+>>>>>>> Stashed changes
     const childrenByParent = useMemo(() => {
         return categories.reduce<Map<number, number[]>>((acc, category) => {
             if (category.parent_category === null) return acc;
@@ -272,6 +337,10 @@ export default function Catalog() {
             list.sort((a, b) => a.price - b.price);
         } else if (sortBy === "price-high") {
             list.sort((a, b) => b.price - a.price);
+        } else if (sortBy === "az") {
+            list.sort((a, b) => a.name.localeCompare(b.name));
+        } else if (sortBy === "za") {
+            list.sort((a, b) => b.name.localeCompare(a.name));
         } else {
             list.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
         }
@@ -302,7 +371,7 @@ export default function Catalog() {
             <div className="w-full py-3 bg-[#E7A3B0] flex items-center justify-center">
                 <InfiniteSlider className="w-full h-full">
                     {Array.from({ length: 6 }).map((_, i) => (
-                        <h2 key={i} className="font-oswald font-medium text-sm tracking-[0.2em] text-[#121212] uppercase whitespace-nowrap">
+                        <h2 key={i} className="font-oswald font-medium text-[10px] md:text-sm tracking-[0.2em] text-[#121212] uppercase whitespace-nowrap">
                             {announcementText}
                         </h2>
                     ))}
@@ -348,8 +417,35 @@ export default function Catalog() {
                 <div className="sticky top-[80px] z-30 w-full bg-[#fffcfd]/95 backdrop-blur-md border-b border-[#E7A3B0]/30 shadow-sm py-3 transition-all duration-300">
                     <div className="w-full px-8 md:px-12 flex flex-col md:flex-row justify-between items-center gap-4">
                         <h2 className="font-playfair-display text-2xl text-[#121212]">Our Collections</h2>
-                        <div className="w-full md:w-auto">
-                            <SearchBar onSearch={handleSearchChange} initialQuery={searchQuery} />
+                        <div className="w-full md:w-auto flex items-center gap-3">
+                            {/* Mobile Filter Toggle */}
+                            <div className="lg:hidden shrink-0">
+                                <Sheet>
+                                    <SheetTrigger asChild>
+                                        <Button variant="outline" size="sm" className="border-[#E7A3B0]/50 text-[#121212] hover:bg-[#fff0f5] h-10 px-4">
+                                            <Filter className="w-4 h-4 mr-2" />
+                                            Filters
+                                        </Button>
+                                    </SheetTrigger>
+                                    <SheetContent side="left" className="w-[300px] overflow-y-auto sm:w-[400px] bg-white text-black p-0 border-r border-[#E7A3B0]/20">
+                                        <div className="p-6">
+                                            <SheetHeader className="mb-6">
+                                                <SheetTitle className="font-playfair-display text-2xl text-left text-black">Filter Collection</SheetTitle>
+                                            </SheetHeader>
+                                            <CatalogSidebar
+                                                categories={categories}
+                                                activeFilter={activeFilter}
+                                                sortBy={sortBy}
+                                                onFilterChange={handleFilterChange}
+                                                onSortChange={handleSortChange}
+                                            />
+                                        </div>
+                                    </SheetContent>
+                                </Sheet>
+                            </div>
+                            <div className="flex-1 md:flex-none">
+                                <SearchBar onSearch={handleSearchChange} initialQuery={searchQuery} />
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -394,14 +490,14 @@ export default function Catalog() {
                                 {filteredProducts.length} Items Found
                             </div>
                             
-                            {/* Mobile Filter Toggle could go here */}
+
                         </div>
 
                         {loading ? (
                             <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-6 gap-x-6 gap-y-12">
                                 {Array.from({ length: 12 }).map((_, i) => (
                                     <div key={i} className="space-y-4">
-                                        <Skeleton className="w-full aspect-[3/4] rounded-xl" />
+                                        <Skeleton className="w-full aspect-3/4 rounded-xl" />
                                         <div className="space-y-2">
                                             <Skeleton className="h-4 w-3/4" />
                                             <Skeleton className="h-4 w-1/4" />

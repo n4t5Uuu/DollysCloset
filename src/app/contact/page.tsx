@@ -311,7 +311,7 @@ export default function Contact() {
           <TextEffect 
             per="char" 
             preset="blur" 
-            className="font-great-vibes text-6xl text-[#E7A3B0] mb-2 inline-block"
+            className="!font-great-vices text-5xl md:text-7xl text-[#E7A3B0] mb-2 inline-block"
           >
             {pageTitle}
           </TextEffect>
@@ -442,6 +442,16 @@ export default function Contact() {
                         <br />
                         {displayAddress}
                       </p>
+                      <Button asChild className="mt-4 w-full h-11 rounded-xl bg-[#121212] text-white hover:bg-[#2b2b2b] transition-all shadow-md">
+                        <a 
+                          href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(STORE_ADDRESS_CANONICAL)}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                        >
+                          <MapPin className="h-4 w-4" />
+                          Visit Our Physical Store
+                        </a>
+                      </Button>
                     </div>
 
                     <div className="relative rounded-xl overflow-hidden border border-gray-200 shadow-sm">
@@ -600,7 +610,7 @@ export default function Contact() {
             }}
             viewOptions={{ once: true }}
           >
-            <p className="font-great-vibes text-4xl text-[#E7A3B0]">
+            <p className="!font-great-vices text-5xl text-[#E7A3B0]">
               We cannot wait to hear from you! 💌
             </p>
           </InView>

@@ -1,12 +1,20 @@
 // app/admin/activity-logs/page.tsx
 "use client";
 
+<<<<<<< Updated upstream
 import { useCallback, useEffect, useRef, useState } from "react";
+=======
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+>>>>>>> Stashed changes
 import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+<<<<<<< Updated upstream
 import { AlertTriangle, Calendar, ChevronDown, ChevronLeft, ChevronRight, ClipboardList, Search, X, Eye, SlidersHorizontal } from "lucide-react";
+=======
+import { AlertTriangle, Calendar, ChevronDown, ChevronLeft, ChevronRight, ClipboardList, Search, X, Eye } from "lucide-react";
+>>>>>>> Stashed changes
 import CustomPagination from "@/components/general-components/CustomPagination";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty";
@@ -115,15 +123,22 @@ export default function ActivityLogsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
+<<<<<<< Updated upstream
   const [debouncedSearch, setDebouncedSearch] = useState("");
+=======
+>>>>>>> Stashed changes
   const [selectedMonth, setSelectedMonth] = useState<{ month: number; year: number } | null>(null);
   const [pickerYear, setPickerYear] = useState(new Date().getFullYear());
   const [showPicker, setShowPicker] = useState(false);
   const [viewLog, setViewLog] = useState<ActivityLog | null>(null);
+<<<<<<< Updated upstream
   const [actionTypeFilter, setActionTypeFilter] = useState<Set<string>>(new Set());
   const [showFilters, setShowFilters] = useState(false);
   const pickerRef = useRef<HTMLDivElement>(null);
   const filtersRef = useRef<HTMLDivElement>(null);
+=======
+  const pickerRef = useRef<HTMLDivElement>(null);
+>>>>>>> Stashed changes
   const itemsPerPage = 10;
   const isFetchingRef = useRef(false);
   const isMountedRef = useRef(true);
@@ -196,6 +211,7 @@ export default function ActivityLogsPage() {
       window.clearInterval(interval);
       window.removeEventListener("focus", onFocus);
     };
+<<<<<<< Updated upstream
   }, []);
 
   useEffect(() => {
@@ -218,6 +234,47 @@ export default function ActivityLogsPage() {
       return next;
     });
   };
+=======
+  }, [fetchLogs]);
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (pickerRef.current && !pickerRef.current.contains(e.target as Node)) {
+        setShowPicker(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  const filteredLogs = useMemo(() => {
+    const query = searchQuery.trim().toLowerCase();
+    return logs.filter((log) => {
+      const matchesSearch = !query || (
+        log.description?.toLowerCase().includes(query) ||
+        log.action_type?.toLowerCase().includes(query) ||
+        log.product_id?.toString().includes(query) ||
+        log.editor?.toLowerCase().includes(query) ||
+        log.user_id?.toString().includes(query)
+      );
+      const matchesMonth = !selectedMonth || (() => {
+        const d = new Date(log.created_at);
+        return d.getMonth() === selectedMonth.month && d.getFullYear() === selectedMonth.year;
+      })();
+      return matchesSearch && matchesMonth;
+    });
+  }, [logs, searchQuery, selectedMonth]);
+
+  useEffect(() => {
+    router.replace(pathname);
+  }, [searchQuery, selectedMonth, logs.length, router, pathname]);
+
+  const sortedLogs = useMemo(() => {
+    return [...filteredLogs].sort((a, b) =>
+      new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+    );
+  }, [filteredLogs]);
+>>>>>>> Stashed changes
 
   const activeFilterCount = actionTypeFilter.size;
 
@@ -309,6 +366,7 @@ export default function ActivityLogsPage() {
             className="pl-10"
           />
         </div>
+<<<<<<< Updated upstream
 
         {/* Filters popover */}
         <div className="relative" ref={filtersRef}>
@@ -360,11 +418,17 @@ export default function ActivityLogsPage() {
           )}
         </div>
 
+=======
+>>>>>>> Stashed changes
         <div className="relative" ref={pickerRef}>
           <Button
             variant="outline"
             onClick={() => setShowPicker((p) => !p)}
+<<<<<<< Updated upstream
             className="flex items-center gap-2 hover:bg-[#fff5f7] hover:text-[#E7A3B0] hover:border-[#E7A3B0] hover:scale-105 hover:shadow-md active:scale-95 transition-all duration-300"
+=======
+            className="flex items-center gap-2"
+>>>>>>> Stashed changes
           >
             <Calendar className="w-4 h-4" />
             {selectedMonth ? `${MONTHS[selectedMonth.month]} ${selectedMonth.year}` : "All Months"}
@@ -395,9 +459,15 @@ export default function ActivityLogsPage() {
                       setSelectedMonth({ month: index, year: pickerYear });
                       setShowPicker(false);
                     }}
+<<<<<<< Updated upstream
                     className={`text-xs py-2 rounded-md transition-all duration-200 hover:scale-105 active:scale-95 cursor-pointer ${
                       selectedMonth?.month === index && selectedMonth?.year === pickerYear
                         ? "bg-[#E7A3B0] text-white shadow-sm"
+=======
+                    className={`text-xs py-2 rounded-md transition-colors cursor-pointer ${
+                      selectedMonth?.month === index && selectedMonth?.year === pickerYear
+                        ? "bg-[#E7A3B0] text-white"
+>>>>>>> Stashed changes
                         : "hover:bg-gray-100 text-gray-700"
                     }`}
                   >
@@ -445,8 +515,13 @@ export default function ActivityLogsPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
+<<<<<<< Updated upstream
               {logs.length > 0 ? (
                 logs.map((log) => (
+=======
+              {paginatedLogs.length > 0 ? (
+                paginatedLogs.map((log) => (
+>>>>>>> Stashed changes
                   <TableRow key={log.log_id} className="border-b hover:bg-gray-50">
                     <TableCell className="p-4 text-sm text-gray-700">
                       <div className="line-clamp-2 wrap-break-word">{new Date(log.created_at).toLocaleString()}</div>
@@ -467,7 +542,11 @@ export default function ActivityLogsPage() {
                       </div>
                     </TableCell>
                     <TableCell className="p-4 text-sm text-gray-600 max-w-0 overflow-hidden">
+<<<<<<< Updated upstream
                       <div className="line-clamp-2 wrap-break-word">{log.description || "—"}</div>
+=======
+                      <div className="line-clamp-2 break-words">{log.description || "—"}</div>
+>>>>>>> Stashed changes
                     </TableCell>
                     <TableCell className="p-4 text-sm text-gray-600">
                       <div className="line-clamp-2 break-all">
@@ -498,9 +577,13 @@ export default function ActivityLogsPage() {
                         </EmptyMedia>
                         <EmptyTitle>No activity logs found</EmptyTitle>
                         <EmptyDescription>
+<<<<<<< Updated upstream
                           {totalCount === 0 && !debouncedSearch && !selectedMonth && actionTypeFilter.size === 0
                             ? "No activity has been recorded yet."
                             : "No logs match your current search or filter."}
+=======
+                          {logs.length === 0 ? "No activity has been recorded yet." : "No logs match your current search or filter."}
+>>>>>>> Stashed changes
                         </EmptyDescription>
                       </EmptyHeader>
                     </Empty>

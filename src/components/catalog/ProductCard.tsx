@@ -51,7 +51,7 @@ export default function ProductCard({ product, onClick }: ProductCardProps) {
 
             <CardFooter className="p-0 bg-transparent w-full flex flex-col items-start gap-1">
                 <div className="w-full flex justify-between items-start gap-2">
-                    <CardTitle className="font-playfair-display font-medium text-lg leading-tight text-[#121212] line-clamp-2 w-full">
+                    <CardTitle className="font-playfair-display font-medium text-base md:text-lg leading-tight text-[#121212] line-clamp-2 w-full">
                         {product.name}
                     </CardTitle>
                     <div className="text-xs font-oswald font-semibold uppercase tracking-wider text-gray-600 whitespace-nowrap">
@@ -60,7 +60,7 @@ export default function ProductCard({ product, onClick }: ProductCardProps) {
                 </div>
                 
                 <div className="w-full flex items-center justify-between mt-1">
-                    <div className="font-oswald text-lg font-medium tracking-wide text-[#E7A3B0]">
+                    <div className="font-oswald text-base md:text-lg font-medium tracking-wide text-[#E7A3B0]">
                         ₱{product.price.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                     </div>
                     <div className="text-xs font-oswald font-semibold uppercase tracking-wider text-gray-600 whitespace-nowrap">

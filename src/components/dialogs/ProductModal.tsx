@@ -36,7 +36,7 @@ export default function ProductModal({ product, isOpen, onClose }: ProductModalP
           {/* Left Side - Images */}
           <div className="space-y-4">
             {/* Main Image */}
-            <div className="aspect-[3/4] bg-gray-200 rounded-lg overflow-hidden relative">
+            <div className="aspect-3/4 bg-gray-200 rounded-lg overflow-hidden relative">
               <Image
                 src={product.images[selectedImage] || resolveProductPlaceholder(product.category)}
                 alt={product.name}

@@ -219,7 +219,7 @@ export default function CatalogSidebar({ categories, activeFilter, sortBy, onFil
     };
 
     return(
-        <aside className="w-64 flex flex-col gap-10 pb-10 pr-6">
+        <aside className="w-full lg:w-64 flex flex-col gap-10 pb-10 pr-2 lg:pr-6">
 
             {/*CATEGORIES SECTION */}
             <div className="space-y-6">
@@ -282,6 +282,12 @@ export default function CatalogSidebar({ categories, activeFilter, sortBy, onFil
                         </SelectItem>
                         <SelectItem value="price-high" className="font-montserrat text-black focus:bg-[#fff5f7] focus:text-[#E7A3B0] cursor-pointer">
                             Price: High to Low
+                        </SelectItem>
+                        <SelectItem value="az" className="font-montserrat text-black focus:bg-[#fff5f7] focus:text-[#E7A3B0] cursor-pointer">
+                            Name: A to Z
+                        </SelectItem>
+                        <SelectItem value="za" className="font-montserrat text-black focus:bg-[#fff5f7] focus:text-[#E7A3B0] cursor-pointer">
+                            Name: Z to A
                         </SelectItem>
                     </SelectContent>
                 </Select>

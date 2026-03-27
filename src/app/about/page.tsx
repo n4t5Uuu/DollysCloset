@@ -75,7 +75,12 @@ export default async function About() {
     <main className="w-full bg-white text-black">
       <section className="relative w-full h-[85vh] flex overflow-hidden">
         {images.map((img, index) => (
-          <div key={index} className="relative flex-1 h-full border-r border-white/10 last:border-r-0">
+          <div 
+            key={index} 
+            className={`relative flex-1 h-full border-r border-white/10 last:border-r-0 ${
+              index > 1 ? "hidden md:block" : ""
+            }`}
+          >
             <Image
               src={img.imagePath}
               alt={img.alt}
@@ -96,7 +101,7 @@ export default async function About() {
             viewOptions={{ margin: "0px 0px -200px 0px" }}
             transition={{ duration: 0.3, ease: "easeInOut" }}
           >
-            <h1 className="!font-great-vibes text-7xl md:text-9xl text-[#FF9EAA] drop-shadow-lg">
+            <h1 className="!font-great-vices text-6xl md:text-[10rem] text-[#FF9EAA] drop-shadow-lg">
               Elegance Redefined
             </h1>
           </InView>

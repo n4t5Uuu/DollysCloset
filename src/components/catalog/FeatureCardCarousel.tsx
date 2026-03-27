@@ -15,6 +15,23 @@ const AUTO_ADVANCE_MS = 5500;
 
 export default function FeatureCardCarousel({ products, onProductClick }: FeatureCardCarouselProps) {
     const [centerIndex, setCenterIndex] = useState(0);
+    const [direction, setDirection] = useState(0); // 1 for right, -1 for left
+    const [visibleCount, setVisibleCount] = useState(3);
+
+    useEffect(() => {
+        const handleResize = () => {
+            if (window.innerWidth < 768) {
+                setVisibleCount(1);
+            } else if (window.innerWidth < 1280) {
+                setVisibleCount(3);
+            } else {
+                setVisibleCount(5);
+            }
+        };
+        handleResize();
+        window.addEventListener("resize", handleResize);
+        return () => window.removeEventListener("resize", handleResize);
+    }, []);
 
     const featuredProducts = useMemo(() => products.slice(0, 5), [products]);
 
@@ -41,10 +58,12 @@ export default function FeatureCardCarousel({ products, onProductClick }: Featur
     const nextProduct = getSafeProduct(centerIndex + 1);
 
     const goPrevious = () => {
+        setDirection(-1);
         setCenterIndex((prev) => (prev - 1 + featuredProducts.length) % featuredProducts.length);
     };
 
     const goNext = () => {
+        setDirection(1);
         setCenterIndex((prev) => (prev + 1) % featuredProducts.length);
     };
 
@@ -57,14 +76,28 @@ export default function FeatureCardCarousel({ products, onProductClick }: Featur
         );
     }
 
-    const cardsToRender = [
-        { slot: "left", product: previousProduct, opacity: 0.45, scale: 0.9 },
-        { slot: "center", product: centerProduct, opacity: 1, scale: 1 },
-        { slot: "right", product: nextProduct, opacity: 0.45, scale: 0.9 },
-    ] as const;
+    const cardsToRender = useMemo(() => {
+        const slots: { slot: string; product: Product | null; opacity: number; scale: number; gridOffset: number }[] = [];
+        const half = Math.floor(visibleCount / 2);
+
+        for (let i = -half; i <= half; i++) {
+            const product = getSafeProduct(centerIndex + i);
+            const distance = Math.abs(i);
+            slots.push({
+                slot: `slot-${i}`,
+                product,
+                opacity: distance === 0 ? 1 : Math.max(0.3, 0.6 - (distance * 0.15)),
+                scale: distance === 0 ? 1 : Math.max(0.75, 1 - (distance * 0.1)),
+                gridOffset: i
+            });
+        }
+        return slots;
+    }, [centerIndex, visibleCount, featuredProducts]);
+
+    const gridColsClass = visibleCount === 1 ? "grid-cols-1" : visibleCount === 3 ? "grid-cols-3" : "grid-cols-5";
 
     return (
-        <div className="w-full max-w-[1400px] mx-auto px-6">
+        <div className="w-full max-w-[1600px] mx-auto px-4 lg:px-8">
             <div className="flex items-center justify-center gap-6 md:gap-8">
                 <button
                     type="button"
@@ -75,21 +108,25 @@ export default function FeatureCardCarousel({ products, onProductClick }: Featur
                     <ChevronLeft className="h-5 w-5 mx-auto" />
                 </button>
 
-                <div className="grid grid-cols-3 items-center gap-4 md:gap-8 w-full max-w-[1050px]">
+                <div className={`grid ${gridColsClass} items-center gap-6 md:gap-8 lg:gap-10 w-full`}>
                     {cardsToRender.map((item) => {
                         if (!item.product) return <div key={item.slot} className="h-[300px]" />;
 
                         return (
-                            <AnimatePresence key={item.slot} mode="wait">
+                            <AnimatePresence key={item.slot} mode="popLayout" initial={false}>
                                 <motion.button
-                                    key={`${item.slot}-${item.product.id}-${centerIndex}`}
+                                    key={`${item.slot}-${item.product.id}`}
                                     type="button"
                                     onClick={() => item.product && onProductClick?.(item.product)}
-                                    initial={{ opacity: 0, x: item.slot === "left" ? -20 : item.slot === "right" ? 20 : 0 }}
+                                    initial={{ opacity: 0, x: direction > 0 ? 50 : -50 }}
                                     animate={{ opacity: item.opacity, x: 0, scale: item.scale }}
-                                    exit={{ opacity: 0, x: item.slot === "left" ? 20 : item.slot === "right" ? -20 : 0 }}
-                                    transition={{ duration: 0.45, ease: "easeInOut" }}
-                                    className={`text-left ${item.slot === "center" ? "cursor-pointer" : "cursor-default"}`}
+                                    exit={{ opacity: 0, x: direction > 0 ? -50 : 50 }}
+                                    transition={{ 
+                                        x: { type: "spring", stiffness: 300, damping: 30 },
+                                        opacity: { duration: 0.2 },
+                                        scale: { duration: 0.3 }
+                                    }}
+                                    className={`text-left w-full ${item.gridOffset === 0 ? "cursor-pointer" : "cursor-default"}`}
                                 >
                                     <div className="aspect-3/4 w-full bg-[#f5f5f5] rounded-xl relative overflow-hidden shadow-sm hover:shadow-lg transition-shadow duration-300">
                                         <Image

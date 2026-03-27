@@ -249,7 +249,7 @@ export default function ProductDetailsPage() {
 
       <div className="grid gap-8 xl:gap-12 lg:grid-cols-[minmax(0,1.1fr)_420px]">
         <div className="space-y-4">
-          <Skeleton className="aspect-[4/5] w-full rounded-[28px]" />
+          <Skeleton className="aspect-4/5 w-full rounded-[28px]" />
           <div className="grid grid-cols-4 gap-3">
             {Array.from({ length: 4 }).map((_, index) => (
               <Skeleton key={index} className="aspect-square rounded-2xl" />
@@ -298,7 +298,7 @@ export default function ProductDetailsPage() {
       <div className="w-full py-3 bg-[#E7A3B0] flex items-center justify-center">
         <InfiniteSlider className="w-full h-full">
           {Array.from({ length: 6 }).map((_, index) => (
-            <h2 key={index} className="font-oswald font-medium text-sm tracking-[0.2em] text-[#121212] uppercase whitespace-nowrap">
+            <h2 key={index} className="font-oswald font-medium text-[10px] md:text-sm tracking-[0.2em] text-[#121212] uppercase whitespace-nowrap">
               {announcementText}
             </h2>
           ))}
@@ -332,7 +332,7 @@ export default function ProductDetailsPage() {
             <div className="space-y-4 md:space-y-5 mx-auto w-full max-w-[560px]">
               <div
                 ref={imageContainerRef}
-                className="relative aspect-[4/5] overflow-hidden rounded-[28px] bg-[#f7f3f4] shadow-[0_30px_80px_-40px_rgba(187,117,132,0.45)] cursor-default lg:cursor-crosshair"
+                className="relative aspect-4/5 overflow-hidden rounded-[28px] bg-[#f7f3f4] shadow-[0_30px_80px_-40px_rgba(187,117,132,0.45)] cursor-default lg:cursor-crosshair"
                 onMouseLeave={handleMouseLeave}
                 onMouseMove={handleMouseMove}
               >
@@ -453,11 +453,11 @@ export default function ProductDetailsPage() {
                     <p className="font-oswald text-xs uppercase tracking-[0.28em] text-[#cc7f8f]">
                       {product.categoryPath}
                     </p>
-                    <h1 className="font-playfair-display text-3xl md:text-[2.7rem] leading-tight text-[#121212]">
+                    <h1 className="font-playfair-display text-2xl md:text-[2.7rem] leading-tight text-[#121212]">
                       {product.name}
                     </h1>
                     <div className="flex flex-wrap items-center gap-3">
-                      <p className="font-oswald text-3xl md:text-[2rem] tracking-wide text-[#E7A3B0]">
+                      <p className="font-oswald text-2xl md:text-[2rem] tracking-wide text-[#E7A3B0]">
                         {formatPrice(product.price)}
                       </p>
                       <span className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] ${
@@ -526,7 +526,7 @@ export default function ProductDetailsPage() {
                 <p className="font-oswald text-xs uppercase tracking-[0.28em] text-[#cc7f8f]">
                   More to Explore
                 </p>
-                <h2 className="font-playfair-display text-3xl text-[#121212]">
+                <h2 className="font-playfair-display text-2xl md:text-3xl text-[#121212]">
                   You May Also Like
                 </h2>
               </div>

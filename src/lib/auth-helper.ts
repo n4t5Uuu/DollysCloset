@@ -71,7 +71,26 @@ export const authHelper = {
             if (shouldClear) {
                 // Clear the defective token automatically so the user isn't stuck
                 await browserSupabase.auth.signOut().catch(() => {});
+<<<<<<< Updated upstream
                 clearBrowserAuthState();
+=======
+
+                if (typeof window !== 'undefined') {
+                    // Clear both localStorage and cookies starting with sb- to ensure full cleanup
+                    for (const key of Object.keys(localStorage)) {
+                        if (key.startsWith('supabase-auth-token') || key.includes('auth')) {
+                            localStorage.removeItem(key);
+                        }
+                    }
+
+                    document.cookie.split(';').forEach((cookie) => {
+                        const [name] = cookie.split('=');
+                        if (name.trim().startsWith('sb-')) {
+                            document.cookie = `${name.trim()}=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT;`;
+                        }
+                    });
+                }
+>>>>>>> Stashed changes
             }
             return { user: null, error: userError };
         }

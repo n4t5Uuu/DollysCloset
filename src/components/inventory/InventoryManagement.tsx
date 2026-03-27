@@ -66,7 +66,7 @@ export default function InventoryManagement({ isAdmin = false, initialAvailabili
   const [visibilityFilter, setVisibilityFilter] = useState("all");
   const [availabilityFilter, setAvailabilityFilter] = useState(initialAvailabilityFilter ?? "all");
   const [categoryFilter, setCategoryFilter] = useState("all");
-  const [dateSort, setDateSort] = useState<"newest" | "oldest">("newest");
+  const [dateSort, setDateSort] = useState<"newest" | "oldest" | "az" | "za">("newest");
   const [selectedProducts, setSelectedProducts] = useState<Set<string>>(new Set());
   const [showFilters, setShowFilters] = useState(false);
   const filtersRef = useRef<HTMLDivElement>(null);
@@ -208,7 +208,12 @@ export default function InventoryManagement({ isAdmin = false, initialAvailabili
       .sort((firstProduct, secondProduct) => {
         const firstDateValue = new Date(firstProduct.created_at || 0).getTime();
         const secondDateValue = new Date(secondProduct.created_at || 0).getTime();
-        return dateSort === "oldest" ? firstDateValue - secondDateValue : secondDateValue - firstDateValue;
+        
+        if (dateSort === "oldest") return firstDateValue - secondDateValue;
+        if (dateSort === "newest") return secondDateValue - firstDateValue;
+        if (dateSort === "az") return firstProduct.product_name.localeCompare(secondProduct.product_name);
+        if (dateSort === "za") return secondProduct.product_name.localeCompare(firstProduct.product_name);
+        return 0;
       });
   }, [products, searchQuery, filteredCategoryIds, availabilityFilter, visibilityFilter, dateSort, lowStockThreshold]);
 
@@ -410,6 +415,7 @@ const openAddModal = () => {
           <Button
             variant="outline"
             onClick={() => setShowFilters((p) => !p)}
+<<<<<<< Updated upstream
             className="flex items-center gap-2 hover:bg-[#fff5f7] hover:text-[#E7A3B0] hover:border-[#E7A3B0] hover:scale-105 hover:shadow-md active:scale-95 transition-all duration-300"
           >
             <SlidersHorizontal className="w-4 h-4" />
@@ -417,6 +423,15 @@ const openAddModal = () => {
             {[visibilityFilter !== "all", availabilityFilter !== "all"].filter(Boolean).length > 0 && (
               <span className="ml-1 flex h-5 w-5 items-center justify-center rounded-full bg-[#E7A3B0] text-[10px] font-semibold text-white">
                 {[visibilityFilter !== "all", availabilityFilter !== "all"].filter(Boolean).length}
+=======
+            className="flex items-center gap-2"
+          >
+            <SlidersHorizontal className="w-4 h-4" />
+            Filters
+            {[visibilityFilter !== "all", availabilityFilter !== "all", categoryFilter !== "all"].filter(Boolean).length > 0 && (
+              <span className="ml-1 flex h-5 w-5 items-center justify-center rounded-full bg-[#E7A3B0] text-[10px] font-semibold text-white">
+                {[visibilityFilter !== "all", availabilityFilter !== "all", categoryFilter !== "all"].filter(Boolean).length}
+>>>>>>> Stashed changes
               </span>
             )}
           </Button>
@@ -430,10 +445,17 @@ const openAddModal = () => {
                     <button
                       key={v}
                       onClick={() => setVisibilityFilter(v)}
+<<<<<<< Updated upstream
                       className={`px-3 py-1.5 text-xs rounded-full border transition-all duration-200 hover:scale-105 active:scale-95 cursor-pointer ${
                         visibilityFilter === v
                           ? "bg-[#E7A3B0] text-white border-[#E7A3B0] shadow-sm"
                           : "border-gray-200 text-gray-600 hover:border-[#E7A3B0] hover:bg-[#fff5f7] hover:text-[#E7A3B0] hover:shadow-sm"
+=======
+                      className={`px-3 py-1.5 text-xs rounded-full border transition-colors cursor-pointer ${
+                        visibilityFilter === v
+                          ? "bg-[#E7A3B0] text-white border-[#E7A3B0]"
+                          : "border-gray-200 text-gray-600 hover:border-gray-300 hover:bg-gray-50"
+>>>>>>> Stashed changes
                       }`}
                     >
                       {l}
@@ -456,10 +478,17 @@ const openAddModal = () => {
                     <button
                       key={v}
                       onClick={() => setAvailabilityFilter(v)}
+<<<<<<< Updated upstream
                       className={`px-3 py-1.5 text-xs rounded-full border transition-all duration-200 hover:scale-105 active:scale-95 cursor-pointer ${
                         availabilityFilter === v
                           ? "bg-[#E7A3B0] text-white border-[#E7A3B0] shadow-sm"
                           : "border-gray-200 text-gray-600 hover:border-[#E7A3B0] hover:bg-[#fff5f7] hover:text-[#E7A3B0] hover:shadow-sm"
+=======
+                      className={`px-3 py-1.5 text-xs rounded-full border transition-colors cursor-pointer ${
+                        availabilityFilter === v
+                          ? "bg-[#E7A3B0] text-white border-[#E7A3B0]"
+                          : "border-gray-200 text-gray-600 hover:border-gray-300 hover:bg-gray-50"
+>>>>>>> Stashed changes
                       }`}
                     >
                       {l}
@@ -467,14 +496,34 @@ const openAddModal = () => {
                   ))}
                 </div>
               </div>
+<<<<<<< Updated upstream
               {/* Clear all */}
               {(visibilityFilter !== "all" || availabilityFilter !== "all") && (
+=======
+              {/* Category */}
+              <div>
+                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Category</p>
+                <CategoryCascadingFilter
+                  categories={categories}
+                  value={categoryFilter}
+                  onValueChange={setCategoryFilter}
+                />
+              </div>
+              {/* Clear all */}
+              {(visibilityFilter !== "all" || availabilityFilter !== "all" || categoryFilter !== "all") && (
+>>>>>>> Stashed changes
                 <button
                   onClick={() => {
                     setVisibilityFilter("all");
                     setAvailabilityFilter("all");
+<<<<<<< Updated upstream
                   }}
                   className="w-full text-xs text-gray-500 py-1.5 hover:bg-[#fff5f7] hover:border-[#E7A3B0] hover:text-[#E7A3B0] rounded-md transition-all duration-200 hover:scale-[1.02] active:scale-95 cursor-pointer border border-gray-200"
+=======
+                    setCategoryFilter("all");
+                  }}
+                  className="w-full text-xs text-gray-500 hover:text-gray-700 py-1.5 hover:bg-gray-50 rounded-md transition-colors cursor-pointer border border-gray-200"
+>>>>>>> Stashed changes
                 >
                   Clear all filters
                 </button>
@@ -482,6 +531,7 @@ const openAddModal = () => {
             </div>
           )}
         </div>
+<<<<<<< Updated upstream
 
         {/* Category filter — inline beside the Filters button */}
         <CategoryCascadingFilter
@@ -489,14 +539,18 @@ const openAddModal = () => {
           value={categoryFilter}
           onValueChange={setCategoryFilter}
         />
+=======
+>>>>>>> Stashed changes
 
         <Select value={dateSort} onValueChange={(value) => setDateSort(value as "newest" | "oldest")}>
           <SelectTrigger className="w-[150px] text-gray-900 bg-white">
             <SelectValue placeholder="Sort Date" />
           </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="newest">Newest</SelectItem>
-            <SelectItem value="oldest">Oldest</SelectItem>
+          <SelectContent className="bg-white border-gray-200 text-black">
+            <SelectItem value="newest" className="cursor-pointer focus:bg-[#fff5f7] focus:text-[#E7A3B0]">Newest</SelectItem>
+            <SelectItem value="oldest" className="cursor-pointer focus:bg-[#fff5f7] focus:text-[#E7A3B0]">Oldest</SelectItem>
+            <SelectItem value="az" className="cursor-pointer focus:bg-[#fff5f7] focus:text-[#E7A3B0]">Name: A to Z</SelectItem>
+            <SelectItem value="za" className="cursor-pointer focus:bg-[#fff5f7] focus:text-[#E7A3B0]">Name: Z to A</SelectItem>
           </SelectContent>
         </Select>
       </div>

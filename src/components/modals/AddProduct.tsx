@@ -357,7 +357,7 @@ export default function AddProduct({ isOpen, onClose, categories, productToEdit,
                             />
                         </div>
 
-                        <div className="grid grid-cols-2 gap-4">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-2">Category <span className="text-red-500">*</span></label>
                                 <CategoryCascadingSelect
@@ -393,7 +393,7 @@ export default function AddProduct({ isOpen, onClose, categories, productToEdit,
                             </div>
                         </div>
 
-                        <div className="grid grid-cols-2 gap-4">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-2">Brand</label>
                                 <Input
@@ -427,7 +427,7 @@ export default function AddProduct({ isOpen, onClose, categories, productToEdit,
                             </div>
                         </div>
 
-                        <div className="grid grid-cols-2 gap-4">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-2">Size Label</label>
                                 <Select value={formData.size_label} onValueChange={(value) => setFormData({ ...formData, size_label: value })}>

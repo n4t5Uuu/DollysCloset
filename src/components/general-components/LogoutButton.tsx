@@ -6,7 +6,11 @@ import { useUser } from "@/hooks/useUser";
 import { browserSupabase } from "@/lib/supabase/browser";
 import { authHelper } from "@/lib/auth-helper";
 
-export default function LogoutButton() {
+interface LogoutButtonProps {
+    variant?: "pill" | "link";
+}
+
+export default function LogoutButton({ variant = "pill" }: LogoutButtonProps) {
     const { user, loading, signOut } = useUser();
     const [isLoggingOut, setIsLoggingOut] = useState(false);
 
@@ -33,6 +37,30 @@ export default function LogoutButton() {
     // Don't render anything if loading or not logged in
     if (loading || !user) {
         return null;
+    }
+
+    if (variant === "link") {
+        return (
+            <button
+                onClick={handleLogout}
+                disabled={isLoggingOut}
+                className="text-gray-800 font-semibold text-lg hover:text-[#E7A3B0] 
+                    transition-colors font-montserrat w-full text-center py-2 flex items-center justify-center gap-2
+                    disabled:opacity-70 disabled:cursor-not-allowed group cursor-pointer"
+            >
+                {isLoggingOut ? (
+                    <>
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        <span>Logging out...</span>
+                    </>
+                ) : (
+                    <>
+                        <LogOut className="w-5 h-5" />
+                        <span>Logout</span>
+                    </>
+                )}
+            </button>
+        );
     }
 
     return (

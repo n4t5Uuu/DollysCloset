@@ -17,11 +17,11 @@ export default function Navbar() {
         <header className="w-full h-[80px] bg-[#fcfcfc] fixed top-0 z-50 shadow-md">
             <nav className="relative w-full h-full flex items-center justify-between px-6 md:px-20">
                 
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2 md:gap-3">
                     <div className="shrink-0">
-                        <Image src={noBgLogo} alt="Dolly's Closet Logo" width={50} height={50} />
+                        <Image src={noBgLogo} alt="Dolly's Closet Logo" width={40} height={40} className="md:w-[50px] md:h-[50px]" />
                     </div>
-                    <h2 className="text-[#E7A3B0] font-great-vibes! text-2xl md:text-3xl whitespace-nowrap">Dolly&apos;s Closet</h2>
+                    <h2 className="text-[#E7A3B0] !font-great-vices text-2xl md:text-4xl whitespace-nowrap">Dolly&apos;s Closet</h2>
                 </div>
 
                 <div className="hidden md:flex absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 items-center justify-center gap-10">
@@ -77,9 +77,9 @@ export default function Navbar() {
                                     {item}
                                 </Link>
                             ))}
-                            <hr className="w-full border-gray-100 my-2" />
-                            <div className="pt-2">
-                                <UserProfileDropdown />
+                            <hr className="w-full border-[#E7A3B0]/10 my-1" />
+                            <div className="w-full">
+                                <UserProfileDropdown variant="link" />
                             </div>
                         </div>
                     </div>
