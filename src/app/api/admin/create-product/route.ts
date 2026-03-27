@@ -36,6 +36,14 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
     }
 
+    const parsedStock = parseInt(product_stock) || 0;
+    let finalShowInCatalog = show_in_catalog !== false;
+    
+    // Auto-hide product if stock is zero
+    if (parsedStock === 0) {
+      finalShowInCatalog = false;
+    }
+
     // Insert into tbl_product using productHelper
     const { data: product, error: insertError } = await productHelper.createProduct({
       product_name,
@@ -43,10 +51,10 @@ export async function POST(request: NextRequest) {
       product_price: parseFloat(product_price),
       product_brand: product_brand || "Dolly's Closet",
       product_description: product_description || '',
-      product_stock: parseInt(product_stock) || 0,
+      product_stock: parsedStock,
       product_condition: normalizedCondition || 'New',
       size_label: normalizedSizeLabel || 'One Size',
-      show_in_catalog: show_in_catalog !== false,
+      show_in_catalog: finalShowInCatalog,
       image_id: image_id || null,
     }, admin);
 

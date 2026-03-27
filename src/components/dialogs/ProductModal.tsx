@@ -3,7 +3,7 @@
 import { Product } from "@/types/product.types";
 import Image from "next/image";
 import { useState } from "react";
-import { X } from "lucide-react";
+import { X, MapPin } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { resolveProductPlaceholder } from "@/lib/product-placeholder";
 
@@ -109,9 +109,15 @@ export default function ProductModal({ product, isOpen, onClose }: ProductModalP
 
             {/* Visit Store Message */}
             <div className="pt-4 border-t border-gray-200">
-              <p className="text-center text-xl font-semibold text-black font-playfair-display">
+              <a 
+                href="https://www.google.com/maps/search/?api=1&query=04+Admiral,+Talon+Tres,+Las+Piñas+City"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="w-full flex items-center justify-center gap-2 h-12 rounded-full bg-[#121212] text-white hover:bg-[#2b2b2b] transition-colors font-medium cursor-pointer"
+              >
+                <MapPin className="w-4 h-4" />
                 Visit Our Physical Store!
-              </p>
+              </a>
             </div>
           </div>
         </CardContent>

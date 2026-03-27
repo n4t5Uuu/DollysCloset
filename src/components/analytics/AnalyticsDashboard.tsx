@@ -125,6 +125,8 @@ export function AnalyticsDashboard({ selectedMonth }: { selectedMonth?: string }
 
   useEffect(() => {
     setLoading(true);
+    let isMounted = true;
+
     const url = selectedMonth && selectedMonth !== 'all'
       ? `/api/admin/analytics?month=${selectedMonth}`
       : '/api/admin/analytics';
@@ -132,11 +134,21 @@ export function AnalyticsDashboard({ selectedMonth }: { selectedMonth?: string }
     fetch(url)
       .then(res => res.json())
       .then(json => {
+        if (!isMounted) return;
         if (json.error) setError(json.error);
         else setData(json);
       })
-      .catch(() => setError('Failed to load analytics data'))
-      .finally(() => setLoading(false));
+      .catch((e) => {
+        if (!isMounted) return;
+        setError('Failed to load analytics data');
+      })
+      .finally(() => {
+        if (isMounted) {
+          setLoading(false);
+        }
+      });
+
+    return () => { isMounted = false; };
   }, [selectedMonth]);
 
   if (loading) {

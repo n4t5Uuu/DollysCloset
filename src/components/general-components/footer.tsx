@@ -79,11 +79,12 @@ export default function Footer() {
 
     const facebookHref = normalizeExternalLink(contactDetails.facebookLink);
     const instagramHref = normalizeExternalLink(contactDetails.instagramLink);
-    const socialIconClassName = "transition-colors hover:text-[#E7A3B0]";
+    const socialIconClassName = "text-white transition-all duration-300 hover:text-[#E7A3B0] hover:-translate-y-1";
 
-    const headerStyle = "uppercase text-[#E7A3B0] font-bold text-xl";
-    const headerContentSpace = "space-y-2 text-lg";
-    const contentStyle = "text-white "
+    const headerStyle = "uppercase text-[#E7A3B0] font-bold text-xl mb-4";
+    const headerContentSpace = "flex flex-col space-y-3 text-lg";
+    const linkStyle = "text-[#F1F1F1] transition-colors duration-300 hover:text-[#E7A3B0] w-fit";
+    const addressStyle = "text-[#F1F1F1]";
 
     return (
         <footer className="w-full bg-[#262626] h-auto md:h-[280px] mt-[100px] flex items-center justify-center py-12 md:py-0">
@@ -100,21 +101,19 @@ export default function Footer() {
 
                 <div className={headerContentSpace}>
                     <h2 className={headerStyle}>Shop</h2>
-                    <Link href="/" className={contentStyle}>Browse Products</Link>
+                    <Link href="/" className={linkStyle}>Browse Products</Link>
                 </div>
 
                 <div className={headerContentSpace}>
                     <h2 className={headerStyle}>Support</h2>
-                    <div className="flex flex-col space-y-2">
-                        <Link href="/contact" className={contentStyle}>Contact Us</Link>
-                        <Link href="/about" className={contentStyle}>FAQ</Link>
-                    </div>
+                    <Link href="/contact" className={linkStyle}>Contact Us</Link>
+                    <Link href="/about" className={linkStyle}>FAQ</Link>
                 </div>
 
                 <div className="space-y-8">
                     <div className={headerContentSpace}>
                         <h2 className={headerStyle}>Social Media</h2>
-                        <div className="flex items-center gap-5">
+                        <div className="flex items-center gap-5 mt-1">
                             <a
                                 href={facebookHref}
                                 target="_blank"
@@ -122,7 +121,7 @@ export default function Footer() {
                                 aria-label="Facebook"
                                 className={`${socialIconClassName} ${facebookHref === "#" ? "pointer-events-none opacity-50" : ""}`}
                             >
-                                <Facebook />
+                                <Facebook size={26} />
                             </a>
                             <a
                                 href={instagramHref}
@@ -131,14 +130,14 @@ export default function Footer() {
                                 aria-label="Instagram"
                                 className={`${socialIconClassName} ${instagramHref === "#" ? "pointer-events-none opacity-50" : ""}`}
                             >
-                                <Instagram />
+                                <Instagram size={26} />
                             </a>
                         </div>
                     </div>
 
                     <div className={headerContentSpace}>
                         <h2 className={headerStyle}>Address</h2>
-                        <p className={contentStyle}>{contactDetails.address}</p>
+                        <p className={addressStyle}>{contactDetails.address}</p>
                     </div>
                 </div>
             </div>

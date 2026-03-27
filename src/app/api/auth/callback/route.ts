@@ -14,9 +14,20 @@ export async function GET(request: Request) {
     const supabase = await createServerSupabase()
     const { error } = await supabase.auth.exchangeCodeForSession(code)
     if (!error) {
-       return NextResponse.redirect(`${origin}${next}`)
+      return NextResponse.redirect(`${origin}${next}`)
     } else {
-       console.error("Callback Exchange Error:", error)
+      console.error("Callback Exchange Error:", error.message || error)
+      
+      // Fallback for "refresh token not found" or double-click / scanner-consumption issues.
+      // If the browser already has a valid session from the first concurrent request, proceed.
+      const { data: { session } } = await supabase.auth.getSession()
+      if (session) {
+        return NextResponse.redirect(`${origin}${next}`)
+      }
+
+      if (next.includes("reset-password")) {
+        return NextResponse.redirect(`${origin}/forgot-password?error=expired`)
+      }
     }
   }
 

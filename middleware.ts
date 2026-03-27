@@ -37,7 +37,11 @@ export async function middleware(request: NextRequest) {
 
           // Apply changes to the response cookies propagating safely iteratively
           cookiesToSet.forEach(({ name, value, options }) => {
-            response.cookies.set(name, value, options);
+            const sessionOptions = { ...options };
+            delete sessionOptions.maxAge;
+            delete sessionOptions.expires;
+            
+            response.cookies.set(name, value, sessionOptions);
           });
         },
       },

@@ -315,7 +315,7 @@ export default function ActivityLogsPage() {
           <Button
             variant="outline"
             onClick={() => setShowFilters((p) => !p)}
-            className="flex items-center gap-2"
+            className="flex items-center gap-2 hover:bg-[#fff5f7] hover:text-[#E7A3B0] hover:border-[#E7A3B0] hover:scale-105 hover:shadow-md active:scale-95 transition-all duration-300"
           >
             <SlidersHorizontal className="w-4 h-4" />
             Filters
@@ -335,10 +335,10 @@ export default function ActivityLogsPage() {
                     <button
                       key={key}
                       onClick={() => toggleActionType(key)}
-                      className={`px-3 py-1.5 text-xs rounded-full border transition-colors cursor-pointer ${
+                      className={`px-3 py-1.5 text-xs rounded-full border transition-all duration-200 hover:scale-105 active:scale-95 cursor-pointer ${
                         actionTypeFilter.has(key)
-                          ? "bg-[#E7A3B0] text-white border-[#E7A3B0]"
-                          : "border-gray-200 text-gray-600 hover:border-gray-300 hover:bg-gray-50"
+                          ? "bg-[#E7A3B0] text-white border-[#E7A3B0] shadow-sm"
+                          : "border-gray-200 text-gray-600 hover:border-[#E7A3B0] hover:bg-[#fff5f7] hover:text-[#E7A3B0] hover:shadow-sm"
                       }`}
                     >
                       {label}
@@ -351,7 +351,7 @@ export default function ActivityLogsPage() {
               {activeFilterCount > 0 && (
                 <button
                   onClick={() => setActionTypeFilter(new Set())}
-                  className="w-full text-xs text-gray-500 hover:text-gray-700 py-1.5 hover:bg-gray-50 rounded-md transition-colors cursor-pointer border border-gray-200"
+                  className="w-full text-xs text-gray-500 py-1.5 hover:bg-[#fff5f7] hover:border-[#E7A3B0] hover:text-[#E7A3B0] rounded-md transition-all duration-200 hover:scale-[1.02] active:scale-95 cursor-pointer border border-gray-200"
                 >
                   Clear all filters
                 </button>
@@ -364,7 +364,7 @@ export default function ActivityLogsPage() {
           <Button
             variant="outline"
             onClick={() => setShowPicker((p) => !p)}
-            className="flex items-center gap-2"
+            className="flex items-center gap-2 hover:bg-[#fff5f7] hover:text-[#E7A3B0] hover:border-[#E7A3B0] hover:scale-105 hover:shadow-md active:scale-95 transition-all duration-300"
           >
             <Calendar className="w-4 h-4" />
             {selectedMonth ? `${MONTHS[selectedMonth.month]} ${selectedMonth.year}` : "All Months"}
@@ -395,9 +395,9 @@ export default function ActivityLogsPage() {
                       setSelectedMonth({ month: index, year: pickerYear });
                       setShowPicker(false);
                     }}
-                    className={`text-xs py-2 rounded-md transition-colors cursor-pointer ${
+                    className={`text-xs py-2 rounded-md transition-all duration-200 hover:scale-105 active:scale-95 cursor-pointer ${
                       selectedMonth?.month === index && selectedMonth?.year === pickerYear
-                        ? "bg-[#E7A3B0] text-white"
+                        ? "bg-[#E7A3B0] text-white shadow-sm"
                         : "hover:bg-gray-100 text-gray-700"
                     }`}
                   >

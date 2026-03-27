@@ -250,11 +250,16 @@ export default function ProductModal({ product, isOpen, onClose, onExitComplete 
                   )}
                 </div>
 
-                <div className="mt-8 pt-6 border-t border-gray-100 flex flex-col items-center gap-2 text-center">
-                  <MapPin className="w-4 h-4 text-[#E7A3B0]" />
-                  <p className="text-base font-semibold italic font-playfair-display text-[#121212]">
+                <div className="mt-8 pt-6 border-t border-gray-100 flex justify-center">
+                  <a 
+                    href="https://www.google.com/maps/search/?api=1&query=04+Admiral,+Talon+Tres,+Las+Piñas+City"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="w-full h-12 rounded-full bg-[#121212] flex items-center justify-center gap-2 text-white hover:bg-[#2b2b2b] transition-colors font-medium cursor-pointer"
+                  >
+                    <MapPin className="h-4 w-4" />
                     Visit Our Physical Store
-                  </p>
+                  </a>
                 </div>
               </div>
             </div>

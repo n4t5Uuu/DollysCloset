@@ -499,10 +499,14 @@ export default function ProductDetailsPage() {
 
                   <div className="flex flex-col gap-3 pt-2">
                     <Button asChild className="h-12 rounded-full bg-[#121212] text-white hover:bg-[#2b2b2b]">
-                      <Link href="/contact">
+                      <a 
+                        href="https://www.google.com/maps/search/?api=1&query=04+Admiral,+Talon+Tres,+Las+Piñas+City"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
                         <MapPin className="h-4 w-4" />
                         Visit Our Physical Store
-                      </Link>
+                      </a>
                     </Button>
                     <Button asChild variant="outline" className="h-12 rounded-full border-[#E7A3B0]/50 text-[#8A5B64] hover:bg-[#fff0f5] hover:text-[#8A5B64]">
                       <Link href={fromPath}>

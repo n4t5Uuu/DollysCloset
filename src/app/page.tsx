@@ -13,28 +13,18 @@ export default function Home() {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [callbackError] = useState(() => {
-    if (typeof window === "undefined") {
-      return false;
-    }
+  const [callbackError, setCallbackError] = useState(false);
+  const [loginReason, setLoginReason] = useState<string | null>(null);
+  const [nextPath, setNextPath] = useState("/dashboard");
 
-    return new URLSearchParams(window.location.search).get("error") === "auth_callback_failed";
-  });
-  const [loginReason] = useState<string | null>(() => {
-    if (typeof window === "undefined") {
-      return null;
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      setCallbackError(params.get("error") === "auth_callback_failed");
+      setLoginReason(params.get("reason"));
+      setNextPath(getSafeInternalPath(params.get("next"), "/dashboard"));
     }
-
-    return new URLSearchParams(window.location.search).get("reason");
-  });
-  const [nextPath] = useState(() => {
-    if (typeof window === "undefined") {
-      return "/dashboard";
-    }
-
-    const params = new URLSearchParams(window.location.search);
-    return getSafeInternalPath(params.get("next"), "/dashboard");
-  });
+  }, []);
 
   // Reset loading if browser restores this page from bfcache (back-forward cache)
   useEffect(() => {
@@ -140,10 +130,10 @@ export default function Home() {
       }
 
       if (loginResult.otherSessionsRevoked) {
-        toast.success("Signed in. All other active sessions for this account have been ended.");
-      } else {
-        toast.success("Login successful. Redirecting to dashboard...");
+        console.log("Other active sessions for this account have been terminated.");
       }
+      
+      toast.success("Login successful. Redirecting to dashboard...");
       window.location.replace(nextPath);
       // Note: We don't set loading to false here to prevent button re-enable during redirect
 
@@ -184,7 +174,7 @@ export default function Home() {
         </div>
 
         {!callbackError && loginReason && (
-          <p className={`text-sm text-center -mt-4 mb-2 ${
+          <p className={`text-sm text-center -mt-2 mb-6 ${
             loginReason === "signed-out-elsewhere"
               ? "text-amber-600 font-medium"
               : "text-[#8A5B64]"
@@ -194,7 +184,7 @@ export default function Home() {
         )}
 
         {callbackError && (
-          <p className="text-sm text-red-500 text-center -mt-4 mb-2">
+          <p className="text-sm text-red-500 text-center -mt-2 mb-6">
             Authentication failed. Please try again.
           </p>
         )}

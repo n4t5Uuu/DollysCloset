@@ -61,7 +61,7 @@ export function ProductsDashboard({ selectedMonth }: { selectedMonth?: string })
   const [period, setPeriod] = useState<Period>('all');
   const [periodLoading, setPeriodLoading] = useState(false);
 
-  const fetchData = useCallback((p: Period = 'all', m?: string, silent = false) => {
+  const fetchData = useCallback((p: Period = 'all', m?: string, silent = false, isMountedRef?: { current: boolean }) => {
     if (!silent) setLoading(true);
     let url = `/api/admin/analytics/products?period=${p}`;
     if (m && m !== 'all') {
@@ -69,13 +69,24 @@ export function ProductsDashboard({ selectedMonth }: { selectedMonth?: string })
     }
     fetch(url, { cache: 'no-store' })
       .then(res => res.json())
-      .then(json => { if (json.error) setError(json.error); else setData(json); })
-      .catch(() => setError('Failed to load product analytics'))
-      .finally(() => { if (!silent) setLoading(false); });
+      .then(json => {
+        if (isMountedRef && !isMountedRef.current) return;
+        if (json.error) setError(json.error); else setData(json);
+      })
+      .catch((e) => { 
+        if (isMountedRef && !isMountedRef.current) return;
+        setError('Failed to load product analytics');
+      })
+      .finally(() => { 
+        if (isMountedRef && !isMountedRef.current) return;
+        if (!silent) setLoading(false);
+      });
   }, []);
 
   useEffect(() => { 
-    fetchData('all', selectedMonth); 
+    const isMounted = { current: true };
+    fetchData('all', selectedMonth, false, isMounted); 
+    return () => { isMounted.current = false; };
   }, [fetchData, selectedMonth]);
 
   const handlePeriodChange = useCallback((p: Period) => {

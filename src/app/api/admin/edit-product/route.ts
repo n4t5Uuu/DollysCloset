@@ -39,6 +39,14 @@ export async function PUT(request: NextRequest) {
     // Fetch current product to track changes using productHelper
     const { data: currentProduct } = await productHelper.getProductById(product_id, admin);
 
+    const parsedStock = parseInt(product_stock) || 0;
+    let finalShowInCatalog = show_in_catalog !== false;
+    
+    // Auto-hide product if stock is zero
+    if (parsedStock === 0) {
+      finalShowInCatalog = false;
+    }
+
     // Build change description
     const changes: string[] = [];
     if (currentProduct) {
@@ -47,10 +55,10 @@ export async function PUT(request: NextRequest) {
       if (currentProduct.product_price !== parseFloat(product_price)) changes.push(`price: ${currentProduct.product_price} → ${product_price}`);
       if (currentProduct.product_brand !== (product_brand || 'Dolly\'s Closet')) changes.push(`brand: ${currentProduct.product_brand} → ${product_brand || 'Dolly\'s Closet'}`);
       if (currentProduct.product_description !== (product_description || '')) changes.push(`description updated`);
-      if (currentProduct.product_stock !== parseInt(product_stock)) changes.push(`stock: ${currentProduct.product_stock} → ${product_stock}`);
+      if (currentProduct.product_stock !== parsedStock) changes.push(`stock: ${currentProduct.product_stock} → ${parsedStock}`);
       if (currentProduct.product_condition !== normalizedCondition) changes.push(`condition: ${currentProduct.product_condition} → ${normalizedCondition}`);
       if (currentProduct.size_label !== normalizedSizeLabel) changes.push(`size: ${currentProduct.size_label} → ${normalizedSizeLabel}`);
-      if (currentProduct.show_in_catalog !== (show_in_catalog !== false)) changes.push(`visibility: ${currentProduct.show_in_catalog ? 'shown' : 'hidden'} → ${show_in_catalog !== false ? 'shown' : 'hidden'}`);
+      if (currentProduct.show_in_catalog !== finalShowInCatalog) changes.push(`visibility: ${currentProduct.show_in_catalog ? 'shown' : 'hidden'} → ${finalShowInCatalog ? 'shown' : 'hidden'}`);
     }
 
     let normalizedImageId: string | number | null = null;
@@ -78,10 +86,10 @@ export async function PUT(request: NextRequest) {
       product_price: parseFloat(product_price),
       product_brand: product_brand || "Dolly's Closet",
       product_description: product_description || '',
-      product_stock: parseInt(product_stock) || 0,
+      product_stock: parsedStock,
       product_condition: normalizedCondition || 'New',
       size_label: normalizedSizeLabel || 'One Size',
-      show_in_catalog: show_in_catalog !== false,
+      show_in_catalog: finalShowInCatalog,
       image_id: normalizedImageId,
     }, admin);
 
