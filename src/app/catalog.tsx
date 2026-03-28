@@ -394,7 +394,7 @@ export default function Catalog() {
                     </div>
                 </div>
 
-                <div className="w-full px-8 md:px-12 py-12 pb-24 grid grid-cols-1 lg:grid-cols-[260px_1fr] gap-12">
+                <div className="w-full px-4 md:px-12 py-12 pb-24 grid grid-cols-1 lg:grid-cols-[260px_1fr] gap-12">
                     <div className="hidden lg:block h-fit sticky top-[148px]">
                         <InView
                             variants={{
@@ -490,14 +490,15 @@ export default function Catalog() {
 
                         {totalPages > 1 && (
                             <div className="mt-16 flex flex-col items-center gap-4">
-                                <div className="flex items-center justify-center gap-2">
+                                <div className="flex flex-wrap items-center justify-center gap-1 md:gap-2">
                                     {/* First */}
                                     <Button
                                         type="button"
                                         variant="outline"
+                                        size="sm"
                                         onClick={() => handlePageChange(1)}
                                         disabled={safePage === 1}
-                                        className="border-[#E7A3B0]/50 text-[#cc7f8f] hover:bg-[#fff0f5]"
+                                        className="hidden sm:flex border-[#E7A3B0]/50 text-[#cc7f8f] hover:bg-[#fff0f5]"
                                         aria-label="First page"
                                     >
                                         <ChevronsLeft className="h-4 w-4" />
@@ -506,6 +507,7 @@ export default function Catalog() {
                                     <Button
                                         type="button"
                                         variant="outline"
+                                        size="sm"
                                         onClick={() => handlePageChange(Math.max(1, safePage - 1))}
                                         disabled={safePage === 1}
                                         className="border-[#E7A3B0]/50 text-[#cc7f8f] hover:bg-[#fff0f5]"
@@ -525,6 +527,7 @@ export default function Catalog() {
                                             <Button
                                                 key={page}
                                                 type="button"
+                                                size="sm"
                                                 variant={safePage === page ? "default" : "outline"}
                                                 onClick={() => handlePageChange(page)}
                                                 className={
@@ -541,6 +544,7 @@ export default function Catalog() {
                                     <Button
                                         type="button"
                                         variant="outline"
+                                        size="sm"
                                         onClick={() => handlePageChange(Math.min(totalPages, safePage + 1))}
                                         disabled={safePage === totalPages}
                                         className="border-[#E7A3B0]/50 text-[#cc7f8f] hover:bg-[#fff0f5]"
@@ -552,18 +556,19 @@ export default function Catalog() {
                                     <Button
                                         type="button"
                                         variant="outline"
+                                        size="sm"
                                         onClick={() => handlePageChange(totalPages)}
                                         disabled={safePage === totalPages}
-                                        className="border-[#E7A3B0]/50 text-[#cc7f8f] hover:bg-[#fff0f5]"
+                                        className="hidden sm:flex border-[#E7A3B0]/50 text-[#cc7f8f] hover:bg-[#fff0f5]"
                                         aria-label="Last page"
                                     >
                                         <ChevronsRight className="h-4 w-4" />
                                     </Button>
                                 </div>
-                                <div className="flex items-center gap-3 text-sm text-gray-400">
+                                <div className="flex flex-wrap items-center justify-center gap-2 text-sm text-gray-400">
                                     <span>Page {safePage} of {totalPages}</span>
-                                    <span className="text-gray-300">•</span>
-                                    <span>Go to page</span>
+                                    <span className="text-gray-300 hidden sm:inline">•</span>
+                                    <span className="hidden sm:inline">Go to page</span>
                                     <input
                                         type="number"
                                         min={1}
@@ -575,11 +580,12 @@ export default function Catalog() {
                                                 goToPage(goInput);
                                             }
                                         }}
-                                        className="w-16 h-9 text-center border border-[#E7A3B0]/50 rounded text-sm text-[#cc7f8f] bg-white focus:outline-none focus:ring-1 focus:ring-[#E7A3B0]"
+                                        className="w-14 h-8 text-center border border-[#E7A3B0]/50 rounded text-sm text-[#cc7f8f] bg-white focus:outline-none focus:ring-1 focus:ring-[#E7A3B0]"
                                     />
                                     <Button
                                         type="button"
                                         variant="outline"
+                                        size="sm"
                                         onClick={() => goToPage(goInput)}
                                         className="border-[#E7A3B0]/50 text-[#cc7f8f] hover:bg-[#fff0f5]"
                                     >

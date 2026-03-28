@@ -190,7 +190,7 @@ export default async function About() {
         </div>
       </section>
 
-      <section className="w-full py-20 px-6 md:px-20 flex flex-col md:flex-row items-center justify-between gap-12 bg-[#1a1a1a] text-white">
+      <section className="w-full py-20 px-6 md:px-20 flex flex-col md:flex-row items-center justify-between gap-12 bg-[#1a1a1a] text-white overflow-x-clip">
         <div className="w-full md:w-1/2 flex justify-center md:justify-start order-2 md:order-1">
           <InView
             variants={{

@@ -47,10 +47,10 @@ export default function RootLayout({
     <html lang="en">
       <body
         className={`
-            ${oswald.variable} 
-            ${montserrat.variable} 
-            ${playfairDisplay.variable} 
-            ${greatVibes.variable} 
+            ${oswald.variable}
+            ${montserrat.variable}
+            ${playfairDisplay.variable}
+            ${greatVibes.variable}
             antialiased`
           }>
 

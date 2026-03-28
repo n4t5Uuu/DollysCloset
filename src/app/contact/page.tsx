@@ -208,7 +208,7 @@ export default function Contact() {
   };
 
   return (
-    <main className="w-full min-h-screen bg-linear-to-b from-white to-pink-50/30 pt-10 pb-8 relative">
+    <main className="w-full min-h-screen bg-linear-to-b from-white to-pink-50/30 pt-10 pb-8 relative overflow-x-clip">
       {/* Decorative Elements */}
       <div className="absolute top-50 left-10 w-72 h-72 bg-[#E7A3B0]/10 rounded-full blur-3xl -z-10" />
       <div className="absolute bottom-20 right-10 w-96 h-96 bg-[#E7A3B0]/10 rounded-full blur-3xl -z-10" />
