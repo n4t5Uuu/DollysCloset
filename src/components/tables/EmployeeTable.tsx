@@ -8,6 +8,8 @@ import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/
 interface EmployeeTableProps {
   sortedEmployees: Employee[];
   selectedRows: Set<string>;
+  hasSelectableRows: boolean;
+  allSelectableRowsSelected: boolean;
   toggleSelectAll: () => void;
   toggleSelectRow: (id: string) => void;
   openViewModal: (employee: Employee) => void;
@@ -19,6 +21,8 @@ interface EmployeeTableProps {
 export function EmployeeTable({
   sortedEmployees,
   selectedRows,
+  hasSelectableRows,
+  allSelectableRowsSelected,
   toggleSelectAll,
   toggleSelectRow,
   openViewModal,
@@ -35,7 +39,8 @@ export function EmployeeTable({
               {/* Checkbox column for bulk selection */}
               <TableHead className="p-4 text-left w-12">
                 <Checkbox
-                  checked={selectedRows.size === sortedEmployees.length && sortedEmployees.length > 0}
+                  checked={allSelectableRowsSelected}
+                  disabled={!hasSelectableRows}
                   onCheckedChange={toggleSelectAll}
                 />
               </TableHead>
@@ -115,7 +120,7 @@ export function EmployeeTable({
                       </EmptyMedia>
                       <EmptyTitle>No employees found</EmptyTitle>
                       <EmptyDescription>
-                        We couldn't find any employees matching your current search or filters.
+                        We couldn&apos;t find any employees matching your current search or filters.
                       </EmptyDescription>
                     </EmptyHeader>
                   </Empty>

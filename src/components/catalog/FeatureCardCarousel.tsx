@@ -45,17 +45,26 @@ export default function FeatureCardCarousel({ products, onProductClick }: Featur
         return () => clearTimeout(timeout);
     }, [featuredProducts.length, centerIndex]);
 
-
-
     const getSafeProduct = (index: number) => {
         const length = featuredProducts.length;
         if (length === 0) return null;
         return featuredProducts[(index + length) % length];
     };
 
-    const previousProduct = getSafeProduct(centerIndex - 1);
-    const centerProduct = getSafeProduct(centerIndex);
-    const nextProduct = getSafeProduct(centerIndex + 1);
+    const cardsToRender = [];
+    const half = Math.floor(visibleCount / 2);
+
+    for (let i = -half; i <= half; i++) {
+        const product = getSafeProduct(centerIndex + i);
+        const distance = Math.abs(i);
+        cardsToRender.push({
+            slot: `slot-${i}`,
+            product,
+            opacity: distance === 0 ? 1 : Math.max(0.3, 0.6 - (distance * 0.15)),
+            scale: distance === 0 ? 1 : Math.max(0.75, 1 - (distance * 0.1)),
+            gridOffset: i
+        });
+    }
 
     const goPrevious = () => {
         setDirection(-1);
@@ -75,24 +84,6 @@ export default function FeatureCardCarousel({ products, onProductClick }: Featur
             </div>
         );
     }
-
-    const cardsToRender = useMemo(() => {
-        const slots: { slot: string; product: Product | null; opacity: number; scale: number; gridOffset: number }[] = [];
-        const half = Math.floor(visibleCount / 2);
-
-        for (let i = -half; i <= half; i++) {
-            const product = getSafeProduct(centerIndex + i);
-            const distance = Math.abs(i);
-            slots.push({
-                slot: `slot-${i}`,
-                product,
-                opacity: distance === 0 ? 1 : Math.max(0.3, 0.6 - (distance * 0.15)),
-                scale: distance === 0 ? 1 : Math.max(0.75, 1 - (distance * 0.1)),
-                gridOffset: i
-            });
-        }
-        return slots;
-    }, [centerIndex, visibleCount, featuredProducts]);
 
     const gridColsClass = visibleCount === 1 ? "grid-cols-1" : visibleCount === 3 ? "grid-cols-3" : "grid-cols-5";
 

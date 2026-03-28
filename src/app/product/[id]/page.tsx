@@ -18,7 +18,7 @@ import { InfiniteSlider } from "@/components/motion-primitives/infinite-slider";
 import { Button } from "@/components/ui/button";
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ANNOUNCEMENT_SLUG, defaultAnnouncementText } from "@/lib/business-details/business-details";
+import { ANNOUNCEMENT_SLUG } from "@/lib/business-details/business-details";
 import { getSafeInternalPath } from "@/lib/auth/auth-routing";
 import { resolveProductPlaceholder } from "@/lib/product-placeholder";
 import { CatalogApiProduct, Product } from "@/types/product.types";
@@ -73,7 +73,7 @@ export default function ProductDetailsPage() {
   const productId = String(params?.id ?? "");
   const fromPath = useMemo(() => getSafeInternalPath(searchParams.get("from"), "/collection"), [searchParams]);
 
-  const [announcementText, setAnnouncementText] = useState(defaultAnnouncementText);
+  const [announcementText, setAnnouncementText] = useState<string | null>(null);
   const [product, setProduct] = useState<CatalogApiProduct | null>(null);
   const [products, setProducts] = useState<CatalogApiProduct[]>([]);
   const [loading, setLoading] = useState(true);
@@ -295,15 +295,17 @@ export default function ProductDetailsPage() {
 
   return (
     <main className="w-full flex flex-col items-center bg-[linear-gradient(180deg,#ffffff_0%,#fff9fb_42%,#ffffff_100%)]">
-      <div className="w-full py-3 bg-[#E7A3B0] flex items-center justify-center">
-        <InfiniteSlider className="w-full h-full">
-          {Array.from({ length: 6 }).map((_, index) => (
-            <h2 key={index} className="font-oswald font-medium text-[10px] md:text-sm tracking-[0.2em] text-[#121212] uppercase whitespace-nowrap">
-              {announcementText}
-            </h2>
-          ))}
-        </InfiniteSlider>
-      </div>
+      {announcementText && (
+        <div className="w-full py-3 bg-[#E7A3B0] flex items-center justify-center">
+          <InfiniteSlider className="w-full h-full">
+            {Array.from({ length: 6 }).map((_, index) => (
+              <h2 key={index} className="font-oswald font-medium text-[10px] md:text-sm tracking-[0.2em] text-[#121212] uppercase whitespace-nowrap">
+                {announcementText}
+              </h2>
+            ))}
+          </InfiniteSlider>
+        </div>
+      )}
 
       {loading ? renderLoadingState() : error ? renderMissingState(error) : !product ? renderMissingState("This item could not be found in the collection.") : (
         <div className="w-full max-w-7xl mx-auto px-4 md:px-8 py-8 md:py-12">

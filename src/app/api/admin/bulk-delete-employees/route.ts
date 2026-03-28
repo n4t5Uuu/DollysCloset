@@ -35,7 +35,7 @@ export async function DELETE(request: NextRequest) {
     }
 
     // Delete employee accounts in bulk using employeeHelper
-    const { error: deleteError, failures } = await employeeHelper.deleteEmployeesBulkAccount(employee_ids, admin);
+    const { error: deleteError, failures, deletedIds } = await employeeHelper.deleteEmployeesBulkAccount(employee_ids, admin);
 
     if (deleteError) {
       return NextResponse.json({ error: deleteError.message }, { status: 500 });
@@ -47,19 +47,27 @@ export async function DELETE(request: NextRequest) {
       await activityHelper.logActivity({
         actionType: 'delete_employee',
         productId: null,
-        description: `Bulk deleted ${employee_ids.length} employee(s)`,
+        description: `Bulk deleted ${deletedIds.length} employee(s)`,
         editor: editor,
         user_id: user?.id,
         supabase: admin
       });
     }
 
+    const failedIds = failures.map((failure) => failure.employeeId);
+    const status = failures.length > 0 ? 207 : 200;
+
     return NextResponse.json({ 
-      success: true, 
-      message: `Successfully deleted ${employee_ids.length} employee(s)`,
-      deleted_count: employee_ids.length,
-      failed_count: failures.length
-    });
+      success: failures.length === 0,
+      message: failures.length > 0
+        ? `Deleted ${deletedIds.length} employee(s) with ${failures.length} failure(s)`
+        : `Successfully deleted ${deletedIds.length} employee(s)`,
+      deleted_count: deletedIds.length,
+      deleted_ids: deletedIds,
+      failed_count: failures.length,
+      failed_ids: failedIds,
+      failures,
+    }, { status });
 
   } catch (error: unknown) {
     console.error('Error bulk deleting employees:', error);

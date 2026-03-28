@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useSearchParams, useRouter, usePathname } from "next/navigation";
-import { Plus, Search, X, AlertTriangle, Trash, Loader2 } from "lucide-react";
+import { Plus, Search, X, AlertTriangle, Trash } from "lucide-react";
 import { browserSupabase } from "@/lib/supabase/browser";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -101,10 +101,19 @@ export default function EmployeesClient() {
     router.replace(pathname);
   }, [searchTerm, router, pathname]);
 
-  const selectableEmployees = currentEmployees.filter((e) => e.user_id !== currentUserId);
+  const selectableEmployees = currentUserId
+    ? currentEmployees.filter((employee) => employee.user_id !== currentUserId)
+    : [];
+  const selectedVisibleCount = selectableEmployees.filter((employee) => selectedRows.has(employee.user_id)).length;
+  const hasSelectableRows = selectableEmployees.length > 0;
+  const allSelectableRowsSelected = hasSelectableRows && selectedVisibleCount === selectableEmployees.length;
+
+  useEffect(() => {
+    setSelectedRows(new Set());
+  }, [searchTerm, safePage]);
 
   const toggleSelectAll = () => {
-    if (selectedRows.size === selectableEmployees.length && selectableEmployees.length > 0) {
+    if (allSelectableRowsSelected) {
       setSelectedRows(new Set());
     } else {
       setSelectedRows(new Set(selectableEmployees.map((e) => e.user_id)));
@@ -162,8 +171,11 @@ export default function EmployeesClient() {
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || 'Failed to delete employee');
       await fetchEmployees();
-      selectedRows.delete(selectedEmployee.user_id);
-      setSelectedRows(new Set(selectedRows));
+      setSelectedRows((currentSelection) => {
+        const nextSelection = new Set(currentSelection);
+        nextSelection.delete(selectedEmployee.user_id);
+        return nextSelection;
+      });
       setShowDeleteModal(false);
       setSelectedEmployee(null);
       toast.success("Employee deleted successfully.");
@@ -194,9 +206,14 @@ export default function EmployeesClient() {
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || 'Failed to delete employees');
       await fetchEmployees();
-      setSelectedRows(new Set());
+      const failedIds = Array.isArray(data.failed_ids) ? data.failed_ids : [];
+      setSelectedRows(new Set(failedIds));
       setShowBulkDeleteModal(false);
-      toast.success("Selected employees deleted successfully.");
+      if ((data.failed_count ?? 0) > 0) {
+        toast.warning(data.message || 'Some employees could not be deleted.');
+      } else {
+        toast.success("Selected employees deleted successfully.");
+      }
     } catch (err: unknown) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to delete employees';
       setError(errorMessage);
@@ -277,6 +294,8 @@ export default function EmployeesClient() {
           <EmployeeTable
             sortedEmployees={currentEmployees}
             selectedRows={selectedRows}
+            hasSelectableRows={hasSelectableRows}
+            allSelectableRowsSelected={allSelectableRowsSelected}
             toggleSelectAll={toggleSelectAll}
             toggleSelectRow={toggleSelectRow}
             openViewModal={openViewModal}

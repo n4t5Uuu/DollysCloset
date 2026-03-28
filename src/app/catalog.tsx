@@ -12,7 +12,7 @@ import { InfiniteSlider } from "@/components/motion-primitives/infinite-slider";
 import { TextEffect } from "@/components/motion-primitives/text-effect";
 import { InView } from "@/components/motion-primitives/in-view";
 import { Button } from "@/components/ui/button";
-import { ANNOUNCEMENT_SLUG, defaultAnnouncementText } from "@/lib/business-details/business-details";
+import { ANNOUNCEMENT_SLUG } from "@/lib/business-details/business-details";
 import { CatalogCategory, CatalogApiProduct } from "@/types/product.types";
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty";
 import { PackageSearch, ChevronsLeft, ChevronsRight, Filter } from "lucide-react";
@@ -121,7 +121,7 @@ export default function Catalog() {
     const normalizeCategoryName = (value: string) => value.trim().toLowerCase();
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
-    const [announcementText, setAnnouncementText] = useState(defaultAnnouncementText);
+    const [announcementText, setAnnouncementText] = useState<string | null>(null);
 
     const [categories, setCategories] = useState<CatalogCategory[]>([]);
     const [products, setProducts] = useState<CatalogApiProduct[]>([]);
@@ -310,15 +310,17 @@ export default function Catalog() {
         <main className="w-full flex flex-col items-center">
 
             {/* For the Announcements */}
-            <div className="w-full py-3 bg-[#E7A3B0] flex items-center justify-center">
-                <InfiniteSlider className="w-full h-full">
-                    {Array.from({ length: 6 }).map((_, i) => (
-                        <h2 key={i} className="font-oswald font-medium text-[10px] md:text-sm tracking-[0.2em] text-[#121212] uppercase whitespace-nowrap">
-                            {announcementText}
-                        </h2>
-                    ))}
-                </InfiniteSlider>
-            </div>
+            {announcementText && (
+                <div className="w-full py-3 bg-[#E7A3B0] flex items-center justify-center">
+                    <InfiniteSlider className="w-full h-full">
+                        {Array.from({ length: 6 }).map((_, i) => (
+                            <h2 key={i} className="font-oswald font-medium text-[10px] md:text-sm tracking-[0.2em] text-[#121212] uppercase whitespace-nowrap">
+                                {announcementText}
+                            </h2>
+                        ))}
+                    </InfiniteSlider>
+                </div>
+            )}
 
             {/* For the Featured Collection Carousel*/}
             <InView 
