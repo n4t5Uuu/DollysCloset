@@ -14,8 +14,6 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 
-// ─── Types ──────────────────────────────────────────────────────────────────
-
 interface BulkImportModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -36,6 +34,7 @@ interface ParsedRow {
 
 interface ValidatedRow {
   raw: ParsedRow;
+  normalized: ParsedRow;
   index: number;
   errors: string[];
   warnings: string[];
@@ -48,69 +47,84 @@ interface ImportResult {
   errors: { row: number; name: string; reason: string }[];
 }
 
-// ─── Constants ───────────────────────────────────────────────────────────────
-
 const MAX_META_LENGTH = 9;
-
-// ─── Helpers ─────────────────────────────────────────────────────────────────
 
 function normalizeBoolean(value: string): boolean {
   const lower = value.trim().toLowerCase();
   if (lower === "false" || lower === "0" || lower === "no") return false;
-  return true; // default to true
+  return true;
 }
 
-function hasMixedChars(value: string): boolean {
-  // Contains at least one digit AND at least one non-numeric character (ignoring leading minus)
-  const stripped = value.replace(/^-/, "");
-  return /\d/.test(stripped) && /[^0-9.]/.test(stripped);
+function sanitizeWholeNumberInput(value: string): string {
+  const trimmed = value.trim();
+
+  if (!trimmed) {
+    return "";
+  }
+
+  return /^\d+$/.test(trimmed) ? trimmed : "0";
+}
+
+function sanitizeDecimalInput(value: string): string {
+  const trimmed = value.trim();
+
+  if (!trimmed) {
+    return "";
+  }
+
+  return /^\d+(\.\d+)?$/.test(trimmed) ? trimmed : "0";
 }
 
 function validateRows(rows: ParsedRow[]): ValidatedRow[] {
   return rows.map((row, index) => {
     const errors: string[] = [];
     const warnings: string[] = [];
+    const normalizedRow: ParsedRow = {
+      ...row,
+      category_id: sanitizeWholeNumberInput(row.category_id ?? ""),
+      product_price: sanitizeDecimalInput(row.product_price ?? ""),
+      product_stock: sanitizeWholeNumberInput(row.product_stock ?? ""),
+    };
 
     if (!row.product_name?.trim()) {
       errors.push("product_name is required");
     }
 
-    const categoryIdStr = row.category_id?.trim() ?? "";
+    const originalCategoryId = row.category_id?.trim() ?? "";
+    const categoryIdStr = normalizedRow.category_id.trim();
     const categoryId = Number(categoryIdStr);
     if (!categoryIdStr || !Number.isInteger(categoryId) || categoryId <= 0) {
-      errors.push(`category_id "${categoryIdStr || "empty"}" must be a whole number (e.g. 11) — this row will be skipped`);
+      errors.push(`category_id "${originalCategoryId || "empty"}" must be a whole number (e.g. 11) - this row will be skipped`);
     }
 
-    const priceStr = row.product_price?.trim() ?? "";
+    const originalPrice = row.product_price?.trim() ?? "";
+    const priceStr = normalizedRow.product_price.trim();
+    const hasInvalidPriceCharacters = Boolean(
+      originalPrice && normalizedRow.product_price === "0" && originalPrice !== "0"
+    );
     const price = Number(priceStr);
-    if (!priceStr || Number.isNaN(price) || price < 0) {
-      errors.push(`product_price "${priceStr || "empty"}" must be a plain number with no letters or symbols (e.g. 150 or 150.00) — this row will be skipped`);
+    if (hasInvalidPriceCharacters || !priceStr || Number.isNaN(price) || price < 0) {
+      errors.push(`product_price "${originalPrice || "empty"}" must be a plain number with no letters or symbols (e.g. 150 or 150.00) - this row will be skipped`);
     }
 
-    const stockStr = row.product_stock?.trim() ?? "";
-    if (stockStr && /[^0-9]/.test(stockStr)) {
-      const parsed = Number.parseInt(stockStr, 10);
-      const usedValue = Number.isNaN(parsed) || parsed < 0 ? 0 : parsed;
-      if (hasMixedChars(stockStr)) {
-        warnings.push(`product_stock "${stockStr}" contains non-numeric characters — will be imported as ${usedValue}`);
-      } else {
-        warnings.push(`product_stock "${stockStr}" is not a plain number — will default to ${usedValue}`);
-      }
-    } else {
-      const stock = Number.parseInt(stockStr || "0", 10);
-      if (!Number.isNaN(stock) && stock < 0) {
-        errors.push("product_stock must be 0 or greater — this row will be skipped");
-      }
+    const originalStock = row.product_stock?.trim() ?? "";
+    if (originalStock && normalizedRow.product_stock === "0" && originalStock !== "0") {
+      warnings.push(`product_stock "${originalStock}" contains non-numeric characters somewhere in the field - it will be imported as 0.`);
     }
 
-    return { raw: row, index, errors, warnings, isValid: errors.length === 0 };
+    const stockStr = normalizedRow.product_stock.trim();
+    const stock = Number.parseInt(stockStr || "0", 10);
+    if (!Number.isNaN(stock) && stock < 0) {
+      errors.push("product_stock must be 0 or greater - this row will be skipped");
+    }
+
+    return { raw: row, normalized: normalizedRow, index, errors, warnings, isValid: errors.length === 0 };
   });
 }
 
 function parseRawRows(data: Record<string, string>[]): ParsedRow[] {
   return data
     .filter((row) => {
-      // Skip completely empty rows and zero-filled formula placeholder rows
       const name = String(row["product_name"] ?? "").trim();
       return name && name !== "0";
     })
@@ -126,8 +140,6 @@ function parseRawRows(data: Record<string, string>[]): ParsedRow[] {
       show_in_catalog: String(row["show_in_catalog"] ?? "true").trim(),
     }));
 }
-
-// ─── Component ───────────────────────────────────────────────────────────────
 
 type Step = "upload" | "preview" | "results";
 
@@ -158,8 +170,6 @@ export default function BulkImportModal({ isOpen, onClose, onImportComplete }: B
     reset();
     onClose();
   };
-
-  // ── File parsing ────────────────────────────────────────────────────────────
 
   const processFile = useCallback((file: File) => {
     setParseError(null);
@@ -196,7 +206,6 @@ export default function BulkImportModal({ isOpen, onClose, onImportComplete }: B
             ? "Export Ready"
             : workbook.SheetNames[0];
           const sheet = workbook.Sheets[sheetName];
-          // "Export Ready" has an info row before the headers — skip it with range: 1
           const rangeOffset = sheetName === "Export Ready" ? 1 : 0;
           const json = XLSX.utils.sheet_to_json<Record<string, string>>(sheet, {
             defval: "",
@@ -232,8 +241,6 @@ export default function BulkImportModal({ isOpen, onClose, onImportComplete }: B
     if (file) processFile(file);
   };
 
-  // ── Import ──────────────────────────────────────────────────────────────────
-
   const handleImport = async () => {
     const validRows = validatedRows.filter((r) => r.isValid);
     if (validRows.length === 0) return;
@@ -254,12 +261,13 @@ export default function BulkImportModal({ isOpen, onClose, onImportComplete }: B
     for (let i = 0; i < validRows.length; i++) {
       const row = validRows[i];
       try {
+        const normalized = row.normalized;
         const payload = {
           product_name: row.raw.product_name.trim(),
-          category_id: Number.parseInt(row.raw.category_id, 10),
-          product_price: Number(row.raw.product_price.trim()),
+          category_id: Number.parseInt(normalized.category_id, 10),
+          product_price: Number(normalized.product_price.trim()),
           product_brand: row.raw.product_brand.trim() || "Dolly's Closet",
-          product_stock: Number.parseInt(row.raw.product_stock || "0", 10),
+          product_stock: Number.parseInt(normalized.product_stock || "0", 10),
           size_label: (row.raw.size_label.trim() || "One Size").slice(0, MAX_META_LENGTH),
           product_condition: (row.raw.product_condition.trim() || "New").slice(0, MAX_META_LENGTH),
           product_description: row.raw.product_description.trim(),
@@ -279,7 +287,7 @@ export default function BulkImportModal({ isOpen, onClose, onImportComplete }: B
         if (!response.ok) {
           const data = await response.json();
           errors.push({
-            row: row.index + 2, // +2 for header row and 0-index
+            row: row.index + 2,
             name: row.raw.product_name || `Row ${row.index + 2}`,
             reason: data.error || "Server error",
           });
@@ -316,7 +324,6 @@ export default function BulkImportModal({ isOpen, onClose, onImportComplete }: B
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
       <Card className="bg-white w-full max-w-4xl max-h-[90vh] flex flex-col p-0 overflow-hidden">
-        {/* Header */}
         <CardHeader className="flex flex-row items-center justify-between border-b p-6 space-y-0 shrink-0">
           <div className="flex items-center gap-3">
             <FileSpreadsheet className="w-5 h-5 text-pink-400" />
@@ -342,10 +349,7 @@ export default function BulkImportModal({ isOpen, onClose, onImportComplete }: B
           </div>
         </CardHeader>
 
-        {/* Body */}
         <CardContent className="flex-1 overflow-y-auto p-6 space-y-4">
-
-          {/* ── Step: Upload ── */}
           {step === "upload" && (
             <div className="space-y-4">
               <div className="text-sm text-gray-600 space-y-2">
@@ -367,7 +371,8 @@ export default function BulkImportModal({ isOpen, onClose, onImportComplete }: B
                   </div>
                   <p className="text-xs text-gray-500 pt-1">
                     <strong>category_id</strong> must be a whole number (e.g. <code className="bg-white border border-gray-200 px-1 rounded">11</code>).{" "}
-                    <strong>product_price</strong> must be digits only — no currency symbols or text (e.g. <code className="bg-white border border-gray-200 px-1 rounded">150</code> or <code className="bg-white border border-gray-200 px-1 rounded">150.00</code>).{" "}
+                    <strong>product_price</strong> must be digits only - no currency symbols or text (e.g. <code className="bg-white border border-gray-200 px-1 rounded">150</code> or <code className="bg-white border border-gray-200 px-1 rounded">150.00</code>).{" "}
+                    <strong>product_stock</strong> with invalid characters anywhere in the field will be set to <code className="bg-white border border-gray-200 px-1 rounded">0</code>.{" "}
                     <strong>show_in_catalog</strong>: <code className="bg-white border border-gray-200 px-1 rounded">1</code> = visible,{" "}
                     <code className="bg-white border border-gray-200 px-1 rounded">0</code> = hidden.
                   </p>
@@ -390,7 +395,7 @@ export default function BulkImportModal({ isOpen, onClose, onImportComplete }: B
                   <p className="text-sm font-medium text-gray-700">
                     {isDragging ? "Drop your file here" : "Drag & drop your file here"}
                   </p>
-                  <p className="text-xs text-gray-500 mt-1">or click to browse — .csv, .xlsx supported</p>
+                  <p className="text-xs text-gray-500 mt-1">or click to browse - .csv, .xlsx supported</p>
                 </div>
               </div>
 
@@ -411,7 +416,6 @@ export default function BulkImportModal({ isOpen, onClose, onImportComplete }: B
             </div>
           )}
 
-          {/* ── Step: Preview ── */}
           {step === "preview" && (
             <div className="space-y-4">
               <div className="flex items-center gap-4 flex-wrap">
@@ -459,8 +463,8 @@ export default function BulkImportModal({ isOpen, onClose, onImportComplete }: B
                       >
                         <td className="px-3 py-2 text-gray-400">{row.index + 2}</td>
                         <td className="px-3 py-2 text-gray-900 max-w-[160px] truncate">{row.raw.product_name || <span className="text-red-400 italic">empty</span>}</td>
-                        <td className="px-3 py-2 text-gray-700">{row.raw.category_id || "—"}</td>
-                        <td className="px-3 py-2 text-gray-700">{row.raw.product_price || "—"}</td>
+                        <td className="px-3 py-2 text-gray-700">{row.raw.category_id || "-"}</td>
+                        <td className="px-3 py-2 text-gray-700">{row.raw.product_price || "-"}</td>
                         <td className="px-3 py-2 text-gray-700 max-w-[100px] truncate">{row.raw.product_brand || <span className="text-gray-400">default</span>}</td>
                         <td className="px-3 py-2 text-gray-700">{row.raw.product_stock || "0"}</td>
                         <td className="px-3 py-2 text-gray-700">{row.raw.size_label || <span className="text-gray-400">One Size</span>}</td>
@@ -469,14 +473,14 @@ export default function BulkImportModal({ isOpen, onClose, onImportComplete }: B
                         <td className="px-3 py-2 whitespace-nowrap">
                           {!row.isValid ? (
                             <span className="text-red-600 font-medium" title={row.errors.join("; ")}>
-                              ✕ Skip
+                              Skip
                             </span>
                           ) : row.warnings.length > 0 ? (
                             <span className="text-amber-600 font-medium" title={row.warnings.join("; ")}>
-                              ⚠ Warn
+                              Warn
                             </span>
                           ) : (
-                            <span className="text-green-600 font-medium">✓ OK</span>
+                            <span className="text-green-600 font-medium">OK</span>
                           )}
                         </td>
                       </tr>
@@ -485,7 +489,6 @@ export default function BulkImportModal({ isOpen, onClose, onImportComplete }: B
                 </table>
               </div>
 
-              {/* Rows that will be skipped */}
               {invalidCount > 0 && (
                 <div className="bg-red-50 border border-red-200 rounded-lg p-3 space-y-1">
                   <p className="text-xs font-semibold text-red-800">Rows that will be skipped ({invalidCount}):</p>
@@ -493,29 +496,27 @@ export default function BulkImportModal({ isOpen, onClose, onImportComplete }: B
                     .filter((r) => !r.isValid)
                     .map((r) => (
                       <div key={r.index} className="text-xs text-red-700">
-                        <span className="font-medium">Row {r.index + 2}:</span> {r.errors.join(" · ")}
+                        <span className="font-medium">Row {r.index + 2}:</span> {r.errors.join(" - ")}
                       </div>
                     ))}
                 </div>
               )}
 
-              {/* Rows with warnings — will still be imported */}
               {warnCount > 0 && (
                 <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 space-y-1">
                   <p className="text-xs font-semibold text-amber-800">
-                    Rows with warnings — these will still be imported ({warnCount}):
+                    Rows with warnings - these will still be imported ({warnCount}):
                   </p>
                   {validatedRows
                     .filter((r) => r.isValid && r.warnings.length > 0)
                     .map((r) => (
                       <div key={r.index} className="text-xs text-amber-700">
-                        <span className="font-medium">Row {r.index + 2}:</span> {r.warnings.join(" · ")}
+                        <span className="font-medium">Row {r.index + 2}:</span> {r.warnings.join(" - ")}
                       </div>
                     ))}
                 </div>
               )}
 
-              {/* Progress bar during import */}
               {importing && (
                 <div className="space-y-1">
                   <div className="flex justify-between text-xs text-gray-500">
@@ -533,7 +534,6 @@ export default function BulkImportModal({ isOpen, onClose, onImportComplete }: B
             </div>
           )}
 
-          {/* ── Step: Results ── */}
           {step === "results" && importResult && (
             <div className="space-y-4">
               <div className="flex items-center gap-3">
@@ -562,7 +562,6 @@ export default function BulkImportModal({ isOpen, onClose, onImportComplete }: B
           )}
         </CardContent>
 
-        {/* Footer */}
         <CardFooter className="border-t bg-gray-50 p-4 flex gap-3 shrink-0">
           {step === "upload" && (
             <Button

@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { Loader2, X } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
+import { Loader2, X, ChevronDown } from "lucide-react";
 import { browserSupabase } from "@/lib/supabase/browser";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -63,8 +63,21 @@ export default function AddProduct({ isOpen, onClose, categories, productToEdit,
     const [error, setError] = useState<string | null>(null);
     const [stagedFiles, setStagedFiles] = useState<File[]>([]);
     const [productImages, setProductImages] = useState<ProductImage[]>([]);
+    const [sizeDropdownOpen, setSizeDropdownOpen] = useState(false);
+    const sizeDropdownRef = useRef<HTMLDivElement>(null);
 
     const [showDiscardConfirm, setShowDiscardConfirm] = useState(false);
+
+    useEffect(() => {
+        if (!sizeDropdownOpen) return;
+        const handleOutsideClick = (e: MouseEvent) => {
+            if (sizeDropdownRef.current && !sizeDropdownRef.current.contains(e.target as Node)) {
+                setSizeDropdownOpen(false);
+            }
+        };
+        document.addEventListener("mousedown", handleOutsideClick);
+        return () => document.removeEventListener("mousedown", handleOutsideClick);
+    }, [sizeDropdownOpen]);
 
     const hasUnsavedChanges = () => {
         const normalizeString = (str: string | null | undefined) => (str || "").trim();
@@ -430,16 +443,43 @@ export default function AddProduct({ isOpen, onClose, categories, productToEdit,
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-2">Size Label</label>
-                                <Select value={formData.size_label} onValueChange={(value) => setFormData({ ...formData, size_label: value })}>
-                                    <SelectTrigger className="border-gray-300 text-gray-900 bg-white w-full">
-                                        <SelectValue placeholder="Select size" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        {SIZE_OPTIONS.map((size) => (
-                                            <SelectItem key={size} value={size}>{size}</SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
+                                <div className="relative" ref={sizeDropdownRef}>
+                                    <div className="flex h-9 w-full rounded-md bg-white" style={{ border: '1px solid #101722' }}> 
+                                        <input
+                                            value={formData.size_label}
+                                            onChange={(e) => setFormData({ ...formData, size_label: e.target.value.slice(0, MAX_META_LENGTH) })}
+                                            placeholder="e.g., M, L, One Size"
+                                            maxLength={MAX_META_LENGTH}
+                                            className="flex-1 min-w-0 rounded-l-md px-3 text-sm text-gray-900 bg-transparent placeholder:text-gray-400 outline-none"
+                                        />
+                                        <button
+                                            type="button"
+                                            onClick={() => setSizeDropdownOpen((prev) => !prev)}
+                                            className="shrink-0 px-2 rounded-r-md bg-white hover:bg-gray-50 transition-colors"
+                                            aria-label="Show size presets"
+                                        >
+                                            <ChevronDown className={`w-4 h-4 text-gray-500 transition-transform ${sizeDropdownOpen ? "rotate-180" : ""}`} />
+                                        </button>
+                                    </div>
+                                    {sizeDropdownOpen && (
+                                        <div className="absolute z-20 w-full mt-1 bg-white border border-gray-200 rounded-md shadow-lg overflow-hidden">
+                                            {SIZE_OPTIONS.map((size) => (
+                                                <button
+                                                    key={size}
+                                                    type="button"
+                                                    onMouseDown={(e) => {
+                                                        e.preventDefault();
+                                                        setFormData({ ...formData, size_label: size });
+                                                        setSizeDropdownOpen(false);
+                                                    }}
+                                                    className={`w-full text-left px-3 py-2 text-sm hover:bg-pink-50 hover:text-[#E7A3B0] transition-colors ${formData.size_label === size ? "bg-pink-50 text-[#E7A3B0] font-medium" : "text-gray-700"}`}
+                                                >
+                                                    {size}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
                             </div>
 
                             <div>
