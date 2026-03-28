@@ -45,7 +45,7 @@ export const activityHelper = {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         let query: any = supabase
             .from("tbl_activity_log")
-            .select("log_id, created_at, action_type, product_id, description, editor, user_id", { count: "exact" })
+            .select("log_id, created_at, action_type, product_id, description, editor, user_id, tbl_users(user_key)", { count: "exact" })
             .order("created_at", { ascending: false })
             .range(from, to);
 
@@ -89,7 +89,14 @@ export const activityHelper = {
             return { data: null, count: 0, error };
         }
 
-        return { data: data || [], count: count ?? 0, error: null };
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const flat = (data || []).map((log: any) => ({
+            ...log,
+            user_key: log.tbl_users?.user_key ?? null,
+            tbl_users: undefined,
+        }));
+
+        return { data: flat, count: count ?? 0, error: null };
     },
 
     /**
