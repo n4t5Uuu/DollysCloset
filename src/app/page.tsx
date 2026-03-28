@@ -8,14 +8,56 @@ import { getAuthReasonCopy, getSafeInternalPath } from "@/lib/auth/auth-routing"
 import { Eye, EyeOff } from "lucide-react";
 import { toast } from "sonner";
 
+const LOGIN_COOLDOWN_STORAGE_KEY = "login-lockout-until";
+
+const formatCooldown = (seconds: number) => {
+  const mins = Math.floor(seconds / 60);
+  const secs = seconds % 60;
+  return `${mins}:${secs.toString().padStart(2, "0")}`;
+};
+
 export default function Home() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [cooldownRemaining, setCooldownRemaining] = useState(0);
   const [callbackError, setCallbackError] = useState(false);
   const [loginReason, setLoginReason] = useState<string | null>(null);
   const [nextPath, setNextPath] = useState("/dashboard");
+
+  useEffect(() => {
+    const storedValue = window.localStorage.getItem(LOGIN_COOLDOWN_STORAGE_KEY);
+    const cooldownUntil = storedValue ? Number(storedValue) : 0;
+    const remainingSeconds = Math.max(0, Math.ceil((cooldownUntil - Date.now()) / 1000));
+
+    if (remainingSeconds > 0) {
+      setCooldownRemaining(remainingSeconds);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (cooldownRemaining <= 0) return;
+
+    const timer = window.setInterval(() => {
+      setCooldownRemaining((prev) => {
+        if (prev <= 1) {
+          window.localStorage.removeItem(LOGIN_COOLDOWN_STORAGE_KEY);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    return () => window.clearInterval(timer);
+  }, [cooldownRemaining]);
+
+  const startCooldown = (seconds: number) => {
+    const safeSeconds = Math.max(0, seconds);
+    const cooldownUntil = Date.now() + safeSeconds * 1000;
+    window.localStorage.setItem(LOGIN_COOLDOWN_STORAGE_KEY, String(cooldownUntil));
+    setCooldownRemaining(safeSeconds);
+  };
 
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -55,6 +97,12 @@ export default function Home() {
    */
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+
+    if (cooldownRemaining > 0) {
+      toast.info(`Too many failed attempts. Try again in ${formatCooldown(cooldownRemaining)}.`);
+      return;
+    }
+
     setLoading(true);
 
     const trimmedEmail = email.trim();
@@ -95,7 +143,13 @@ export default function Home() {
 
         // Map backend errors to friendly user messages
         if (loginResponse.status === 429) {
-          toast.error("Too many failed attempts. Please try again in 15 minutes.");
+          const retryAfterHeader = Number(loginResponse.headers.get("Retry-After") ?? "0");
+          const retryAfterSeconds = Number.isFinite(retryAfterHeader) && retryAfterHeader > 0
+            ? retryAfterHeader
+            : 15 * 60;
+
+          startCooldown(retryAfterSeconds);
+          toast.error(`Too many failed attempts. Try again in ${formatCooldown(retryAfterSeconds)}.`);
         } else if (errorMessage.includes("Invalid login credentials")) {
           toast.error("Invalid email or password.");
         } else if (errorMessage.includes("Email not confirmed")) {
@@ -204,7 +258,7 @@ export default function Home() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
-              disabled={loading}
+              disabled={loading || cooldownRemaining > 0}
             />
             <label 
               htmlFor="email"
@@ -226,7 +280,7 @@ export default function Home() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
-              disabled={loading}
+              disabled={loading || cooldownRemaining > 0}
             />
             <label 
               htmlFor="password"
@@ -240,7 +294,7 @@ export default function Home() {
               type="button" 
               onClick={() => setShowPassword(!showPassword)} 
               className="absolute right-5 top-1/2 -translate-y-1/2 text-[#B3B3B3] hover:text-[#E7A3B0] transition-colors focus:outline-none cursor-pointer"
-              disabled={loading}
+              disabled={loading || cooldownRemaining > 0}
             >
               {showPassword ? <EyeOff size={20} strokeWidth={1.5} /> : <Eye size={20} strokeWidth={1.5} />}
             </button>
@@ -254,11 +308,20 @@ export default function Home() {
 
           <button 
             type="submit" 
-            disabled={loading}
+            disabled={loading || cooldownRemaining > 0}
             className="w-full bg-linear-to-r from-[#E7A3B0] to-[#E2899A] text-white font-bold py-[18px] rounded-xl hover:from-[#E2899A] hover:to-[#DE7588] transition-all duration-300 mt-6 text-[15px] tracking-widest uppercase shadow-[0_8px_20px_-6px_rgba(231,163,176,0.6)] hover:shadow-[0_12px_24px_-6px_rgba(231,163,176,0.8)] hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.98]"
           >
-            {loading ? "Logging in..." : "Log In"}
+            {loading
+              ? "Logging in..."
+              : cooldownRemaining > 0
+                ? `Try Again In ${formatCooldown(cooldownRemaining)}`
+                : "Log In"}
           </button>
+          {cooldownRemaining > 0 && (
+            <p className="text-center text-xs text-[#B3B3B3] -mt-3">
+              Too many incorrect password attempts. Please wait {formatCooldown(cooldownRemaining)}.
+            </p>
+          )}
         </form>
       </div>
     </div>

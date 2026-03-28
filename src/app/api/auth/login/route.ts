@@ -18,6 +18,10 @@ function getClientIp(request: NextRequest): string {
   );
 }
 
+function buildAttemptKey(ip: string, email: string): string {
+  return `${ip}|${email.trim().toLowerCase()}`;
+}
+
 function checkRateLimit(ip: string): { allowed: boolean; retryAfterSeconds: number } {
   const now = Date.now();
   const entry = failedAttempts.get(ip);
@@ -33,14 +37,24 @@ function checkRateLimit(ip: string): { allowed: boolean; retryAfterSeconds: numb
   return { allowed: true, retryAfterSeconds: 0 };
 }
 
-function recordFailedAttempt(ip: string): void {
+function recordFailedAttempt(ip: string): { count: number; retryAfterSeconds: number; lockedOut: boolean } {
   const now = Date.now();
   const entry = failedAttempts.get(ip);
 
   if (!entry || now >= entry.resetAt) {
-    failedAttempts.set(ip, { count: 1, resetAt: now + WINDOW_MS });
+    const resetAt = now + WINDOW_MS;
+    failedAttempts.set(ip, { count: 1, resetAt });
+    return { count: 1, retryAfterSeconds: 0, lockedOut: false };
   } else {
     entry.count += 1;
+    if (entry.count >= MAX_ATTEMPTS) {
+      return {
+        count: entry.count,
+        retryAfterSeconds: Math.ceil((entry.resetAt - now) / 1000),
+        lockedOut: true,
+      };
+    }
+    return { count: entry.count, retryAfterSeconds: 0, lockedOut: false };
   }
 }
 
@@ -51,32 +65,53 @@ function clearFailedAttempts(ip: string): void {
 export async function POST(request: NextRequest) {
   try {
     const ip = getClientIp(request);
-    const { allowed, retryAfterSeconds } = checkRateLimit(ip);
-
-    if (!allowed) {
-      return NextResponse.json(
-        { error: "Too many failed login attempts. Please try again in 15 minutes." },
-        { status: 429, headers: { "Retry-After": String(retryAfterSeconds) } }
-      );
-    }
 
     const body = await request.json().catch(() => null);
     if (!body?.email || !body?.password) {
       return NextResponse.json({ error: "Email and password are required." }, { status: 400 });
     }
 
+    const email = String(body.email).trim().toLowerCase();
+    const attemptKey = buildAttemptKey(ip, email);
+    const { allowed, retryAfterSeconds } = checkRateLimit(attemptKey);
+
+    if (!allowed) {
+      return NextResponse.json(
+        {
+          error: "Too many incorrect password attempts. Try again later.",
+          retryAfterSeconds,
+        },
+        { status: 429, headers: { "Retry-After": String(retryAfterSeconds) } }
+      );
+    }
+
     const supabase = await createServerSupabase();
     const { data, error } = await supabase.auth.signInWithPassword({
-      email: body.email,
+      email,
       password: body.password,
     });
 
     if (error) {
-      recordFailedAttempt(ip);
+      const isInvalidCredentials = error.message.toLowerCase().includes("invalid login credentials");
+      if (isInvalidCredentials) {
+        const attemptResult = recordFailedAttempt(attemptKey);
+        if (attemptResult.lockedOut) {
+          return NextResponse.json(
+            {
+              error: "Too many incorrect password attempts. Try again later.",
+              retryAfterSeconds: attemptResult.retryAfterSeconds,
+            },
+            {
+              status: 429,
+              headers: { "Retry-After": String(attemptResult.retryAfterSeconds) },
+            }
+          );
+        }
+      }
       return NextResponse.json({ error: error.message }, { status: 401 });
     }
 
-    clearFailedAttempts(ip);
+    clearFailedAttempts(attemptKey);
 
     // Revoke all other active sessions for this account so only one device
     // can be logged in at a time. Uses scope "others" to preserve the new session.

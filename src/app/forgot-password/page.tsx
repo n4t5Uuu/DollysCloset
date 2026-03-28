@@ -1,19 +1,67 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { authHelper } from "@/lib/auth/auth-helper";
 import { toast } from "sonner";
 import { ArrowLeft, Mail } from "lucide-react";
+
+const COOLDOWN_SECONDS = 60;
+const COOLDOWN_STORAGE_KEY = "forgot-password-cooldown-until";
+
+const formatCooldown = (seconds: number) => {
+  const mins = Math.floor(seconds / 60);
+  const secs = seconds % 60;
+  return `${mins}:${secs.toString().padStart(2, "0")}`;
+};
 
 export default function ForgotPassword() {
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const [cooldownRemaining, setCooldownRemaining] = useState(0);
+
+  useEffect(() => {
+    const storedValue = window.localStorage.getItem(COOLDOWN_STORAGE_KEY);
+    const cooldownUntil = storedValue ? Number(storedValue) : 0;
+    const remainingSeconds = Math.max(0, Math.ceil((cooldownUntil - Date.now()) / 1000));
+
+    if (remainingSeconds > 0) {
+      setCooldownRemaining(remainingSeconds);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (cooldownRemaining <= 0) return;
+
+    const timer = window.setInterval(() => {
+      setCooldownRemaining((prev) => {
+        if (prev <= 1) {
+          window.localStorage.removeItem(COOLDOWN_STORAGE_KEY);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    return () => window.clearInterval(timer);
+  }, [cooldownRemaining]);
+
+  const startCooldown = (seconds: number) => {
+    const cooldownUntil = Date.now() + seconds * 1000;
+    window.localStorage.setItem(COOLDOWN_STORAGE_KEY, String(cooldownUntil));
+    setCooldownRemaining(seconds);
+  };
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+
+    if (cooldownRemaining > 0) {
+      toast.info(`Please wait ${formatCooldown(cooldownRemaining)} before requesting again.`);
+      return;
+    }
+
     setLoading(true);
 
     const trimmedEmail = email.trim();
@@ -37,11 +85,14 @@ export default function ForgotPassword() {
 
       // Always show success regardless of the response to prevent user enumeration
       await authHelper.resetPasswordForEmail(trimmedEmail, redirectTo);
+      setEmail(trimmedEmail);
       setSubmitted(true);
     } catch {
       // Still show success to prevent user enumeration
+      setEmail(trimmedEmail);
       setSubmitted(true);
     } finally {
+      startCooldown(COOLDOWN_SECONDS);
       setLoading(false);
     }
   }
@@ -92,9 +143,10 @@ export default function ForgotPassword() {
               Didn&apos;t receive it?{" "}
               <button
                 onClick={() => setSubmitted(false)}
-                className="text-[#E7A3B0] hover:underline font-medium"
+                disabled={cooldownRemaining > 0}
+                className="text-[#E7A3B0] hover:underline font-medium disabled:opacity-60 disabled:no-underline disabled:cursor-not-allowed"
               >
-                Send again
+                {cooldownRemaining > 0 ? `Send again in ${formatCooldown(cooldownRemaining)}` : "Send again"}
               </button>
             </p>
             <button
@@ -142,11 +194,20 @@ export default function ForgotPassword() {
 
               <button
                 type="submit"
-                disabled={loading}
+                disabled={loading || cooldownRemaining > 0}
                 className="w-full bg-linear-to-r from-[#E7A3B0] to-[#E2899A] text-white font-bold py-[18px] rounded-xl hover:from-[#E2899A] hover:to-[#DE7588] transition-all duration-300 mt-6 text-[15px] tracking-widest uppercase shadow-[0_8px_20px_-6px_rgba(231,163,176,0.6)] hover:shadow-[0_12px_24px_-6px_rgba(231,163,176,0.8)] hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.98]"
               >
-                {loading ? "Sending..." : "Send Reset Link"}
+                {loading
+                  ? "Sending..."
+                  : cooldownRemaining > 0
+                    ? `Try Again In ${formatCooldown(cooldownRemaining)}`
+                    : "Send Reset Link"}
               </button>
+              {cooldownRemaining > 0 && (
+                <p className="text-center text-xs text-[#B3B3B3] -mt-3">
+                  Please wait {formatCooldown(cooldownRemaining)} before requesting another reset link.
+                </p>
+              )}
             </form>
           </>
         )}
