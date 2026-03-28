@@ -11,7 +11,8 @@ import {
   Users,
   Activity,
   Package,
-  FileText
+  FileText,
+  Settings,
 } from "lucide-react";
 import {
   Sidebar,
@@ -39,6 +40,7 @@ export default function AdminSidebar() {
     { href: "/dashboard/activity-logs", label: "Activity Logs", icon: Activity },
     { href: "/dashboard/inventory", label: "Manage Inventory", icon: Package },
     { href: "/dashboard/manage-details", label: "Manage Details", icon: FileText },
+    { href: "/dashboard/settings", label: "Settings", icon: Settings },
   ];
 
 

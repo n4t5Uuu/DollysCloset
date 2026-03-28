@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import {
   Home,
   Package,
+  Settings,
 } from "lucide-react";
 import {
   Sidebar,
@@ -29,6 +30,7 @@ export default function EmployeeSidebar() {
   const navItems = [
     { href: "/dashboard", label: "Home", icon: Home },
     { href: "/dashboard/inventory", label: "Manage Inventory", icon: Package },
+    { href: "/dashboard/settings", label: "Settings", icon: Settings },
   ];
 
 

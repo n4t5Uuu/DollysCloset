@@ -32,6 +32,10 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ error: 'Missing employee_id' }, { status: 400 });
     }
 
+    if (employee_id === user.id) {
+      return NextResponse.json({ error: 'You cannot delete your own account.' }, { status: 403 });
+    }
+
     // Delete employee account using employeeHelper
     const { error: deleteError } = await employeeHelper.deleteEmployeeAccount(employee_id, admin);
 

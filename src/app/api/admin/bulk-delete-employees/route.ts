@@ -30,6 +30,10 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid or empty employee_ids array' }, { status: 400 });
     }
 
+    if (employee_ids.includes(user.id)) {
+      return NextResponse.json({ error: 'You cannot delete your own account.' }, { status: 403 });
+    }
+
     // Delete employee accounts in bulk using employeeHelper
     const { error: deleteError, failures } = await employeeHelper.deleteEmployeesBulkAccount(employee_ids, admin);
 

@@ -20,7 +20,7 @@ export async function GET(request: Request) {
     }
 
     const { data, error } = await employeeHelper.getUsers(admin);
-    
+
     if (error) {
       console.error('Error fetching employees:', error)
       return NextResponse.json(
@@ -28,8 +28,12 @@ export async function GET(request: Request) {
         { status: 500 }
       )
     }
-    
-    return NextResponse.json({ data: data || [] })
+
+    // Exclude the requesting admin's own account from the list so they
+    // cannot accidentally (or intentionally) select and delete themselves.
+    const filtered = (data || []).filter((u: { user_id: string }) => u.user_id !== authResult.user.id);
+
+    return NextResponse.json({ data: filtered })
     
   } catch (err: unknown) {
     console.error('Unexpected error:', err)
