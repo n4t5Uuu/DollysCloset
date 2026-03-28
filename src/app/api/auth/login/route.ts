@@ -18,8 +18,13 @@ function getClientIp(request: NextRequest): string {
   );
 }
 
-function buildAttemptKey(ip: string, email: string): string {
-  return `${ip}|${email.trim().toLowerCase()}`;
+function isInvalidCredentialError(errorMessage: string): boolean {
+  const message = errorMessage.toLowerCase();
+  return (
+    message.includes("invalid login credentials") ||
+    message.includes("invalid email or password") ||
+    message.includes("email not found")
+  );
 }
 
 function checkRateLimit(ip: string): { allowed: boolean; retryAfterSeconds: number } {
@@ -72,13 +77,12 @@ export async function POST(request: NextRequest) {
     }
 
     const email = String(body.email).trim().toLowerCase();
-    const attemptKey = buildAttemptKey(ip, email);
-    const { allowed, retryAfterSeconds } = checkRateLimit(attemptKey);
+    const { allowed, retryAfterSeconds } = checkRateLimit(ip);
 
     if (!allowed) {
       return NextResponse.json(
         {
-          error: "Too many incorrect password attempts. Try again later.",
+          error: "Too many incorrect credential attempts. Try again later.",
           retryAfterSeconds,
         },
         { status: 429, headers: { "Retry-After": String(retryAfterSeconds) } }
@@ -92,13 +96,13 @@ export async function POST(request: NextRequest) {
     });
 
     if (error) {
-      const isInvalidCredentials = error.message.toLowerCase().includes("invalid login credentials");
+      const isInvalidCredentials = isInvalidCredentialError(error.message);
       if (isInvalidCredentials) {
-        const attemptResult = recordFailedAttempt(attemptKey);
+        const attemptResult = recordFailedAttempt(ip);
         if (attemptResult.lockedOut) {
           return NextResponse.json(
             {
-              error: "Too many incorrect password attempts. Try again later.",
+              error: "Too many incorrect credential attempts. Try again later.",
               retryAfterSeconds: attemptResult.retryAfterSeconds,
             },
             {
@@ -111,7 +115,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: error.message }, { status: 401 });
     }
 
-    clearFailedAttempts(attemptKey);
+    clearFailedAttempts(ip);
 
     // Revoke all other active sessions for this account so only one device
     // can be logged in at a time. Uses scope "others" to preserve the new session.

@@ -83,16 +83,19 @@ export default function ForgotPassword() {
       const origin = window.location.origin;
       const redirectTo = `${origin}/api/auth/callback?next=/reset-password`;
 
-      // Always show success regardless of the response to prevent user enumeration
-      await authHelper.resetPasswordForEmail(trimmedEmail, redirectTo);
+      const { error } = await authHelper.resetPasswordForEmail(trimmedEmail, redirectTo);
+
+      if (error) {
+        toast.error(error.message || "Unable to send reset email.");
+        return;
+      }
+
       setEmail(trimmedEmail);
       setSubmitted(true);
-    } catch {
-      // Still show success to prevent user enumeration
-      setEmail(trimmedEmail);
-      setSubmitted(true);
-    } finally {
       startCooldown(COOLDOWN_SECONDS);
+    } catch {
+      toast.error("Unable to send reset email.");
+    } finally {
       setLoading(false);
     }
   }

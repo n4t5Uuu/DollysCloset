@@ -321,7 +321,7 @@ export default function Home() {
           </button>
           {cooldownRemaining > 0 && (
             <p className="text-center text-xs text-[#B3B3B3] -mt-3">
-              Too many incorrect password attempts. Please wait {formatCooldown(cooldownRemaining)}.
+              Too many incorrect credential attempts. Please wait {formatCooldown(cooldownRemaining)}.
             </p>
           )}
         </form>

@@ -172,14 +172,32 @@ export const authHelper = {
      * @param redirectTo - The URL that the user will be redirected to after clicking the email link.
      */
     async resetPasswordForEmail(email: string, redirectTo: string) {
-        const { data, error } = await browserSupabase.auth.resetPasswordForEmail(email, {
-            redirectTo: redirectTo
-        });
-        if (error) {
+        try {
+            const response = await fetch("/api/auth/forgot-password", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({ email, redirectTo }),
+            });
+
+            const payload = await response.json().catch(() => ({}));
+
+            if (!response.ok) {
+                return {
+                    data: null,
+                    error: new Error(payload?.error || "Unable to send reset email."),
+                };
+            }
+
+            return { data: payload?.data ?? null, error: null };
+        } catch (error) {
             console.warn("Error Sending Reset Email: ", error);
-            return { data: null, error };
+            return {
+                data: null,
+                error: error instanceof Error ? error : new Error("Unable to send reset email."),
+            };
         }
-        return { data, error };
     },
 
     /**
