@@ -127,12 +127,14 @@ export default function ForgotPassword() {
                   onChange={(e) => setEmail(e.target.value)}
                   required
                   disabled={loading}
+                  suppressHydrationWarning
                 />
                 <label
                   htmlFor="email"
                   className="absolute left-5 top-1/2 -translate-y-1/2 text-[#828282] font-medium text-[14px] transition-all duration-200 cursor-text pointer-events-none px-1.5 bg-white
                             peer-focus:top-0 peer-focus:text-[12px] peer-focus:text-[#E7A3B0]
                             peer-[:not(:placeholder-shown)]:top-0 peer-[:not(:placeholder-shown)]:text-[12px] peer-[:not(:placeholder-shown)]:text-[#E7A3B0]"
+                  suppressHydrationWarning
                 >
                   Email Address
                 </label>

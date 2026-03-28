@@ -136,12 +136,14 @@ export default function SetPasswordPage() {
                             onChange={(e) => setPassword(e.target.value)}
                             required
                             disabled={loading}
+                            suppressHydrationWarning
                         />
                         <label 
                             htmlFor="password"
                             className="absolute left-5 top-1/2 -translate-y-1/2 text-[#999] font-medium text-[14px] transition-all duration-200 cursor-text pointer-events-none px-1.5 bg-white/0
                                       peer-focus:top-0 peer-focus:text-[12px] peer-focus:text-[#E7A3B0] peer-focus:bg-white
                                       peer-[:not(:placeholder-shown)]:top-0 peer-[:not(:placeholder-shown)]:text-[12px] peer-[:not(:placeholder-shown)]:text-[#E7A3B0] peer-[:not(:placeholder-shown)]:bg-white"
+                            suppressHydrationWarning
                         >
                             New Password
                         </label>
@@ -178,12 +180,14 @@ export default function SetPasswordPage() {
                             onChange={(e) => setConfirmPassword(e.target.value)}
                             required
                             disabled={loading}
+                            suppressHydrationWarning
                         />
                         <label 
                             htmlFor="confirmPassword"
                             className="absolute left-5 top-1/2 -translate-y-1/2 text-[#999] font-medium text-[14px] transition-all duration-200 cursor-text pointer-events-none px-1.5 bg-white/0
                                       peer-focus:top-0 peer-focus:text-[12px] peer-focus:bg-white
                                       peer-[:not(:placeholder-shown)]:top-0 peer-[:not(:placeholder-shown)]:text-[12px] peer-[:not(:placeholder-shown)]:bg-white"
+                            suppressHydrationWarning
                         >
                             Confirm Identity
                         </label>
