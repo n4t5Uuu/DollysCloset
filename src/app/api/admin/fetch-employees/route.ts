@@ -29,11 +29,7 @@ export async function GET(request: Request) {
       )
     }
 
-    // Exclude the requesting admin's own account from the list so they
-    // cannot accidentally (or intentionally) select and delete themselves.
-    const filtered = (data || []).filter((u: { user_id: string }) => u.user_id !== authResult.user.id);
-
-    return NextResponse.json({ data: filtered })
+    return NextResponse.json({ data: data || [] })
     
   } catch (err: unknown) {
     console.error('Unexpected error:', err)

@@ -33,6 +33,7 @@ export default function EmployeesClient() {
     }
   };
 
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
@@ -49,7 +50,13 @@ export default function EmployeesClient() {
   const [actionLoading, setActionLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Fetch employees 
+  useEffect(() => {
+    browserSupabase.auth.getUser().then(({ data: { user } }) => {
+      if (user) setCurrentUserId(user.id);
+    });
+  }, []);
+
+  // Fetch employees
   useEffect(() => {
     fetchEmployees();
   }, []);
@@ -94,11 +101,13 @@ export default function EmployeesClient() {
     router.replace(pathname);
   }, [searchTerm, router, pathname]);
 
+  const selectableEmployees = currentEmployees.filter((e) => e.user_id !== currentUserId);
+
   const toggleSelectAll = () => {
-    if (selectedRows.size === currentEmployees.length && currentEmployees.length > 0) {
+    if (selectedRows.size === selectableEmployees.length && selectableEmployees.length > 0) {
       setSelectedRows(new Set());
     } else {
-      setSelectedRows(new Set(currentEmployees.map((e) => e.user_id)));
+      setSelectedRows(new Set(selectableEmployees.map((e) => e.user_id)));
     }
   };
 
@@ -273,6 +282,7 @@ export default function EmployeesClient() {
             openViewModal={openViewModal}
             openEditModal={openEditModal}
             openDeleteModal={openDeleteModal}
+            currentUserId={currentUserId}
           />
         )}
         

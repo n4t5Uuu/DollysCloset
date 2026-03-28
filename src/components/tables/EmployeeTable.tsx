@@ -13,6 +13,7 @@ interface EmployeeTableProps {
   openViewModal: (employee: Employee) => void;
   openEditModal: (employee: Employee) => void;
   openDeleteModal: (employee: Employee) => void;
+  currentUserId?: string | null;
 }
 
 export function EmployeeTable({
@@ -23,6 +24,7 @@ export function EmployeeTable({
   openViewModal,
   openEditModal,
   openDeleteModal,
+  currentUserId,
 }: EmployeeTableProps) {
   return (
     <div className="bg-white rounded-lg border overflow-hidden">
@@ -48,16 +50,20 @@ export function EmployeeTable({
           </TableHeader>
           <TableBody>
             {sortedEmployees.length > 0 ? (
-              sortedEmployees.map((employee) => (
+              sortedEmployees.map((employee) => {
+                const isOwnRow = employee.user_id === currentUserId;
+                return (
                 <TableRow
                   key={employee.user_key}
                   className={`border-b hover:bg-gray-50 ${selectedRows.has(employee.user_id) ? "bg-[#E7A3B0]/5" : ""}`}
                 >
                   <TableCell className="p-4">
-                    <Checkbox
-                      checked={selectedRows.has(employee.user_id)}
-                      onCheckedChange={() => toggleSelectRow(employee.user_id)}
-                    />
+                    {!isOwnRow && (
+                      <Checkbox
+                        checked={selectedRows.has(employee.user_id)}
+                        onCheckedChange={() => toggleSelectRow(employee.user_id)}
+                      />
+                    )}
                   </TableCell>
                   <TableCell className="p-4">
                     <span className="font-medium text-gray-900">{employee.user_key}</span>
@@ -89,13 +95,16 @@ export function EmployeeTable({
                       <Button size="icon" variant="outline" className="border-blue-200 text-blue-600 bg-blue-50 hover:bg-blue-200 hover:text-blue-700 hover:border-blue-300" onClick={() => openEditModal(employee)}>
                         <Pencil className="h-4 w-4" />
                       </Button>
-                      <Button size="icon" variant="outline" className="border-red-200 text-red-600 bg-red-50 hover:bg-red-200 hover:text-red-700 hover:border-red-300" onClick={() => openDeleteModal(employee)}>
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
+                      {!isOwnRow && (
+                        <Button size="icon" variant="outline" className="border-red-200 text-red-600 bg-red-50 hover:bg-red-200 hover:text-red-700 hover:border-red-300" onClick={() => openDeleteModal(employee)}>
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      )}
                     </div>
                   </TableCell>
                 </TableRow>
-              ))
+                );
+              })
             ) : (
               <TableRow>
                 <TableCell colSpan={8} className="p-0 border-none">
