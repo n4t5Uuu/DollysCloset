@@ -100,9 +100,7 @@ export default function Contact() {
   const [status, setStatus] = useState("idle");
   const [errorMessage, setErrorMessage] = useState("");
   const [isMapModalOpen, setIsMapModalOpen] = useState(false);
-  const displayAddress = (details.address || "").toLowerCase().includes("admiral")
-    ? STORE_ADDRESS_CANONICAL
-    : details.address;
+  const displayAddress = details.address || STORE_ADDRESS_CANONICAL;
 
   useEffect(() => {
     /**
@@ -466,7 +464,7 @@ export default function Contact() {
                       </p>
                       <Button asChild className="mt-4 w-full h-11 rounded-xl bg-[#121212] text-white hover:bg-[#2b2b2b] transition-all shadow-md">
                         <a 
-                          href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(STORE_ADDRESS_CANONICAL)}`}
+                          href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(displayAddress)}`}
                           target="_blank"
                           rel="noopener noreferrer"
                         >
