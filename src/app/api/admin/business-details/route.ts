@@ -71,11 +71,12 @@ async function validateAdmin(request: NextRequest): Promise<AdminValidationResul
   }
 
   const { data: userData, error: roleError } = await authHelper.getUserRole(user.id, admin);
-  if (roleError || userData?.role !== "admin") {
-    return { ok: false, response: NextResponse.json({ error: "Forbidden: Admin access required" }, { status: 403 }) };
+  const role = userData?.role;
+  if (roleError || (role !== "admin" && role !== "employee")) {
+    return { ok: false, response: NextResponse.json({ error: "Forbidden: Valid role required" }, { status: 403 }) };
   }
 
-  return { ok: true, user };
+  return { ok: true, user, role };
 }
 
 /**
@@ -89,12 +90,17 @@ export async function GET(request: NextRequest) {
   try {
     const authResult = await validateAdmin(request);
     if (!authResult.ok) return authResult.response;
+    const { role } = authResult;
 
     const { searchParams } = new URL(request.url);
     const slug = searchParams.get("slug");
 
     if (!slug) {
       return NextResponse.json({ error: "Missing slug" }, { status: 400 });
+    }
+
+    if (role === "employee" && slug !== ANNOUNCEMENT_SLUG) {
+      return NextResponse.json({ error: "Forbidden: Employees can only access announcement details" }, { status: 403 });
     }
 
     const tableResult = await resolveTableName();
@@ -145,6 +151,7 @@ export async function PUT(request: NextRequest) {
   try {
     const authResult = await validateAdmin(request);
     if (!authResult.ok) return authResult.response;
+    const { role } = authResult;
     const user = authResult.user;
 
     const { slug, title, body } = (await request.json()) as {
@@ -155,6 +162,10 @@ export async function PUT(request: NextRequest) {
 
     if (!slug) {
       return NextResponse.json({ error: "Missing slug" }, { status: 400 });
+    }
+
+    if (role === "employee" && slug !== ANNOUNCEMENT_SLUG) {
+      return NextResponse.json({ error: "Forbidden: Employees can only edit announcement details" }, { status: 403 });
     }
 
     const tableResult = await resolveTableName();

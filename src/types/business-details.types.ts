@@ -68,6 +68,7 @@ export type BusinessDetailsRow = {
 
 export type AdminValidationSuccess = {
   ok: true;
+  role: "admin" | "employee";
   user: {
     id: string;
     email?: string;

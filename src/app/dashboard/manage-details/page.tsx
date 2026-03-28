@@ -7,7 +7,9 @@ export default async function ManageDetailsPage() {
     const authState = await getServerAuthState();
     
     if (!authState.ok) redirect(buildLoginPath({ reason: authState.reason }));
-    if (authState.role !== 'admin') redirect(buildUnauthorizedPath("access-denied"));
+    if (authState.role !== 'admin' && authState.role !== 'employee') {
+        redirect(buildUnauthorizedPath("access-denied"));
+    }
 
-    return <ManageDetailsClient />;
+    return <ManageDetailsClient role={authState.role} />;
 }

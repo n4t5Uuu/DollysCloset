@@ -27,7 +27,12 @@ import {
   parseContactBody,
 } from "@/lib/business-details/business-details";
 
-export default function ManageDetailsClient() {
+type ManageDetailsClientProps = {
+  role: "admin" | "employee";
+};
+
+export default function ManageDetailsClient({ role }: ManageDetailsClientProps) {
+  const isAdmin = role === "admin";
   const inputClassName = "border-gray-200 bg-white text-gray-900 placeholder:text-gray-400 focus-visible:border-[#E7A3B0] focus-visible:ring-[#E7A3B0]";
   const textareaClassName = "border-gray-200 bg-white text-gray-900 placeholder:text-gray-400 focus-visible:border-[#E7A3B0] focus-visible:ring-[#E7A3B0]";
 
@@ -102,8 +107,10 @@ export default function ManageDetailsClient() {
   }, []);
 
   useEffect(() => {
-    fetchContactDetails();
-  }, [fetchContactDetails]);
+    if (isAdmin) {
+      fetchContactDetails();
+    }
+  }, [isAdmin, fetchContactDetails]);
 
   useEffect(() => {
     if (activeSection === "announcement" && !hasLoadedAnnouncement) {
@@ -112,10 +119,10 @@ export default function ManageDetailsClient() {
   }, [activeSection, hasLoadedAnnouncement, fetchAnnouncementDetails]);
 
   useEffect(() => {
-    if (activeSection === "about" && !hasLoadedAbout) {
+    if (isAdmin && activeSection === "about" && !hasLoadedAbout) {
       fetchAboutDetails();
     }
-  }, [activeSection, hasLoadedAbout, fetchAboutDetails]);
+  }, [isAdmin, activeSection, hasLoadedAbout, fetchAboutDetails]);
 
   async function handleSaveContactField(fieldKey: ContactFieldKey, label: string) {
     try {
@@ -210,7 +217,9 @@ export default function ManageDetailsClient() {
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold">Manage Details</h1>
-        <p className="text-gray-500 text-sm">Edit website contact details and links.</p>
+        <p className="text-gray-500 text-sm">
+          {isAdmin ? "Edit website contact details and links." : "Edit the website announcement banner."}
+        </p>
       </div>
 
       <div className="flex flex-wrap gap-3">
@@ -221,20 +230,24 @@ export default function ManageDetailsClient() {
         >
           Edit Announcement
         </Button>
-        <Button
-          type="button"
-          onClick={() => { setActiveSection("contact"); setSuccess(null); setError(null); }}
-          className={activeSection === "contact" ? "bg-linear-to-r from-[#E7A3B0] to-[#f0b8c3] text-white hover:from-[#d891a0] hover:to-[#E7A3B0]" : "bg-white border border-[#E7A3B0]/40 text-[#cc7f8f] hover:bg-[#fff5f7]"}
-        >
-          Edit Contact
-        </Button>
-        <Button
-          type="button"
-          onClick={() => { setActiveSection("about"); setAboutPage(1); setSuccess(null); setError(null); }}
-          className={activeSection === "about" ? "bg-linear-to-r from-[#E7A3B0] to-[#f0b8c3] text-white hover:from-[#d891a0] hover:to-[#E7A3B0]" : "bg-white border border-[#E7A3B0]/40 text-[#cc7f8f] hover:bg-[#fff5f7]"}
-        >
-          Edit About
-        </Button>
+        {isAdmin && (
+          <>
+            <Button
+              type="button"
+              onClick={() => { setActiveSection("contact"); setSuccess(null); setError(null); }}
+              className={activeSection === "contact" ? "bg-linear-to-r from-[#E7A3B0] to-[#f0b8c3] text-white hover:from-[#d891a0] hover:to-[#E7A3B0]" : "bg-white border border-[#E7A3B0]/40 text-[#cc7f8f] hover:bg-[#fff5f7]"}
+            >
+              Edit Contact
+            </Button>
+            <Button
+              type="button"
+              onClick={() => { setActiveSection("about"); setAboutPage(1); setSuccess(null); setError(null); }}
+              className={activeSection === "about" ? "bg-linear-to-r from-[#E7A3B0] to-[#f0b8c3] text-white hover:from-[#d891a0] hover:to-[#E7A3B0]" : "bg-white border border-[#E7A3B0]/40 text-[#cc7f8f] hover:bg-[#fff5f7]"}
+            >
+              Edit About
+            </Button>
+          </>
+        )}
       </div>
 
       {error && (
