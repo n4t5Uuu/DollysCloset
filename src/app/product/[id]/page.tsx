@@ -298,7 +298,7 @@ export default function ProductDetailsPage() {
       {announcementText && (
         <div className="w-full py-3 bg-[#E7A3B0] flex items-center justify-center">
           <InfiniteSlider className="w-full h-full">
-            {Array.from({ length: 6 }).map((_, index) => (
+            {Array.from({ length: 20 }).map((_, index) => (
               <h2 key={index} className="font-oswald font-medium text-[10px] md:text-sm tracking-[0.2em] text-[#121212] uppercase whitespace-nowrap">
                 {announcementText}
               </h2>
