@@ -21,7 +21,7 @@ export default function Navbar() {
 
     return (
         <header className={cn(
-            "w-full h-[80px] bg-white fixed top-0 z-50 transition-all duration-300",
+            "w-full h-20 bg-white fixed top-0 z-50 transition-all duration-300",
             !isDashboard && "shadow-md"
         )}>
             <nav className="relative w-full h-full flex items-center px-6 md:px-8 lg:px-12 xl:px-20">
@@ -44,7 +44,7 @@ export default function Navbar() {
                             alt="Dolly's Closet Logo" 
                             width={50} 
                             height={50} 
-                            className="w-[45px] h-[45px] md:w-[40px] md:h-[40px] lg:w-[45px] lg:h-[45px] xl:w-[50px] xl:h-[50px]" 
+                            className="w-[45px] h-[45px] md:w-10 md:h-10 lg:w-[45px] lg:h-[45px] xl:w-[50px] xl:h-[50px]" 
                         />
                     </div>
                     <h2 className="text-[#E7A3B0] font-great-vibes! text-xl md:text-xl lg:text-2xl xl:text-4xl whitespace-nowrap hidden md:block">
@@ -54,26 +54,30 @@ export default function Navbar() {
 
                 {/* Desktop Navigation Links - Now flex-based for better flow */}
                 <div className="hidden md:flex flex-1 items-center justify-center gap-4 lg:gap-8 xl:gap-10 px-4">
-                    {navLinks.map((item) => (
-                        <Link 
-                            href={`/${item.toLowerCase()}`} 
-                            key={item}
-                            className="group relative"
-                        >
-                            <div>
-                                <p className="text-black font-semibold text-sm lg:text-base xl:text-lg group-hover:text-[#E7A3B0] transition-all 
-                                        duration-300 font-montserrat whitespace-nowrap">
-                                    {item}
-                                </p>
-
-                                <span 
-                                    className="absolute left-0 -bottom-0.5 h-1 w-0 bg-[#E7A3B0] transition-all 
-                                        duration-300 group-hover:w-full"
-                                >
-                                </span>
-                            </div>
-                        </Link>
-                    ))}
+                    {navLinks.map((item) => {
+                        const href     = `/${item.toLowerCase()}`;
+                        const isActive = pathname === href || pathname.startsWith(`${href}/`);
+                        return (
+                            <Link
+                                href={href}
+                                key={item}
+                                className="group relative"
+                            >
+                                <div>
+                                    <p className={cn(
+                                        "font-semibold text-sm lg:text-base xl:text-lg transition-all duration-300 font-montserrat whitespace-nowrap",
+                                        isActive ? "text-[#E7A3B0]" : "text-black group-hover:text-[#E7A3B0]"
+                                    )}>
+                                        {item}
+                                    </p>
+                                    <span className={cn(
+                                        "absolute left-0 -bottom-0.5 h-1 bg-[#E7A3B0] transition-all duration-300",
+                                        isActive ? "w-full" : "w-0 group-hover:w-full"
+                                    )} />
+                                </div>
+                            </Link>
+                        );
+                    })}
                 </div>
 
                 {/* Right Section: Hamburger / User Dropdown */}
@@ -102,19 +106,26 @@ export default function Navbar() {
                             animate={{ opacity: 1, scale: 1, y: 0 }}
                             exit={{ opacity: 0, scale: 0.95, y: -20 }}
                             transition={{ duration: 0.3, ease: [0.4, 0, 0.2, 1] }}
-                            className="md:hidden absolute top-[80px] left-0 w-full bg-white border-b shadow-lg z-40"
+                            className="md:hidden absolute top-20 left-0 w-full bg-white border-b shadow-lg z-40"
                         >
                             <div className="flex flex-col items-center py-6 space-y-4 px-6">
-                                {navLinks.map((item) => (
-                                    <Link 
-                                        href={`/${item.toLowerCase()}`} 
-                                        key={item}
-                                        className="text-gray-800 font-semibold text-lg hover:text-[#E7A3B0] transition-colors font-montserrat w-full text-center py-2"
-                                        onClick={() => setIsMenuOpen(false)}
-                                    >
-                                        {item}
-                                    </Link>
-                                ))}
+                                {navLinks.map((item) => {
+                                    const href     = `/${item.toLowerCase()}`;
+                                    const isActive = pathname === href || pathname.startsWith(`${href}/`);
+                                    return (
+                                        <Link
+                                            href={href}
+                                            key={item}
+                                            className={cn(
+                                                "font-semibold text-lg transition-colors font-montserrat w-full text-center py-2",
+                                                isActive ? "text-[#E7A3B0] underline underline-offset-4 decoration-2" : "text-gray-800 hover:text-[#E7A3B0]"
+                                            )}
+                                            onClick={() => setIsMenuOpen(false)}
+                                        >
+                                            {item}
+                                        </Link>
+                                    );
+                                })}
                                 {!isDashboard && (
                                     <div className="w-full pt-2">
                                         <UserProfileDropdown variant="link" />

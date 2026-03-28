@@ -254,7 +254,7 @@ export default function Home() {
               type="email" 
               id="email"
               placeholder=" " 
-              className="peer w-full px-5 py-[18px] rounded-xl border border-[#E5E5E5] bg-transparent text-[#1A1A1A] focus:outline-none transition-all duration-300 focus:border-[#E7A3B0] focus:ring-1 focus:ring-[#E7A3B0]"
+              className="peer w-full px-5 py-[18px] rounded-xl border border-[#E5E5E5] bg-transparent text-[#1A1A1A] focus:outline-none transition-all duration-300 focus:border-[#E7A3B0] focus:ring-1 focus:ring-[#E7A3B0] [&:-webkit-autofill]:shadow-[inset_0_0_0_1000px_white] [&:-webkit-autofill]:[-webkit-text-fill-color:#1A1A1A]"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
@@ -264,7 +264,8 @@ export default function Home() {
               htmlFor="email"
               className="absolute left-5 top-1/2 -translate-y-1/2 text-[#828282] font-medium text-[14px] transition-all duration-200 cursor-text pointer-events-none px-1.5 bg-white
                         peer-focus:top-0 peer-focus:text-[12px] peer-focus:text-[#E7A3B0]
-                        peer-[:not(:placeholder-shown)]:top-0 peer-[:not(:placeholder-shown)]:text-[12px] peer-[:not(:placeholder-shown)]:text-[#E7A3B0]"
+                        peer-[:not(:placeholder-shown)]:top-0 peer-[:not(:placeholder-shown)]:text-[12px] peer-[:not(:placeholder-shown)]:text-[#E7A3B0]
+                        peer-[:-webkit-autofill]:top-0 peer-[:-webkit-autofill]:text-[12px] peer-[:-webkit-autofill]:text-[#E7A3B0]"
             >
               Email
             </label>
@@ -276,7 +277,7 @@ export default function Home() {
               type={showPassword ? "text" : "password"}
               id="password"
               placeholder=" "
-              className="peer w-full px-5 py-[18px] rounded-xl border border-[#E5E5E5] bg-transparent text-[#1A1A1A] focus:outline-none transition-all duration-300 pr-12 focus:border-[#E7A3B0] focus:ring-1 focus:ring-[#E7A3B0]"
+              className="peer w-full px-5 py-[18px] rounded-xl border border-[#E5E5E5] bg-transparent text-[#1A1A1A] focus:outline-none transition-all duration-300 pr-12 focus:border-[#E7A3B0] focus:ring-1 focus:ring-[#E7A3B0] [&:-webkit-autofill]:shadow-[inset_0_0_0_1000px_white] [&:-webkit-autofill]:[-webkit-text-fill-color:#1A1A1A]"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
@@ -286,7 +287,8 @@ export default function Home() {
               htmlFor="password"
               className="absolute left-5 top-1/2 -translate-y-1/2 text-[#828282] font-medium text-[14px] transition-all duration-200 cursor-text pointer-events-none px-1.5 bg-white
                         peer-focus:top-0 peer-focus:text-[12px] peer-focus:text-[#E7A3B0]
-                        peer-[:not(:placeholder-shown)]:top-0 peer-[:not(:placeholder-shown)]:text-[12px] peer-[:not(:placeholder-shown)]:text-[#E7A3B0]"
+                        peer-[:not(:placeholder-shown)]:top-0 peer-[:not(:placeholder-shown)]:text-[12px] peer-[:not(:placeholder-shown)]:text-[#E7A3B0]
+                        peer-[:-webkit-autofill]:top-0 peer-[:-webkit-autofill]:text-[12px] peer-[:-webkit-autofill]:text-[#E7A3B0]"
             >
               Password
             </label>

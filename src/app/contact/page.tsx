@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { motion } from "motion/react";
-import { MapPin, Send, Loader2, CheckCircle2, XCircle, X, Facebook, Instagram, MessageCircle, Phone, Maximize2 } from "lucide-react";
+import { MapPin, Send, Loader2, CheckCircle2, XCircle, X, Facebook, Instagram, MessageCircle, Phone, Maximize2, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -87,6 +87,15 @@ export default function Contact() {
     body: "",
   });
 
+  const [copiedLabel, setCopiedLabel] = useState<string | null>(null);
+
+  const handleCopy = (label: string, text: string) => {
+    navigator.clipboard.writeText(text).then(() => {
+      setCopiedLabel(label);
+      setTimeout(() => setCopiedLabel(null), 2000);
+    });
+  };
+
   // 'idle' | 'submitting' | 'success' | 'error'
   const [status, setStatus] = useState("idle");
   const [errorMessage, setErrorMessage] = useState("");
@@ -151,6 +160,7 @@ export default function Contact() {
       value: details.viberName,
       link: normalizeUrl(details.viberLink),
       color: "from-purple-500 to-purple-600",
+      copyText: details.viberName,
     },
     {
       icon: Phone,
@@ -158,6 +168,7 @@ export default function Contact() {
       value: details.contactNumberDisplay,
       link: normalizePhoneHref(details.contactNumberLink || details.contactNumberDisplay),
       color: "from-green-500 to-green-600",
+      copyText: details.contactNumberDisplay,
     },
   ];
 
@@ -197,7 +208,7 @@ export default function Contact() {
   };
 
   return (
-    <main className="w-full min-h-screen bg-linear-to-b from-white to-pink-50/30 pt-10 pb-20 relative">
+    <main className="w-full min-h-screen bg-linear-to-b from-white to-pink-50/30 pt-10 pb-8 relative">
       {/* Decorative Elements */}
       <div className="absolute top-50 left-10 w-72 h-72 bg-[#E7A3B0]/10 rounded-full blur-3xl -z-10" />
       <div className="absolute bottom-20 right-10 w-96 h-96 bg-[#E7A3B0]/10 rounded-full blur-3xl -z-10" />
@@ -366,12 +377,15 @@ export default function Contact() {
                   const Icon = method.icon;
                   const shouldOpenInNewTab = method.link.startsWith("http://") || method.link.startsWith("https://");
 
+                  const isCopied = copiedLabel === method.label;
+
                   return (
                     <motion.a
                       key={index}
-                      href={method.link}
-                      target={shouldOpenInNewTab ? "_blank" : undefined}
-                      rel={shouldOpenInNewTab ? "noopener noreferrer" : undefined}
+                      href={method.copyText ? undefined : method.link}
+                      target={!method.copyText && shouldOpenInNewTab ? "_blank" : undefined}
+                      rel={!method.copyText && shouldOpenInNewTab ? "noopener noreferrer" : undefined}
+                      onClick={method.copyText ? (e) => { e.preventDefault(); handleCopy(method.label, method.copyText!); } : undefined}
                       variants={{
                         hidden: { opacity: 0, y: 20 },
                         visible: {
@@ -382,6 +396,14 @@ export default function Contact() {
                       }}
                       className="group relative bg-white rounded-2xl px-4 py-3 shadow-md hover:shadow-xl transition-all duration-300 border border-gray-100 overflow-hidden cursor-pointer h-[92px] block"
                     >
+                      {/* Copied overlay */}
+                      {isCopied && (
+                        <div className="absolute inset-0 z-20 flex items-center justify-center gap-2 bg-white/95 rounded-2xl">
+                          <Check className="w-5 h-5 text-[#E7A3B0]" />
+                          <span className="font-montserrat font-semibold text-[#E7A3B0] text-sm">Copied!</span>
+                        </div>
+                      )}
+
                       <div className="relative z-10 flex h-full items-center gap-3">
                         {/* Icon */}
                         <div
