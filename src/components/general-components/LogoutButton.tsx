@@ -5,6 +5,7 @@ import { LogOut, Loader2 } from "lucide-react";
 import { useUser } from "@/hooks/useUser";
 import { browserSupabase } from "@/lib/supabase/browser";
 import { authHelper } from "@/lib/auth/auth-helper";
+import { markManualLogoutIntent } from "@/lib/auth/logout-intent";
 
 interface LogoutButtonProps {
     variant?: "pill" | "link" | "sidebar";
@@ -16,6 +17,7 @@ export default function LogoutButton({ variant = "pill" }: LogoutButtonProps) {
 
     const handleLogout = async () => {
         setIsLoggingOut(true);
+        markManualLogoutIntent();
 
         try {
             const { data: { session } } = await browserSupabase.auth.getSession();

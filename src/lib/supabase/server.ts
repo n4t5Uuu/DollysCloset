@@ -20,11 +20,7 @@ export async function createServerSupabase() {
         setAll(cookiesToSet) {
           try {
             cookiesToSet.forEach(({ name, value, options }) => {
-              const sessionOptions = { ...options };
-              delete sessionOptions.maxAge;
-              delete sessionOptions.expires;
-              
-              cookieStore.set(name, value, sessionOptions);
+              cookieStore.set(name, value, options);
             });
           } catch {
             // Safe to ignore in Server Components

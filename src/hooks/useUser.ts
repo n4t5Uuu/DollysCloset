@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { browserSupabase } from "@/lib/supabase/browser";
 import { authHelper } from "@/lib/auth/auth-helper";
-import { User } from "@supabase/supabase-js";
+import { Session, User } from "@supabase/supabase-js";
 
 /**
  * Custom hook to manage user authentication and role-based access control.
@@ -48,44 +48,75 @@ export function useUser() {
 
     // Initialize user state and set up realtime auth listener
     useEffect(() => {
-        async function getUser() {
+        let isMounted = true;
+
+        const applySession = async (session: Session | null) => {
+            if (!isMounted) {
+                return;
+            }
+
+            const sessionUser = session?.user ?? null;
+            setUser(sessionUser);
+            setLoading(false);
+
+            if (sessionUser) {
+                await fetchUserRole(sessionUser.id);
+                return;
+            }
+
+            setUserRole(null);
+        };
+
+        async function bootstrapUser() {
             try {
+                // Read the browser session first so session-aware UI can render immediately.
+                const { data: { session } } = await browserSupabase.auth.getSession();
+                await applySession(session);
+
                 const { user, error } = await authHelper.getUser();
-                
+
+                if (!isMounted) {
+                    return;
+                }
+
                 if (error) {
                     console.warn("Auth session not available:", error);
                     setUser(null);
+                    setUserRole(null);
                     setLoading(false);
                     return;
                 }
-                
-                setUser(user || null);
 
                 if (user) {
+                    setUser(user);
                     await fetchUserRole(user.id);
+                } else {
+                    setUser(null);
+                    setUserRole(null);
                 }
+
                 setLoading(false);
             } catch (error) {
                 console.error("Error fetching user:", error);
+                if (!isMounted) {
+                    return;
+                }
                 setUser(null);
+                setUserRole(null);
                 setLoading(false);
             }
         }
 
-        getUser();
+        bootstrapUser();
 
         const { data: { subscription } } = browserSupabase.auth.onAuthStateChange(async (_event, session) => {
-            setUser(session?.user || null);
-            
-            if (session?.user) {
-                await fetchUserRole(session.user.id);
-            } else {
-                setUserRole(null);
-            }
-            setLoading(false);
+            await applySession(session);
         });
 
-        return () => subscription.unsubscribe();
+        return () => {
+            isMounted = false;
+            subscription.unsubscribe();
+        };
     }, []);
 
     /**

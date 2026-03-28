@@ -112,10 +112,17 @@ export default function Home() {
         return;
       }
 
-      // Verify user data was returned
-      if (!loginResult.user) {
-        console.error("System Error: Login successful but no user returned");
-        toast.error("An unexpected error occurred. Please try again.");
+      // Establish the session in the browser so the middleware can read it
+      const { data: browserData, error: browserAuthError } = await browserSupabase.auth.signInWithPassword({
+        email: trimmedEmail,
+        password: trimmedPassword,
+      });
+
+      if (browserAuthError) {
+        // Shouldn't normally happen since the API already validated credentials,
+        // but handle it gracefully just in case
+        console.error("Browser session error:", browserAuthError.message);
+        toast.error("Login failed. Please try again.");
         setEmail("");
         setPassword("");
         setLoading(false);
@@ -124,8 +131,9 @@ export default function Home() {
 
       console.log("Login successful, redirecting to dashboard...");
 
-      if (loginResult.accessToken) {
-        void authHelper.logAuthEvent("login", loginResult.accessToken);
+      const accessToken = browserData?.session?.access_token ?? loginResult.accessToken;
+      if (accessToken) {
+        void authHelper.logAuthEvent("login", accessToken);
       }
 
       if (loginResult.otherSessionsRevoked) {

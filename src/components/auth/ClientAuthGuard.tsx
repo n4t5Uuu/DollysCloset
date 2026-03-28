@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { browserSupabase } from "@/lib/supabase/browser";
 import { buildLoginPath } from "@/lib/auth/auth-routing";
+import { clearManualLogoutIntent, consumeManualLogoutIntent } from "@/lib/auth/logout-intent";
 import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -22,6 +23,10 @@ export default function ClientAuthGuard({ children }: { children: React.ReactNod
             if (!isMounted) return;
 
             if (event === 'SIGNED_OUT' || (!session && event !== 'INITIAL_SESSION')) {
+                if (consumeManualLogoutIntent()) {
+                    return;
+                }
+
                 setIsAuthorized(false);
                 toast.warning("You have been signed out because this account was logged in on another device.", { duration: 4000 });
                 setTimeout(() => window.location.replace(buildLoginPath({ nextPath, reason: "signed-out-elsewhere" })), 2000);
@@ -29,6 +34,7 @@ export default function ClientAuthGuard({ children }: { children: React.ReactNod
             }
 
             if (session) {
+                clearManualLogoutIntent();
                 setIsAuthorized(true);
             }
         });
@@ -45,6 +51,10 @@ export default function ClientAuthGuard({ children }: { children: React.ReactNod
             if (!isMounted) return;
 
             if (!user) {
+                if (consumeManualLogoutIntent()) {
+                    return;
+                }
+
                 setIsAuthorized(false);
                 if (localSession) {
                     toast.warning("You have been signed out because this account was logged in on another device.", { duration: 4000 });
@@ -53,6 +63,7 @@ export default function ClientAuthGuard({ children }: { children: React.ReactNod
                     window.location.replace(buildLoginPath({ nextPath, reason: "login-required" }));
                 }
             } else if (!isBackground) {
+                clearManualLogoutIntent();
                 setIsAuthorized(true);
             }
         }

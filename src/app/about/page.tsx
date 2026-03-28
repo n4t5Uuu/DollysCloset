@@ -90,6 +90,7 @@ export default async function About() {
               src={img.imagePath}
               alt={img.alt}
               fill
+              sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, (max-width: 1280px) 33vw, 16vw"
               className="object-cover transition-transform duration-700 hover:scale-105"
               placeholder="blur"
             />
@@ -181,6 +182,7 @@ export default async function About() {
                 src={noBgLogo}
                 alt="Dolly's Closet Logo"
                 fill
+                sizes="(max-width: 768px) 256px, 384px"
                 className="object-contain drop-shadow-xl hover:scale-105 transition-transform duration-500"
               />
             </div>
@@ -204,6 +206,7 @@ export default async function About() {
                 src={images[3].imagePath}
                 alt="History Image"
                 fill
+                sizes="(max-width: 768px) 100vw, 448px"
                 className="object-cover grayscale hover:grayscale-0 transition-all duration-700"
               />
               <div className="absolute inset-0 flex items-center justify-center bg-black/20 group-hover:bg-transparent transition-colors">
@@ -256,6 +259,7 @@ export default async function About() {
                   src={noBgLogo}
                   alt="Dolly's Closet Logo"
                   fill
+                  sizes="64px"
                   className="object-contain p-1 rounded-full border-2 border-gray-200 shadow-md"
                 />
               </div>
