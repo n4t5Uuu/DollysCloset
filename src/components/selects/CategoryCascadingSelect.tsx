@@ -269,7 +269,7 @@ export default function CategoryCascadingSelect({
         className="w-full h-9 px-3 border border-input rounded-md bg-white text-sm flex items-center justify-between gap-2 text-gray-900"
       >
         <span
-          className={`truncate text-left ${selectedLabel ? "text-gray-900" : "text-gray-500"}`}
+          className={`truncate text-left flex-1 ${selectedLabel ? "text-gray-900" : "text-gray-500"}`}
         >
           {selectedLabel ?? placeholder}
         </span>

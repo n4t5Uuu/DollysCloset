@@ -2,7 +2,6 @@
 
 import { useState, useRef, useCallback } from "react";
 import { X, Upload, Download, AlertTriangle, CheckCircle2, Loader2, FileSpreadsheet } from "lucide-react";
-import Papa from "papaparse";
 import * as XLSX from "xlsx";
 import { browserSupabase } from "@/lib/supabase/browser";
 import { Button } from "@/components/ui/button";
@@ -177,26 +176,7 @@ export default function BulkImportModal({ isOpen, onClose, onImportComplete }: B
 
     const ext = file.name.split(".").pop()?.toLowerCase();
 
-    if (ext === "csv") {
-      Papa.parse<Record<string, string>>(file, {
-        header: true,
-        skipEmptyLines: true,
-        complete: (results) => {
-          if (results.errors.length > 0 && results.data.length === 0) {
-            setParseError("Failed to parse CSV: " + results.errors[0].message);
-            return;
-          }
-          const rows = parseRawRows(results.data);
-          if (rows.length === 0) {
-            setParseError("The file contains no data rows.");
-            return;
-          }
-          setValidatedRows(validateRows(rows));
-          setStep("preview");
-        },
-        error: (err) => setParseError("Failed to parse CSV: " + err.message),
-      });
-    } else if (ext === "xlsx" || ext === "xls") {
+    if (ext === "xlsx") {
       const reader = new FileReader();
       reader.onload = (e) => {
         try {
@@ -224,7 +204,7 @@ export default function BulkImportModal({ isOpen, onClose, onImportComplete }: B
       };
       reader.readAsArrayBuffer(file);
     } else {
-      setParseError("Unsupported file type. Please upload a .csv or .xlsx file.");
+      setParseError("Unsupported file type. Please upload a .xlsx file.");
     }
   }, []);
 
@@ -354,7 +334,7 @@ export default function BulkImportModal({ isOpen, onClose, onImportComplete }: B
             <div className="space-y-4">
               <div className="text-sm text-gray-600 space-y-2">
                 <p>
-                  Upload the <strong>Export Ready</strong> sheet from your template as a <strong>.xlsx</strong> or <strong>.csv</strong> file to add multiple products at once.
+                  Upload the <strong>Export Ready</strong> sheet from your template as a <strong>.xlsx</strong> file to add multiple products at once.
                 </p>
                 <div className="bg-gray-50 border border-gray-200 rounded-lg p-3 space-y-1.5">
                   <p className="text-xs font-medium text-gray-700">Required columns</p>
@@ -395,14 +375,14 @@ export default function BulkImportModal({ isOpen, onClose, onImportComplete }: B
                   <p className="text-sm font-medium text-gray-700">
                     {isDragging ? "Drop your file here" : "Drag & drop your file here"}
                   </p>
-                  <p className="text-xs text-gray-500 mt-1">or click to browse - .csv, .xlsx supported</p>
+                  <p className="text-xs text-gray-500 mt-1">or click to browse - .xlsx only</p>
                 </div>
               </div>
 
               <input
                 ref={fileInputRef}
                 type="file"
-                accept=".csv,.xlsx,.xls"
+                accept=".xlsx"
                 className="hidden"
                 onChange={handleFileChange}
               />

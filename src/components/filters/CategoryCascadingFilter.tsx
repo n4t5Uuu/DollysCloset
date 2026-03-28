@@ -257,16 +257,16 @@ export default function CategoryCascadingFilter({
           onValueChange(String(categoryId));
           setIsOpen(false);
         }}
-        className={`w-full flex items-center justify-between rounded-md px-3 py-2 text-left text-sm transition-colors cursor-pointer ${
-          isActive
-            ? "bg-white/10 text-white"
-            : "text-white/90 hover:bg-white/10 hover:text-white"
+        className={`w-full flex items-center justify-between rounded-lg px-3 py-2 text-left text-sm transition-colors cursor-pointer ${
+          isActive || isSelected
+            ? "bg-[#FFF0F3] text-[#E7A3B0] font-medium"
+            : "text-zinc-700 hover:bg-[#FFF0F3] hover:text-[#E7A3B0]"
         }`}
       >
         <span className="truncate pr-2">{category.category_name}</span>
         <span className="flex items-center gap-1">
-          {isSelected && <Check className="h-4 w-4" />}
-          {itemHasChildren && <ChevronRight className="h-4 w-4 text-white/60" />}
+          {isSelected && <Check className="h-4 w-4 text-[#8CA2B4]" />}
+          {itemHasChildren && <ChevronRight className="h-4 w-4 text-zinc-400" />}
         </span>
       </button>
     );
@@ -289,16 +289,16 @@ export default function CategoryCascadingFilter({
           onValueChange(`rootgroup:${rootGroup.key}`);
           setIsOpen(false);
         }}
-        className={`w-full flex items-center justify-between rounded-md px-3 py-2 text-left text-sm transition-colors cursor-pointer ${
-          isActive
-            ? "bg-white/10 text-white"
-            : "text-white/90 hover:bg-white/10 hover:text-white"
+        className={`w-full flex items-center justify-between rounded-lg px-3 py-2 text-left text-sm transition-colors cursor-pointer ${
+          isActive || isSelected
+            ? "bg-[#FFF0F3] text-[#E7A3B0] font-medium"
+            : "text-zinc-700 hover:bg-[#FFF0F3] hover:text-[#E7A3B0]"
         }`}
       >
         <span className="truncate pr-2">{rootGroup.label}</span>
         <span className="flex items-center gap-1">
-          {isSelected && <Check className="h-4 w-4" />}
-          {hasAnyChildren && <ChevronRight className="h-4 w-4 text-white/60" />}
+          {isSelected && <Check className="h-4 w-4 text-[#8CA2B4]" />}
+          {hasAnyChildren && <ChevronRight className="h-4 w-4 text-zinc-400" />}
         </span>
       </button>
     );
@@ -316,17 +316,17 @@ export default function CategoryCascadingFilter({
       </button>
 
       {isOpen && (
-        <div className={`absolute z-50 mt-2 w-[min(90vw,580px)] max-w-[calc(100vw-1rem)] rounded-lg border border-[#1b2a47] bg-[#020b20] p-2 shadow-2xl ${alignRight ? "right-0" : "left-0"}`}>
+        <div className={`absolute z-50 mt-2 w-[min(90vw,580px)] max-w-[calc(100vw-1rem)] rounded-xl border border-black bg-white p-2.5 shadow-xl ${alignRight ? "right-0" : "left-0"}`}>
           <button
             type="button"
             onClick={() => {
               onValueChange("all");
               setIsOpen(false);
             }}
-            className={`mb-2 w-full flex items-center justify-between rounded-md px-3 py-2 text-left text-sm ${
+            className={`mb-2 w-full flex items-center justify-between rounded-lg px-3 py-2 text-left text-sm ${
               value === "all"
-                ? "bg-white/10 text-white"
-                : "text-white/90 hover:bg-white/10 hover:text-white"
+                ? "bg-[#FFF0F3] text-[#E7A3B0] font-medium"
+                : "text-zinc-700 hover:bg-[#FFF0F3] hover:text-[#E7A3B0]"
             }`}
           >
             <span>All Categories</span>
@@ -334,21 +334,21 @@ export default function CategoryCascadingFilter({
           </button>
 
           <div className="grid grid-cols-3 gap-2">
-            <div className="max-h-72 overflow-y-auto rounded-md border border-white/10 p-1">
+            <div className="max-h-72 overflow-y-auto rounded-md border border-zinc-200 p-1">
               {firstColumn.length > 0 ? firstColumn.map((rootGroup) => renderRootItem(rootGroup)) : (
-                <div className="px-3 py-2 text-sm text-white/60">No categories found</div>
+                <div className="px-3 py-2 text-sm text-zinc-400">No categories found</div>
               )}
             </div>
 
-            <div className="max-h-72 overflow-y-auto rounded-md border border-white/10 p-1">
+            <div className="max-h-72 overflow-y-auto rounded-md border border-zinc-200 p-1">
               {secondColumn.length > 0 ? secondColumn.map((category) => renderItem(category, 2)) : (
-                <div className="px-3 py-2 text-sm text-white/60">Select a parent category</div>
+                <div className="px-3 py-2 text-sm text-zinc-400">Select a parent category</div>
               )}
             </div>
 
-            <div className="max-h-72 overflow-y-auto rounded-md border border-white/10 p-1">
+            <div className="max-h-72 overflow-y-auto rounded-md border border-zinc-200 p-1">
               {thirdColumn.length > 0 ? thirdColumn.map((category) => renderItem(category, 3)) : (
-                <div className="px-3 py-2 text-sm text-white/60">Select a subcategory</div>
+                <div className="px-3 py-2 text-sm text-zinc-300">Select a subcategory</div>
               )}
             </div>
           </div>

@@ -11,7 +11,6 @@ import ProductImageUpload from "@/components/product-image-upload";
 import ImageSelector from "@/components/image-selector";
 import CategoryCascadingSelect from "@/components/selects/CategoryCascadingSelect";
 import { toast } from "sonner";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 const SIZE_OPTIONS = ["One Size", "Free Size", "XS", "S", "M", "L", "XL", "XXL"];
 const CONDITION_OPTIONS = ["New", "Like New", "Good", "Used", "Fair"];
@@ -65,6 +64,8 @@ export default function AddProduct({ isOpen, onClose, categories, productToEdit,
     const [productImages, setProductImages] = useState<ProductImage[]>([]);
     const [sizeDropdownOpen, setSizeDropdownOpen] = useState(false);
     const sizeDropdownRef = useRef<HTMLDivElement>(null);
+    const [conditionDropdownOpen, setConditionDropdownOpen] = useState(false);
+    const conditionDropdownRef = useRef<HTMLDivElement>(null);
 
     const [showDiscardConfirm, setShowDiscardConfirm] = useState(false);
 
@@ -78,6 +79,17 @@ export default function AddProduct({ isOpen, onClose, categories, productToEdit,
         document.addEventListener("mousedown", handleOutsideClick);
         return () => document.removeEventListener("mousedown", handleOutsideClick);
     }, [sizeDropdownOpen]);
+
+    useEffect(() => {
+        if (!conditionDropdownOpen) return;
+        const handleOutsideClick = (e: MouseEvent) => {
+            if (conditionDropdownRef.current && !conditionDropdownRef.current.contains(e.target as Node)) {
+                setConditionDropdownOpen(false);
+            }
+        };
+        document.addEventListener("mousedown", handleOutsideClick);
+        return () => document.removeEventListener("mousedown", handleOutsideClick);
+    }, [conditionDropdownOpen]);
 
     const hasUnsavedChanges = () => {
         const normalizeString = (str: string | null | undefined) => (str || "").trim();
@@ -484,16 +496,43 @@ export default function AddProduct({ isOpen, onClose, categories, productToEdit,
 
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-2">Condition</label>
-                                <Select value={formData.product_condition} onValueChange={(value) => setFormData({ ...formData, product_condition: value })}>
-                                    <SelectTrigger className="border-gray-300 text-gray-900 bg-white w-full">
-                                        <SelectValue placeholder="Select condition" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        {CONDITION_OPTIONS.map((cond) => (
-                                            <SelectItem key={cond} value={cond}>{cond}</SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
+                                <div className="relative" ref={conditionDropdownRef}>
+                                    <div className="flex h-9 w-full rounded-md bg-white" style={{ border: '1px solid #101722' }}>
+                                        <input
+                                            value={formData.product_condition}
+                                            onChange={(e) => setFormData({ ...formData, product_condition: e.target.value.slice(0, MAX_META_LENGTH) })}
+                                            placeholder="e.g., New, Good, Used"
+                                            maxLength={MAX_META_LENGTH}
+                                            className="flex-1 min-w-0 rounded-l-md px-3 text-sm text-gray-900 bg-transparent placeholder:text-gray-400 outline-none"
+                                        />
+                                        <button
+                                            type="button"
+                                            onClick={() => setConditionDropdownOpen((prev) => !prev)}
+                                            className="shrink-0 px-2 rounded-r-md bg-white hover:bg-gray-50 transition-colors"
+                                            aria-label="Show condition presets"
+                                        >
+                                            <ChevronDown className={`w-4 h-4 text-gray-500 transition-transform ${conditionDropdownOpen ? "rotate-180" : ""}`} />
+                                        </button>
+                                    </div>
+                                    {conditionDropdownOpen && (
+                                        <div className="absolute z-20 w-full mt-1 bg-white border border-gray-200 rounded-md shadow-lg overflow-hidden">
+                                            {CONDITION_OPTIONS.map((cond) => (
+                                                <button
+                                                    key={cond}
+                                                    type="button"
+                                                    onMouseDown={(e) => {
+                                                        e.preventDefault();
+                                                        setFormData({ ...formData, product_condition: cond });
+                                                        setConditionDropdownOpen(false);
+                                                    }}
+                                                    className={`w-full text-left px-3 py-2 text-sm hover:bg-pink-50 hover:text-[#E7A3B0] transition-colors ${formData.product_condition === cond ? "bg-pink-50 text-[#E7A3B0] font-medium" : "text-gray-700"}`}
+                                                >
+                                                    {cond}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
                             </div>
                         </div>
 
