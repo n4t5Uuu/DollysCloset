@@ -30,7 +30,8 @@ interface ActivityLog {
   product_id: number | null;
   description: string;
   editor: string | null;
-  user_id: number | null;
+  user_id: string | null;
+  user_key: string | null;
 }
 
 const actionLabels: Record<string, string> = {
@@ -292,7 +293,7 @@ export default function ActivityLogsClient() {
         <div className="relative flex-1 min-w-[200px]">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-3.5 h-3.5" />
           <Input
-            placeholder="Search by IDs (log, product, user UUID) or editor..."
+            placeholder="Search by IDs (log, product, user UUID), user key, or editor..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="pl-9 h-9 text-sm rounded-lg border-gray-300 text-gray-900 bg-white"
@@ -425,7 +426,7 @@ export default function ActivityLogsClient() {
                 <TableHead className="p-4 font-bold">Date & Time</TableHead>
                 <TableHead className="p-4 font-bold">Action</TableHead>
                 <TableHead className="p-4 font-bold">Product ID</TableHead>
-                <TableHead className="p-4 font-bold">User ID</TableHead>
+                <TableHead className="p-4 font-bold">User</TableHead>
                 <TableHead className="p-4 font-bold w-[30%]">Description</TableHead>
                 <TableHead className="p-4 font-bold">Editor</TableHead>
                 <TableHead className="p-4 font-bold text-center w-[100px]">Actions</TableHead>
@@ -450,7 +451,7 @@ export default function ActivityLogsClient() {
                     </TableCell>
                     <TableCell className="p-4 text-sm text-gray-900">
                       <div className="line-clamp-2 break-all">
-                        {employeeManagementActions.has(log.action_type) ? (log.user_id || "—") : "—"}
+                        {employeeManagementActions.has(log.action_type) ? (log.user_key || log.user_id || "—") : "—"}
                       </div>
                     </TableCell>
                     <TableCell className="p-4 text-sm text-gray-600 max-w-0 overflow-hidden">
@@ -528,9 +529,9 @@ export default function ActivityLogsClient() {
                   <p className="text-sm font-semibold text-gray-900">{viewLog.product_id ?? "—"}</p>
                 </div>
                 <div className="bg-gray-50 rounded-xl p-4">
-                  <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">User ID</p>
+                  <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">User</p>
                   <p className="text-sm font-semibold text-gray-900">
-                    {employeeManagementActions.has(viewLog.action_type) ? (viewLog.user_id ?? "—") : "—"}
+                    {employeeManagementActions.has(viewLog.action_type) ? (viewLog.user_key || (viewLog.user_id ?? "—")) : "—"}
                   </p>
                 </div>
               </div>
