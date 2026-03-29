@@ -156,9 +156,8 @@ export default function Contact() {
       icon: MessageCircle,
       label: "Viber",
       value: details.viberName,
-      link: normalizeUrl(details.viberLink),
+      link: `viber://chat?number=${(details.contactNumberLink || details.contactNumberDisplay).replace("tel:", "").replace(/\s/g, "")}`,
       color: "from-purple-500 to-purple-600",
-      copyText: details.viberName,
     },
     {
       icon: Phone,
