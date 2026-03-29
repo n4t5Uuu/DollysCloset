@@ -358,7 +358,7 @@ export default function Catalog() {
 
             {/* For the Collections */}
             <div className="w-full flex flex-col items-center">
-                <div className="sticky top-[80px] z-30 w-full bg-[#fffcfd]/95 backdrop-blur-md border-b border-[#E7A3B0]/30 shadow-sm py-3 transition-all duration-300">
+                <div className="sticky top-(--navbar-h,80px) z-30 w-full bg-[#fffcfd]/95 backdrop-blur-md border-b border-[#E7A3B0]/30 shadow-sm py-3 transition-all duration-300">
                     <div className="w-full px-4 md:px-12 flex flex-col md:flex-row justify-between items-center gap-4">
                         <h2 className="font-playfair-display text-xl md:text-2xl text-[#121212]">Our Collections</h2>
                         <div className="w-full md:w-auto flex items-center gap-2 md:gap-3">

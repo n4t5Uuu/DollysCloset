@@ -1,7 +1,7 @@
 // components/navbar.tsx
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import Image from "next/image";
 import noBgLogo from "@/assets/images/logo/no-bg-logo.png";
@@ -16,13 +16,53 @@ const navLinks = ["Dashboard","Collection", "About", "Contact"];
 
 export default function Navbar() {
     const [isMenuOpen, setIsMenuOpen] = useState(false);
+    const [isVisible, setIsVisible] = useState(true);
+    const lastScrollY = useRef(0);
+    const scrollDelta = useRef(0);
+    const THRESHOLD = 80;
     const pathname = usePathname();
     const isDashboard = pathname.startsWith("/dashboard");
+
+    useEffect(() => {
+        const handleScroll = () => {
+            const currentScrollY = window.scrollY;
+            const diff = currentScrollY - lastScrollY.current;
+            lastScrollY.current = currentScrollY;
+
+            if (currentScrollY < 10) {
+                scrollDelta.current = 0;
+                setIsVisible(true);
+                return;
+            }
+
+            scrollDelta.current += diff;
+
+            if (scrollDelta.current > THRESHOLD) {
+                scrollDelta.current = 0;
+                setIsVisible(false);
+                setIsMenuOpen(false);
+            } else if (scrollDelta.current < -THRESHOLD) {
+                scrollDelta.current = 0;
+                setIsVisible(true);
+            }
+        };
+
+        window.addEventListener("scroll", handleScroll, { passive: true });
+        return () => window.removeEventListener("scroll", handleScroll);
+    }, []);
+
+    useEffect(() => {
+        document.documentElement.style.setProperty(
+            '--navbar-h',
+            isVisible ? '80px' : '0px'
+        );
+    }, [isVisible]);
 
     return (
         <header className={cn(
             "w-full h-20 bg-white fixed top-0 z-50 transition-all duration-300",
-            !isDashboard && "shadow-md"
+            !isDashboard && "shadow-md",
+            !isVisible && "md:translate-y-0 -translate-y-full"
         )}>
             <nav className="relative w-full h-full flex items-center px-6 md:px-8 lg:px-12 xl:px-20">
                 
@@ -34,23 +74,23 @@ export default function Navbar() {
                 </div>
 
                 {/* Center Section (Mobile) / Left Section (Desktop): Logo */}
-                <div className={cn(
+                <Link href="/collection" className={cn(
                     "flex items-center gap-2 md:gap-3 transition-all duration-300 shrink-0 md:flex-1",
                     "absolute left-1/2 -translate-x-1/2 md:static md:translate-x-0"
                 )}>
                     <div className="shrink-0">
-                        <Image 
-                            src={noBgLogo} 
-                            alt="Dolly's Closet Logo" 
-                            width={50} 
-                            height={50} 
-                            className="w-[45px] h-[45px] md:w-10 md:h-10 lg:w-[45px] lg:h-[45px] xl:w-[50px] xl:h-[50px]" 
+                        <Image
+                            src={noBgLogo}
+                            alt="Dolly's Closet Logo"
+                            width={50}
+                            height={50}
+                            className="w-[45px] h-[45px] md:w-10 md:h-10 lg:w-[45px] lg:h-[45px] xl:w-[50px] xl:h-[50px]"
                         />
                     </div>
                     <h2 className="text-[#E7A3B0] font-great-vibes! text-xl md:text-xl lg:text-2xl xl:text-4xl whitespace-nowrap hidden md:block">
                         Dolly&apos;s Closet
                     </h2>
-                </div>
+                </Link>
 
                 {/* Desktop Navigation Links - Now flex-based for better flow */}
                 <div className="hidden md:flex flex-1 items-center justify-center gap-4 lg:gap-8 xl:gap-10 px-4">

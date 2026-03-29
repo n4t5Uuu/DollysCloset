@@ -39,6 +39,16 @@ export function InventoryTable({
     handleDeleteProduct,
     actionLoading = false,
 }: InventoryTableProps) {
+    const getMobileCategory = (fullPath: string) => {
+        const parts = fullPath.split(" > ");
+        const leaf = parts[parts.length - 1];
+        const lower = fullPath.toLowerCase();
+        if (lower.includes("women") || lower.includes("girl")) return `${leaf}♀`;
+        if (lower.includes("men") || lower.includes("boy")) return `${leaf}♂`;
+        if (lower.includes("kid") || lower.includes("child")) return `${leaf}🧒`;
+        return leaf;
+    };
+
     const formatPublishedDate = (value: string) => {
         const publishedDate = new Date(value);
         if (Number.isNaN(publishedDate.getTime())) return "—";
@@ -50,109 +60,168 @@ export function InventoryTable({
         });
     };
 
+    const DeleteDialog = ({ product }: { product: Product }) => (
+        <AlertDialog>
+            <AlertDialogTrigger asChild>
+                <Button size="icon" variant="outline" className="border-red-200 text-red-600 bg-red-50 hover:bg-red-200 hover:text-red-700 hover:border-red-300" disabled={actionLoading}>
+                    <Trash2 className="h-4 w-4" />
+                </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent className="bg-white">
+                <AlertDialogHeader>
+                    <AlertDialogTitle className="text-gray-900">Delete Product</AlertDialogTitle>
+                    <AlertDialogDescription>
+                        Are you sure you want to delete <span className="font-semibold">{product.product_name}</span>? This action cannot be undone.
+                    </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                    <AlertDialogCancel className="border-zinc-300 bg-white text-zinc-700 hover:bg-zinc-50 hover:text-zinc-900">Cancel</AlertDialogCancel>
+                    <AlertDialogAction className="bg-red-500 hover:bg-red-600 text-white cursor-pointer" onClick={() => handleDeleteProduct(product.product_id)}>Delete</AlertDialogAction>
+                </AlertDialogFooter>
+            </AlertDialogContent>
+        </AlertDialog>
+    );
+
+    const emptyState = (
+        <Empty className="border-none rounded-none py-12">
+            <EmptyHeader>
+                <EmptyMedia variant="icon">
+                    <PackageSearch className="size-6 text-[#E7A3B0]" />
+                </EmptyMedia>
+                <EmptyTitle>No products found</EmptyTitle>
+                <EmptyDescription>
+                    We couldn&apos;t find any products in your inventory matching these filters.
+                </EmptyDescription>
+            </EmptyHeader>
+        </Empty>
+    );
+
     return (
-        <div className="bg-white rounded-lg border overflow-x-auto">
-        <Table className="w-full">
-            <TableHeader className="border-b bg-gray-50">
-            <TableRow>
-                <TableHead className="p-4 text-left w-12">
-                <Checkbox
-                    checked={selectedProducts.size === currentProducts.length && currentProducts.length > 0}
-                    onCheckedChange={toggleSelectAll}
-                />
-                </TableHead>
-                <TableHead className="p-4 text-left font-bold">Product Name</TableHead>
-                <TableHead className="p-4 text-left font-bold">Category</TableHead>
-                <TableHead className="p-4 text-center font-bold">Stock</TableHead>
-                <TableHead className="p-4 text-right font-bold">Price</TableHead>
-                <TableHead className="p-4 text-center font-bold">Status</TableHead>
-                <TableHead className="p-4 text-center font-bold w-[200px]">Actions</TableHead>
-            </TableRow>
-            </TableHeader>
-            <TableBody>
-            {currentProducts.length > 0 ? (
-                currentProducts.map((product) => (
-                <TableRow key={product.product_id} className="border-b hover:bg-gray-50">
-                    <TableCell className="p-4">
-                    <Checkbox
-                        checked={selectedProducts.has(product.product_id)}
-                        onCheckedChange={() => toggleSelectProduct(product.product_id)}
-                    />
-                    </TableCell>
-                                        <TableCell className="p-4">
-                                            <div className="font-medium">{product.product_name}</div>
-                                            <div className="text-xs text-gray-500 mt-1">Published {formatPublishedDate(product.created_at)}</div>
-                                        </TableCell>
-                    <TableCell className="p-4 text-gray-600">{getCategoryName(product.category_id)}</TableCell>
-                    <TableCell className="p-4 text-center">
-                    <span className={product.product_stock < 10 ? "text-orange-600 font-medium" : ""}>
-                        {product.product_stock}
-                    </span>
-                    {product.product_stock < 10 && (
-                        <div className="text-xs text-orange-600 mt-1">⚠ Low</div>
-                    )}
-                    </TableCell>
-                    <TableCell className="p-4 text-right font-medium">
-                    ₱{product.product_price.toFixed(2)}
-                    </TableCell>
-                    <TableCell className="p-4 text-center">
-                    <span className={`px-3 py-1 rounded text-sm font-medium ${
-                        product.show_in_catalog ? "bg-green-100 text-green-800" : "bg-gray-100 text-gray-800"
-                    }`}>
-                        {product.show_in_catalog ? "Listed" : "Hidden"}
-                    </span>
-                    </TableCell>
-                    <TableCell className="p-4">
-                    <div className="flex gap-2 justify-center flex-wrap">
-                        <Button size="icon" variant="outline" className="border-pink-200 text-pink-600 bg-pink-50 hover:bg-pink-200 hover:text-pink-700 hover:border-pink-300" onClick={() => handleViewProduct(product)}>
-                        <Eye className="h-4 w-4" />
-                        </Button>
-                        <Button size="icon" variant="outline" className="border-blue-200 text-blue-600 bg-blue-50 hover:bg-blue-200 hover:text-blue-700 hover:border-blue-300" onClick={() => handleEditProduct(product)}>
-                        <Pencil className="h-4 w-4" />
-                        </Button>
-                        
-                        <AlertDialog>
-                            <AlertDialogTrigger asChild>
-                                <Button size="icon" variant="outline" className="border-red-200 text-red-600 bg-red-50 hover:bg-red-200 hover:text-red-700 hover:border-red-300" disabled={actionLoading}>
-                                    <Trash2 className="h-4 w-4" />
-                                </Button>
-                            </AlertDialogTrigger>
-                            <AlertDialogContent className="bg-white">
-                                <AlertDialogHeader>
-                                    <AlertDialogTitle className="text-gray-900">Delete Product</AlertDialogTitle>
-                                    <AlertDialogDescription>
-                                        Are you sure you want to delete <span className="font-semibold">{product.product_name}</span>? This action cannot be undone.
-                                    </AlertDialogDescription>
-                                </AlertDialogHeader>
-                                <AlertDialogFooter>
-                                    <AlertDialogCancel className="border-zinc-300 bg-white text-zinc-700 hover:bg-zinc-50 hover:text-zinc-900">Cancel</AlertDialogCancel>
-                                    <AlertDialogAction className="bg-red-500 hover:bg-red-600 text-white cursor-pointer" onClick={() => handleDeleteProduct(product.product_id)}>Delete</AlertDialogAction>
-                                </AlertDialogFooter>
-                            </AlertDialogContent>
-                        </AlertDialog>
-                    </div>
-                    </TableCell>
-                </TableRow>
-                ))
-            ) : (
+        <>
+            {/* Mobile card list */}
+            <div className="sm:hidden bg-white rounded-lg border divide-y">
+                {currentProducts.length > 0 ? (
+                    <>
+                        <div className="flex items-center gap-2 px-3 py-2 bg-gray-50 rounded-t-lg">
+                            <Checkbox
+                                checked={selectedProducts.size === currentProducts.length && currentProducts.length > 0}
+                                onCheckedChange={toggleSelectAll}
+                            />
+                            <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Select all</span>
+                        </div>
+                        {currentProducts.map((product) => (
+                            <div key={product.product_id} className="flex items-center gap-3 px-3 py-2.5">
+                                <Checkbox
+                                    checked={selectedProducts.has(product.product_id)}
+                                    onCheckedChange={() => toggleSelectProduct(product.product_id)}
+                                />
+                                <div className="flex-1 min-w-0">
+                                    <div className="flex items-center gap-2">
+                                        <span className="font-medium text-sm truncate">{product.product_name}</span>
+                                        <span className={`shrink-0 px-1.5 py-0.5 rounded text-[10px] font-medium ${product.show_in_catalog ? "bg-green-100 text-green-800" : "bg-gray-100 text-gray-600"}`}>
+                                            {product.show_in_catalog ? "Listed" : "Hidden"}
+                                        </span>
+                                    </div>
+                                    <div className="flex items-center gap-2 mt-0.5 text-xs text-gray-500">
+                                        <span>{getMobileCategory(getCategoryName(product.category_id))}</span>
+                                        <span>·</span>
+                                        <span className={product.product_stock < 10 ? "text-orange-600 font-medium" : ""}>
+                                            {product.product_stock < 10 ? `⚠ ${product.product_stock}` : product.product_stock}
+                                        </span>
+                                        <span>·</span>
+                                        <span className="font-medium text-gray-700">₱{product.product_price.toFixed(2)}</span>
+                                    </div>
+                                </div>
+                                <div className="flex items-center gap-1.5 shrink-0">
+                                    <Button size="icon" variant="outline" className="h-8 w-8 border-pink-200 text-pink-600 bg-pink-50 hover:bg-pink-200" onClick={() => handleViewProduct(product)}>
+                                        <Eye className="h-3.5 w-3.5" />
+                                    </Button>
+                                    <Button size="icon" variant="outline" className="h-8 w-8 border-blue-200 text-blue-600 bg-blue-50 hover:bg-blue-200" onClick={() => handleEditProduct(product)}>
+                                        <Pencil className="h-3.5 w-3.5" />
+                                    </Button>
+                                    <DeleteDialog product={product} />
+                                </div>
+                            </div>
+                        ))}
+                    </>
+                ) : emptyState}
+            </div>
+
+            {/* Desktop table */}
+            <div className="hidden sm:block bg-white rounded-lg border overflow-x-auto">
+            <Table className="w-full">
+                <TableHeader className="border-b bg-gray-50">
                 <TableRow>
-                  <TableCell colSpan={7} className="p-0 border-none">
-                    <Empty className="border-none rounded-none py-12">
-                      <EmptyHeader>
-                        <EmptyMedia variant="icon">
-                          <PackageSearch className="size-6 text-[#E7A3B0]" />
-                        </EmptyMedia>
-                        <EmptyTitle>No products found</EmptyTitle>
-                        <EmptyDescription>
-                          We couldn't find any products in your inventory matching these filters.
-                        </EmptyDescription>
-                      </EmptyHeader>
-                    </Empty>
-                  </TableCell>
+                    <TableHead className="p-4 text-left w-12">
+                    <Checkbox
+                        checked={selectedProducts.size === currentProducts.length && currentProducts.length > 0}
+                        onCheckedChange={toggleSelectAll}
+                    />
+                    </TableHead>
+                    <TableHead className="p-4 text-left font-bold">Product Name</TableHead>
+                    <TableHead className="p-4 text-left font-bold">Category</TableHead>
+                    <TableHead className="p-4 text-center font-bold">Stock</TableHead>
+                    <TableHead className="p-4 text-right font-bold">Price</TableHead>
+                    <TableHead className="p-4 text-center font-bold">Status</TableHead>
+                    <TableHead className="p-4 text-center font-bold w-[200px]">Actions</TableHead>
                 </TableRow>
-            )}
-            </TableBody>
-        </Table>
-        </div>
+                </TableHeader>
+                <TableBody>
+                {currentProducts.length > 0 ? (
+                    currentProducts.map((product) => (
+                    <TableRow key={product.product_id} className="border-b hover:bg-gray-50">
+                        <TableCell className="p-4">
+                        <Checkbox
+                            checked={selectedProducts.has(product.product_id)}
+                            onCheckedChange={() => toggleSelectProduct(product.product_id)}
+                        />
+                        </TableCell>
+                        <TableCell className="p-4">
+                            <div className="font-medium">{product.product_name}</div>
+                            <div className="text-xs text-gray-500 mt-1">Published {formatPublishedDate(product.created_at)}</div>
+                        </TableCell>
+                        <TableCell className="p-4 text-gray-600">{getCategoryName(product.category_id)}</TableCell>
+                        <TableCell className="p-4 text-center">
+                        <span className={product.product_stock < 10 ? "text-orange-600 font-medium" : ""}>
+                            {product.product_stock}
+                        </span>
+                        {product.product_stock < 10 && (
+                            <div className="text-xs text-orange-600 mt-1">⚠ Low</div>
+                        )}
+                        </TableCell>
+                        <TableCell className="p-4 text-right font-medium">
+                        ₱{product.product_price.toFixed(2)}
+                        </TableCell>
+                        <TableCell className="p-4 text-center">
+                        <span className={`px-3 py-1 rounded text-sm font-medium ${
+                            product.show_in_catalog ? "bg-green-100 text-green-800" : "bg-gray-100 text-gray-800"
+                        }`}>
+                            {product.show_in_catalog ? "Listed" : "Hidden"}
+                        </span>
+                        </TableCell>
+                        <TableCell className="p-4">
+                        <div className="flex gap-2 justify-center flex-wrap">
+                            <Button size="icon" variant="outline" className="border-pink-200 text-pink-600 bg-pink-50 hover:bg-pink-200 hover:text-pink-700 hover:border-pink-300" onClick={() => handleViewProduct(product)}>
+                            <Eye className="h-4 w-4" />
+                            </Button>
+                            <Button size="icon" variant="outline" className="border-blue-200 text-blue-600 bg-blue-50 hover:bg-blue-200 hover:text-blue-700 hover:border-blue-300" onClick={() => handleEditProduct(product)}>
+                            <Pencil className="h-4 w-4" />
+                            </Button>
+                            <DeleteDialog product={product} />
+                        </div>
+                        </TableCell>
+                    </TableRow>
+                    ))
+                ) : (
+                    <TableRow>
+                      <TableCell colSpan={7} className="p-0 border-none">
+                        {emptyState}
+                      </TableCell>
+                    </TableRow>
+                )}
+                </TableBody>
+            </Table>
+            </div>
+        </>
     );
 }

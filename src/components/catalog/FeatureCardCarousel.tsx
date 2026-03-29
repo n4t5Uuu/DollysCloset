@@ -31,7 +31,7 @@ function cardTranslateX(offset: number, cardWidth: number, gap: number): number 
 }
 
 function getCardConfig(w: number): { cardWidth: number; gap: number } {
-    if (w < 640) return { cardWidth: 170, gap: 20 };
+    if (w < 640) return { cardWidth: 180, gap: 10 };
     if (w < 1024) return { cardWidth: 210, gap: 36 };
     return { cardWidth: 260, gap: 52 };
 }
@@ -43,19 +43,20 @@ function normaliseOffset(index: number, activeIndex: number, total: number): num
     return offset;
 }
 
-// Per-card override: place the card at a specific offset (no transition) so the
-// subsequent transition slides it in from that position.
 type LaunchOverride = { id: string; offset: number };
+type ExitClone = { id: string; startOffset: number; endOffset: number; active: boolean };
 
 export default function FeatureCardCarousel({ products, onProductClick }: FeatureCardCarouselProps) {
     const [activeIndex, setActiveIndex] = useState(0);
     const [cardConfig, setCardConfig] = useState({ cardWidth: 260, gap: 52 });
     const [isDragging, setIsDragging] = useState(false);
     const [launch, setLaunch] = useState<LaunchOverride | null>(null);
+    const [exitClone, setExitClone] = useState<ExitClone | null>(null);
 
-    const touchStartX = useRef<number | null>(null);
-    const mouseStartX = useRef<number | null>(null);
-    const hasDragged  = useRef(false);
+    const touchStartX    = useRef<number | null>(null);
+    const mouseStartX    = useRef<number | null>(null);
+    const hasDragged     = useRef(false);
+    const exitCloneTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
     const featuredProducts = useMemo(() => products.slice(0, 5), [products]);
     const total = featuredProducts.length;
@@ -65,6 +66,10 @@ export default function FeatureCardCarousel({ products, onProductClick }: Featur
         update();
         window.addEventListener("resize", update);
         return () => window.removeEventListener("resize", update);
+    }, []);
+
+    useEffect(() => {
+        return () => { if (exitCloneTimer.current) clearTimeout(exitCloneTimer.current); };
     }, []);
 
     const navigate = useCallback((direction: 1 | -1) => {
@@ -81,12 +86,32 @@ export default function FeatureCardCarousel({ products, onProductClick }: Featur
             const nextOffset    = normaliseOffset(wrappingIdx, next, total);
 
             if (Math.abs(nextOffset - currentOffset) >= 2) {
-
+                // Where the real card enters from (opposite side)
                 const launchOffset = direction === 1 ? (half + 1) : -(half + 1);
+                // Where the exit clone slides out to (continues natural direction)
+                const exitOffset   = currentOffset - direction * (half + 1);
 
+                if (exitCloneTimer.current) clearTimeout(exitCloneTimer.current);
+
+                // Clone starts at the card's current position (no transition yet)
+                setExitClone({
+                    id: String(wrappingProduct.id),
+                    startOffset: currentOffset,
+                    endOffset: exitOffset,
+                    active: false,
+                });
+                // Real card teleports to entry side (no transition yet)
                 setLaunch({ id: String(wrappingProduct.id), offset: launchOffset });
+
                 requestAnimationFrame(() =>
-                    requestAnimationFrame(() => setLaunch(null))
+                    requestAnimationFrame(() => {
+                        // Both start their transitions simultaneously:
+                        // - clone slides out in its natural direction
+                        // - real card slides in from the opposite side
+                        setLaunch(null);
+                        setExitClone(prev => prev ? { ...prev, active: true } : null);
+                        exitCloneTimer.current = setTimeout(() => setExitClone(null), 600);
+                    })
                 );
             }
         }
@@ -150,18 +175,51 @@ export default function FeatureCardCarousel({ products, onProductClick }: Featur
     }
 
     const { cardWidth, gap } = cardConfig;
-    const cardImageHeight   = Math.round(cardWidth * (4 / 3));
-    const containerHeight   = cardImageHeight + 68;
+    const cardImageHeight = Math.round(cardWidth * (4 / 3));
+    const containerHeight = cardImageHeight + 68;
+
+    const renderCardContent = (product: Product) => (
+        <>
+            <div
+                className="w-full bg-[#f5f5f5] rounded-xl relative overflow-hidden shadow-md"
+                style={{ height: `${cardImageHeight}px` }}
+            >
+                <Image
+                    src={product.images[0] || resolveProductPlaceholder(product.category)}
+                    alt={product.name}
+                    fill
+                    sizes={`${cardWidth}px`}
+                    className="object-cover"
+                    draggable={false}
+                />
+            </div>
+            <div className="mt-3 flex flex-col items-center text-center gap-0.5 px-1">
+                <p className="font-playfair-display font-medium text-sm md:text-base text-[#121212] line-clamp-1 w-full">
+                    {product.name}
+                </p>
+                <p className="font-oswald text-sm text-[#E7A3B0] tracking-wide">
+                    ₱{product.price.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                </p>
+            </div>
+        </>
+    );
 
     return (
         <div className="w-full max-w-[1600px] mx-auto px-2 lg:px-4">
-            <div className="flex items-center gap-2 md:gap-4">
+            <div className="relative flex items-center gap-2 md:gap-4">
 
                 {/* ← Prev */}
                 <button
                     type="button"
                     onClick={goPrev}
-                    className="shrink-0 h-10 w-10 rounded-full border border-[#E7A3B0]/50 text-[#cc7f8f] hover:bg-[#fff0f5] transition-colors cursor-pointer z-10"
+                    className="
+                        absolute left-1 z-20 md:static
+                        top-1/2 -translate-y-1/2 md:translate-y-0
+                        shrink-0 h-9 w-9 md:h-10 md:w-10 rounded-full
+                        bg-white/20 md:bg-transparent backdrop-blur-sm md:backdrop-blur-none
+                        border border-white/30 md:border-[#E7A3B0]/50
+                        text-[#cc7f8f] hover:bg-[#fff0f5] transition-colors cursor-pointer
+                    "
                     aria-label="Previous featured product"
                 >
                     <ChevronLeft className="h-5 w-5 mx-auto" />
@@ -181,6 +239,7 @@ export default function FeatureCardCarousel({ products, onProductClick }: Featur
                     onMouseUp={onMouseUp}
                     onMouseLeave={onMouseLeave}
                 >
+                    {/* Main cards */}
                     {featuredProducts.map((product, index) => {
                         const offset    = normaliseOffset(index, activeIndex, total);
                         const absOffset = Math.abs(offset);
@@ -191,7 +250,7 @@ export default function FeatureCardCarousel({ products, onProductClick }: Featur
                         const displayScale = cardScale(Math.abs(displayOff));
                         const translateX   = cardTranslateX(displayOff, cardWidth, gap);
 
-                        const opacity      = isLaunching && launch!.offset < 0 ? 0 : isVisible ? 1 : 0;
+                        const opacity = isLaunching && launch!.offset < 0 ? 0 : isVisible ? 1 : 0;
 
                         return (
                             <div
@@ -214,28 +273,37 @@ export default function FeatureCardCarousel({ products, onProductClick }: Featur
                                     else setActiveIndex(index);
                                 }}
                             >
-                                <div
-                                    className="w-full bg-[#f5f5f5] rounded-xl relative overflow-hidden shadow-md"
-                                    style={{ height: `${cardImageHeight}px` }}
-                                >
-                                    <Image
-                                        src={product.images[0] || resolveProductPlaceholder(product.category)}
-                                        alt={product.name}
-                                        fill
-                                        sizes={`${cardWidth}px`}
-                                        className="object-cover"
-                                        draggable={false}
-                                    />
-                                </div>
+                                {renderCardContent(product)}
+                            </div>
+                        );
+                    })}
 
-                                <div className="mt-3 flex flex-col items-center text-center gap-0.5 px-1">
-                                    <p className="font-playfair-display font-medium text-sm md:text-base text-[#121212] line-clamp-1 w-full">
-                                        {product.name}
-                                    </p>
-                                    <p className="font-oswald text-sm text-[#E7A3B0] tracking-wide">
-                                        ₱{product.price.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                                    </p>
-                                </div>
+                    {/* Exit clone — slides out in the card's natural direction while the
+                        real card enters from the opposite side, creating a wrap-around effect */}
+                    {exitClone && featuredProducts.map((product) => {
+                        if (String(product.id) !== exitClone.id) return null;
+                        const cloneOff   = exitClone.active ? exitClone.endOffset : exitClone.startOffset;
+                        const cloneScale = cardScale(Math.abs(cloneOff));
+                        const cloneTx    = cardTranslateX(cloneOff, cardWidth, gap);
+
+                        return (
+                            <div
+                                key={`exit-${product.id}`}
+                                style={{
+                                    position:      "absolute",
+                                    left:          "50%",
+                                    top:           "50%",
+                                    width:         `${cardWidth}px`,
+                                    transform:     `translateX(calc(-50% + ${cloneTx}px)) translateY(-50%) scale(${cloneScale})`,
+                                    transition:    exitClone.active
+                                        ? "transform 1s cubic-bezier(0.25, 0.46, 0.45, 0.94)"
+                                        : "none",
+                                    opacity:       1,
+                                    zIndex:        9 - Math.abs(cloneOff),
+                                    pointerEvents: "none",
+                                }}
+                            >
+                                {renderCardContent(product)}
                             </div>
                         );
                     })}
@@ -245,7 +313,14 @@ export default function FeatureCardCarousel({ products, onProductClick }: Featur
                 <button
                     type="button"
                     onClick={goNext}
-                    className="shrink-0 h-10 w-10 rounded-full border border-[#E7A3B0]/50 text-[#cc7f8f] hover:bg-[#fff0f5] transition-colors cursor-pointer z-10"
+                    className="
+                        absolute right-1 z-20 md:static
+                        top-1/2 -translate-y-1/2 md:translate-y-0
+                        shrink-0 h-9 w-9 md:h-10 md:w-10 rounded-full
+                        bg-white/20 md:bg-transparent backdrop-blur-sm md:backdrop-blur-none
+                        border border-white/30 md:border-[#E7A3B0]/50
+                        text-[#cc7f8f] hover:bg-[#fff0f5] transition-colors cursor-pointer
+                    "
                     aria-label="Next featured product"
                 >
                     <ChevronRight className="h-5 w-5 mx-auto" />
