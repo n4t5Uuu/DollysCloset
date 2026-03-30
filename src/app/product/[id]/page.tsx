@@ -452,9 +452,6 @@ export default function ProductDetailsPage() {
               <div className="rounded-[32px] border border-[#f2dbe0] bg-white/92 p-6 md:p-8 shadow-[0_28px_70px_-38px_rgba(187,117,132,0.35)] backdrop-blur">
                 <div className="space-y-6">
                   <div className="space-y-3">
-                    <p className="font-oswald text-xs uppercase tracking-[0.28em] text-[#cc7f8f]">
-                      {product.categoryPath}
-                    </p>
                     <h1 className="font-playfair-display text-2xl md:text-[2.7rem] leading-tight text-[#121212]">
                       {product.name}
                     </h1>

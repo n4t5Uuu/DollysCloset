@@ -205,7 +205,7 @@ export default function FeatureCardCarousel({ products, onProductClick }: Featur
             ? product.type
             : product.category.split(" > ").filter(Boolean).at(-1) || "Collection";
 
-        const badges: Array<{ label: string; className: string }> = [];
+        const badges: Array<{ label: string; className: string; mobileHidden?: boolean }> = [];
 
         if (isSoldOut) {
             badges.push({
@@ -217,6 +217,7 @@ export default function FeatureCardCarousel({ products, onProductClick }: Featur
                 badges.push({
                     label: "New",
                     className: "bg-[#fff4f7] text-[#b96f80] ring-1 ring-[#E7A3B0]/40",
+                    mobileHidden: hasLowStock,
                 });
             }
 
@@ -250,7 +251,8 @@ export default function FeatureCardCarousel({ products, onProductClick }: Featur
                                 key={badge.label}
                                 className={cn(
                                     "rounded-full px-2.5 py-1 font-oswald text-[10px] uppercase tracking-[0.24em]",
-                                    badge.className
+                                    badge.className,
+                                    badge.mobileHidden && "hidden sm:inline-flex"
                                 )}
                             >
                                 {badge.label}

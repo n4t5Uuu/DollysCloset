@@ -607,9 +607,14 @@ export default function Catalog() {
 
             {/* For the Collections */}
             <div className="w-full flex flex-col items-center">
+                {/* Title visible on mobile only — scrolls away naturally */}
+                <div className="md:hidden w-full px-4 py-3 text-center">
+                    <h2 className="font-playfair-display text-xl text-[#121212]">Our Collections</h2>
+                </div>
+
                 <div className="sticky top-(--navbar-h,80px) z-30 w-full bg-[#fffcfd]/95 backdrop-blur-md border-b border-[#E7A3B0]/30 shadow-sm py-3 transition-all duration-300">
                     <div className="w-full px-4 md:px-12 flex flex-col md:flex-row justify-between items-center gap-4">
-                        <h2 className="font-playfair-display text-xl md:text-2xl text-[#121212]">Our Collections</h2>
+                        <h2 className="hidden md:block font-playfair-display text-2xl text-[#121212]">Our Collections</h2>
                         <div className="w-full md:w-auto flex items-center gap-2 md:gap-3">
                             {/* Mobile Filter Toggle */}
                             <div className="lg:hidden shrink-0">
@@ -748,7 +753,7 @@ export default function Catalog() {
                         </div>
 
                         {loading ? (
-                            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-5 2xl:grid-cols-6 gap-x-6 gap-y-12">
+                            <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-5 2xl:grid-cols-6 gap-x-2 sm:gap-x-4 gap-y-4 sm:gap-y-8">
                                 {Array.from({ length: itemsPerPage }).map((_, i) => (
                                     <div key={i} className="space-y-4">
                                         <Skeleton className="w-full aspect-3/4 rounded-xl" />
@@ -802,7 +807,7 @@ export default function Catalog() {
                                     visible: { opacity: 1, y: 0 }
                                 }}
                                 transition={{ duration: 0.8, delay: 0.4 }}
-                                className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-5 2xl:grid-cols-6 gap-x-6 gap-y-12"
+                                className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-5 2xl:grid-cols-6 gap-x-2 sm:gap-x-4 gap-y-4 sm:gap-y-8"
                             >
                                 {paginatedProducts.map((product) => (
                                     <ProductCard 
