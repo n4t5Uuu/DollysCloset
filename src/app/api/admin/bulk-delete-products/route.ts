@@ -4,6 +4,8 @@ import { activityHelper } from "@/lib/activity/activity-helper";
 import { admin } from "@/lib/supabase/admin";
 import { requireRequestAuth } from "@/lib/auth/auth-server";
 
+const MAX_BULK_DELETE_PRODUCTS = 100;
+
 /**
  * Handles the bulk deletion of products and their associated images.
  * Requires admin or employee privileges via Bearer token authorization.
@@ -30,6 +32,13 @@ export async function DELETE(request: NextRequest) {
 
     if (!product_ids || !Array.isArray(product_ids) || product_ids.length === 0) {
       return NextResponse.json({ error: 'Invalid or empty product_ids array' }, { status: 400 });
+    }
+
+    if (product_ids.length > MAX_BULK_DELETE_PRODUCTS) {
+      return NextResponse.json(
+        { error: `You can delete up to ${MAX_BULK_DELETE_PRODUCTS} products at a time.` },
+        { status: 400 }
+      );
     }
 
     const productIds = product_ids

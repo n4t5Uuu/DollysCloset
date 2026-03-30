@@ -4,6 +4,8 @@ import { activityHelper } from "@/lib/activity/activity-helper";
 import { admin } from "@/lib/supabase/admin";
 import { requireRequestAuth } from "@/lib/auth/auth-server";
 
+const MAX_BULK_DELETE_EMPLOYEES = 100;
+
 /**
  * Handles the bulk deletion of employee accounts.
  * Requires admin privileges via Bearer token authorization.
@@ -30,16 +32,19 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid or empty employee_ids array' }, { status: 400 });
     }
 
+    if (employee_ids.length > MAX_BULK_DELETE_EMPLOYEES) {
+      return NextResponse.json(
+        { error: `You can delete up to ${MAX_BULK_DELETE_EMPLOYEES} employees at a time.` },
+        { status: 400 }
+      );
+    }
+
     if (employee_ids.includes(user.id)) {
       return NextResponse.json({ error: 'You cannot delete your own account.' }, { status: 403 });
     }
 
     // Delete employee accounts in bulk using employeeHelper
-    const { error: deleteError, failures, deletedIds } = await employeeHelper.deleteEmployeesBulkAccount(employee_ids, admin);
-
-    if (deleteError) {
-      return NextResponse.json({ error: deleteError.message }, { status: 500 });
-    }
+    const { failures, deletedIds } = await employeeHelper.deleteEmployeesBulkAccount(employee_ids, admin);
 
     // this logs the activity if the user is valid
     if (user) {

@@ -5,7 +5,7 @@ import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { AlertTriangle, Calendar, ChevronDown, ChevronLeft, ChevronRight, ClipboardList, Search, X, Eye, SlidersHorizontal } from "lucide-react";
+import { AlertTriangle, Calendar, ChevronDown, ClipboardList, Search, X, Eye, SlidersHorizontal } from "lucide-react";
 import CustomPagination from "@/components/general-components/CustomPagination";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty";
@@ -21,8 +21,6 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 
-const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-
 interface ActivityLog {
   log_id: number;
   created_at: string;
@@ -32,6 +30,14 @@ interface ActivityLog {
   editor: string | null;
   user_id: string | null;
   user_key: string | null;
+}
+
+interface AvailableLogMonth {
+  value: string;
+  label: string;
+  year: number;
+  month: number;
+  count: number;
 }
 
 const actionLabels: Record<string, string> = {
@@ -116,7 +122,7 @@ export default function ActivityLogsClient() {
   const [searchQuery, setSearchQuery] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [selectedMonth, setSelectedMonth] = useState<{ month: number; year: number } | null>(null);
-  const [pickerYear, setPickerYear] = useState(new Date().getFullYear());
+  const [availableMonths, setAvailableMonths] = useState<AvailableLogMonth[]>([]);
   const [showPicker, setShowPicker] = useState(false);
   const [viewLog, setViewLog] = useState<ActivityLog | null>(null);
   const [actionTypeFilter, setActionTypeFilter] = useState<Set<string>>(new Set());
@@ -124,8 +130,9 @@ export default function ActivityLogsClient() {
   const pickerRef = useRef<HTMLDivElement>(null);
   const filtersRef = useRef<HTMLDivElement>(null);
   const itemsPerPage = 10;
-  const isFetchingRef = useRef(false);
   const isMountedRef = useRef(true);
+  const activeRequestControllerRef = useRef<AbortController | null>(null);
+  const requestVersionRef = useRef(0);
   const fetchLogsRef = useRef<((isBackground?: boolean) => Promise<void>) | undefined>(undefined);
 
   useEffect(() => {
@@ -134,8 +141,12 @@ export default function ActivityLogsClient() {
   }, [searchQuery]);
 
   const fetchLogs = useCallback(async (isBackground = false) => {
-    if (isFetchingRef.current) return;
-    isFetchingRef.current = true;
+    const requestVersion = requestVersionRef.current + 1;
+    requestVersionRef.current = requestVersion;
+
+    activeRequestControllerRef.current?.abort();
+    const controller = new AbortController();
+    activeRequestControllerRef.current = controller;
 
     try {
       if (!isBackground) setLoading(true);
@@ -154,7 +165,10 @@ export default function ActivityLogsClient() {
         params.set("actionTypes", allActions.join(","));
       }
 
-      const response = await fetch(`/api/admin/fetch-logs?${params}`, { cache: "no-store" });
+      const response = await fetch(`/api/admin/fetch-logs?${params}`, {
+        cache: "no-store",
+        signal: controller.signal,
+      });
 
       if (!response.ok) {
         const data = await response.json();
@@ -162,18 +176,28 @@ export default function ActivityLogsClient() {
       }
 
       const result = await response.json();
-      if (isMountedRef.current) {
+      if (isMountedRef.current && requestVersion === requestVersionRef.current) {
         setLogs(result.data || []);
         setTotalCount(result.count ?? 0);
+        setAvailableMonths(result.availableMonths || []);
       }
     } catch (err: unknown) {
+      if (err instanceof DOMException && err.name === "AbortError") {
+        return;
+      }
+
       console.error("Error fetching logs:", err);
-      if (isMountedRef.current) {
+      if (isMountedRef.current && requestVersion === requestVersionRef.current) {
         setError(err instanceof Error ? err.message : "Failed to load activity logs");
       }
     } finally {
-      isFetchingRef.current = false;
-      if (!isBackground && isMountedRef.current) setLoading(false);
+      if (activeRequestControllerRef.current === controller) {
+        activeRequestControllerRef.current = null;
+      }
+
+      if (!isBackground && isMountedRef.current && requestVersion === requestVersionRef.current) {
+        setLoading(false);
+      }
     }
   }, [currentPage, debouncedSearch, selectedMonth, actionTypeFilter]);
 
@@ -184,7 +208,10 @@ export default function ActivityLogsClient() {
   useEffect(() => {
     isMountedRef.current = true;
     fetchLogs();
-    return () => { isMountedRef.current = false; };
+    return () => {
+      isMountedRef.current = false;
+      activeRequestControllerRef.current?.abort();
+    };
   }, [fetchLogs]);
 
   useEffect(() => {
@@ -210,6 +237,19 @@ export default function ActivityLogsClient() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
+  useEffect(() => {
+    if (!viewLog) return;
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setViewLog(null);
+      }
+    };
+
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [viewLog]);
+
   const toggleActionType = (key: string) => {
     setActionTypeFilter((prev) => {
       const next = new Set(prev);
@@ -219,6 +259,17 @@ export default function ActivityLogsClient() {
   };
 
   const activeFilterCount = actionTypeFilter.size;
+  const selectedMonthValue = selectedMonth ? `${selectedMonth.year}-${String(selectedMonth.month + 1).padStart(2, "0")}` : null;
+  const selectedMonthLabel = selectedMonthValue
+    ? availableMonths.find((monthOption) => monthOption.value === selectedMonthValue)?.label ?? "Selected Month"
+    : "All Months";
+  const monthsByYear = availableMonths.reduce<Record<string, AvailableLogMonth[]>>((groups, monthOption) => {
+    const yearKey = String(monthOption.year);
+    if (!groups[yearKey]) groups[yearKey] = [];
+    groups[yearKey].push(monthOption);
+    return groups;
+  }, {});
+  const groupedMonthEntries = Object.entries(monthsByYear).sort(([firstYear], [secondYear]) => Number(secondYear) - Number(firstYear));
 
   useEffect(() => {
     router.replace(pathname);
@@ -241,6 +292,8 @@ export default function ActivityLogsClient() {
 
       setLogs([]);
       setTotalCount(0);
+      setAvailableMonths([]);
+      setSelectedMonth(null);
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Failed to reset logs');
     }
@@ -293,7 +346,7 @@ export default function ActivityLogsClient() {
         <div className="relative flex-1 min-w-[200px]">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-3.5 h-3.5" />
           <Input
-            placeholder="Search by IDs (log, product, user UUID), user key, or editor..."
+            placeholder="Search by log ID, product ID, user UUID or key, action, description, or editor..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="pl-9 h-9 text-sm rounded-lg border-gray-300 text-gray-900 bg-white"
@@ -355,43 +408,45 @@ export default function ActivityLogsClient() {
             className="flex items-center gap-2 h-9 text-xs hover:bg-[#fff5f7] hover:text-[#E7A3B0] hover:border-[#E7A3B0] hover:scale-105 hover:shadow-md active:scale-95 transition-all duration-300"
           >
             <Calendar className="w-3.5 h-3.5" />
-            {selectedMonth ? `${MONTHS[selectedMonth.month]} ${selectedMonth.year}` : "All Months"}
+            {selectedMonthLabel}
             <ChevronDown className="w-3.5 h-3.5" />
           </Button>
           {showPicker && (
-            <div className="absolute left-0 z-10 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg p-3 w-60">
-              <div className="flex items-center justify-between mb-3">
-                <button
-                  onClick={() => setPickerYear((y) => y - 1)}
-                  className="p-1 hover:bg-gray-100 rounded cursor-pointer"
-                >
-                  <ChevronLeft className="w-4 h-4" />
-                </button>
-                <span className="font-medium text-sm">{pickerYear}</span>
-                <button
-                  onClick={() => setPickerYear((y) => y + 1)}
-                  className="p-1 hover:bg-gray-100 rounded cursor-pointer"
-                >
-                  <ChevronRight className="w-4 h-4" />
-                </button>
+            <div className="absolute left-0 z-10 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg p-3 w-72">
+              <div className="mb-3">
+                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Available Months</p>
               </div>
-              <div className="grid grid-cols-3 gap-1.5">
-                {MONTHS.map((month, index) => (
-                  <button
-                    key={month}
-                    onClick={() => {
-                      setSelectedMonth({ month: index, year: pickerYear });
-                      setShowPicker(false);
-                    }}
-                    className={`text-xs py-2 rounded-md transition-all duration-200 hover:scale-105 active:scale-95 cursor-pointer ${
-                      selectedMonth?.month === index && selectedMonth?.year === pickerYear
-                        ? "bg-[#E7A3B0] text-white shadow-sm"
-                        : "hover:bg-gray-100 text-gray-700"
-                    }`}
-                  >
-                    {month}
-                  </button>
-                ))}
+              <div className="max-h-72 overflow-y-auto space-y-3 pr-1">
+                {groupedMonthEntries.length > 0 ? (
+                  groupedMonthEntries.map(([year, yearMonths]) => (
+                    <div key={year} className="space-y-1.5">
+                      <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">{year}</p>
+                      <div className="space-y-1">
+                        {yearMonths.map((monthOption) => (
+                          <button
+                            key={monthOption.value}
+                            onClick={() => {
+                              setSelectedMonth({ month: monthOption.month, year: monthOption.year });
+                              setShowPicker(false);
+                            }}
+                            className={`flex w-full items-center justify-between rounded-md px-3 py-2 text-left text-sm transition-colors ${
+                              selectedMonthValue === monthOption.value
+                                ? "bg-[#E7A3B0] text-white shadow-sm"
+                                : "text-gray-700 hover:bg-gray-100"
+                            }`}
+                          >
+                            <span>{monthOption.label}</span>
+                            <span className={`text-xs ${selectedMonthValue === monthOption.value ? "text-white/90" : "text-gray-400"}`}>
+                              {monthOption.count}
+                            </span>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <p className="text-sm text-gray-500 px-1 py-2">No months with logs yet.</p>
+                )}
               </div>
               {selectedMonth && (
                 <button
@@ -406,7 +461,7 @@ export default function ActivityLogsClient() {
         </div>
         <span className="text-sm text-gray-600">
           {totalCount > 0
-            ? `Showing ${startIndex + 1}–${Math.min(startIndex + itemsPerPage, totalCount)} of ${totalCount} logs`
+            ? `Showing ${startIndex + 1}-${Math.min(startIndex + itemsPerPage, totalCount)} of ${totalCount} logs`
             : "Showing 0 logs"}
         </span>
       </div>
@@ -447,19 +502,19 @@ export default function ActivityLogsClient() {
                       </div>
                     </TableCell>
                     <TableCell className="p-4 text-sm text-gray-900">
-                      <div className="line-clamp-2 break-all">{log.product_id || "—"}</div>
+                      <div className="line-clamp-2 break-all">{log.product_id || "-"}</div>
                     </TableCell>
                     <TableCell className="p-4 text-sm text-gray-900">
                       <div className="line-clamp-2 break-all">
-                        {employeeManagementActions.has(log.action_type) ? (log.user_key || log.user_id || "—") : "—"}
+                        {employeeManagementActions.has(log.action_type) ? (log.user_key || log.user_id || "-") : "-"}
                       </div>
                     </TableCell>
                     <TableCell className="p-4 text-sm text-gray-600 max-w-0 overflow-hidden">
-                      <div className="line-clamp-2 wrap-break-word">{log.description || "—"}</div>
+                      <div className="line-clamp-2 wrap-break-word">{log.description || "-"}</div>
                     </TableCell>
                     <TableCell className="p-4 text-sm text-gray-600">
                       <div className="line-clamp-2 break-all">
-                        {log.editor || "—"}
+                        {log.editor || "-"}
                       </div>
                     </TableCell>
                     <TableCell className="p-4">
@@ -467,6 +522,8 @@ export default function ActivityLogsClient() {
                         <Button
                           size="icon"
                           variant="outline"
+                          title="View log details"
+                          aria-label={`View details for log ${log.log_id}`}
                           className="border-pink-200 text-pink-600 bg-pink-50 hover:bg-pink-200 hover:text-pink-700 hover:border-pink-300"
                           onClick={() => setViewLog(log)}
                         >
@@ -503,12 +560,15 @@ export default function ActivityLogsClient() {
       {viewLog && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={() => setViewLog(null)}>
           <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="activity-log-details-title"
             className="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="sticky top-0 bg-white border-b border-gray-100 px-6 py-4 flex items-center justify-between rounded-t-2xl">
-              <h2 className="text-xl font-bold text-gray-900">Log Details</h2>
-              <button onClick={() => setViewLog(null)} className="p-2 hover:bg-gray-100 rounded-lg text-gray-500 hover:text-gray-700">
+              <h2 id="activity-log-details-title" className="text-xl font-bold text-gray-900">Log Details</h2>
+              <button onClick={() => setViewLog(null)} aria-label="Close log details" className="p-2 hover:bg-gray-100 rounded-lg text-gray-500 hover:text-gray-700">
                 <X size={20} />
               </button>
             </div>
@@ -526,22 +586,22 @@ export default function ActivityLogsClient() {
                 </div>
                 <div className="bg-gray-50 rounded-xl p-4">
                   <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Product ID</p>
-                  <p className="text-sm font-semibold text-gray-900">{viewLog.product_id ?? "—"}</p>
+                  <p className="text-sm font-semibold text-gray-900">{viewLog.product_id ?? "-"}</p>
                 </div>
                 <div className="bg-gray-50 rounded-xl p-4">
                   <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">User</p>
                   <p className="text-sm font-semibold text-gray-900">
-                    {employeeManagementActions.has(viewLog.action_type) ? (viewLog.user_key || (viewLog.user_id ?? "—")) : "—"}
+                    {employeeManagementActions.has(viewLog.action_type) ? (viewLog.user_key || (viewLog.user_id ?? "-")) : "-"}
                   </p>
                 </div>
               </div>
               <div className="bg-gray-50 rounded-xl p-4">
                 <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Description</p>
-                <p className="text-sm text-gray-700 whitespace-pre-wrap">{viewLog.description || "—"}</p>
+                <p className="text-sm text-gray-700 whitespace-pre-wrap">{viewLog.description || "-"}</p>
               </div>
               <div className="bg-gray-50 rounded-xl p-4">
                 <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Editor</p>
-                <p className="text-sm font-semibold text-gray-900 break-all">{viewLog.editor || "—"}</p>
+                <p className="text-sm font-semibold text-gray-900 break-all">{viewLog.editor || "-"}</p>
               </div>
               <button
                 onClick={() => setViewLog(null)}
@@ -565,3 +625,4 @@ export default function ActivityLogsClient() {
     </div>
   );
 }
+

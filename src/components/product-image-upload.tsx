@@ -23,7 +23,15 @@ interface ProductImageUploadProps {
   loading?: boolean;
 }
 
-const isImageFile = (file: File) => file.type.startsWith("image/");
+const ALLOWED_IMAGE_TYPES = new Set([
+  "image/jpeg",
+  "image/png",
+  "image/webp",
+  "image/gif",
+  "image/avif",
+]);
+
+const isImageFile = (file: File) => ALLOWED_IMAGE_TYPES.has(file.type);
 
 export default function ProductImageUpload({
   productId,
@@ -100,7 +108,7 @@ export default function ProductImageUpload({
     const limitedImageFiles = imageFiles.slice(0, remainingSlots);
 
     if (files.length > 0 && imageFiles.length === 0) {
-      toast.error("Only image files are allowed.");
+          toast.error("Only JPG, PNG, WebP, GIF, and AVIF files are allowed.");
     }
 
     if (files.length > imageFiles.length) {
@@ -272,7 +280,7 @@ export default function ProductImageUpload({
           <input
             type="file"
             multiple
-            accept="image/*"
+            accept=".jpg,.jpeg,.png,.webp,.gif,.avif"
             onChange={handleFileInput}
             disabled={uploading}
             className="hidden"
@@ -285,7 +293,7 @@ export default function ProductImageUpload({
                 ? "Uploading..."
                 : "Drag images here or click to select (Max 5)"}
             </p>
-            <p className="text-xs text-gray-500 mt-1">PNG, JPG, WebP up to 5MB</p>
+            <p className="text-xs text-gray-500 mt-1">PNG, JPG, WebP, GIF, AVIF up to 5MB</p>
           </label>
         </div>
       )}

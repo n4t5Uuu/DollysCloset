@@ -10,10 +10,10 @@ const ALLOWED_IMAGE_MIME_TYPES = new Set([
   "image/webp",
   "image/gif",
   "image/avif",
-  "image/svg+xml",
 ]);
 
-const ALLOWED_IMAGE_EXTENSIONS = new Set(["jpg", "jpeg", "png", "webp", "gif", "avif", "svg"]);
+const ALLOWED_IMAGE_EXTENSIONS = new Set(["jpg", "jpeg", "png", "webp", "gif", "avif"]);
+const MAX_IMAGE_FILE_SIZE_BYTES = 5 * 1024 * 1024;
 
 /**
  * Evaluates whether an incoming multi-part file matches system-defined safe image MIME types and extensions.
@@ -61,6 +61,13 @@ export async function POST(request: NextRequest) {
 
     if (!isImageUpload(file)) {
       return NextResponse.json({ error: "Only image files are allowed" }, { status: 400 });
+    }
+
+    if (file.size > MAX_IMAGE_FILE_SIZE_BYTES) {
+      return NextResponse.json(
+        { error: "Image must be 5MB or smaller" },
+        { status: 400 }
+      );
     }
 
     const productIdValue = Number.parseInt(productId, 10);

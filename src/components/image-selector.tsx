@@ -19,7 +19,15 @@ interface ImageSelectorProps {
   onFileRemove: (index: number) => void;
 }
 
-const isImageFile = (file: File) => file.type.startsWith("image/");
+const ALLOWED_IMAGE_TYPES = new Set([
+  "image/jpeg",
+  "image/png",
+  "image/webp",
+  "image/gif",
+  "image/avif",
+]);
+
+const isImageFile = (file: File) => ALLOWED_IMAGE_TYPES.has(file.type);
 
 export default function ImageSelector({
   stagedFiles,
@@ -95,7 +103,7 @@ export default function ImageSelector({
       setAlertConfig({
         isOpen: true,
         title: "Invalid File Type",
-        description: "Only image files (PNG, JPG, WebP) are allowed.",
+        description: "Only JPG, PNG, WebP, GIF, and AVIF files are allowed.",
       });
     }
 
@@ -152,7 +160,7 @@ export default function ImageSelector({
           <input
             type="file"
             multiple
-            accept="image/*"
+            accept=".jpg,.jpeg,.png,.webp,.gif,.avif"
             onChange={handleFileInput}
             className="hidden"
             id="image-input-add"
@@ -168,7 +176,7 @@ export default function ImageSelector({
                 ? "Compressing images..." 
                 : "Drag images here or click to select (Max 5)"}
             </p>
-            <p className="text-xs text-gray-500 mt-1">PNG, JPG, WebP up to 5MB</p>
+            <p className="text-xs text-gray-500 mt-1">PNG, JPG, WebP, GIF, AVIF up to 5MB</p>
           </label>
         </div>
       )}

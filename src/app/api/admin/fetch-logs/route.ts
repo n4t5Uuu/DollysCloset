@@ -1,41 +1,24 @@
 import { admin } from '@/lib/supabase/admin';
-import { authHelper } from '@/lib/auth/auth-helper';
 import { activityHelper } from '@/lib/activity/activity-helper';
-import { createServerSupabase } from '@/lib/supabase/server';
+import { requireRequestAuth } from '@/lib/auth/auth-server';
 import { NextRequest, NextResponse } from 'next/server'
 
 /**
  * Queries the `tbl_activity_log` for tracking historical changes made via staff across the application.
- * Rejects requests failing initial token authentication checks and role constraints (admin or employee roles).
+ * Admins may read the full feed; employees are restricted to their own activity only.
  * Organizes returns chronologically, newest logs rendered initially.
  * @param request - Next.js Request populated naturally with Bearer authorization credentials protecting metrics.
  * @returns Readily formed UI-bound list item tracking activity blocks matching exact historical inputs.
  */
 export async function GET(request: NextRequest) {
   try {
-    let userId: string | null = null;
+    const authResult = await requireRequestAuth(request, {
+      allowCookieAuth: true,
+      allowedRoles: ["admin", "employee"],
+    });
 
-    const authHeader = request.headers.get('authorization');
-    if (authHeader) {
-      const token = authHeader.replace('Bearer ', '');
-      const { data: { user }, error: tokenError } = await admin.auth.getUser(token);
-      if (!tokenError && user) {
-        userId = user.id;
-      }
-    }
-
-    if (!userId) {
-      const supabase = await createServerSupabase();
-      const { data: { user }, error: authError } = await supabase.auth.getUser();
-      if (authError || !user) {
-        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-      }
-      userId = user.id;
-    }
-
-    const { data: userData, error: roleError } = await authHelper.getUserRole(userId, admin);
-    if (roleError || !['admin', 'employee'].includes(userData?.role || '')) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    if (!authResult.ok) {
+      return authResult.response;
     }
 
     const { searchParams } = new URL(request.url);
@@ -50,9 +33,22 @@ export async function GET(request: NextRequest) {
     const year = yearParam !== null ? parseInt(yearParam, 10) : undefined;
     const actionTypes = actionTypesParam ? actionTypesParam.split(',').filter(Boolean) : [];
 
-    const { data, count, error } = await activityHelper.fetchLogsPaginated(admin, {
-      page, pageSize, search, month, year, actionTypes,
-    });
+    const scopedUserId = authResult.role === "employee" ? authResult.user.id : undefined;
+
+    const [{ data, count, error }, { data: availableMonths, error: monthsError }] = await Promise.all([
+      activityHelper.fetchLogsPaginated(admin, {
+        page,
+        pageSize,
+        search,
+        month,
+        year,
+        actionTypes,
+        userId: scopedUserId,
+      }),
+      activityHelper.fetchAvailableLogMonths(admin, {
+        userId: scopedUserId,
+      }),
+    ]);
 
     if (error) {
       console.error('Error fetching logs:', error)
@@ -62,7 +58,19 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    return NextResponse.json({ data: data || [], count: count ?? 0 })
+    if (monthsError) {
+      console.error('Error fetching log months:', monthsError)
+      return NextResponse.json(
+        { error: monthsError.message },
+        { status: 500 }
+      )
+    }
+
+    return NextResponse.json({
+      data: data || [],
+      count: count ?? 0,
+      availableMonths: availableMonths || [],
+    })
     
   } catch (err: unknown) {
     console.error('Unexpected error:', err)

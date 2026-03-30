@@ -36,11 +36,10 @@ import {
 } from "@/components/ui/alert-dialog";
 
 interface InventoryManagementProps {
-  isAdmin?: boolean;
   initialAvailabilityFilter?: string;
 }
 
-export default function InventoryManagement({ isAdmin = false, initialAvailabilityFilter }: InventoryManagementProps) {
+export default function InventoryManagement({ initialAvailabilityFilter }: InventoryManagementProps) {
   const searchParams = useSearchParams();
   const router = useRouter();
   const pathname = usePathname();
@@ -80,7 +79,6 @@ export default function InventoryManagement({ isAdmin = false, initialAvailabili
 
   const itemsPerPage = 10;
   const lowStockThreshold = 10;
-  const dateSortLabel = dateSort === "oldest" ? "Oldest" : "Newest";
 
   const fetchProducts = useCallback(async (showGlobalLoader = false) => {
     try {
@@ -479,8 +477,6 @@ const openAddModal = () => {
                   onClick={() => {
                     setVisibilityFilter("all");
                     setAvailabilityFilter("all");
-                    setVisibilityFilter("all");
-                    setAvailabilityFilter("all");
                     setCategoryFilter("all");
                   }}
                   className="w-full text-xs text-gray-500 py-1.5 hover:bg-[#fff5f7] hover:border-[#E7A3B0] hover:text-[#E7A3B0] rounded-md transition-all duration-200 hover:scale-[1.02] active:scale-95 cursor-pointer border border-gray-200"
@@ -517,17 +513,7 @@ const openAddModal = () => {
           Showing {filteredProducts.length > 0 ? startIndex + 1 : 0}-{Math.min(endIndex, filteredProducts.length)} of {filteredProducts.length} items
         </div>
         <div className="flex gap-3">
-          {selectedProducts.size === 1 && (
-            <Button
-              className="bg-red-500 hover:bg-red-600 text-white"
-              disabled={actionLoading}
-              onClick={handleBulkDelete}
-            >
-              <Trash className="w-4 h-4 mr-2" />
-              Delete (1)
-            </Button>
-          )}
-          {selectedProducts.size > 1 && (
+          {selectedProducts.size > 0 && (
             <AlertDialog>
               <AlertDialogTrigger asChild>
                 <Button
@@ -540,14 +526,18 @@ const openAddModal = () => {
               </AlertDialogTrigger>
               <AlertDialogContent className="bg-white">
                 <AlertDialogHeader>
-                  <AlertDialogTitle className="text-gray-900">Delete Multiple Products</AlertDialogTitle>
+                  <AlertDialogTitle className="text-gray-900">
+                    {selectedProducts.size === 1 ? "Delete Product" : "Delete Multiple Products"}
+                  </AlertDialogTitle>
                   <AlertDialogDescription>
-                    Are you sure you want to delete <span className="font-semibold">{selectedProducts.size}</span> products? This action cannot be undone.
+                    Are you sure you want to delete <span className="font-semibold">{selectedProducts.size}</span> {selectedProducts.size === 1 ? "product" : "products"}? This action cannot be undone.
                   </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
                   <AlertDialogCancel className="border-zinc-300 bg-white text-zinc-700 hover:bg-zinc-50 hover:text-zinc-900">Cancel</AlertDialogCancel>
-                  <AlertDialogAction className="bg-red-500 hover:bg-red-600 text-white cursor-pointer" onClick={handleBulkDelete}>Delete All</AlertDialogAction>
+                  <AlertDialogAction className="bg-red-500 hover:bg-red-600 text-white cursor-pointer" onClick={handleBulkDelete}>
+                    {selectedProducts.size === 1 ? "Delete" : "Delete All"}
+                  </AlertDialogAction>
                 </AlertDialogFooter>
               </AlertDialogContent>
             </AlertDialog>

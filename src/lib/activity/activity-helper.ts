@@ -2,6 +2,47 @@ import { browserSupabase } from "../supabase/browser";
 import { createServerSupabase } from "../supabase/server";
 import { LogActivityProps } from "@/types/logs.types";
 
+export interface AvailableLogMonth {
+    value: string;
+    label: string;
+    year: number;
+    month: number;
+    count: number;
+}
+
+function getActionSearchTerms(rawSearch: string) {
+    const normalized = rawSearch.toLowerCase().replace(/\s+/g, "_");
+    const terms = new Set<string>(
+        normalized
+            .split(/[_\s]+/)
+            .map((part) => part.trim())
+            .filter(Boolean)
+    );
+
+    if (normalized) {
+        terms.add(normalized);
+    }
+
+    const aliasMap: Array<{ pattern: RegExp; mapped: string[] }> = [
+        { pattern: /\bcreated?\b/, mapped: ["create"] },
+        { pattern: /\bedited?\b/, mapped: ["edit"] },
+        { pattern: /\bupdated?\b/, mapped: ["edit", "set_primary", "reorder"] },
+        { pattern: /\bdeleted?\b/, mapped: ["delete"] },
+        { pattern: /\buploaded?\b/, mapped: ["upload"] },
+        { pattern: /\breordered?\b/, mapped: ["reorder"] },
+        { pattern: /\blog(?:ged)?_?in\b|\bsigned?_?in\b/, mapped: ["login"] },
+        { pattern: /\blog(?:ged)?_?out\b|\bsigned?_?out\b/, mapped: ["logout"] },
+    ];
+
+    for (const alias of aliasMap) {
+        if (alias.pattern.test(normalized)) {
+            alias.mapped.forEach((mappedTerm) => terms.add(mappedTerm));
+        }
+    }
+
+    return Array.from(terms);
+}
+
 export const activityHelper = {
     /**
      * Retrieves all activity logs ordered by creation date descending.
@@ -31,6 +72,7 @@ export const activityHelper = {
         month,
         year,
         actionTypes = [],
+        userId,
     }: {
         page?: number;
         pageSize?: number;
@@ -38,6 +80,7 @@ export const activityHelper = {
         month?: number;
         year?: number;
         actionTypes?: string[];
+        userId?: string;
     } = {}) {
         const from = (page - 1) * pageSize;
         const to = from + pageSize - 1;
@@ -53,27 +96,55 @@ export const activityHelper = {
             const rawSearch = search.trim();
             // Avoid PostgREST logic parser conflicts from reserved characters in user input.
             const safeSearch = rawSearch.replace(/[(),]/g, " ").trim();
+            if (safeSearch) {
+                const actionSearchTerms = getActionSearchTerms(safeSearch);
 
-            const orClauses = [
-                `editor.ilike.%${safeSearch}%`,
-            ];
+                const orClauses = [
+                    `editor.ilike.%${safeSearch}%`,
+                    `description.ilike.%${safeSearch}%`,
+                ];
 
-            if (/^\d+$/.test(safeSearch)) {
-                const numericSearch = Number(safeSearch);
-                orClauses.push(`product_id.eq.${numericSearch}`);
-                orClauses.push(`log_id.eq.${numericSearch}`);
+                actionSearchTerms.forEach((searchTerm) => {
+                    orClauses.push(`action_type.ilike.%${searchTerm}%`);
+                });
+
+                if (/^\d+$/.test(safeSearch)) {
+                    const numericSearch = Number(safeSearch);
+                    orClauses.push(`product_id.eq.${numericSearch}`);
+                    orClauses.push(`log_id.eq.${numericSearch}`);
+                }
+
+                // UUID columns cannot use ilike; support exact user_id matching when the input is a UUID.
+                if (/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(safeSearch)) {
+                    orClauses.push(`user_id.eq.${safeSearch}`);
+                }
+
+                const { data: matchingUsers, error: matchingUsersError } = await supabase
+                    .from("tbl_users")
+                    .select("user_id")
+                    .ilike("user_key", `%${safeSearch}%`)
+                    .limit(25);
+
+                if (matchingUsersError) {
+                    console.error("Error fetching matching user keys:", matchingUsersError);
+                } else {
+                    (matchingUsers || []).forEach((matchingUser) => {
+                        if (matchingUser.user_id) {
+                            orClauses.push(`user_id.eq.${matchingUser.user_id}`);
+                        }
+                    });
+                }
+
+                query = query.or(orClauses.join(","));
             }
-
-            // UUID columns cannot use ilike; support exact user_id matching when the input is a UUID.
-            if (/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(safeSearch)) {
-                orClauses.push(`user_id.eq.${safeSearch}`);
-            }
-
-            query = query.or(orClauses.join(","));
         }
 
         if (actionTypes.length > 0) {
             query = query.in("action_type", actionTypes);
+        }
+
+        if (userId) {
+            query = query.eq("user_id", userId);
         }
 
         if (month !== undefined && year !== undefined) {
@@ -97,6 +168,63 @@ export const activityHelper = {
         }));
 
         return { data: flat, count: count ?? 0, error: null };
+    },
+
+    /**
+     * Returns only months that actually contain activity logs.
+     * Employees can be scoped to their own history via userId.
+     */
+    async fetchAvailableLogMonths(supabase = browserSupabase, { userId }: { userId?: string } = {}) {
+        let query = supabase
+            .from("tbl_activity_log")
+            .select("created_at")
+            .order("created_at", { ascending: false });
+
+        if (userId) {
+            query = query.eq("user_id", userId);
+        }
+
+        const { data, error } = await query;
+
+        if (error) {
+            console.error("Error fetching log months:", error);
+            return { data: null, error };
+        }
+
+        const monthMap = new Map<string, AvailableLogMonth>();
+
+        for (const row of data || []) {
+            const createdAt = row.created_at;
+            if (!createdAt) continue;
+
+            const date = new Date(createdAt);
+            if (Number.isNaN(date.getTime())) continue;
+
+            const year = date.getFullYear();
+            const month = date.getMonth();
+            const value = `${year}-${String(month + 1).padStart(2, "0")}`;
+
+            const existing = monthMap.get(value);
+            if (existing) {
+                existing.count += 1;
+                continue;
+            }
+
+            monthMap.set(value, {
+                value,
+                label: date.toLocaleDateString("en-US", { month: "long", year: "numeric" }),
+                year,
+                month,
+                count: 1,
+            });
+        }
+
+        return {
+            data: Array.from(monthMap.values()).sort((firstMonth, secondMonth) =>
+                secondMonth.value.localeCompare(firstMonth.value)
+            ),
+            error: null,
+        };
     },
 
     /**
