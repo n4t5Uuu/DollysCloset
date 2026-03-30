@@ -38,7 +38,11 @@ export const browserSupabase = createBrowserClient(
                     let cookieString = `${name}=${encodeURIComponent(value)}; path=${sessionOptions.path || '/'}`;
                     if (sessionOptions.domain) cookieString += `; domain=${sessionOptions.domain}`;
                     if (sessionOptions.sameSite) cookieString += `; samesite=${sessionOptions.sameSite}`;
-                    if (sessionOptions.secure) cookieString += `; secure`;
+                    // Only set the secure flag when served over HTTPS.
+                    // Browsers silently reject secure cookies over plain HTTP,
+                    // which breaks auth when testing on a local network IP.
+                    const isSecureOrigin = window.location.protocol === 'https:';
+                    if (sessionOptions.secure && isSecureOrigin) cookieString += `; secure`;
 
                     document.cookie = cookieString;
                 });

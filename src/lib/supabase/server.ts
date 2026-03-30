@@ -20,7 +20,12 @@ export async function createServerSupabase() {
         setAll(cookiesToSet) {
           try {
             cookiesToSet.forEach(({ name, value, options }) => {
-              cookieStore.set(name, value, options);
+              // In development, strip the Secure flag so cookies work
+              // over plain HTTP (e.g. local-network mobile testing).
+              const safeOptions = process.env.NODE_ENV === 'development'
+                ? { ...options, secure: false }
+                : options;
+              cookieStore.set(name, value, safeOptions);
             });
           } catch {
             // Safe to ignore in Server Components
