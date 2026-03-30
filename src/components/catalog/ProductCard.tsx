@@ -1,8 +1,6 @@
-import { 
-    Card,
-    CardFooter,
-    CardTitle
-} from "@/components/ui/card"
+import { CardTitle } from "@/components/ui/card"
+import { cn } from "@/lib/utils"
+import { ArrowUpRight } from "lucide-react"
 
 import Image from "next/image"
 import { Product } from "@/types/product.types"
@@ -13,61 +11,166 @@ interface ProductCardProps {
     onClick?: () => void;
 }
 
+function hasDisplayValue(value: string | null | undefined) {
+    if (!value) return false;
+    const normalizedValue = value.trim().toLowerCase();
+    return normalizedValue !== "" && normalizedValue !== "n/a" && normalizedValue !== "na";
+}
+
+function formatChipLabel(value: string) {
+    return value
+        .replace(/[_-]+/g, " ")
+        .replace(/\s+/g, " ")
+        .trim();
+}
+
 export default function ProductCard({ product, onClick }: ProductCardProps) {
     if (!product) {
         return (
-            <Card className="border-none shadow-none rounded-none bg-transparent group cursor-pointer w-full max-w-[280px] flex flex-col gap-4">
-                <div className="bg-[#f5f5f5] aspect-3/4 w-full flex items-center justify-center flex-col relative overflow-hidden rounded-xl">
+            <div className="w-full max-w-[280px]">
+                <div className="bg-[#f5f5f5] aspect-3/4 w-full flex items-center justify-center flex-col relative overflow-hidden rounded-[1.75rem]">
                     <div className="font-oswald font-bold text-xl tracking-widest text-black/90">
                         NO PRODUCT
                     </div>
                 </div>
-            </Card>
+            </div>
         );
     }
 
-    return (
-        <Card 
-            className="border-none shadow-none rounded-none bg-transparent group cursor-pointer w-full flex flex-col gap-4 transition-all duration-300"
-            onClick={onClick}
-        >
-            {/**Image Area */}
-            <div className="bg-[#f5f5f5] aspect-3/4 w-full flex items-center justify-center flex-col relative overflow-hidden rounded-xl group-hover:shadow-lg transition-shadow duration-300">
-                <Image
-                    src={product.images[0] || resolveProductPlaceholder(product.category)}
-                    alt={product.name}
-                    fill
-                    sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
-                    className="object-cover group-hover:scale-105 transition-transform duration-700 ease-out"
-                />
-                
-                {/* Optional: Add to wishlist or quick view overlay could go here */}
-                {/* <div className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                    <button className="bg-white/80 p-2 rounded-full hover:bg-white text-black transition-colors">
-                        <Heart className="w-4 h-4" />
-                    </button>
-                </div> */}
-            </div>
+    const isSoldOut = product.stock <= 0;
+    const hasLowStock = product.stock > 0 && product.stock <= 3;
+    const eyebrow = hasDisplayValue(product.brand) ? product.brand : hasDisplayValue(product.type) ? product.type : "Curated Piece";
+    const categoryLabel = hasDisplayValue(product.type)
+        ? product.type
+        : product.category.split(" > ").filter(Boolean).at(-1) || "Collection";
 
-            <CardFooter className="p-0 bg-transparent w-full flex flex-col items-start gap-1">
-                <div className="w-full flex justify-between items-start gap-2">
-                    <CardTitle className="font-playfair-display font-medium text-base md:text-lg leading-tight text-[#121212] line-clamp-1 w-full">
-                        {product.name}
-                    </CardTitle>
-                    <div className="text-xs font-oswald font-semibold uppercase tracking-wider text-gray-600 whitespace-nowrap">
-                        {product.size || "N/A"}
+    const metadataChips = [
+        hasDisplayValue(product.size) ? formatChipLabel(product.size) : null,
+        hasDisplayValue(product.condition) ? formatChipLabel(product.condition) : null,
+    ].filter((value): value is string => Boolean(value));
+
+    const badges: Array<{ label: string; className: string }> = [];
+
+    if (isSoldOut) {
+        badges.push({
+            label: "Sold Out",
+            className: "bg-[#121212] text-white",
+        });
+    } else {
+        if (product.isNewArrival) {
+            badges.push({
+                label: "New Arrival",
+                className: "bg-[#fff4f7] text-[#b96f80] ring-1 ring-[#E7A3B0]/40",
+            });
+        }
+
+        if (hasLowStock) {
+            badges.push({
+                label: `${product.stock} Left`,
+                className: "bg-[#fff8ec] text-[#9a6a17] ring-1 ring-[#f2c98a]/60",
+            });
+        }
+    }
+
+    return (
+        <button
+            type="button"
+            aria-label={`View details for ${product.name}`}
+            onClick={onClick}
+            className="group block h-full w-full text-left focus-visible:outline-none focus-visible:[&>article]:ring-2 focus-visible:[&>article]:ring-[#E7A3B0] focus-visible:[&>article]:ring-offset-4"
+        >
+            <article
+                className={cn(
+                    "flex h-full flex-col rounded-[2rem] border border-[#E7A3B0]/15 bg-white p-2 shadow-[0_14px_35px_rgba(18,18,18,0.05)] transition-all duration-300",
+                    "group-hover:-translate-y-1 group-hover:border-[#E7A3B0]/35 group-hover:shadow-[0_24px_50px_rgba(18,18,18,0.1)]"
+                )}
+            >
+                <div className="relative aspect-3/4 overflow-hidden rounded-[1.5rem] bg-[#f7eef1]">
+                    <Image
+                        src={product.images[0] || resolveProductPlaceholder(product.category)}
+                        alt={product.name}
+                        fill
+                        sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
+                        className={cn(
+                            "object-cover transition-transform duration-700 ease-out group-hover:scale-105",
+                            isSoldOut ? "grayscale-[0.3]" : ""
+                        )}
+                    />
+                    <div className="pointer-events-none absolute inset-x-0 bottom-0 h-24 bg-linear-to-t from-black/25 via-black/0 to-transparent opacity-70" />
+
+                    <div className="absolute inset-x-3 top-3 flex max-w-[calc(100%-1.5rem)] flex-wrap gap-2">
+                        {badges.map((badge) => (
+                            <span
+                                key={badge.label}
+                                className={cn(
+                                    "rounded-full px-2.5 py-1 font-oswald text-[10px] uppercase tracking-[0.24em]",
+                                    badge.className
+                                )}
+                            >
+                                {badge.label}
+                            </span>
+                        ))}
+                    </div>
+
+                </div>
+
+                <div className="flex flex-1 flex-col gap-3 px-2 pb-2 pt-4">
+                    <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0 flex-1">
+                            <p className="font-montserrat text-[10px] font-semibold uppercase tracking-[0.16em] text-[#6f5058]">
+                                {categoryLabel}
+                            </p>
+                            <p className="font-oswald text-[11px] uppercase tracking-[0.28em] text-[#b47c88]">
+                                {eyebrow}
+                            </p>
+                            <CardTitle className="mt-2 font-playfair-display text-lg leading-snug text-[#121212] line-clamp-2">
+                                {product.name}
+                            </CardTitle>
+                        </div>
+                        <span className="mt-1 flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-[#E7A3B0]/20 bg-[#fff8fa] text-[#b47c88] transition-colors duration-300 group-hover:border-[#E7A3B0]/40 group-hover:bg-[#fff0f5]">
+                            <ArrowUpRight className="h-4 w-4" />
+                        </span>
+                    </div>
+
+                    {metadataChips.length > 0 && (
+                        <div className="flex flex-wrap gap-2">
+                            {metadataChips.map((chip) => (
+                                <span
+                                    key={chip}
+                                    className="rounded-full bg-[#f8f3f4] px-2.5 py-1 font-montserrat text-[11px] font-medium uppercase tracking-[0.12em] text-[#6a5a5f]"
+                                >
+                                    {chip}
+                                </span>
+                            ))}
+                        </div>
+                    )}
+
+                    <div className="mt-auto flex flex-col items-start gap-3 border-t border-[#E7A3B0]/12 pt-3 sm:flex-row sm:items-end sm:justify-between">
+                        <div>
+                            <p className="font-oswald text-[10px] uppercase tracking-[0.28em] text-[#c0929d]">
+                                {isSoldOut ? "Last Price" : "Price"}
+                            </p>
+                            <p className={cn(
+                                "font-oswald text-xl tracking-[0.04em]",
+                                isSoldOut ? "text-[#8b7580]" : "text-[#E7A3B0]"
+                            )}>
+                                {"\u20B1"}{product.price.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                            </p>
+                        </div>
+
+                        <div className="text-left sm:ml-auto sm:text-right">
+                            <p className="hidden font-montserrat text-xs font-medium text-[#8a5b64] 2xl:block">
+                                {isSoldOut ? "See alternatives" : "View details"}
+                            </p>
+                            {!isSoldOut && hasLowStock && (
+                                <p className="hidden font-montserrat text-[11px] text-[#b47c88] 2xl:mt-1 2xl:block">
+                                    Moving fast
+                                </p>
+                            )}
+                        </div>
                     </div>
                 </div>
-                
-                <div className="w-full flex items-center justify-between mt-1">
-                    <div className="font-oswald text-base md:text-lg font-medium tracking-wide text-[#E7A3B0]">
-                        ₱{product.price.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                    </div>
-                    <div className="text-xs font-oswald font-semibold uppercase tracking-wider text-gray-600 whitespace-nowrap">
-                        {product.condition || "N/A"}
-                    </div>
-                </div>
-            </CardFooter>
-        </Card>
+            </article>
+        </button>
     )
 }

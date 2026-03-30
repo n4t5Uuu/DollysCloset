@@ -4,6 +4,7 @@ import { Product } from "@/types/product.types";
 import Image from "next/image";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { resolveProductPlaceholder } from "@/lib/product-placeholder";
+import { cn } from "@/lib/utils";
 
 interface FeatureCardCarouselProps {
     products: Product[];
@@ -45,6 +46,12 @@ function normaliseOffset(index: number, activeIndex: number, total: number): num
 
 type LaunchOverride = { id: string; offset: number };
 type ExitClone = { id: string; startOffset: number; endOffset: number; active: boolean };
+
+function hasDisplayValue(value: string | null | undefined) {
+    if (!value) return false;
+    const normalizedValue = value.trim().toLowerCase();
+    return normalizedValue !== "" && normalizedValue !== "n/a" && normalizedValue !== "na";
+}
 
 export default function FeatureCardCarousel({ products, onProductClick }: FeatureCardCarouselProps) {
     const [activeIndex, setActiveIndex] = useState(0);
@@ -129,18 +136,24 @@ export default function FeatureCardCarousel({ products, onProductClick }: Featur
         return () => clearTimeout(timer);
     }, [activeIndex, total, goNext]);
 
-    // ── Touch ──────────────────────────────────────────────────────────────
+    // â”€â”€ Touch â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     const onTouchStart = (e: React.TouchEvent) => {
         touchStartX.current = e.touches[0].clientX;
     };
     const onTouchEnd = (e: React.TouchEvent) => {
         if (touchStartX.current === null) return;
         const diff = touchStartX.current - e.changedTouches[0].clientX;
-        if (Math.abs(diff) > 40) diff > 0 ? goNext() : goPrev();
+        if (Math.abs(diff) > 40) {
+            if (diff > 0) {
+                goNext();
+            } else {
+                goPrev();
+            }
+        }
         touchStartX.current = null;
     };
 
-    // ── Mouse drag ─────────────────────────────────────────────────────────
+    // â”€â”€ Mouse drag â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     const onMouseDown = (e: React.MouseEvent) => {
         mouseStartX.current = e.clientX;
         hasDragged.current = false;
@@ -155,7 +168,13 @@ export default function FeatureCardCarousel({ products, onProductClick }: Featur
     const onMouseUp = (e: React.MouseEvent) => {
         if (mouseStartX.current === null) return;
         const diff = mouseStartX.current - e.clientX;
-        if (hasDragged.current && Math.abs(diff) > 40) diff > 0 ? goNext() : goPrev();
+        if (hasDragged.current && Math.abs(diff) > 40) {
+            if (diff > 0) {
+                goNext();
+            } else {
+                goPrev();
+            }
+        }
         mouseStartX.current = null;
         setIsDragging(false);
         setTimeout(() => { hasDragged.current = false; }, 0);
@@ -176,39 +195,98 @@ export default function FeatureCardCarousel({ products, onProductClick }: Featur
 
     const { cardWidth, gap } = cardConfig;
     const cardImageHeight = Math.round(cardWidth * (4 / 3));
-    const containerHeight = cardImageHeight + 68;
+    const containerHeight = cardImageHeight + 104;
 
-    const renderCardContent = (product: Product) => (
-        <>
-            <div
-                className="w-full bg-[#f5f5f5] rounded-xl relative overflow-hidden shadow-md"
-                style={{ height: `${cardImageHeight}px` }}
-            >
-                <Image
-                    src={product.images[0] || resolveProductPlaceholder(product.category)}
-                    alt={product.name}
-                    fill
-                    sizes={`${cardWidth}px`}
-                    className="object-cover"
-                    draggable={false}
-                />
-            </div>
-            <div className="mt-3 flex flex-col items-center text-center gap-0.5 px-1">
-                <p className="font-playfair-display font-medium text-sm md:text-base text-[#121212] line-clamp-1 w-full">
-                    {product.name}
-                </p>
-                <p className="font-oswald text-sm text-[#E7A3B0] tracking-wide">
-                    ₱{product.price.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                </p>
-            </div>
-        </>
-    );
+    const renderCardContent = (product: Product) => {
+        const isSoldOut = product.stock <= 0;
+        const hasLowStock = product.stock > 0 && product.stock <= 3;
+        const eyebrow = hasDisplayValue(product.brand) ? product.brand : hasDisplayValue(product.type) ? product.type : "Curated Piece";
+        const categoryLabel = hasDisplayValue(product.type)
+            ? product.type
+            : product.category.split(" > ").filter(Boolean).at(-1) || "Collection";
+
+        const badges: Array<{ label: string; className: string }> = [];
+
+        if (isSoldOut) {
+            badges.push({
+                label: "Sold Out",
+                className: "bg-[#121212] text-white",
+            });
+        } else {
+            if (product.isNewArrival) {
+                badges.push({
+                    label: "New",
+                    className: "bg-[#fff4f7] text-[#b96f80] ring-1 ring-[#E7A3B0]/40",
+                });
+            }
+
+            if (hasLowStock) {
+                badges.push({
+                    label: `${product.stock} Left`,
+                    className: "bg-[#fff8ec] text-[#9a6a17] ring-1 ring-[#f2c98a]/60",
+                });
+            }
+        }
+
+        return (
+            <>
+                <div
+                    className="w-full rounded-[1.5rem] bg-[#f7eef1] relative overflow-hidden shadow-md"
+                    style={{ height: `${cardImageHeight}px` }}
+                >
+                    <Image
+                        src={product.images[0] || resolveProductPlaceholder(product.category)}
+                        alt={product.name}
+                        fill
+                        sizes={`${cardWidth}px`}
+                        className={cn("object-cover", isSoldOut ? "grayscale-[0.3]" : "")}
+                        draggable={false}
+                    />
+                    <div className="pointer-events-none absolute inset-x-0 bottom-0 h-24 bg-linear-to-t from-black/25 via-black/0 to-transparent opacity-70" />
+
+                    <div className="absolute left-3 top-3 flex max-w-[70%] flex-wrap gap-2">
+                        {badges.map((badge) => (
+                            <span
+                                key={badge.label}
+                                className={cn(
+                                    "rounded-full px-2.5 py-1 font-oswald text-[10px] uppercase tracking-[0.24em]",
+                                    badge.className
+                                )}
+                            >
+                                {badge.label}
+                            </span>
+                        ))}
+                    </div>
+
+                    <div className="absolute right-3 top-3 max-w-[55%] rounded-full bg-white/88 px-3 py-1.5 backdrop-blur-sm ring-1 ring-black/5">
+                        <p className="truncate font-montserrat text-[10px] font-semibold uppercase tracking-[0.16em] text-[#6f5058]">
+                            {categoryLabel}
+                        </p>
+                    </div>
+                </div>
+                <div className="mt-3 flex flex-col items-center text-center gap-1 px-2">
+                    <p className="font-oswald text-[11px] uppercase tracking-[0.28em] text-[#b47c88]">
+                        {eyebrow}
+                    </p>
+                    <p className="font-playfair-display font-medium text-sm md:text-base text-[#121212] line-clamp-2 w-full">
+                        {product.name}
+                    </p>
+                    <p className={cn(
+                        "font-oswald text-sm tracking-wide",
+                        isSoldOut ? "text-[#8b7580]" : "text-[#E7A3B0]"
+                    )}>
+                        {"\u20B1"}{product.price.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    </p>
+                </div>
+            </>
+        );
+    };
 
     return (
         <div className="w-full max-w-[1600px] mx-auto px-2 lg:px-4">
             <div className="relative flex items-center gap-2 md:gap-4">
 
-                {/* ← Prev */}
+                {/* â† Prev */}
                 <button
                     type="button"
                     onClick={goPrev}
@@ -278,7 +356,7 @@ export default function FeatureCardCarousel({ products, onProductClick }: Featur
                         );
                     })}
 
-                    {/* Exit clone — slides out in the card's natural direction while the
+                    {/* Exit clone â€” slides out in the card's natural direction while the
                         real card enters from the opposite side, creating a wrap-around effect */}
                     {exitClone && featuredProducts.map((product) => {
                         if (String(product.id) !== exitClone.id) return null;
@@ -309,7 +387,7 @@ export default function FeatureCardCarousel({ products, onProductClick }: Featur
                     })}
                 </div>
 
-                {/* → Next */}
+                {/* â†’ Next */}
                 <button
                     type="button"
                     onClick={goNext}

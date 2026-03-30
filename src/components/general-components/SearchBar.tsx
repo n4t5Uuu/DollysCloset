@@ -3,7 +3,7 @@
 import {Input} from "@/components/ui/input"
 import {Search} from "lucide-react"
 
-import {useEffect, useState} from "react";
+import {useEffect, useRef, useState} from "react";
 
 interface SearchBarProps {
     onSearch?: (query: string) => void;
@@ -12,21 +12,51 @@ interface SearchBarProps {
 
 export default function SearchBar({ onSearch, initialQuery = "" }: SearchBarProps) {
     const [query, setQuery] = useState(initialQuery);
+    const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const hasMountedRef = useRef(false);
+    const onSearchRef = useRef(onSearch);
 
     useEffect(() => {
         setQuery(initialQuery);
     }, [initialQuery]);
 
+    useEffect(() => {
+        onSearchRef.current = onSearch;
+    }, [onSearch]);
+
+    useEffect(() => {
+        if (!hasMountedRef.current) {
+            hasMountedRef.current = true;
+            return;
+        }
+
+        if (debounceTimerRef.current) {
+            clearTimeout(debounceTimerRef.current);
+        }
+
+        debounceTimerRef.current = setTimeout(() => {
+            onSearchRef.current?.(query);
+        }, 300);
+
+        return () => {
+            if (debounceTimerRef.current) {
+                clearTimeout(debounceTimerRef.current);
+            }
+        };
+    }, [query]);
+
     const handleSearch = (e: React.FormEvent) => {
         e.preventDefault();
-        onSearch?.(query);
+
+        if (debounceTimerRef.current) {
+            clearTimeout(debounceTimerRef.current);
+        }
+
+        onSearchRef.current?.(query);
     }
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const value = e.target.value;
-        setQuery(value);
-        // Optional: live search as the user types
-        onSearch?.(value);
+        setQuery(e.target.value);
     }
 
     const [placeholder, setPlaceholder] = useState("Search Products");
@@ -45,10 +75,8 @@ export default function SearchBar({ onSearch, initialQuery = "" }: SearchBarProp
     }, []);
 
     return (
-        // check kung ano ilalagay here sa action pero baka iba sa supabase (?)
         <form 
             onSubmit={handleSearch} 
-            action="GET" 
             className="relative w-full md:w-80">
                 <Input 
                     type="text"
