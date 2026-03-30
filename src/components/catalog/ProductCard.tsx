@@ -10,6 +10,7 @@ import { useRef, useState } from "react"
 
 interface ProductCardProps {
     product?: Product;
+    href?: string;
     onClick?: () => void;
 }
 
@@ -28,7 +29,7 @@ function formatChipLabel(value: string) {
 
 type AnimPhase = "idle" | "prepare" | "animating";
 
-export default function ProductCard({ product, onClick }: ProductCardProps) {
+export default function ProductCard({ product, href, onClick }: ProductCardProps) {
     const validImages = product?.images.filter(Boolean) ?? [];
     const fallback = product ? resolveProductPlaceholder(product.category) : "";
     const firstSrc = validImages[0] || fallback;
@@ -130,10 +131,10 @@ export default function ProductCard({ product, onClick }: ProductCardProps) {
     }
 
     return (
-        <button
-            type="button"
+        <a
+            href={href}
             aria-label={`View details for ${product.name}`}
-            onClick={onClick}
+            onClick={(e) => { e.preventDefault(); onClick?.(); }}
             onMouseEnter={handleMouseEnter}
             onMouseLeave={handleMouseLeave}
             className="group block h-full w-full text-left focus-visible:outline-none focus-visible:[&>article]:ring-2 focus-visible:[&>article]:ring-[#E7A3B0] focus-visible:[&>article]:ring-offset-4"
@@ -240,6 +241,6 @@ export default function ProductCard({ product, onClick }: ProductCardProps) {
                     </div>
                 </div>
             </article>
-        </button>
+        </a>
     )
 }
