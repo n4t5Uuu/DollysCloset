@@ -37,7 +37,12 @@ export async function middleware(request: NextRequest) {
 
           // Apply changes to the response cookies propagating safely iteratively
           cookiesToSet.forEach(({ name, value, options }) => {
-            response.cookies.set(name, value, options);
+            // In development, strip the Secure flag so cookies work
+            // over plain HTTP (e.g. local-network mobile testing).
+            const safeOptions = process.env.NODE_ENV === 'development'
+              ? { ...options, secure: false }
+              : options;
+            response.cookies.set(name, value, safeOptions);
           });
         },
       },
