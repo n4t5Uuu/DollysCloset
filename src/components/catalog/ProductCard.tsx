@@ -1,6 +1,5 @@
 import { CardTitle } from "@/components/ui/card"
 import { cn } from "@/lib/utils"
-import { ArrowUpRight } from "lucide-react"
 
 import Image from "next/image"
 import { Product } from "@/types/product.types"
@@ -115,21 +114,16 @@ export default function ProductCard({ product, onClick }: ProductCardProps) {
                 </div>
 
                 <div className="flex flex-1 flex-col gap-3 px-2 pb-2 pt-4">
-                    <div className="flex items-start justify-between gap-3">
-                        <div className="min-w-0 flex-1">
-                            <p className="font-montserrat text-[10px] font-semibold uppercase tracking-[0.16em] text-[#6f5058]">
-                                {categoryLabel}
-                            </p>
-                            <p className="font-oswald text-[11px] uppercase tracking-[0.28em] text-[#b47c88]">
-                                {eyebrow}
-                            </p>
-                            <CardTitle className="mt-2 font-playfair-display text-lg leading-snug text-[#121212] line-clamp-2">
-                                {product.name}
-                            </CardTitle>
-                        </div>
-                        <span className="mt-1 flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-[#E7A3B0]/20 bg-[#fff8fa] text-[#b47c88] transition-colors duration-300 group-hover:border-[#E7A3B0]/40 group-hover:bg-[#fff0f5]">
-                            <ArrowUpRight className="h-4 w-4" />
-                        </span>
+                    <div className="min-w-0">
+                        <p className="font-montserrat text-[10px] font-semibold uppercase tracking-[0.16em] text-[#6f5058]">
+                            {categoryLabel}
+                        </p>
+                        <p className="font-oswald text-[11px] uppercase tracking-[0.28em] text-[#b47c88]">
+                            {eyebrow}
+                        </p>
+                        <CardTitle className="mt-2 font-playfair-display text-lg leading-snug text-[#121212] line-clamp-3">
+                            {product.name}
+                        </CardTitle>
                     </div>
 
                     {metadataChips.length > 0 && (
@@ -145,7 +139,7 @@ export default function ProductCard({ product, onClick }: ProductCardProps) {
                         </div>
                     )}
 
-                    <div className="mt-auto flex flex-col items-start gap-3 border-t border-[#E7A3B0]/12 pt-3 sm:flex-row sm:items-end sm:justify-between">
+                    <div className="mt-auto border-t border-[#E7A3B0]/12 pt-3">
                         <div>
                             <p className="font-oswald text-[10px] uppercase tracking-[0.28em] text-[#c0929d]">
                                 {isSoldOut ? "Last Price" : "Price"}
@@ -156,17 +150,6 @@ export default function ProductCard({ product, onClick }: ProductCardProps) {
                             )}>
                                 {"\u20B1"}{product.price.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                             </p>
-                        </div>
-
-                        <div className="text-left sm:ml-auto sm:text-right">
-                            <p className="hidden font-montserrat text-xs font-medium text-[#8a5b64] 2xl:block">
-                                {isSoldOut ? "See alternatives" : "View details"}
-                            </p>
-                            {!isSoldOut && hasLowStock && (
-                                <p className="hidden font-montserrat text-[11px] text-[#b47c88] 2xl:mt-1 2xl:block">
-                                    Moving fast
-                                </p>
-                            )}
                         </div>
                     </div>
                 </div>
