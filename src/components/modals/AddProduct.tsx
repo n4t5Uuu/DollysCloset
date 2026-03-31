@@ -422,9 +422,10 @@ export default function AddProduct({ isOpen, onClose, categories, productToEdit,
                     </button>
                 </CardHeader>
 
-                <form onSubmit={handleSaveProduct}>
-                    <fieldset disabled={actionLoading} className={`border-none p-0 m-0 ${actionLoading ? "pointer-events-none opacity-75" : ""}`}>
-                        <CardContent className="space-y-5 overflow-y-auto p-6">
+                <form onSubmit={handleSaveProduct} className="flex min-h-0 flex-1 flex-col overflow-hidden">
+                    <div className="min-h-0 flex-1 overflow-y-auto">
+                    <fieldset disabled={actionLoading} className={`m-0 border-none p-0 ${actionLoading ? "pointer-events-none opacity-75" : ""}`}>
+                        <CardContent className="space-y-5 p-6">
                         <div className="rounded-lg border border-[#E7A3B0]/20 bg-[#fff9fb] px-4 py-3 text-sm text-[#8a6b73]">
                             {formStatusMessage}
                         </div>
@@ -666,6 +667,7 @@ export default function AddProduct({ isOpen, onClose, categories, productToEdit,
                         </div>
                         </CardContent>
                     </fieldset>
+                    </div>
 
                     <CardFooter className="flex flex-col gap-3 border-t bg-gray-50 p-6 sm:flex-row">
                         <div className="w-full text-xs text-gray-500 sm:hidden">
