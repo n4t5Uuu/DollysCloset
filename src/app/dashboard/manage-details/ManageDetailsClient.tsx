@@ -251,8 +251,7 @@ export default function ManageDetailsClient({ role }: ManageDetailsClientProps) 
             : await fetchAboutDetails();
 
       if (refreshed) {
-      setSuccess(`${sectionMeta.title} refreshed from the latest saved content.`);
-      toast.success(`${sectionMeta.title} refreshed.`);
+        setError(null);
       }
     } finally {
       setRefreshingSection(false);

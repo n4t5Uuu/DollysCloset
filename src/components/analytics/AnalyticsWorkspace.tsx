@@ -71,9 +71,6 @@ export function AnalyticsWorkspace() {
 
       setActiveMonths(list);
 
-      if (isRefresh) {
-        toast.success('Analytics refreshed.');
-      }
     } catch (error) {
       console.error('Failed to load analytics months', error);
       setMonthsError('Unable to load analytics right now.');

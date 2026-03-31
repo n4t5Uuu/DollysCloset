@@ -388,13 +388,7 @@ export default function ActivityLogsClient() {
   };
 
   const handleManualRefresh = async () => {
-    const refreshed = await fetchLogs();
-    if (refreshed) {
-      setActionNotice({
-        type: "info",
-        message: "Activity logs refreshed with the latest results.",
-      });
-    }
+    await fetchLogs();
   };
 
   const handleResetLogs = async () => {

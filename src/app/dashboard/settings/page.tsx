@@ -77,7 +77,6 @@ export default function SettingsPage() {
         email: user?.email ?? "",
       });
 
-      toast.success("Profile refreshed.");
     } catch {
       setProfileError("We couldn't refresh your profile details right now.");
     } finally {
