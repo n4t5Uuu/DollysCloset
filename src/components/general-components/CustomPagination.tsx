@@ -31,6 +31,8 @@ export default function CustomPagination({
   if (totalPages <= 1) return null;
 
   const handleGo = () => {
+    if (disabled) return;
+
     const page = parseInt(goInput, 10);
     if (!isNaN(page) && page >= 1 && page <= totalPages) {
       onPageChange(page);
@@ -43,7 +45,7 @@ export default function CustomPagination({
 
   return (
     <div className={`flex flex-col items-center gap-3 ${className ?? ""}`}>
-      <Pagination>
+      <Pagination aria-label="Pagination">
         <PaginationContent>
           {/* First */}
           <PaginationItem>
@@ -84,7 +86,7 @@ export default function CustomPagination({
                   href="#"
                   onClick={(e) => {
                     e.preventDefault();
-                    onPageChange(pageNum);
+                    if (!disabled) onPageChange(pageNum);
                   }}
                   isActive={currentPage === pageNum}
                   className={
@@ -135,10 +137,13 @@ export default function CustomPagination({
           type="number"
           min={1}
           max={totalPages}
+          inputMode="numeric"
           value={goInput}
           onChange={(e) => setGoInput(e.target.value)}
           onKeyDown={(e) => { if (e.key === "Enter") handleGo(); }}
           disabled={disabled}
+          aria-label={`Go to page. Enter a number between 1 and ${totalPages}`}
+          placeholder="1"
           className="w-16 h-8 text-center border border-[#E7A3B0]/40 rounded text-sm text-[#cc7f8f] focus:outline-none focus:ring-1 focus:ring-[#E7A3B0] disabled:opacity-50"
         />
         <button

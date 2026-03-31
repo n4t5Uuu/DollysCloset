@@ -14,6 +14,30 @@ function getAnalyticsClient() {
   });
 }
 
+function normalizeAnalyticsError(err: unknown) {
+  const message = err instanceof Error ? err.message : String(err);
+  const lower = message.toLowerCase();
+
+  if (lower.includes('bad gateway') || lower.includes('502')) {
+    return {
+      error: 'Product analytics are temporarily unavailable. Please try again in a moment.',
+      status: 502,
+    };
+  }
+
+  if (lower.includes('permission') || lower.includes('403')) {
+    return {
+      error: 'The product analytics report could not be accessed with the current credentials.',
+      status: 502,
+    };
+  }
+
+  return {
+    error: message,
+    status: 500,
+  };
+}
+
 export async function GET(request: Request) {
   try {
     const authResult = await requireRequestAuth(request, {
@@ -171,7 +195,7 @@ export async function GET(request: Request) {
       missingImageList,
     });
   } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : String(err);
-    return NextResponse.json({ error: message }, { status: 500 });
+    const normalized = normalizeAnalyticsError(err);
+    return NextResponse.json({ error: normalized.error }, { status: normalized.status });
   }
 }

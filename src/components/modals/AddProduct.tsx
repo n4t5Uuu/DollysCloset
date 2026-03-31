@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { Loader2, X, ChevronDown } from "lucide-react";
 import { browserSupabase } from "@/lib/supabase/browser";
 import { Button } from "@/components/ui/button";
@@ -91,6 +91,26 @@ export default function AddProduct({ isOpen, onClose, categories, productToEdit,
         return () => document.removeEventListener("mousedown", handleOutsideClick);
     }, [conditionDropdownOpen]);
 
+    useEffect(() => {
+        if (!isOpen) return;
+
+        const originalOverflow = document.body.style.overflow;
+        document.body.style.overflow = "hidden";
+
+        const handleEscape = (event: KeyboardEvent) => {
+            if (event.key === "Escape" && !actionLoading) {
+                handleClose();
+            }
+        };
+
+        document.addEventListener("keydown", handleEscape);
+
+        return () => {
+            document.body.style.overflow = originalOverflow;
+            document.removeEventListener("keydown", handleEscape);
+        };
+    }, [actionLoading, isOpen]);
+
     const hasUnsavedChanges = () => {
         const normalizeString = (str: string | null | undefined) => (str || "").trim();
         if (productToEdit) {
@@ -141,6 +161,36 @@ export default function AddProduct({ isOpen, onClose, categories, productToEdit,
         show_in_catalog: true,
         image_id: "",
     });
+
+    const trimmedProductName = formData.product_name.trim();
+    const trimmedCategoryId = formData.category_id.trim();
+    const trimmedPrice = formData.product_price.trim();
+    const trimmedStock = formData.product_stock.trim();
+    const parsedPricePreview = trimmedPrice === "" ? null : Number.parseFloat(trimmedPrice);
+    const parsedStockPreview = trimmedStock === "" ? 0 : Number.parseInt(trimmedStock, 10);
+
+    const missingRequiredFields = useMemo(() => {
+        const missingFields: string[] = [];
+
+        if (!trimmedProductName) missingFields.push("product name");
+        if (!trimmedCategoryId) missingFields.push("category");
+        if (!trimmedPrice) missingFields.push("price");
+
+        return missingFields;
+    }, [trimmedCategoryId, trimmedPrice, trimmedProductName]);
+
+    const hasInvalidPrice = trimmedPrice !== "" && (!Number.isFinite(parsedPricePreview) || (parsedPricePreview ?? 0) < 0);
+    const hasInvalidStock = trimmedStock !== "" && (!Number.isInteger(parsedStockPreview) || parsedStockPreview < 0);
+    const isSaveBlocked = actionLoading || missingRequiredFields.length > 0 || hasInvalidPrice || hasInvalidStock;
+    const formStatusMessage = missingRequiredFields.length > 0
+        ? `Add ${missingRequiredFields.join(", ")} to continue.`
+        : hasInvalidPrice
+            ? "Enter a valid price of 0 or higher."
+            : hasInvalidStock
+                ? "Stock must be a whole number of 0 or higher."
+                : productToEdit
+                    ? "Review your updates, then save when you're ready."
+                    : "Required fields are complete. You can save this product now.";
 
     useEffect(() => {
         if (isOpen) {
@@ -354,10 +404,19 @@ export default function AddProduct({ isOpen, onClose, categories, productToEdit,
     if (!isOpen) return null;
 
     return (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-            <Card className="bg-white w-full max-w-2xl max-h-[90vh] overflow-y-auto p-0">
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={(event) => {
+            if (event.target === event.currentTarget && !actionLoading) {
+                handleClose();
+            }
+        }}>
+            <Card className="bg-white w-full max-w-2xl max-h-[90vh] flex flex-col overflow-hidden p-0" onClick={(event) => event.stopPropagation()}>
                 <CardHeader className="flex flex-row items-center justify-between border-b p-6 space-y-0 text-gray-900">
-                    <CardTitle className="text-gray-900">{productToEdit ? "Edit Product" : "Add Product"}</CardTitle>
+                    <div className="space-y-1">
+                        <CardTitle className="text-gray-900">{productToEdit ? "Edit Product" : "Add Product"}</CardTitle>
+                        <p className="text-sm text-gray-500">
+                            Fields marked with <span className="text-red-500">*</span> are required.
+                        </p>
+                    </div>
                     <button type="button" onClick={handleClose} disabled={actionLoading} className="text-gray-400 hover:text-gray-600 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed">
                         <X className="w-5 h-5" />
                     </button>
@@ -365,7 +424,10 @@ export default function AddProduct({ isOpen, onClose, categories, productToEdit,
 
                 <form onSubmit={handleSaveProduct}>
                     <fieldset disabled={actionLoading} className={`border-none p-0 m-0 ${actionLoading ? "pointer-events-none opacity-75" : ""}`}>
-                        <CardContent className="space-y-5 p-6">
+                        <CardContent className="space-y-5 overflow-y-auto p-6">
+                        <div className="rounded-lg border border-[#E7A3B0]/20 bg-[#fff9fb] px-4 py-3 text-sm text-[#8a6b73]">
+                            {formStatusMessage}
+                        </div>
                         {error && (
                             <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm mb-4">
                                 {error}
@@ -378,8 +440,12 @@ export default function AddProduct({ isOpen, onClose, categories, productToEdit,
                                 value={formData.product_name}
                                 onChange={(e) => setFormData({ ...formData, product_name: e.target.value })}
                                 required
+                                aria-invalid={!trimmedProductName}
                                 className="border-gray-300 text-gray-900 bg-white placeholder:text-gray-400"
                             />
+                            <p className="mt-1 text-xs text-gray-500">
+                                Use the name shoppers should recognize in the catalog.
+                            </p>
                         </div>
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -391,6 +457,9 @@ export default function AddProduct({ isOpen, onClose, categories, productToEdit,
                                     onValueChange={(value) => setFormData({ ...formData, category_id: normalizeCategoryId(value) })}
                                     placeholder="Select category"
                                 />
+                                <p className="mt-1 text-xs text-gray-500">
+                                    Choose the most specific category available so filtering works well.
+                                </p>
                             </div>
 
                             <div>
@@ -413,8 +482,12 @@ export default function AddProduct({ isOpen, onClose, categories, productToEdit,
                                         }
                                     }}
                                     required
+                                    aria-invalid={hasInvalidPrice || !trimmedPrice}
                                     className="border-gray-300 text-gray-900 bg-white placeholder:text-gray-400"
                                 />
+                                <p className="mt-1 text-xs text-gray-500">
+                                    Enter the selling price in Philippine pesos.
+                                </p>
                             </div>
                         </div>
 
@@ -447,8 +520,12 @@ export default function AddProduct({ isOpen, onClose, categories, productToEdit,
                                             e.preventDefault();
                                         }
                                     }}
+                                    aria-invalid={hasInvalidStock}
                                     className="border-gray-300 text-gray-900 bg-white placeholder:text-gray-400"
                                 />
+                                <p className="mt-1 text-xs text-gray-500">
+                                    Use <span className="font-medium">0</span> for sold out items.
+                                </p>
                             </div>
                         </div>
 
@@ -537,18 +614,28 @@ export default function AddProduct({ isOpen, onClose, categories, productToEdit,
                         </div>
 
                         {!productToEdit ? (
-                            <ImageSelector
-                                stagedFiles={stagedFiles}
-                                onFilesAdd={addStagedFiles}
-                                onFileRemove={removeStagedFile}
-                            />
+                            <div className="space-y-2">
+                                <ImageSelector
+                                    stagedFiles={stagedFiles}
+                                    onFilesAdd={addStagedFiles}
+                                    onFileRemove={removeStagedFile}
+                                />
+                                <p className="text-xs text-gray-500">
+                                    You can add up to 5 images. The first uploaded image becomes the primary one.
+                                </p>
+                            </div>
                         ) : (
-                            <ProductImageUpload
-                                productId={productToEdit?.product_id || null}
-                                images={productImages}
-                                onImagesChange={setProductImages}
-                                loading={actionLoading}
-                            />
+                            <div className="space-y-2">
+                                <ProductImageUpload
+                                    productId={productToEdit?.product_id || null}
+                                    images={productImages}
+                                    onImagesChange={setProductImages}
+                                    loading={actionLoading}
+                                />
+                                <p className="text-xs text-gray-500">
+                                    Reorder images to control which photo appears first in the catalog.
+                                </p>
+                            </div>
                         )}
 
                         <div>
@@ -573,13 +660,19 @@ export default function AddProduct({ isOpen, onClose, categories, productToEdit,
                                     Show in Catalog
                                 </label>
                             </div>
+                            <p className="text-xs text-gray-500">
+                                Turn this off if the item should stay in inventory but remain hidden from customers.
+                            </p>
                         </div>
                         </CardContent>
                     </fieldset>
 
-                    <CardFooter className="flex gap-3 p-6 border-t bg-gray-50">
+                    <CardFooter className="flex flex-col gap-3 border-t bg-gray-50 p-6 sm:flex-row">
+                        <div className="w-full text-xs text-gray-500 sm:hidden">
+                            {formStatusMessage}
+                        </div>
                         <Button type="button" variant="outline" onClick={handleClose} disabled={actionLoading} className="flex-1 border-gray-300 text-gray-700 bg-white hover:bg-white hover:text-black transition-all duration-300 hover:scale-105 hover:shadow-md hover:border-gray-400 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 disabled:hover:shadow-none">Cancel</Button>
-                        <Button type="submit" className="flex-1 bg-[#E7A3B0] hover:bg-[#ca8c98] text-white transition-all duration-300 hover:scale-[1.03] active:scale-95 shadow-sm hover:shadow-md" disabled={actionLoading}>
+                        <Button type="submit" className="flex-1 bg-[#E7A3B0] hover:bg-[#ca8c98] text-white transition-all duration-300 hover:scale-[1.03] active:scale-95 shadow-sm hover:shadow-md disabled:hover:scale-100 disabled:hover:shadow-sm" disabled={isSaveBlocked}>
                             {actionLoading ? (<>
                                 <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                                 Saving...

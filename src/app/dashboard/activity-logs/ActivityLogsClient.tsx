@@ -1,11 +1,11 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { AlertTriangle, Calendar, ChevronDown, ClipboardList, Search, X, Eye, SlidersHorizontal } from "lucide-react";
+import { AlertTriangle, Calendar, ChevronDown, ClipboardList, Search, X, Eye, SlidersHorizontal, RefreshCcw } from "lucide-react";
 import CustomPagination from "@/components/general-components/CustomPagination";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty";
@@ -20,6 +20,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { AdminNoticeBanner } from "@/components/ui/admin-notice-banner";
 
 interface ActivityLog {
   log_id: number;
@@ -39,6 +40,11 @@ interface AvailableLogMonth {
   month: number;
   count: number;
 }
+
+type ActionNotice = {
+  type: "success" | "warning" | "info";
+  message: string;
+};
 
 const actionLabels: Record<string, string> = {
   create_product: "Created Product",
@@ -127,13 +133,15 @@ export default function ActivityLogsClient() {
   const [viewLog, setViewLog] = useState<ActivityLog | null>(null);
   const [actionTypeFilter, setActionTypeFilter] = useState<Set<string>>(new Set());
   const [showFilters, setShowFilters] = useState(false);
+  const [actionNotice, setActionNotice] = useState<ActionNotice | null>(null);
   const pickerRef = useRef<HTMLDivElement>(null);
   const filtersRef = useRef<HTMLDivElement>(null);
+  const searchInputRef = useRef<HTMLInputElement | null>(null);
   const itemsPerPage = 10;
   const isMountedRef = useRef(true);
   const activeRequestControllerRef = useRef<AbortController | null>(null);
   const requestVersionRef = useRef(0);
-  const fetchLogsRef = useRef<((isBackground?: boolean) => Promise<void>) | undefined>(undefined);
+  const fetchLogsRef = useRef<((isBackground?: boolean) => Promise<boolean>) | undefined>(undefined);
 
   useEffect(() => {
     const t = setTimeout(() => setDebouncedSearch(searchQuery), 400);
@@ -181,15 +189,17 @@ export default function ActivityLogsClient() {
         setTotalCount(result.count ?? 0);
         setAvailableMonths(result.availableMonths || []);
       }
+      return true;
     } catch (err: unknown) {
       if (err instanceof DOMException && err.name === "AbortError") {
-        return;
+        return false;
       }
 
       console.error("Error fetching logs:", err);
       if (isMountedRef.current && requestVersion === requestVersionRef.current) {
         setError(err instanceof Error ? err.message : "Failed to load activity logs");
       }
+      return false;
     } finally {
       if (activeRequestControllerRef.current === controller) {
         activeRequestControllerRef.current = null;
@@ -238,6 +248,36 @@ export default function ActivityLogsClient() {
   }, []);
 
   useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      const target = event.target as HTMLElement | null;
+      const isTypingTarget =
+        target instanceof HTMLInputElement ||
+        target instanceof HTMLTextAreaElement ||
+        target instanceof HTMLSelectElement ||
+        target?.isContentEditable;
+
+      if (event.key === "/" && !isTypingTarget && !viewLog) {
+        event.preventDefault();
+        searchInputRef.current?.focus();
+        searchInputRef.current?.select();
+      }
+
+      if (event.key === "Escape") {
+        if (document.activeElement === searchInputRef.current) {
+          searchInputRef.current?.blur();
+        } else if (showPicker) {
+          setShowPicker(false);
+        } else if (showFilters) {
+          setShowFilters(false);
+        }
+      }
+    };
+
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [showFilters, showPicker, viewLog]);
+
+  useEffect(() => {
     if (!viewLog) return;
 
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -279,6 +319,84 @@ export default function ActivityLogsClient() {
   const safePage = Math.min(currentPage, totalPages);
   const startIndex = (safePage - 1) * itemsPerPage;
 
+  const hasSearch = debouncedSearch.trim().length > 0;
+  const hasActiveFilters = hasSearch || Boolean(selectedMonth) || actionTypeFilter.size > 0;
+  const browseSummaryMessage = useMemo(() => {
+    if (loading) {
+      return "Loading activity logs...";
+    }
+
+    if (totalCount === 0) {
+      return hasActiveFilters
+        ? "No activity logs match the current search or filters."
+        : "No activity has been recorded yet.";
+    }
+
+    if (hasActiveFilters) {
+      return `Showing ${totalCount} matching log${totalCount === 1 ? "" : "s"}.`;
+    }
+
+    return `Showing ${totalCount} activity log${totalCount === 1 ? "" : "s"}.`;
+  }, [hasActiveFilters, loading, totalCount]);
+
+  const activeFilterChips = useMemo(() => {
+    const chips: Array<{ key: string; label: string; onRemove: () => void }> = [];
+
+    if (hasSearch) {
+      chips.push({
+        key: "search",
+        label: `Search: ${debouncedSearch.trim()}`,
+        onRemove: () => setSearchQuery(""),
+      });
+    }
+
+    if (selectedMonth) {
+      chips.push({
+        key: "month",
+        label: selectedMonthLabel,
+        onRemove: () => setSelectedMonth(null),
+      });
+    }
+
+    actionTypeFilter.forEach((key) => {
+      const label = actionTypeGroups[key]?.label;
+      if (!label) return;
+
+      chips.push({
+        key: `action-${key}`,
+        label,
+        onRemove: () => toggleActionType(key),
+      });
+    });
+
+    return chips;
+  }, [actionTypeFilter, debouncedSearch, hasSearch, selectedMonth, selectedMonthLabel]);
+
+  const actionNoticeStyles =
+    actionNotice?.type === "success"
+      ? "bg-emerald-50 border-emerald-200 text-emerald-700"
+      : actionNotice?.type === "warning"
+        ? "bg-amber-50 border-amber-200 text-amber-700"
+        : "bg-blue-50 border-blue-200 text-blue-700";
+
+  const clearAllFilters = () => {
+    setSearchQuery("");
+    setSelectedMonth(null);
+    setActionTypeFilter(new Set());
+    setShowFilters(false);
+    setShowPicker(false);
+  };
+
+  const handleManualRefresh = async () => {
+    const refreshed = await fetchLogs();
+    if (refreshed) {
+      setActionNotice({
+        type: "info",
+        message: "Activity logs refreshed with the latest results.",
+      });
+    }
+  };
+
   const handleResetLogs = async () => {
     try {
       const response = await fetch('/api/admin/reset-activity-logs', {
@@ -293,7 +411,15 @@ export default function ActivityLogsClient() {
       setLogs([]);
       setTotalCount(0);
       setAvailableMonths([]);
+      setSearchQuery("");
       setSelectedMonth(null);
+      setActionTypeFilter(new Set());
+      setShowFilters(false);
+      setShowPicker(false);
+      setActionNotice({
+        type: "success",
+        message: "Activity logs cleared. New activity will appear here as it happens.",
+      });
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Failed to reset logs');
     }
@@ -306,51 +432,91 @@ export default function ActivityLogsClient() {
           <h1 className="text-2xl font-bold">Activity Logs</h1>
           <p className="text-gray-500 text-sm">Inventory actions by admin or employee.</p>
         </div>
-        <AlertDialog>
-          <AlertDialogTrigger asChild>
-            <button
-              className="bg-red-500 hover:bg-red-600 text-white text-sm font-medium px-4 py-2 rounded-lg transition-all duration-300 shadow-md hover:shadow-lg hover:scale-105 cursor-pointer sm:shrink-0"
-            >
-              Reset Logs
-            </button>
-          </AlertDialogTrigger>
-          <AlertDialogContent className="bg-white">
-            <AlertDialogHeader>
-              <AlertDialogTitle className="text-gray-900">Clear Activity Logs</AlertDialogTitle>
-              <AlertDialogDescription>
-                Are you sure you want to delete all activity logs? This action cannot be undone and clears entire tracking tracks.
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel className="border-zinc-300 bg-white text-zinc-700 hover:bg-zinc-50 hover:text-zinc-900">Cancel</AlertDialogCancel>
-              <AlertDialogAction className="bg-red-500 hover:bg-red-600 text-white cursor-pointer" onClick={handleResetLogs}>Reset All</AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
+        <div className="flex items-center gap-3">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={handleManualRefresh}
+            disabled={loading}
+            className="h-10 border-[#E7A3B0]/30 text-[#b96d7d] hover:bg-[#fff5f7] hover:text-[#b96d7d]"
+          >
+            <RefreshCcw className={`mr-2 h-4 w-4 ${loading ? "animate-spin" : ""}`} />
+            Refresh
+          </Button>
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <button
+                className="bg-red-500 hover:bg-red-600 text-white text-sm font-medium px-4 py-2 rounded-lg transition-all duration-300 shadow-md hover:shadow-lg hover:scale-105 cursor-pointer sm:shrink-0"
+              >
+                Reset Logs
+              </button>
+            </AlertDialogTrigger>
+            <AlertDialogContent className="bg-white">
+              <AlertDialogHeader>
+                <AlertDialogTitle className="text-gray-900">Clear Activity Logs</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Delete every saved activity log entry? This cannot be undone and will clear the full activity history.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel className="border-zinc-300 bg-white text-zinc-700 hover:bg-zinc-50 hover:text-zinc-900">Cancel</AlertDialogCancel>
+                <AlertDialogAction className="bg-red-500 hover:bg-red-600 text-white cursor-pointer" onClick={handleResetLogs}>Reset All</AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        </div>
       </div>
 
       {error && (
-        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg flex items-start gap-3">
-          <AlertTriangle className="w-5 h-5 mt-0.5 shrink-0" />
-          <div>
-            <p className="font-medium">Error</p>
-            <p className="text-sm">{error}</p>
-          </div>
-          <button onClick={() => setError(null)} className="ml-auto text-red-400 hover:text-red-600">
-            <X className="w-5 h-5" />
-          </button>
-        </div>
+        <AdminNoticeBanner
+          tone="error"
+          title="Unable to load activity logs"
+          message={error}
+          onDismiss={() => setError(null)}
+          actionLabel="Try again"
+          onAction={() => {
+            void fetchLogs();
+          }}
+        />
       )}
 
-      <div className="flex items-center gap-3 flex-wrap">
+      {actionNotice && (
+        <AdminNoticeBanner
+          tone={actionNotice.type}
+          title={
+            actionNotice.type === "success"
+              ? "Activity logs updated"
+              : actionNotice.type === "warning"
+                ? "Activity log action needs review"
+                : "Activity logs refreshed"
+          }
+          message={actionNotice.message}
+          onDismiss={() => setActionNotice(null)}
+        />
+      )}
+
+      <div className="space-y-3">
+        <div className="flex items-center gap-3 flex-wrap">
         <div className="relative flex-1 min-w-[200px]">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-3.5 h-3.5" />
           <Input
+            ref={searchInputRef}
             placeholder="Search by log ID, product ID, user UUID or key, action, description, or editor..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-9 h-9 text-sm rounded-lg border-gray-300 text-gray-900 bg-white"
+            aria-label="Search activity logs"
+            className="pl-9 pr-10 h-9 text-sm rounded-lg border-gray-300 text-gray-900 bg-white"
           />
+          {searchQuery && (
+            <button
+              type="button"
+              onClick={() => setSearchQuery("")}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 transition-colors hover:text-gray-600"
+              aria-label="Clear activity log search"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          )}
         </div>
 
         <div className="relative" ref={filtersRef}>
@@ -466,6 +632,36 @@ export default function ActivityLogsClient() {
         </span>
       </div>
 
+        <div className="flex items-center justify-between gap-3 flex-wrap">
+          <p className="text-sm text-gray-600">{browseSummaryMessage}</p>
+        </div>
+
+        {activeFilterChips.length > 0 && (
+          <div className="flex items-center gap-2 flex-wrap">
+            {activeFilterChips.map((chip) => (
+              <button
+                key={chip.key}
+                type="button"
+                onClick={chip.onRemove}
+                className="inline-flex items-center gap-2 rounded-full bg-[#fff5f7] px-3 py-1 text-xs font-medium text-[#b96d7d] transition-colors hover:bg-[#ffeaf0]"
+              >
+                <span>{chip.label}</span>
+                <X className="h-3 w-3" />
+              </button>
+            ))}
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={clearAllFilters}
+              className="h-8 border-zinc-200 text-zinc-600 hover:bg-zinc-50"
+            >
+              Clear all
+            </Button>
+          </div>
+        )}
+      </div>
+
       {loading ? (
         <div className="bg-white rounded-lg border p-4 space-y-4">
           <Skeleton className="h-12 w-full rounded-md" />
@@ -490,7 +686,11 @@ export default function ActivityLogsClient() {
             <TableBody>
               {logs.length > 0 ? (
                 logs.map((log) => (
-                  <TableRow key={log.log_id} className="border-b hover:bg-gray-50">
+                  <TableRow
+                    key={log.log_id}
+                    className="border-b hover:bg-gray-50"
+                    onDoubleClick={() => setViewLog(log)}
+                  >
                     <TableCell className="p-4 text-sm text-gray-700">
                       <div className="line-clamp-2 wrap-break-word">{new Date(log.created_at).toLocaleString()}</div>
                     </TableCell>
@@ -545,8 +745,28 @@ export default function ActivityLogsClient() {
                         <EmptyDescription>
                           {totalCount === 0 && !debouncedSearch && !selectedMonth && actionTypeFilter.size === 0
                             ? "No activity has been recorded yet."
-                            : "No logs match your current search or filter."}
+                            : "No activity logs match your current search or filters."}
                         </EmptyDescription>
+                        {hasActiveFilters && (
+                          <div className="flex items-center justify-center gap-3 pt-2">
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              onClick={clearAllFilters}
+                            >
+                              Clear filters
+                            </Button>
+                            <Button
+                              type="button"
+                              size="sm"
+                              onClick={handleManualRefresh}
+                              className="bg-linear-to-r from-[#E7A3B0] to-[#f0b8c3] text-white hover:from-[#d891a0] hover:to-[#E7A3B0]"
+                            >
+                              Refresh logs
+                            </Button>
+                          </div>
+                        )}
                       </EmptyHeader>
                     </Empty>
                   </TableCell>

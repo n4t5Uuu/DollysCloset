@@ -1,7 +1,7 @@
 "use client"
 
 import {Input} from "@/components/ui/input"
-import {Search} from "lucide-react"
+import {Search, X} from "lucide-react"
 
 import {useEffect, useRef, useState} from "react";
 
@@ -59,6 +59,15 @@ export default function SearchBar({ onSearch, initialQuery = "" }: SearchBarProp
         setQuery(e.target.value);
     }
 
+    const clearSearch = () => {
+        if (debounceTimerRef.current) {
+            clearTimeout(debounceTimerRef.current);
+        }
+
+        setQuery("");
+        onSearchRef.current?.("");
+    }
+
     const [placeholder, setPlaceholder] = useState("Search Products");
 
     useEffect(() => {
@@ -78,20 +87,39 @@ export default function SearchBar({ onSearch, initialQuery = "" }: SearchBarProp
         <form 
             onSubmit={handleSearch} 
             className="relative w-full md:w-80">
+                <label htmlFor="catalog-search" className="sr-only">
+                    Search products
+                </label>
                 <Input 
+                    id="catalog-search"
                     type="text"
                     placeholder={placeholder}
-                    className="w-full h-9 pl-4 pr-12 rounded-2xl border-black bg-white placeholder:text-black placeholder:font-montserrat"
+                    className="w-full h-9 pl-4 pr-20 rounded-2xl border-black bg-white placeholder:text-black placeholder:font-montserrat"
                     value={query}
                     onChange={handleChange}
+                    aria-label="Search products"
                 />
 
-                <div className="absolute right-10 top-1/2 -translate-y-1/2 h-6 w-px bg-black/20"></div>
+                {query.trim() !== "" && (
+                    <>
+                        <button
+                            type="button"
+                            onClick={clearSearch}
+                            className="absolute right-11 top-1/2 -translate-y-1/2 text-black/45 hover:text-[#E7A3B0] transition-colors cursor-pointer"
+                            aria-label="Clear search"
+                            title="Clear search"
+                        >
+                            <X className="w-4 h-4" />
+                        </button>
+                        <div className="absolute right-10 top-1/2 -translate-y-1/2 h-6 w-px bg-black/20"></div>
+                    </>
+                )}
 
                 <button 
                     type="submit"
                     className="absolute right-3.5 top-1/2 -translate-y-1/2 text-black hover:text-[#E7A3B0] transition-colors cursor-pointer"
-                    aria-label="Search"
+                    aria-label="Submit search"
+                    title="Search products"
                 >
                     <Search className="w-4 h-4" />
                 </button>

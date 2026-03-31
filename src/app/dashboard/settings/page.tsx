@@ -1,10 +1,12 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { Eye, EyeOff, CheckCircle2 } from "lucide-react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { Eye, EyeOff, CheckCircle2, AlertTriangle, RefreshCcw, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
 import { browserSupabase } from "@/lib/supabase/browser";
 import { changePasswordAction } from "./actions";
+import { Button } from "@/components/ui/button";
+import { AdminNoticeBanner } from "@/components/ui/admin-notice-banner";
 
 interface Profile {
   displayName: string;
@@ -15,6 +17,8 @@ interface Profile {
 export default function SettingsPage() {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [profileLoading, setProfileLoading] = useState(true);
+  const [profileError, setProfileError] = useState<string | null>(null);
+  const [refreshingProfile, setRefreshingProfile] = useState(false);
 
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
@@ -24,6 +28,7 @@ export default function SettingsPage() {
   const [showConfirm, setShowConfirm] = useState(false);
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
+  const [formError, setFormError] = useState<string | null>(null);
 
   useEffect(() => {
     async function loadProfile() {
@@ -50,19 +55,77 @@ export default function SettingsPage() {
     loadProfile();
   }, []);
 
+  const refreshProfile = useCallback(async () => {
+    try {
+      setRefreshingProfile(true);
+      setProfileError(null);
+
+      const [profileRes, { data: { user } }] = await Promise.all([
+        fetch("/api/auth/profile", { cache: "no-store" }),
+        browserSupabase.auth.getUser(),
+      ]);
+
+      if (!profileRes.ok) {
+        throw new Error("Failed to load profile details.");
+      }
+
+      const { data } = await profileRes.json();
+
+      setProfile({
+        displayName: data.displayName,
+        role: data.role,
+        email: user?.email ?? "",
+      });
+
+      toast.success("Profile refreshed.");
+    } catch {
+      setProfileError("We couldn't refresh your profile details right now.");
+    } finally {
+      setRefreshingProfile(false);
+    }
+  }, []);
+
+  const passwordChecks = useMemo(
+    () => [
+      {
+        label: "Current password is entered",
+        passed: currentPassword.length > 0,
+      },
+      {
+        label: "New password is at least 6 characters",
+        passed: newPassword.length >= 6,
+      },
+      {
+        label: "New password is different from the current password",
+        passed: newPassword.length > 0 && newPassword !== currentPassword,
+      },
+      {
+        label: "Confirmation matches the new password",
+        passed: confirmPassword.length > 0 && newPassword === confirmPassword,
+      },
+    ],
+    [confirmPassword, currentPassword, newPassword]
+  );
+
+  const isFormReady = passwordChecks.every((check) => check.passed);
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setSuccess(false);
+    setFormError(null);
 
     if (newPassword !== confirmPassword) {
+      setFormError("New passwords do not match.");
       toast.error("New passwords do not match.");
       return;
     }
     if (newPassword.length < 6) {
+      setFormError("Password must be at least 6 characters.");
       toast.error("Password must be at least 6 characters.");
       return;
     }
     if (newPassword === currentPassword) {
+      setFormError("New password must be different from your current password.");
       toast.error("New password must be different from your current password.");
       return;
     }
@@ -76,6 +139,7 @@ export default function SettingsPage() {
     });
 
     if (authError) {
+      setFormError("Current password is incorrect.");
       toast.error("Current password is incorrect.");
       setLoading(false);
       return;
@@ -84,6 +148,7 @@ export default function SettingsPage() {
     const { error } = await changePasswordAction(newPassword);
 
     if (error) {
+      setFormError(error);
       toast.error(error);
       setLoading(false);
       return;
@@ -93,6 +158,7 @@ export default function SettingsPage() {
     setNewPassword("");
     setConfirmPassword("");
     setSuccess(true);
+    setFormError(null);
     setLoading(false);
   }
 
@@ -108,8 +174,32 @@ export default function SettingsPage() {
           Settings
         </h1>
         <p className="text-sm text-[#828282] font-montserrat mt-1">
-          Manage your account settings
+          Manage your account settings and keep your sign-in secure.
         </p>
+      </div>
+
+      <div className="rounded-2xl border border-[#E7A3B0]/20 bg-[#fff9fb] p-5 shadow-sm">
+        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+          <div className="space-y-1">
+            <p className="text-sm font-semibold text-[#8a6b73]">Account safety</p>
+            <p className="text-sm text-[#8a6b73]">
+              Refresh your profile details if anything looks outdated, and update your password only when every requirement below is satisfied.
+            </p>
+            <p className="text-xs text-[#9a7a83]">
+              Changing your password signs out your other sessions for extra protection.
+            </p>
+          </div>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={refreshProfile}
+            disabled={profileLoading || refreshingProfile}
+            className="h-10 border-[#E7A3B0]/30 text-[#b96d7d] hover:bg-[#fff5f7] hover:text-[#b96d7d]"
+          >
+            <RefreshCcw className={`mr-2 h-4 w-4 ${refreshingProfile ? "animate-spin" : ""}`} />
+            Refresh Profile
+          </Button>
+        </div>
       </div>
 
       {/* Profile card */}
@@ -144,6 +234,21 @@ export default function SettingsPage() {
             </div>
           </div>
         )}
+
+        {profileError && (
+          <div className="mt-4">
+            <AdminNoticeBanner
+              tone="error"
+              title="Unable to refresh profile"
+              message={profileError}
+              onDismiss={() => setProfileError(null)}
+              actionLabel="Try again"
+              onAction={() => {
+                void refreshProfile();
+              }}
+            />
+          </div>
+        )}
       </div>
 
       {/* Change password card */}
@@ -152,12 +257,58 @@ export default function SettingsPage() {
           Change Password
         </h2>
 
-        {success && (
-          <div className="flex items-center gap-2 text-sm text-green-700 bg-green-50 border border-green-100 rounded-xl px-4 py-3 mb-6">
-            <CheckCircle2 size={16} className="flex-shrink-0" />
-            Password updated successfully. All other sessions have been signed out.
+        <div className="mb-6 rounded-xl border border-gray-100 bg-gray-50 px-4 py-4">
+          <div className="flex items-start gap-3">
+            <div className="rounded-full bg-white p-2 text-[#E7A3B0] shadow-sm">
+              <ShieldCheck size={16} />
+            </div>
+            <div className="space-y-1">
+              <p className="text-sm font-semibold text-[#1A1A1A]">Before you save</p>
+              <p className="text-sm text-[#666]">
+                Enter your current password first, then choose a new password you have not used in this session.
+              </p>
+            </div>
           </div>
+        </div>
+
+        {success && (
+          <AdminNoticeBanner
+            tone="success"
+            title="Password updated"
+            message="Your password was updated successfully. Other sessions have been signed out for safety."
+          />
         )}
+
+        {formError && (
+          <AdminNoticeBanner
+            tone="error"
+            title="Unable to update password"
+            message={formError}
+            onDismiss={() => setFormError(null)}
+          />
+        )}
+
+        <div className="mb-6 rounded-xl border border-gray-100 bg-gray-50 px-4 py-4">
+          <p className="text-xs font-semibold uppercase tracking-widest text-[#828282] mb-3">
+            Password Checklist
+          </p>
+          <div className="space-y-2">
+            {passwordChecks.map((check) => (
+              <div key={check.label} className="flex items-center gap-2 text-sm">
+                <span
+                  className={`inline-flex h-5 w-5 items-center justify-center rounded-full text-[11px] font-bold ${
+                    check.passed ? "bg-green-100 text-green-700" : "bg-gray-200 text-gray-500"
+                  }`}
+                >
+                  {check.passed ? "✓" : "•"}
+                </span>
+                <span className={check.passed ? "text-[#1A1A1A]" : "text-[#666]"}>
+                  {check.label}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
 
         <form onSubmit={handleSubmit} className="space-y-5">
 
@@ -253,7 +404,7 @@ export default function SettingsPage() {
 
           <button
             type="submit"
-            disabled={loading}
+            disabled={loading || !isFormReady}
             className="w-full bg-gradient-to-r from-[#E7A3B0] to-[#E2899A] text-white font-bold py-[18px] rounded-xl hover:from-[#E2899A] hover:to-[#DE7588] transition-all duration-300 text-[13px] tracking-widest uppercase shadow-[0_8px_20px_-6px_rgba(231,163,176,0.6)] hover:shadow-[0_12px_24px_-6px_rgba(231,163,176,0.8)] hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.98] disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:translate-y-0 disabled:hover:shadow-[0_8px_20px_-6px_rgba(231,163,176,0.6)]"
           >
             {loading ? "Updating..." : "Update Password"}

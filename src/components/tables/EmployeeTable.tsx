@@ -16,6 +16,9 @@ interface EmployeeTableProps {
   openEditModal: (employee: Employee) => void;
   openDeleteModal: (employee: Employee) => void;
   currentUserId?: string | null;
+  onRowActivate?: (employee: Employee) => void;
+  emptyTitle?: string;
+  emptyDescription?: string;
 }
 
 function formatDate(value: string) {
@@ -37,6 +40,9 @@ export function EmployeeTable({
   openEditModal,
   openDeleteModal,
   currentUserId,
+  onRowActivate,
+  emptyTitle = "No employees found",
+  emptyDescription = "We couldn't find any employees matching your current search or filters.",
 }: EmployeeTableProps) {
   const emptyState = (
     <Empty className="border-none rounded-none py-12">
@@ -44,10 +50,8 @@ export function EmployeeTable({
         <EmptyMedia variant="icon">
           <Users className="size-6 text-[#E7A3B0]" />
         </EmptyMedia>
-        <EmptyTitle>No employees found</EmptyTitle>
-        <EmptyDescription>
-          We couldn&apos;t find any employees matching your current search or filters.
-        </EmptyDescription>
+        <EmptyTitle>{emptyTitle}</EmptyTitle>
+        <EmptyDescription>{emptyDescription}</EmptyDescription>
       </EmptyHeader>
     </Empty>
   );
@@ -87,8 +91,20 @@ export function EmployeeTable({
                     <div className="min-w-0 flex-1 space-y-2">
                       <div className="flex items-start justify-between gap-3">
                         <div className="min-w-0">
-                          <p className="font-medium text-sm text-gray-900 truncate">{employee.first_name} {employee.last_name}</p>
-                          <p className="text-xs text-gray-500 truncate">{employee.username}</p>
+                          <button
+                            type="button"
+                            onClick={() => onRowActivate?.(employee)}
+                            className="max-w-full text-left font-medium text-sm text-gray-900 transition-colors hover:text-[#b96d7d]"
+                          >
+                            <span className="block truncate">{employee.first_name} {employee.last_name}</span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => openViewModal(employee)}
+                            className="max-w-full text-left text-xs text-gray-500 transition-colors hover:text-[#b96d7d]"
+                          >
+                            <span className="block truncate">{employee.username}</span>
+                          </button>
                         </div>
                         <span className="shrink-0 rounded-full bg-gray-100 px-2 py-1 text-[10px] font-semibold text-gray-600">
                           {employee.user_key}
@@ -178,6 +194,7 @@ export function EmployeeTable({
                     <TableRow
                       key={employee.user_key}
                       className={`border-b hover:bg-gray-50 ${selectedRows.has(employee.user_id) ? "bg-[#E7A3B0]/5" : ""}`}
+                      onDoubleClick={() => onRowActivate?.(employee)}
                     >
                       <TableCell className="p-4">
                         {!isOwnRow && (
@@ -191,10 +208,32 @@ export function EmployeeTable({
                         <span className="font-medium text-gray-900">{employee.user_key}</span>
                       </TableCell>
                       <TableCell className="p-4">
-                        <span className="font-medium text-gray-900">{employee.username}</span>
+                        <button
+                          type="button"
+                          onClick={() => openViewModal(employee)}
+                          className="font-medium text-left text-gray-900 transition-colors hover:text-[#b96d7d]"
+                        >
+                          {employee.username}
+                        </button>
                       </TableCell>
-                      <TableCell className="p-4 text-gray-700">{employee.first_name}</TableCell>
-                      <TableCell className="p-4 text-gray-700">{employee.last_name}</TableCell>
+                      <TableCell className="p-4 text-gray-700">
+                        <button
+                          type="button"
+                          onClick={() => onRowActivate?.(employee)}
+                          className="text-left transition-colors hover:text-[#b96d7d]"
+                        >
+                          {employee.first_name}
+                        </button>
+                      </TableCell>
+                      <TableCell className="p-4 text-gray-700">
+                        <button
+                          type="button"
+                          onClick={() => onRowActivate?.(employee)}
+                          className="text-left transition-colors hover:text-[#b96d7d]"
+                        >
+                          {employee.last_name}
+                        </button>
+                      </TableCell>
                       <TableCell className="p-4 text-gray-600 text-sm">{formatDate(employee.created_at)}</TableCell>
                       <TableCell className="p-4 text-gray-600 text-sm">{formatDate(employee.updated_at)}</TableCell>
                       <TableCell className="p-4">

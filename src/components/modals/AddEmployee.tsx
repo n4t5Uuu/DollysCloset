@@ -31,6 +31,10 @@ export default function AddEmployee({ isOpen, onClose, employeeToEdit, onEmploye
         password: "",
     });
     const [showDiscardConfirm, setShowDiscardConfirm] = useState(false);
+    const trimmedEmail = formData.username.trim();
+    const trimmedFirstName = formData.first_name.trim();
+    const trimmedLastName = formData.last_name.trim();
+    const isSubmitBlocked = actionLoading || !trimmedEmail || !trimmedFirstName || !trimmedLastName || (!employeeToEdit && formData.password.length < 6);
 
     const hasUnsavedChanges = () => {
         if (employeeToEdit) {
@@ -72,6 +76,26 @@ export default function AddEmployee({ isOpen, onClose, employeeToEdit, onEmploye
             setError(null);
         }
     }, [isOpen, employeeToEdit]);
+
+    useEffect(() => {
+        if (!isOpen) return;
+
+        const originalOverflow = document.body.style.overflow;
+        document.body.style.overflow = "hidden";
+
+        const handleEscape = (event: KeyboardEvent) => {
+            if (event.key === "Escape" && !actionLoading) {
+                handleClose();
+            }
+        };
+
+        document.addEventListener("keydown", handleEscape);
+
+        return () => {
+            document.body.style.overflow = originalOverflow;
+            document.removeEventListener("keydown", handleEscape);
+        };
+    }, [actionLoading, isOpen]);
 
     /**
      * Handles saving an employee to the backend.
@@ -142,15 +166,27 @@ export default function AddEmployee({ isOpen, onClose, employeeToEdit, onEmploye
     if (!isOpen) return null;
 
     return (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-            <Card className="bg-white w-full max-w-md p-0">
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={(event) => {
+            if (event.target === event.currentTarget && !actionLoading) {
+                handleClose();
+            }
+        }}>
+            <Card className="bg-white w-full max-w-md max-h-[90vh] flex flex-col overflow-hidden p-0" onClick={(event) => event.stopPropagation()}>
                 <CardHeader className="flex flex-row items-center justify-between border-b p-6 space-y-0 text-gray-900">
-                    <CardTitle>{employeeToEdit ? "Edit Employee" : "Add New Employee"}</CardTitle>
+                    <div className="space-y-1">
+                        <CardTitle>{employeeToEdit ? "Edit Employee" : "Add New Employee"}</CardTitle>
+                        <p className="text-sm text-gray-500">
+                            {employeeToEdit ? "Update employee details or reset the password if needed." : "Create an employee account with a valid email and temporary password."}
+                        </p>
+                    </div>
                     <button type="button" onClick={handleClose} className="text-[#cc7f8f] hover:text-[#b96d7d] rounded-md p-1 hover:bg-[#fff5f7] cursor-pointer"><X className="w-5 h-5" /></button>
                 </CardHeader>
 
                 <form onSubmit={handleSaveEmployee}>
-                    <CardContent className="space-y-5 p-6">
+                    <CardContent className="space-y-5 p-6 overflow-y-auto">
+                        <div className="rounded-lg border border-[#E7A3B0]/20 bg-[#fff9fb] px-4 py-3 text-sm text-[#8a6b73]">
+                            Fields marked by context are required. Passwords must be at least 6 characters long.
+                        </div>
                         {error && (
                             <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">
                                 {error}
@@ -221,7 +257,7 @@ export default function AddEmployee({ isOpen, onClose, employeeToEdit, onEmploye
                         <Button
                             type="submit"
                             className="flex-1 bg-linear-to-r from-[#E7A3B0] to-[#f0b8c3] text-white hover:from-[#d891a0] hover:to-[#E7A3B0]"
-                            disabled={actionLoading}
+                            disabled={isSubmitBlocked}
                         >
                             {actionLoading ? (
                                 <>

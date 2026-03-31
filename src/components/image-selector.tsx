@@ -35,6 +35,7 @@ export default function ImageSelector({
   onFileRemove,
 }: ImageSelectorProps) {
   const [isCompressing, setIsCompressing] = useState(false);
+  const [statusMessage, setStatusMessage] = useState<{ tone: "success" | "warning"; text: string } | null>(null);
   const [alertConfig, setAlertConfig] = useState<{
     isOpen: boolean;
     title: string;
@@ -86,8 +87,16 @@ export default function ImageSelector({
           compressedFiles.push(await compressImage(file));
         }
         onFilesAdd(compressedFiles);
+        setStatusMessage({
+          tone: "success",
+          text: `${compressedFiles.length} image${compressedFiles.length !== 1 ? "s" : ""} ready to upload when you save this product.`,
+        });
       } catch (error) {
         console.error("Compression failed:", error);
+        setStatusMessage({
+          tone: "warning",
+          text: "Some images could not be prepared. Try again with a smaller file or a different format.",
+        });
       } finally {
         setIsCompressing(false);
       }
@@ -131,8 +140,16 @@ export default function ImageSelector({
           compressedFiles.push(await compressImage(file));
         }
         onFilesAdd(compressedFiles);
+        setStatusMessage({
+          tone: "success",
+          text: `${compressedFiles.length} image${compressedFiles.length !== 1 ? "s" : ""} added to this draft.`,
+        });
       } catch (error) {
         console.error("Compression failed:", error);
+        setStatusMessage({
+          tone: "warning",
+          text: "We couldn't prepare those images. Please try again.",
+        });
       } finally {
         setIsCompressing(false);
       }
@@ -148,6 +165,16 @@ export default function ImageSelector({
           Product Images ({stagedFiles.length}/5)
         </label>
       </div>
+
+      {statusMessage && (
+        <div className={`rounded-lg px-3 py-2 text-sm ${
+          statusMessage.tone === "success"
+            ? "border border-green-200 bg-green-50 text-green-700"
+            : "border border-amber-200 bg-amber-50 text-amber-800"
+        }`}>
+          {statusMessage.text}
+        </div>
+      )}
 
       {canAddMore && (
         <div

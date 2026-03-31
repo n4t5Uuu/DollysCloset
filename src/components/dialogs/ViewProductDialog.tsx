@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 /* eslint-disable @next/next/no-img-element */
 import { InventoryProduct as Product, InventoryProductImage as ProductImage } from "@/types/inventory.types";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -21,6 +22,26 @@ export default function ViewProductDialog({
   onClose,
   getCategoryName
 }: ViewProductDialogProps) {
+  useEffect(() => {
+    if (!product) return;
+
+    const originalOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        onClose();
+      }
+    };
+
+    document.addEventListener("keydown", handleEscape);
+
+    return () => {
+      document.body.style.overflow = originalOverflow;
+      document.removeEventListener("keydown", handleEscape);
+    };
+  }, [onClose, product]);
+
   if (!product) return null;
 
   const orderedImages = [...images].sort((a, b) => {
@@ -29,10 +50,19 @@ export default function ViewProductDialog({
   });
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <Card className="bg-white w-full max-w-2xl max-h-[90vh] overflow-y-auto p-0 text-gray-900">
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={(event) => {
+      if (event.target === event.currentTarget) {
+        onClose();
+      }
+    }}>
+      <Card className="bg-white w-full max-w-2xl max-h-[90vh] flex flex-col overflow-hidden p-0 text-gray-900" onClick={(event) => event.stopPropagation()}>
         <CardHeader className="flex flex-row items-center justify-between border-b p-6 space-y-0 text-gray-900">
-          <CardTitle className="text-gray-900">Product Details</CardTitle>
+          <div className="space-y-1">
+            <CardTitle className="text-gray-900">Product Details</CardTitle>
+            <p className="text-sm text-gray-500">
+              Review product information, images, and current catalog visibility.
+            </p>
+          </div>
           <button
             type="button"
             onClick={onClose}
@@ -42,7 +72,7 @@ export default function ViewProductDialog({
             <X className="w-5 h-5" />
           </button>
         </CardHeader>
-        <CardContent className="space-y-4 p-6 text-gray-900">
+        <CardContent className="space-y-4 overflow-y-auto p-6 text-gray-900">
           <div className="w-full">
             {images.length > 0 ? (
               <>

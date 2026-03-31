@@ -310,6 +310,9 @@ export default function CategoryCascadingFilter({
         type="button"
         onClick={() => setIsOpen((previous) => !previous)}
         className="w-[180px] h-9 px-3 border border-input rounded-md bg-white text-sm text-gray-900 flex items-center justify-between"
+        aria-haspopup="dialog"
+        aria-expanded={isOpen}
+        title={selectedLabel}
       >
         <span className="truncate text-left">{selectedLabel}</span>
         <ChevronDown className="h-4 w-4 text-gray-400" />

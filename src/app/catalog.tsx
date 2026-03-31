@@ -8,15 +8,14 @@ import CustomPagination from "@/components/general-components/CustomPagination";
 import SearchBar from "@/components/general-components/SearchBar";
 import CatalogSidebar from "@/components/sidebar/CatalogSidebar";
 import ProductCard from "@/components/catalog/ProductCard";
-import { Product } from "@/types/product.types";
 import { InfiniteSlider } from "@/components/motion-primitives/infinite-slider";
 import { TextEffect } from "@/components/motion-primitives/text-effect";
 import { InView } from "@/components/motion-primitives/in-view";
 import { Button } from "@/components/ui/button";
-import { ANNOUNCEMENT_SLUG } from "@/lib/business-details/business-details";
-import { CatalogCategory, CatalogApiProduct } from "@/types/product.types";
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty";
 import { PackageSearch, Filter, RefreshCw, X } from "lucide-react";
+import { ANNOUNCEMENT_SLUG } from "@/lib/business-details/business-details";
+import { type CatalogApiProduct, type CatalogCategory, type Product } from "@/types/product.types";
 import {
     Sheet,
     SheetContent,
@@ -451,7 +450,7 @@ export default function Catalog() {
         : visibleItemStart + paginatedProducts.length - 1;
 
     const featuredViewProducts = featuredProducts.map(toViewProduct);
-    const isBrowsingFiltered = activeFilter !== "all" || searchQuery.trim() !== "" || sortBy !== "newest";
+    const isBrowsingFiltered = activeFilter !== "all" || searchQuery.trim() !== "" || sortBy !== "newest" || hasActivePriceFilter;
     const newArrivalCount = useMemo(() => products.filter((product) => product.isNewArrival).length, [products]);
 
     const categoryProductCounts = useMemo(() => {
@@ -554,6 +553,19 @@ export default function Catalog() {
     ].filter((chip): chip is { key: string; label: string; onRemove: () => void } => Boolean(chip));
 
     const activeBrowseCount = activeBrowseChips.length;
+    const browseSummaryMessage = activeBrowseCount > 0
+        ? "Showing results for your current filters. Remove any chip to widen the collection."
+        : "Browse the full collection or narrow it with search, category, sort, and price controls.";
+    const noResultsTitle = searchQuery.trim() !== ""
+        ? `No matches for "${searchQuery.trim()}"`
+        : activeBrowseCount > 0
+            ? "No products matched your filters"
+            : "No products available right now";
+    const noResultsDescription = searchQuery.trim() !== ""
+        ? "Try a shorter search term, a broader category, or clear a few filters to see more products."
+        : activeBrowseCount > 0
+            ? "Your current filters narrowed the collection too much. Try removing one or more filters to explore more items."
+            : "The collection is currently empty. Please check back later for new arrivals.";
 
     return (
         <main className="w-full flex flex-col items-center">
@@ -744,11 +756,9 @@ export default function Catalog() {
                                     <div className="text-xs font-bold tracking-widest text-[#E7A3B0] font-oswald uppercase">
                                         Showing {visibleItemStart}-{visibleItemEnd} of {filteredProducts.length} {filteredProducts.length === 1 ? "Item" : "Items"}
                                     </div>
-                                {activeBrowseCount > 0 && (
                                     <p className="font-montserrat text-sm text-[#8a6b73]">
-                                        Showing results for your current filters.
+                                        {browseSummaryMessage}
                                     </p>
-                                )}
                             </div>
                         </div>
 
@@ -825,19 +835,33 @@ export default function Catalog() {
                                         <EmptyMedia variant="icon" className="bg-[#fff0f5]">
                                             <PackageSearch className="size-6 text-[#E7A3B0]" />
                                         </EmptyMedia>
-                                        <EmptyTitle className="font-playfair-display text-2xl">No products matched</EmptyTitle>
+                                        <EmptyTitle className="font-playfair-display text-2xl">{noResultsTitle}</EmptyTitle>
                                         <EmptyDescription className="font-montserrat">
-                                            We couldn&apos;t find any pieces in our collection that match your current search or filters. 
-                                            Try exploring a different category or clearing your search.
+                                            {noResultsDescription}
                                         </EmptyDescription>
                                     </EmptyHeader>
+                                    {activeBrowseCount > 0 && (
+                                        <div className="mt-4 flex flex-wrap items-center justify-center gap-2">
+                                            {activeBrowseChips.map((chip) => (
+                                                <button
+                                                    key={`empty-${chip.key}`}
+                                                    type="button"
+                                                    onClick={chip.onRemove}
+                                                    className="inline-flex items-center gap-2 rounded-full border border-[#E7A3B0]/25 bg-white px-3 py-1.5 font-montserrat text-xs font-medium text-[#6f5058] transition-colors hover:bg-[#fff5f7]"
+                                                >
+                                                    <span>{chip.label}</span>
+                                                    <X className="h-3.5 w-3.5 text-[#b47c88]" />
+                                                </button>
+                                            ))}
+                                        </div>
+                                    )}
                                     <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
                                         <Button
                                             type="button"
-                                            onClick={clearBrowseState}
+                                            onClick={activeBrowseCount > 0 ? clearBrowseState : fetchCatalog}
                                             className="bg-[#E7A3B0] text-white hover:bg-[#d891a0]"
                                         >
-                                            Show all products
+                                            {activeBrowseCount > 0 ? "Clear all filters" : "Refresh collection"}
                                         </Button>
                                         <Button
                                             type="button"

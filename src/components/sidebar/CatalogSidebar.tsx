@@ -19,7 +19,7 @@ import {
 import {cn} from "@/lib/utils";
 import { ArrowUpDown } from "lucide-react";
 
-import { CatalogCategory } from "@/types/product.types";
+import { type CatalogCategory } from "@/types/product.types";
 
 interface CatalogSidebarProps {
     categories: CatalogCategory[];
@@ -235,24 +235,26 @@ export default function CatalogSidebar({
                     style={{ paddingLeft: `${8 + depth * 14}px` }}
                     title={getCategoryPath(Number(category.category_id))}
                 >
-                    <span className="flex min-w-0 items-center gap-2">
+                    <span className="flex items-center justify-between gap-3">
+                        <span className="flex min-w-0 items-center gap-2">
+                            <span
+                                className={cn(
+                                    "h-1.5 w-1.5 shrink-0 rounded-full",
+                                    activeFilter === filterValue ? "bg-[#E7A3B0]" : "bg-gray-300 group-hover:bg-[#E7A3B0]"
+                                )}
+                            />
+                            <span className="line-clamp-2 leading-snug text-left">{category.category_name}</span>
+                        </span>
                         <span
                             className={cn(
-                                "h-1.5 w-1.5 rounded-full",
-                                activeFilter === filterValue ? "bg-[#E7A3B0]" : "bg-gray-300 group-hover:bg-[#E7A3B0]"
+                                "shrink-0 rounded-full px-2 py-0.5 text-[10px] font-oswald tracking-[0.18em]",
+                                activeFilter === filterValue
+                                    ? "bg-[#2a2a2a] text-[#f6ccd4]"
+                                    : "bg-[#f8f3f4] text-[#8d7078]"
                             )}
-                        />
-                        <span className="truncate">{category.category_name}</span>
-                    </span>
-                    <span
-                        className={cn(
-                            "ml-3 rounded-full px-2 py-0.5 text-[10px] font-oswald tracking-[0.18em]",
-                            activeFilter === filterValue
-                                ? "bg-[#2a2a2a] text-[#f6ccd4]"
-                                : "bg-[#f8f3f4] text-[#8d7078]"
-                        )}
-                    >
-                        {categoryCount}
+                        >
+                            {categoryCount}
+                        </span>
                     </span>
                 </button>
             );

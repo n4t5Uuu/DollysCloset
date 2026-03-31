@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { useSearchParams, useRouter, usePathname } from "next/navigation";
-import { Plus, Trash, AlertTriangle, Search, X, Upload, SlidersHorizontal } from "lucide-react";
+import { Plus, Trash, AlertTriangle, Search, X, Upload, SlidersHorizontal, RefreshCw } from "lucide-react";
 import { browserSupabase } from "@/lib/supabase/browser";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -34,6 +34,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { AdminNoticeBanner } from "@/components/ui/admin-notice-banner";
 
 interface InventoryManagementProps {
   initialAvailabilityFilter?: string;
@@ -60,6 +61,7 @@ export default function InventoryManagement({ initialAvailabilityFilter }: Inven
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [actionNotice, setActionNotice] = useState<{ tone: "success" | "warning"; message: string } | null>(null);
 
   const [searchQuery, setSearchQuery] = useState("");
   const [visibilityFilter, setVisibilityFilter] = useState("all");
@@ -69,6 +71,7 @@ export default function InventoryManagement({ initialAvailabilityFilter }: Inven
   const [selectedProducts, setSelectedProducts] = useState<Set<string>>(new Set());
   const [showFilters, setShowFilters] = useState(false);
   const filtersRef = useRef<HTMLDivElement>(null);
+  const searchInputRef = useRef<HTMLInputElement | null>(null);
   const [showAddModal, setShowAddModal] = useState(false);
   const [viewProduct, setViewProduct] = useState<Product | null>(null);
   const [viewImages, setViewImages] = useState<ProductImage[]>([]);
@@ -79,6 +82,25 @@ export default function InventoryManagement({ initialAvailabilityFilter }: Inven
 
   const itemsPerPage = 10;
   const lowStockThreshold = 10;
+  const availabilityLabels: Record<string, string> = {
+    "all": "All stock",
+    "in-stock": "In stock",
+    "low-stock": "Low stock",
+    "out-of-stock": "Out of stock",
+    "stock-alerts": "Stock alerts",
+    "no-image": "No image",
+  };
+  const visibilityLabels: Record<string, string> = {
+    "all": "All visibility",
+    "published": "Published",
+    "unpublished": "Unpublished",
+  };
+  const sortLabels: Record<string, string> = {
+    "newest": "Newest first",
+    "oldest": "Oldest first",
+    "az": "Name A to Z",
+    "za": "Name Z to A",
+  };
 
   const fetchProducts = useCallback(async (showGlobalLoader = false) => {
     try {
@@ -138,6 +160,28 @@ export default function InventoryManagement({ initialAvailabilityFilter }: Inven
   }, []);
 
   useEffect(() => {
+    const handleKeyboardShortcuts = (event: KeyboardEvent) => {
+      const activeElement = document.activeElement;
+      const isTypingTarget = activeElement instanceof HTMLInputElement || activeElement instanceof HTMLTextAreaElement;
+      const isSearchFocused = activeElement === searchInputRef.current;
+
+      if (event.key === "/" && !isTypingTarget) {
+        event.preventDefault();
+        searchInputRef.current?.focus();
+        return;
+      }
+
+      if (event.key === "Escape" && isSearchFocused) {
+        event.preventDefault();
+        searchInputRef.current?.blur();
+      }
+    };
+
+    document.addEventListener("keydown", handleKeyboardShortcuts);
+    return () => document.removeEventListener("keydown", handleKeyboardShortcuts);
+  }, []);
+
+  useEffect(() => {
     router.replace(pathname);
   }, [searchQuery, visibilityFilter, availabilityFilter, categoryFilter, dateSort, router, pathname]);
 
@@ -187,10 +231,36 @@ export default function InventoryManagement({ initialAvailabilityFilter }: Inven
     return isNaN(id) ? null : getDescendantIds(id);
   }, [categoryFilter, categories, getDescendantIds]);
 
+  const buildCategoryPath = useCallback((id: number) => {
+    const category = categoryById.get(id);
+    if (!category) return 'Unknown';
+
+    const path: string[] = [category.category_name];
+    let parentId = category.parent_category;
+    const visited = new Set<number>([id]);
+
+    while (parentId !== null) {
+      if (visited.has(parentId)) break;
+      visited.add(parentId);
+      const parent = categoryById.get(parentId);
+      if (!parent) break;
+      path.unshift(parent.category_name);
+      parentId = parent.parent_category;
+    }
+
+    return path.join(" > ");
+  }, [categoryById]);
+
   const filteredProducts = useMemo(() => {
     return products
       .filter((product) => {
-        const matchesSearch = product.product_name.toLowerCase().includes(searchQuery.toLowerCase());
+        const normalizedQuery = searchQuery.trim().toLowerCase();
+        const categoryPath = buildCategoryPath(product.category_id).toLowerCase();
+        const matchesSearch = normalizedQuery === ""
+          || product.product_name.toLowerCase().includes(normalizedQuery)
+          || product.product_brand.toLowerCase().includes(normalizedQuery)
+          || (product.product_description || "").toLowerCase().includes(normalizedQuery)
+          || categoryPath.includes(normalizedQuery);
         const matchesCategory = filteredCategoryIds === null || filteredCategoryIds.has(Number(product.category_id));
         const matchesAvailability = availabilityFilter === "all" ||
           (availabilityFilter === "in-stock" && product.product_stock >= lowStockThreshold) ||
@@ -213,7 +283,7 @@ export default function InventoryManagement({ initialAvailabilityFilter }: Inven
         if (dateSort === "za") return secondProduct.product_name.localeCompare(firstProduct.product_name);
         return 0;
       });
-  }, [products, searchQuery, filteredCategoryIds, availabilityFilter, visibilityFilter, dateSort, lowStockThreshold]);
+  }, [products, searchQuery, filteredCategoryIds, availabilityFilter, visibilityFilter, dateSort, lowStockThreshold, buildCategoryPath]);
 
   const totalPages = Math.max(1, Math.ceil(filteredProducts.length / itemsPerPage));
   const safePage = Math.min(currentPage, totalPages);
@@ -221,26 +291,118 @@ export default function InventoryManagement({ initialAvailabilityFilter }: Inven
   const endIndex = startIndex + itemsPerPage;
   const currentProducts = filteredProducts.slice(startIndex, endIndex);
 
-  const getCategoryName = useCallback((id: number) => {
-    const category = categoryById.get(id);
-    if (!category) return 'Unknown';
+  const getCategoryName = buildCategoryPath;
 
-    const path: string[] = [category.category_name];
-    let parentId = category.parent_category;
-    const visited = new Set<number>([id]);
+  const selectedCategoryLabel = useMemo(() => {
+    if (categoryFilter === "all") return null;
 
-    while (parentId !== null) {
-      if (visited.has(parentId)) break;
-      visited.add(parentId);
-      const parent = categoryById.get(parentId);
-      if (!parent) break;
-      path.unshift(parent.category_name);
-      parentId = parent.parent_category;
+    if (categoryFilter.startsWith("rootgroup:")) {
+      const rootKey = categoryFilter.slice("rootgroup:".length);
+      const rootMatch = categories.find(
+        (category) => category.parent_category === null && category.category_name.trim().toLowerCase() === rootKey
+      );
+      return rootMatch?.category_name ?? "Category";
     }
-    return path.join(" > ");
-  }, [categoryById]);
 
-const openAddModal = () => {
+    const categoryId = Number(categoryFilter);
+    return Number.isNaN(categoryId) ? "Category" : getCategoryName(categoryId);
+  }, [categories, categoryFilter, getCategoryName]);
+
+  const activeFilterChips = useMemo(() => {
+    return [
+      searchQuery.trim()
+        ? { key: "search", label: `Search: ${searchQuery.trim()}`, onRemove: () => setSearchQuery("") }
+        : null,
+      visibilityFilter !== "all"
+        ? { key: "visibility", label: `Visibility: ${visibilityLabels[visibilityFilter] ?? visibilityFilter}`, onRemove: () => setVisibilityFilter("all") }
+        : null,
+      availabilityFilter !== "all"
+        ? { key: "availability", label: `Availability: ${availabilityLabels[availabilityFilter] ?? availabilityFilter}`, onRemove: () => setAvailabilityFilter("all") }
+        : null,
+      categoryFilter !== "all" && selectedCategoryLabel
+        ? { key: "category", label: `Category: ${selectedCategoryLabel}`, onRemove: () => setCategoryFilter("all") }
+        : null,
+      dateSort !== "newest"
+        ? { key: "sort", label: `Sort: ${sortLabels[dateSort] ?? dateSort}`, onRemove: () => setDateSort("newest") }
+        : null,
+    ].filter((chip): chip is { key: string; label: string; onRemove: () => void } => Boolean(chip));
+  }, [availabilityFilter, categoryFilter, dateSort, searchQuery, selectedCategoryLabel, visibilityFilter]);
+
+  const quickFilterCards = useMemo(() => {
+    const totalCount = products.length;
+    const publishedCount = products.filter((product) => product.show_in_catalog).length;
+    const hiddenCount = totalCount - publishedCount;
+    const stockAlertCount = products.filter((product) => product.product_stock < lowStockThreshold).length;
+    const noImageCount = products.filter((product) => !product.image_id).length;
+
+    return [
+      {
+        key: "all",
+        label: "All Products",
+        count: totalCount,
+        active: availabilityFilter === "all" && visibilityFilter === "all",
+        onClick: () => {
+          setAvailabilityFilter("all");
+          setVisibilityFilter("all");
+        },
+      },
+      {
+        key: "published",
+        label: "Published",
+        count: publishedCount,
+        active: visibilityFilter === "published",
+        onClick: () => {
+          setVisibilityFilter("published");
+          setAvailabilityFilter("all");
+        },
+      },
+      {
+        key: "hidden",
+        label: "Hidden",
+        count: hiddenCount,
+        active: visibilityFilter === "unpublished",
+        onClick: () => {
+          setVisibilityFilter("unpublished");
+          setAvailabilityFilter("all");
+        },
+      },
+      {
+        key: "alerts",
+        label: "Stock Alerts",
+        count: stockAlertCount,
+        active: availabilityFilter === "stock-alerts",
+        onClick: () => {
+          setAvailabilityFilter("stock-alerts");
+          setVisibilityFilter("all");
+        },
+      },
+      {
+        key: "no-image",
+        label: "No Image",
+        count: noImageCount,
+        active: availabilityFilter === "no-image",
+        onClick: () => {
+          setAvailabilityFilter("no-image");
+          setVisibilityFilter("all");
+        },
+      },
+    ];
+  }, [availabilityFilter, lowStockThreshold, products, visibilityFilter]);
+
+  const inventoryEmptyTitle = products.length === 0 ? "No products yet" : "No products matched your filters";
+  const inventoryEmptyDescription = products.length === 0
+    ? "Add a product or import your inventory to start managing products here."
+    : "Try clearing one or more filters, or broaden your search to see more products.";
+
+  const clearAllFilters = () => {
+    setSearchQuery("");
+    setVisibilityFilter("all");
+    setAvailabilityFilter("all");
+    setCategoryFilter("all");
+    setDateSort("newest");
+  };
+
+  const openAddModal = () => {
     setEditingProduct(null);
     setShowAddModal(true);
   };
@@ -266,6 +428,10 @@ const openAddModal = () => {
       newSelected.add(productId);
     }
     setSelectedProducts(newSelected);
+  };
+
+  const clearSelection = () => {
+    setSelectedProducts(new Set());
   };
 
   const handleEditProduct = (product: Product) => {
@@ -298,6 +464,7 @@ const openAddModal = () => {
   const handleDeleteProduct = async (productId: string) => {
     setActionLoading(true);
     setError(null);
+    setActionNotice(null);
     try {
       const { data: { session } } = await browserSupabase.auth.getSession();
       if (!session) throw new Error('Not authenticated');
@@ -315,6 +482,7 @@ const openAddModal = () => {
       setError(null);
       await fetchProducts();
       toast.success("Product deleted successfully.");
+      setActionNotice({ tone: "success", message: "Product deleted. The inventory list has been refreshed." });
     } catch (err: unknown) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to delete product';
       setError(errorMessage);
@@ -331,6 +499,7 @@ const openAddModal = () => {
     }
     setActionLoading(true);
     setError(null);
+    setActionNotice(null);
     try {
       const { data: { session } } = await browserSupabase.auth.getSession();
       if (!session) throw new Error('Not authenticated');
@@ -349,6 +518,7 @@ const openAddModal = () => {
       setError(null);
       await fetchProducts();
       toast.success("Selected products deleted successfully.");
+      setActionNotice({ tone: "success", message: "Selected products were deleted and the inventory list is up to date." });
     } catch (err: unknown) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to delete products';
       setError(errorMessage);
@@ -367,6 +537,15 @@ const openAddModal = () => {
         </div>
         <div className="flex items-center gap-2 sm:shrink-0">
           <button
+            onClick={() => fetchProducts(true)}
+            className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 hover:border-[#E7A3B0] hover:bg-[#fff5f7] text-gray-700 rounded-lg text-sm font-medium transition-all duration-300 shadow-sm hover:shadow-md cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
+            disabled={loading || actionLoading}
+            title="Refresh inventory"
+          >
+            <RefreshCw size={16} />
+            Refresh
+          </button>
+          <button
             onClick={() => setShowBulkImport(true)}
             className="flex items-center gap-2 px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-800 rounded-lg text-sm font-medium transition-all duration-300 shadow-sm hover:shadow-md hover:scale-105 cursor-pointer"
           >
@@ -384,28 +563,64 @@ const openAddModal = () => {
       </div>
 
       {error && (
-        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg flex items-start gap-3">
-          <AlertTriangle className="w-5 h-5 mt-0.5 shrink-0" />
-          <div>
-            <p className="font-medium">Error</p>
-            <p className="text-sm">{error}</p>
-          </div>
-          <button onClick={() => setError(null)} className="ml-auto text-red-400 hover:text-red-600">
-            <X className="w-5 h-5" />
-          </button>
-        </div>
+        <AdminNoticeBanner
+          tone="error"
+          title="Unable to load inventory"
+          message={error}
+          onDismiss={() => setError(null)}
+          actionLabel="Try again"
+          onAction={() => {
+            void fetchProducts(true);
+            void fetchCategories();
+          }}
+        />
       )}
+
+      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
+        {quickFilterCards.map((card) => (
+          <button
+            key={card.key}
+            type="button"
+            onClick={card.onClick}
+            className={`rounded-2xl border px-4 py-4 text-left transition-all ${
+              card.active
+                ? "border-[#E7A3B0] bg-[#fff5f7] shadow-sm"
+                : "border-gray-200 bg-white hover:border-[#E7A3B0]/40 hover:bg-[#fffafb]"
+            }`}
+          >
+            <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[#b47c88]">
+              {card.label}
+            </p>
+            <p className="mt-2 text-2xl font-bold text-[#121212]">
+              {card.count}
+            </p>
+          </button>
+        ))}
+      </div>
 
       <div className="flex items-center gap-3 flex-wrap">
         <div className="relative flex-1 min-w-[200px]">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-3.5 h-3.5" />
           <Input
+            ref={searchInputRef}
             type="text"
             placeholder="Search products..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-9 h-9 rounded-full border-gray-300 text-sm text-gray-900 bg-white"
+            className="w-full pl-9 pr-10 h-9 rounded-full border-gray-300 text-sm text-gray-900 bg-white"
+            aria-label="Search inventory products"
           />
+          {searchQuery.trim() !== "" && (
+            <button
+              type="button"
+              onClick={() => setSearchQuery("")}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 transition-colors hover:text-[#E7A3B0] cursor-pointer"
+              aria-label="Clear inventory search"
+              title="Clear search"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
+          )}
         </div>
 
         {/* Filters popover */}
@@ -418,9 +633,9 @@ const openAddModal = () => {
           >
             <SlidersHorizontal className="w-3.5 h-3.5" />
             Filters
-            {[visibilityFilter !== "all", availabilityFilter !== "all"].filter(Boolean).length > 0 && (
+            {[visibilityFilter !== "all", availabilityFilter !== "all", categoryFilter !== "all"].filter(Boolean).length > 0 && (
               <span className="ml-1 flex h-4 w-4 items-center justify-center rounded-full bg-[#E7A3B0] text-[9px] font-semibold text-white">
-                {[visibilityFilter !== "all", availabilityFilter !== "all"].filter(Boolean).length}
+                {[visibilityFilter !== "all", availabilityFilter !== "all", categoryFilter !== "all"].filter(Boolean).length}
               </span>
             )}
           </Button>
@@ -472,7 +687,7 @@ const openAddModal = () => {
                 </div>
               </div>
               {/* Clear all */}
-              {(visibilityFilter !== "all" || availabilityFilter !== "all") && (
+              {(visibilityFilter !== "all" || availabilityFilter !== "all" || categoryFilter !== "all") && (
                 <button
                   onClick={() => {
                     setVisibilityFilter("all");
@@ -506,13 +721,61 @@ const openAddModal = () => {
             <SelectItem value="za" className="cursor-pointer focus:bg-[#fff5f7] focus:text-[#E7A3B0]">Name: Z to A</SelectItem>
           </SelectContent>
         </Select>
+
       </div>
+
+      {activeFilterChips.length > 0 && (
+        <div className="flex flex-wrap items-center gap-2 rounded-xl border border-[#E7A3B0]/15 bg-[#fffcfd] px-4 py-3">
+          <span className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[#b47c88]">
+            Active
+          </span>
+          {activeFilterChips.map((chip) => (
+            <button
+              key={chip.key}
+              type="button"
+              onClick={chip.onRemove}
+              className="inline-flex items-center gap-2 rounded-full border border-[#E7A3B0]/25 bg-white px-3 py-1.5 text-xs font-medium text-[#6f5058] transition-colors hover:bg-[#fff5f7]"
+            >
+              <span className="max-w-[280px] truncate">{chip.label}</span>
+              <X className="h-3.5 w-3.5 text-[#b47c88]" />
+            </button>
+          ))}
+          <button
+            type="button"
+            onClick={clearAllFilters}
+            className="inline-flex items-center rounded-full px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.2em] text-[#b47c88] transition-colors hover:text-[#8f5f69]"
+          >
+            Clear all
+          </button>
+        </div>
+      )}
+
+      {actionNotice && (
+        <AdminNoticeBanner
+          tone={actionNotice.tone === "success" ? "success" : "warning"}
+          title={actionNotice.tone === "success" ? "Inventory updated" : "Check this update"}
+          message={actionNotice.message}
+          onDismiss={() => setActionNotice(null)}
+        />
+      )}
 
 <div className="flex items-center justify-between flex-wrap gap-4 mb-4">
         <div className="text-sm text-gray-600">
           Showing {filteredProducts.length > 0 ? startIndex + 1 : 0}-{Math.min(endIndex, filteredProducts.length)} of {filteredProducts.length} items
         </div>
         <div className="flex gap-3">
+          {selectedProducts.size > 0 && (
+            <div className="flex items-center gap-2 rounded-full border border-[#E7A3B0]/20 bg-[#fff9fb] px-3 py-1.5 text-xs text-[#8f5f69]">
+              <span>{selectedProducts.size} selected</span>
+              <button
+                type="button"
+                onClick={clearSelection}
+                className="font-semibold uppercase tracking-[0.16em] text-[#b47c88] transition-colors hover:text-[#8f5f69]"
+              >
+                Clear
+              </button>
+            </div>
+          )}
           {selectedProducts.size > 0 && (
             <AlertDialog>
               <AlertDialogTrigger asChild>
@@ -562,7 +825,10 @@ const openAddModal = () => {
           handleViewProduct={handleViewProduct}
           handleEditProduct={handleEditProduct}
           handleDeleteProduct={handleDeleteProduct}
+          onRowActivate={handleEditProduct}
           actionLoading={actionLoading}
+          emptyTitle={inventoryEmptyTitle}
+          emptyDescription={inventoryEmptyDescription}
         />
       )}
 
@@ -599,6 +865,12 @@ const openAddModal = () => {
           const refreshed = await fetchProducts(false);
           if (!refreshed) {
             setError('Saved successfully, but refresh was delayed. Data will update shortly.');
+            setActionNotice({ tone: "warning", message: "Product saved, but the inventory list could not refresh immediately." });
+          } else {
+            setActionNotice({
+              tone: "success",
+              message: editingProduct ? "Product updated successfully." : "Product added successfully.",
+            });
           }
         }}
       />
@@ -606,7 +878,15 @@ const openAddModal = () => {
       <BulkImportModal
         isOpen={showBulkImport}
         onClose={() => setShowBulkImport(false)}
-        onImportComplete={() => fetchProducts(false)}
+        onImportComplete={async () => {
+          const refreshed = await fetchProducts(false);
+          setActionNotice({
+            tone: refreshed ? "success" : "warning",
+            message: refreshed
+              ? "Bulk import finished. Review the new products in the inventory list below."
+              : "Bulk import finished, but the inventory list did not refresh immediately.",
+          });
+        }}
       />
     </div>
   );

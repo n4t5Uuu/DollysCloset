@@ -9,6 +9,7 @@ import { uploadProductImageFile } from "@/lib/upload-product-image";
 import {
   AlertDialog,
   AlertDialogAction,
+  AlertDialogCancel,
   AlertDialogContent,
   AlertDialogDescription,
   AlertDialogFooter,
@@ -40,6 +41,8 @@ export default function ProductImageUpload({
 }: ProductImageUploadProps) {
   const [uploading, setUploading] = useState(false);
   const [dragActive, setDragActive] = useState(false);
+  const [statusMessage, setStatusMessage] = useState<{ tone: "success" | "warning"; text: string } | null>(null);
+  const [pendingDeleteImageId, setPendingDeleteImageId] = useState<string | null>(null);
   const [alertConfig, setAlertConfig] = useState<{
     isOpen: boolean;
     title: string;
@@ -199,13 +202,25 @@ export default function ProductImageUpload({
 
       if (failedFiles.length > 0 && uploadedImages.length > 0) {
         toast.warning(`Uploaded ${uploadedImages.length} image(s), but ${failedFiles.length} failed.`);
+        setStatusMessage({
+          tone: "warning",
+          text: `${uploadedImages.length} image${uploadedImages.length !== 1 ? "s" : ""} uploaded. ${failedFiles.length} still need attention.`,
+        });
       } else if (failedFiles.length > 0) {
         throw new Error(`Failed image(s): ${failedFiles.join(", ")}`);
       } else {
         toast.success("Images uploaded successfully.");
+        setStatusMessage({
+          tone: "success",
+          text: `${uploadedImages.length} image${uploadedImages.length !== 1 ? "s" : ""} uploaded successfully.`,
+        });
       }
     } catch (error) {
       toast.error(`Upload failed: ${(error as Error).message}`);
+      setStatusMessage({
+        tone: "warning",
+        text: `Upload failed: ${(error as Error).message}`,
+      });
     } finally {
       setUploading(false);
     }
@@ -217,8 +232,6 @@ export default function ProductImageUpload({
    * @param imageId - The unique identifier of the image to be deleted.
    */
   const deleteImage = async (imageId: string) => {
-    if (!confirm("Delete this image?")) return;
-
     try {
       const { browserSupabase } = await import("@/lib/supabase/browser");
       const { data: { session } } = await browserSupabase.auth.getSession();
@@ -250,8 +263,16 @@ export default function ProductImageUpload({
         onImagesChange(images.filter((img) => img.image_id !== imageId));
       }
       toast.success("Image deleted successfully.");
+      setStatusMessage({
+        tone: "success",
+        text: "Image deleted. Remaining images have been refreshed.",
+      });
     } catch (error) {
       toast.error(`Delete failed: ${(error as Error).message}`);
+      setStatusMessage({
+        tone: "warning",
+        text: `Delete failed: ${(error as Error).message}`,
+      });
     }
   };
 
@@ -265,6 +286,16 @@ export default function ProductImageUpload({
           Product Images ({images.length}/5)
         </label>
       </div>
+
+      {statusMessage && (
+        <div className={`rounded-lg px-3 py-2 text-sm ${
+          statusMessage.tone === "success"
+            ? "border border-green-200 bg-green-50 text-green-700"
+            : "border border-amber-200 bg-amber-50 text-amber-800"
+        }`}>
+          {statusMessage.text}
+        </div>
+      )}
 
       {/* Upload Area */}
       {canUploadMore && (
@@ -317,7 +348,7 @@ export default function ProductImageUpload({
               <div className="absolute inset-0 bg-black/0 group-hover:bg-black/35 transition" />
               <button
                 type="button"
-                onClick={() => deleteImage(image.image_id)}
+                onClick={() => setPendingDeleteImageId(image.image_id)}
                 title="Delete image"
                 className="absolute top-2 right-2 p-2 bg-red-500/95 hover:bg-red-600 text-white rounded transition opacity-90 group-hover:opacity-100 shadow-sm cursor-pointer"
               >
@@ -360,6 +391,39 @@ export default function ProductImageUpload({
           <AlertDialogFooter>
             <AlertDialogAction className="bg-[#E7A3B0] hover:bg-[#ca8c98] text-white cursor-pointer">
               Understood
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog
+        open={pendingDeleteImageId !== null}
+        onOpenChange={(open) => {
+          if (!open) setPendingDeleteImageId(null);
+        }}
+      >
+        <AlertDialogContent className="bg-white">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-gray-900">Delete image</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will remove the selected product image. The remaining images will stay in their current order.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="border-zinc-300 bg-white text-zinc-700 hover:bg-zinc-50 hover:text-zinc-900">
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-red-500 hover:bg-red-600 text-white cursor-pointer"
+              onClick={() => {
+                const imageId = pendingDeleteImageId;
+                setPendingDeleteImageId(null);
+                if (imageId) {
+                  void deleteImage(imageId);
+                }
+              }}
+            >
+              Delete image
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

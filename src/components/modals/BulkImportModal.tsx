@@ -1,10 +1,11 @@
 "use client";
 
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 import { X, Upload, Download, AlertTriangle, CheckCircle2, Loader2, FileSpreadsheet } from "lucide-react";
 import * as XLSX from "xlsx";
 import { browserSupabase } from "@/lib/supabase/browser";
 import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
 import {
   Card,
   CardContent,
@@ -170,6 +171,26 @@ export default function BulkImportModal({ isOpen, onClose, onImportComplete }: B
     onClose();
   };
 
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const originalOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape" && !importing) {
+        handleClose();
+      }
+    };
+
+    document.addEventListener("keydown", handleEscape);
+
+    return () => {
+      document.body.style.overflow = originalOverflow;
+      document.removeEventListener("keydown", handleEscape);
+    };
+  }, [importing, isOpen]);
+
   const processFile = useCallback((file: File) => {
     setParseError(null);
     setFileName(file.name);
@@ -194,17 +215,20 @@ export default function BulkImportModal({ isOpen, onClose, onImportComplete }: B
           const rows = parseRawRows(json);
           if (rows.length === 0) {
             setParseError("The file contains no data rows.");
+            toast.error("The uploaded file has no importable product rows.");
             return;
           }
           setValidatedRows(validateRows(rows));
           setStep("preview");
         } catch {
           setParseError("Failed to parse Excel file. Make sure it is a valid .xlsx file.");
+          toast.error("We couldn't read that spreadsheet. Please upload a valid .xlsx file.");
         }
       };
       reader.readAsArrayBuffer(file);
     } else {
       setParseError("Unsupported file type. Please upload a .xlsx file.");
+      toast.error("Unsupported file type. Please upload a .xlsx file.");
     }
   }, []);
 
@@ -231,6 +255,7 @@ export default function BulkImportModal({ isOpen, onClose, onImportComplete }: B
     const { data: { session } } = await browserSupabase.auth.getSession();
     if (!session) {
       setParseError("Not authenticated. Please refresh and try again.");
+      toast.error("You need to sign in again before importing.");
       setImporting(false);
       return;
     }
@@ -292,6 +317,13 @@ export default function BulkImportModal({ isOpen, onClose, onImportComplete }: B
 
     if (succeeded > 0) {
       onImportComplete();
+      if (errors.length > 0 || skipped > 0) {
+        toast.warning(`Imported ${succeeded} product(s), with ${errors.length + skipped} row(s) needing attention.`);
+      } else {
+        toast.success(`Imported ${succeeded} product${succeeded !== 1 ? "s" : ""} successfully.`);
+      }
+    } else {
+      toast.error("No products were imported. Review the row errors and try again.");
     }
   };
 
@@ -302,12 +334,21 @@ export default function BulkImportModal({ isOpen, onClose, onImportComplete }: B
   const warnCount = validatedRows.filter((r) => r.isValid && r.warnings.length > 0).length;
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <Card className="bg-white w-full max-w-4xl max-h-[90vh] flex flex-col p-0 overflow-hidden">
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={(event) => {
+      if (event.target === event.currentTarget && !importing) {
+        handleClose();
+      }
+    }}>
+      <Card className="bg-white w-full max-w-4xl max-h-[90vh] flex flex-col p-0 overflow-hidden" onClick={(event) => event.stopPropagation()}>
         <CardHeader className="flex flex-row items-center justify-between border-b p-6 space-y-0 shrink-0">
-          <div className="flex items-center gap-3">
-            <FileSpreadsheet className="w-5 h-5 text-pink-400" />
-            <CardTitle className="text-gray-900">Bulk Import Products</CardTitle>
+          <div className="space-y-1">
+            <div className="flex items-center gap-3">
+              <FileSpreadsheet className="w-5 h-5 text-pink-400" />
+              <CardTitle className="text-gray-900">Bulk Import Products</CardTitle>
+            </div>
+            <p className="text-sm text-gray-500">
+              Upload a prepared spreadsheet, review the preview, and import only the valid rows.
+            </p>
           </div>
           <div className="flex items-center gap-3">
             <a
@@ -415,6 +456,12 @@ export default function BulkImportModal({ isOpen, onClose, onImportComplete }: B
                     <AlertTriangle className="w-3 h-3" /> {invalidCount} will be skipped
                   </span>
                 )}
+              </div>
+
+              <div className="rounded-lg border border-[#E7A3B0]/20 bg-[#fff9fb] px-4 py-3 text-sm text-[#8a6b73]">
+                {validCount > 0
+                  ? `Ready to import ${validCount} valid row${validCount !== 1 ? "s" : ""}. Invalid rows will be skipped automatically.`
+                  : "No valid rows are ready yet. Fix the skipped rows in your spreadsheet and upload again."}
               </div>
 
               <div className="overflow-auto rounded-lg border border-gray-200">
@@ -525,6 +572,21 @@ export default function BulkImportModal({ isOpen, onClose, onImportComplete }: B
                     {importResult.skipped > 0 && ` ${importResult.skipped} row${importResult.skipped !== 1 ? "s" : ""} skipped (validation errors).`}
                     {importResult.errors.length > 0 && ` ${importResult.errors.length} row${importResult.errors.length !== 1 ? "s" : ""} failed during import.`}
                   </p>
+                </div>
+              </div>
+
+              <div className="grid gap-3 sm:grid-cols-3">
+                <div className="rounded-lg border border-green-200 bg-green-50 px-4 py-3">
+                  <p className="text-xs font-semibold uppercase tracking-[0.2em] text-green-700">Imported</p>
+                  <p className="mt-1 text-2xl font-bold text-green-800">{importResult.succeeded}</p>
+                </div>
+                <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3">
+                  <p className="text-xs font-semibold uppercase tracking-[0.2em] text-amber-700">Skipped</p>
+                  <p className="mt-1 text-2xl font-bold text-amber-800">{importResult.skipped}</p>
+                </div>
+                <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3">
+                  <p className="text-xs font-semibold uppercase tracking-[0.2em] text-red-700">Failed</p>
+                  <p className="mt-1 text-2xl font-bold text-red-800">{importResult.errors.length}</p>
                 </div>
               </div>
 

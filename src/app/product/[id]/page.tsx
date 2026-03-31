@@ -19,9 +19,8 @@ import { Button } from "@/components/ui/button";
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ANNOUNCEMENT_SLUG } from "@/lib/business-details/business-details";
-import { getSafeInternalPath } from "@/lib/auth/auth-routing";
 import { resolveProductPlaceholder } from "@/lib/product-placeholder";
-import { CatalogApiProduct, Product } from "@/types/product.types";
+import { type CatalogApiProduct, type Product } from "@/types/product.types";
 
 function toViewProduct(product: CatalogApiProduct): Product {
   return {
@@ -42,6 +41,14 @@ function toViewProduct(product: CatalogApiProduct): Product {
 
 function buildProductPath(productId: string, fromPath: string) {
   return `/product/${productId}?from=${encodeURIComponent(fromPath)}`;
+}
+
+function getSafeInternalPath(candidatePath: string | null, fallbackPath: string) {
+  if (!candidatePath || !candidatePath.startsWith("/") || candidatePath.startsWith("//")) {
+    return fallbackPath;
+  }
+
+  return candidatePath;
 }
 
 function formatPrice(price: number) {
@@ -398,7 +405,7 @@ export default function ProductDetailsPage() {
               </div>
 
               {product.images.length > 1 && (
-                <div className="grid max-w-[440px] grid-cols-4 gap-3 md:gap-4">
+                <div className="grid max-w-[560px] grid-cols-5 gap-2 md:gap-3">
                   {product.images.map((image, index) => (
                     <button
                       key={`${image}-${index}`}

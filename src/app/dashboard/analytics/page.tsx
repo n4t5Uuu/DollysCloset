@@ -1,4 +1,4 @@
-import { AnalyticsTabs } from '@/components/analytics/AnalyticsTabs';
+import { AnalyticsWorkspace } from '@/components/analytics/AnalyticsWorkspace';
 import { RealtimeSection } from '@/components/analytics/RealtimeSection';
 import { getServerAuthState } from "@/lib/auth/auth-server";
 import { redirect } from "next/navigation";
@@ -19,7 +19,7 @@ export default async function AnalyticsPage() {
         </div>
         <RealtimeSection />
       </div>
-      <AnalyticsTabs />
+      <AnalyticsWorkspace />
     </div>
   );
 }

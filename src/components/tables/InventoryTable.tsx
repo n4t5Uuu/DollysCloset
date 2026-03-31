@@ -25,7 +25,10 @@ interface InventoryTableProps {
     handleViewProduct: (product: Product) => void;
     handleEditProduct: (product: Product) => void;
     handleDeleteProduct: (productId: string) => void;
+    onRowActivate?: (product: Product) => void;
     actionLoading?: boolean;
+    emptyTitle?: string;
+    emptyDescription?: string;
 }
 
 export function InventoryTable({
@@ -37,7 +40,10 @@ export function InventoryTable({
     handleViewProduct,
     handleEditProduct,
     handleDeleteProduct,
+    onRowActivate,
     actionLoading = false,
+    emptyTitle = "No products found",
+    emptyDescription = "We couldn't find any products in your inventory matching these filters.",
 }: InventoryTableProps) {
     const getMobileCategory = (fullPath: string) => {
         const parts = fullPath.split(" > ");
@@ -95,10 +101,8 @@ export function InventoryTable({
                 <EmptyMedia variant="icon">
                     <PackageSearch className="size-6 text-[#E7A3B0]" />
                 </EmptyMedia>
-                <EmptyTitle>No products found</EmptyTitle>
-                <EmptyDescription>
-                    We couldn&apos;t find any products in your inventory matching these filters.
-                </EmptyDescription>
+                <EmptyTitle>{emptyTitle}</EmptyTitle>
+                <EmptyDescription>{emptyDescription}</EmptyDescription>
             </EmptyHeader>
         </Empty>
     );
@@ -123,7 +127,14 @@ export function InventoryTable({
                                 />
                                 <div className="flex-1 min-w-0">
                                     <div className="flex items-center gap-2">
-                                        <span className="font-medium text-sm truncate">{product.product_name}</span>
+                                        <button
+                                            type="button"
+                                            onClick={() => (onRowActivate ?? handleEditProduct)(product)}
+                                            className="truncate text-left font-medium text-sm text-[#121212] transition-colors hover:text-[#E7A3B0]"
+                                            title={`Edit ${product.product_name}`}
+                                        >
+                                            {product.product_name}
+                                        </button>
                                         <span className={`shrink-0 px-1.5 py-0.5 rounded text-[10px] font-medium ${product.show_in_catalog ? "bg-green-100 text-green-800" : "bg-gray-100 text-gray-600"}`}>
                                             {product.show_in_catalog ? "Listed" : "Hidden"}
                                         </span>
@@ -188,7 +199,12 @@ export function InventoryTable({
                     <TableBody>
                         {currentProducts.length > 0 ? (
                             currentProducts.map((product) => (
-                                <TableRow key={product.product_id} className="border-b hover:bg-gray-50">
+                                <TableRow
+                                    key={product.product_id}
+                                    className="border-b hover:bg-gray-50"
+                                    onDoubleClick={() => (onRowActivate ?? handleEditProduct)(product)}
+                                    title="Double-click to edit this product"
+                                >
                                     <TableCell className="p-4">
                                         <Checkbox
                                             checked={selectedProducts.has(product.product_id)}
@@ -196,7 +212,14 @@ export function InventoryTable({
                                         />
                                     </TableCell>
                                     <TableCell className="p-4">
-                                        <div className="font-medium">{product.product_name}</div>
+                                        <button
+                                            type="button"
+                                            onClick={() => (onRowActivate ?? handleEditProduct)(product)}
+                                            className="font-medium text-left transition-colors hover:text-[#E7A3B0]"
+                                            title={`Edit ${product.product_name}`}
+                                        >
+                                            {product.product_name}
+                                        </button>
                                         <div className="text-xs text-gray-500 mt-1">Published {formatPublishedDate(product.created_at)}</div>
                                     </TableCell>
                                     <TableCell className="p-4 text-gray-600">{getCategoryName(product.category_id)}</TableCell>

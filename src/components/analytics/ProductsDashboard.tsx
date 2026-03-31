@@ -4,7 +4,7 @@ import { useEffect, useState, useCallback } from 'react';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell,
 } from 'recharts';
-import { Package, Tag, AlertTriangle, XCircle, Pencil, Loader2, ImageOff, ArrowRight } from 'lucide-react';
+import { Package, Tag, AlertTriangle, XCircle, Pencil, Loader2, ImageOff, ArrowRight, RefreshCcw } from 'lucide-react';
 import AddProduct from '@/components/modals/AddProduct';
 import { Button } from '@/components/ui/button';
 import { InventoryProduct, InventoryCategory } from '@/types/inventory.types';
@@ -55,6 +55,8 @@ export function ProductsDashboard({ selectedMonth }: { selectedMonth?: string })
   const [data, setData] = useState<ProductsData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [retryToken, setRetryToken] = useState(0);
+  const [lastUpdated, setLastUpdated] = useState<string | null>(null);
   const [editingProduct, setEditingProduct] = useState<InventoryProduct | null>(null);
   const [categories, setCategories] = useState<InventoryCategory[]>([]);
   const [loadingProductId, setLoadingProductId] = useState<string | null>(null);
@@ -63,19 +65,38 @@ export function ProductsDashboard({ selectedMonth }: { selectedMonth?: string })
 
   const fetchData = useCallback((p: Period = 'all', m?: string, silent = false, isMountedRef?: { current: boolean }) => {
     if (!silent) setLoading(true);
+    setError(null);
     let url = `/api/admin/analytics/products?period=${p}`;
     if (m && m !== 'all') {
       url += `&month=${m}`;
     }
     fetch(url, { cache: 'no-store' })
-      .then(res => res.json())
+      .then(async (res) => {
+        const contentType = res.headers.get('content-type') ?? '';
+        const json = contentType.includes('application/json')
+          ? await res.json()
+          : { error: 'Product analytics are unavailable right now.' };
+
+        if (!res.ok) {
+          return { ...json, error: json.error || 'Product analytics are unavailable right now.' };
+        }
+
+        return json;
+      })
       .then(json => {
         if (isMountedRef && !isMountedRef.current) return;
-        if (json.error) setError(json.error); else setData(json);
+        if (json.error) {
+          setError(json.error);
+          setData(null);
+        } else {
+          setData(json);
+          setLastUpdated(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
+        }
       })
-      .catch((e) => { 
+      .catch(() => { 
         if (isMountedRef && !isMountedRef.current) return;
-        setError('Failed to load product analytics');
+        setError('Unable to load product analytics right now.');
+        setData(null);
       })
       .finally(() => { 
         if (isMountedRef && !isMountedRef.current) return;
@@ -87,7 +108,7 @@ export function ProductsDashboard({ selectedMonth }: { selectedMonth?: string })
     const isMounted = { current: true };
     fetchData('all', selectedMonth, false, isMounted); 
     return () => { isMounted.current = false; };
-  }, [fetchData, selectedMonth]);
+  }, [fetchData, selectedMonth, retryToken]);
 
   const handlePeriodChange = useCallback((p: Period) => {
     setPeriod(p);
@@ -97,7 +118,13 @@ export function ProductsDashboard({ selectedMonth }: { selectedMonth?: string })
       url += `&month=${selectedMonth}`;
     }
     fetch(url, { cache: 'no-store' })
-      .then(res => res.json())
+      .then(async (res) => {
+        const contentType = res.headers.get('content-type') ?? '';
+        const json = contentType.includes('application/json')
+          ? await res.json()
+          : { error: 'Product analytics are unavailable right now.' };
+        return json;
+      })
       .then(json => {
         if (!json.error) {
           setData(prev => prev ? {
@@ -144,7 +171,16 @@ export function ProductsDashboard({ selectedMonth }: { selectedMonth?: string })
   }
 
   if (error || !data) {
-    return <p className="text-sm" style={{ color: '#9ca3af' }}>{error ?? 'No data'}</p>;
+    return (
+      <div className="flex flex-col items-center justify-center rounded-2xl border border-red-100 bg-red-50 py-12 text-center gap-3">
+        <AlertTriangle className="w-10 h-10 text-red-300" />
+        <p className="text-sm font-medium text-red-700">{error ?? 'No product analytics available.'}</p>
+        <Button type="button" variant="outline" onClick={() => setRetryToken((current) => current + 1)}>
+          <RefreshCcw className="mr-2 h-4 w-4" />
+          Try again
+        </Button>
+      </div>
+    );
   }
 
   const maxEdits = data.mostEdited[0]?.edits ?? 1;
@@ -158,6 +194,18 @@ export function ProductsDashboard({ selectedMonth }: { selectedMonth?: string })
 
   return (
     <div className="space-y-6">
+      <div className="rounded-xl border border-gray-200 bg-gray-50/70 px-4 py-3 text-sm text-gray-600 flex flex-col gap-1 md:flex-row md:items-center md:justify-between">
+        <p>
+          {selectedMonth && selectedMonth !== 'all'
+            ? `Showing product analytics for ${selectedMonth}.`
+            : 'Showing the full product analytics summary.'}
+          {' '}Most edited products follow the selected time range.
+        </p>
+        <p className="text-xs text-gray-500">
+          {lastUpdated ? `Last updated at ${lastUpdated}` : 'Waiting for product data'}
+        </p>
+      </div>
+
       {/* Summary cards */}
       <div className="grid grid-cols-2 xl:grid-cols-4 gap-4">
         {[
@@ -183,7 +231,7 @@ export function ProductsDashboard({ selectedMonth }: { selectedMonth?: string })
           <h2 className="text-base font-semibold mb-1" style={{ color: '#111827' }}>Products by Category</h2>
           <p className="text-xs mb-4" style={{ color: '#9ca3af' }}>Top 10 categories by product count</p>
           {data.topCategories.length === 0 ? (
-            <p className="text-sm" style={{ color: '#9ca3af' }}>No category data</p>
+            <p className="text-sm" style={{ color: '#9ca3af' }}>No category breakdown yet.</p>
           ) : (
             <div id="pdf-chart-top-categories">
               <ResponsiveContainer width="100%" height={260}>
@@ -228,7 +276,7 @@ export function ProductsDashboard({ selectedMonth }: { selectedMonth?: string })
               {[...Array(4)].map((_, i) => <div key={i} className="h-8 rounded" style={{ backgroundColor: '#f3f4f6' }} />)}
             </div>
           ) : data.mostEdited.length === 0 ? (
-            <p className="text-sm" style={{ color: '#9ca3af' }}>No edit history for this period</p>
+            <p className="text-sm" style={{ color: '#9ca3af' }}>No edit history for this time range yet.</p>
           ) : (
             <div className="space-y-3">
               {data.mostEdited.map((p, i) => {
@@ -258,7 +306,7 @@ export function ProductsDashboard({ selectedMonth }: { selectedMonth?: string })
           </div>
           <p className="text-xs mb-4" style={{ color: '#9ca3af' }}>Most clicked products from the catalog collection</p>
           {data.mostViewed.length === 0 ? (
-            <p className="text-sm" style={{ color: '#9ca3af' }}>No view data yet</p>
+            <p className="text-sm" style={{ color: '#9ca3af' }}>No product views recorded yet.</p>
           ) : (
             <div className="space-y-3">
               {data.mostViewed.map((p, i) => {

@@ -13,7 +13,8 @@ import {
   Legend,
   ResponsiveContainer,
 } from 'recharts';
-import { Users, Eye, TrendingUp, UserPlus, Monitor, Smartphone, Tablet } from 'lucide-react';
+import { Users, Eye, TrendingUp, UserPlus, Monitor, Smartphone, Tablet, AlertTriangle, RefreshCcw } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 
 const BRAND = '#E7A3B0';
 const BRAND_LIGHT = '#fdf2f4';
@@ -92,7 +93,7 @@ function PageList({ title, subtitle, pages, color }: { title: string; subtitle: 
       <h2 className="text-base font-semibold mb-0.5" style={{ color: '#111827' }}>{title}</h2>
       <p className="text-xs mb-4" style={{ color: '#9ca3af' }}>{subtitle}</p>
       {pages.length === 0 ? (
-        <p className="text-sm" style={{ color: '#9ca3af' }}>No data yet</p>
+        <p className="text-sm" style={{ color: '#9ca3af' }}>No page activity yet.</p>
       ) : (
         <div className="space-y-3">
           {pages.map((page, i) => {
@@ -122,6 +123,8 @@ export function AnalyticsDashboard({ selectedMonth }: { selectedMonth?: string }
   const [data, setData] = useState<AnalyticsData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [retryToken, setRetryToken] = useState(0);
+  const [lastUpdated, setLastUpdated] = useState<string | null>(null);
 
   useEffect(() => {
     setLoading(true);
@@ -132,15 +135,33 @@ export function AnalyticsDashboard({ selectedMonth }: { selectedMonth?: string }
       : '/api/admin/analytics';
 
     fetch(url)
-      .then(res => res.json())
+      .then(async (res) => {
+        const contentType = res.headers.get('content-type') ?? '';
+        const json = contentType.includes('application/json')
+          ? await res.json()
+          : { error: 'Analytics service is unavailable right now.' };
+
+        if (!res.ok) {
+          return { ...json, error: json.error || 'Analytics service is unavailable right now.' };
+        }
+
+        return json;
+      })
       .then(json => {
         if (!isMounted) return;
-        if (json.error) setError(json.error);
-        else setData(json);
+        if (json.error) {
+          setError(json.error);
+          setData(null);
+        } else {
+          setError(null);
+          setData(json);
+          setLastUpdated(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
+        }
       })
       .catch((e) => {
         if (!isMounted) return;
-        setError('Failed to load analytics data');
+        setError('Unable to load analytics data right now.');
+        setData(null);
       })
       .finally(() => {
         if (isMounted) {
@@ -149,7 +170,7 @@ export function AnalyticsDashboard({ selectedMonth }: { selectedMonth?: string }
       });
 
     return () => { isMounted = false; };
-  }, [selectedMonth]);
+  }, [selectedMonth, retryToken]);
 
   if (loading) {
     return (
@@ -165,14 +186,18 @@ export function AnalyticsDashboard({ selectedMonth }: { selectedMonth?: string }
 
   if (error) {
     return (
-      <div className="flex flex-col items-center justify-center py-20 text-center gap-3">
-        <TrendingUp className="w-12 h-12" style={{ color: '#d1d5db' }} />
-        <p className="font-medium" style={{ color: '#6b7280' }}>{error}</p>
+      <div className="flex flex-col items-center justify-center rounded-2xl border border-red-100 bg-red-50 py-12 text-center gap-3">
+        <AlertTriangle className="w-12 h-12 text-red-300" />
+        <p className="font-medium text-red-700">{error}</p>
         {error === 'Analytics not configured' && (
-          <p className="text-sm max-w-md" style={{ color: '#9ca3af' }}>
+          <p className="text-sm max-w-md text-red-500">
             Add your GA4 credentials to <code className="px-1 rounded" style={{ backgroundColor: '#f3f4f6' }}>.env.local</code> to enable analytics.
           </p>
         )}
+        <Button type="button" variant="outline" onClick={() => setRetryToken((current) => current + 1)}>
+          <RefreshCcw className="mr-2 h-4 w-4" />
+          Try again
+        </Button>
       </div>
     );
   }
@@ -191,6 +216,17 @@ export function AnalyticsDashboard({ selectedMonth }: { selectedMonth?: string }
 
   return (
     <div className="space-y-6">
+      <div className="rounded-xl border border-gray-200 bg-gray-50/70 px-4 py-3 text-sm text-gray-600 flex flex-col gap-1 md:flex-row md:items-center md:justify-between">
+        <p>
+          {selectedMonth && selectedMonth !== 'all'
+            ? `Showing analytics for ${selectedMonth}.`
+            : 'Showing the full analytics summary.'}
+        </p>
+        <p className="text-xs text-gray-500">
+          {lastUpdated ? `Last updated at ${lastUpdated}` : 'Waiting for analytics data'}
+        </p>
+      </div>
+
       {/* Summary Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
         {summaryCards.map(c => (
@@ -276,7 +312,7 @@ export function AnalyticsDashboard({ selectedMonth }: { selectedMonth?: string }
       {/* Device Breakdown */}
       <div style={card} className="p-6">
         <h2 className="text-base font-semibold mb-1" style={{ color: '#111827' }}>Devices</h2>
-        <p className="text-xs mb-4" style={{ color: '#9ca3af' }}>How visitors access the site</p>
+        <p className="text-xs mb-4" style={{ color: '#9ca3af' }}>How visitors are accessing the site</p>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
           {data.deviceData.map((d, i) => {
             const pct = totalDeviceUsers > 0 ? Math.round((d.users / totalDeviceUsers) * 100) : 0;
