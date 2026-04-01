@@ -51,6 +51,17 @@ function StockBadge({ stock }: { stock: number }) {
 
 type Period = 'all' | 'month' | 'week';
 
+function formatMonthLabel(monthValue: string) {
+  const [year, month] = monthValue.split('-').map(Number);
+
+  if (!year || !month) return monthValue;
+
+  return new Date(year, month - 1, 1).toLocaleDateString('en-US', {
+    month: 'short',
+    year: 'numeric',
+  });
+}
+
 export function ProductsDashboard({ selectedMonth }: { selectedMonth?: string }) {
   const [data, setData] = useState<ProductsData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -62,6 +73,7 @@ export function ProductsDashboard({ selectedMonth }: { selectedMonth?: string })
   const [loadingProductId, setLoadingProductId] = useState<string | null>(null);
   const [period, setPeriod] = useState<Period>('all');
   const [periodLoading, setPeriodLoading] = useState(false);
+  const hasSelectedMonth = Boolean(selectedMonth && selectedMonth !== 'all');
 
   const fetchData = useCallback((p: Period = 'all', m?: string, silent = false, isMountedRef?: { current: boolean }) => {
     if (!silent) setLoading(true);
@@ -109,6 +121,13 @@ export function ProductsDashboard({ selectedMonth }: { selectedMonth?: string })
     fetchData('all', selectedMonth, false, isMounted); 
     return () => { isMounted.current = false; };
   }, [fetchData, selectedMonth, retryToken]);
+
+  useEffect(() => {
+    if (hasSelectedMonth) {
+      setPeriod('all');
+      setPeriodLoading(false);
+    }
+  }, [hasSelectedMonth]);
 
   const handlePeriodChange = useCallback((p: Period) => {
     setPeriod(p);
@@ -185,6 +204,13 @@ export function ProductsDashboard({ selectedMonth }: { selectedMonth?: string })
 
   const maxEdits = data.mostEdited[0]?.edits ?? 1;
   const ALERT_CAP = 5;
+  const rankingScopeDescription = hasSelectedMonth
+    ? formatMonthLabel(selectedMonth!)
+    : period === 'week'
+      ? 'the last 7 days'
+      : period === 'month'
+        ? 'the last 30 days'
+        : 'all time';
   const allStockAlerts = [
     ...data.outOfStockList.map(p => ({ ...p, status: 'out' as const })),
     ...data.lowStockList.map(p => ({ ...p, status: 'low' as const })),
@@ -199,7 +225,7 @@ export function ProductsDashboard({ selectedMonth }: { selectedMonth?: string })
           {selectedMonth && selectedMonth !== 'all'
             ? `Showing product analytics for ${selectedMonth}.`
             : 'Showing the full product analytics summary.'}
-          {' '}Most edited products follow the selected time range.
+          {' '}Product rankings follow {hasSelectedMonth ? 'the selected month.' : 'the selected time range.'}
         </p>
         <p className="text-xs text-gray-500">
           {lastUpdated ? `Last updated at ${lastUpdated}` : 'Waiting for product data'}
@@ -253,24 +279,35 @@ export function ProductsDashboard({ selectedMonth }: { selectedMonth?: string })
         <div style={card} className="p-6">
           <div className="flex items-start justify-between gap-2 mb-1">
             <h2 className="text-base font-semibold" style={{ color: '#111827' }}>Most Edited Products</h2>
-            <div className="flex items-center gap-1 shrink-0" style={{ backgroundColor: '#f3f4f6', borderRadius: '0.5rem', padding: '2px' }}>
-              {(['all', 'month', 'week'] as Period[]).map(p => (
-                <button
-                  key={p}
-                  onClick={() => handlePeriodChange(p)}
-                  className="text-xs px-2.5 py-1 rounded-md font-medium transition-colors"
-                  style={{
-                    backgroundColor: period === p ? 'white' : 'transparent',
-                    color: period === p ? '#111827' : '#6b7280',
-                    boxShadow: period === p ? '0 1px 2px rgba(0,0,0,0.08)' : 'none',
-                  }}
-                >
-                  {p === 'all' ? 'All time' : p === 'month' ? '30 days' : '7 days'}
-                </button>
-              ))}
-            </div>
+            {hasSelectedMonth ? (
+              <div
+                className="shrink-0 rounded-full px-3 py-1 text-xs font-medium"
+                style={{ backgroundColor: BRAND_LIGHT, color: '#8a6b73', border: '1px solid rgba(231,163,176,0.25)' }}
+              >
+                {formatMonthLabel(selectedMonth!)}
+              </div>
+            ) : (
+              <div className="flex items-center gap-1 shrink-0" style={{ backgroundColor: '#f3f4f6', borderRadius: '0.5rem', padding: '2px' }}>
+                {(['all', 'month', 'week'] as Period[]).map(p => (
+                  <button
+                    key={p}
+                    onClick={() => handlePeriodChange(p)}
+                    className="text-xs px-2.5 py-1 rounded-md font-medium transition-colors"
+                    style={{
+                      backgroundColor: period === p ? 'white' : 'transparent',
+                      color: period === p ? '#111827' : '#6b7280',
+                      boxShadow: period === p ? '0 1px 2px rgba(0,0,0,0.08)' : 'none',
+                    }}
+                  >
+                    {p === 'all' ? 'All time' : p === 'month' ? '30 days' : '7 days'}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
-          <p className="text-xs mb-4" style={{ color: '#9ca3af' }}>Products with the most updates logged in activity history</p>
+          <p className="text-xs mb-4" style={{ color: '#9ca3af' }}>
+            Products with the most updates logged in activity history for {rankingScopeDescription}
+          </p>
           {periodLoading ? (
             <div className="space-y-3 animate-pulse">
               {[...Array(4)].map((_, i) => <div key={i} className="h-8 rounded" style={{ backgroundColor: '#f3f4f6' }} />)}
@@ -304,7 +341,9 @@ export function ProductsDashboard({ selectedMonth }: { selectedMonth?: string })
           <div className="flex items-start justify-between gap-2 mb-1">
             <h2 className="text-base font-semibold" style={{ color: '#111827' }}>Most Viewed Products</h2>
           </div>
-          <p className="text-xs mb-4" style={{ color: '#9ca3af' }}>Most clicked products from the catalog collection</p>
+          <p className="text-xs mb-4" style={{ color: '#9ca3af' }}>
+            Most clicked products from the catalog collection for {rankingScopeDescription}
+          </p>
           {data.mostViewed.length === 0 ? (
             <p className="text-sm" style={{ color: '#9ca3af' }}>No product views recorded yet.</p>
           ) : (

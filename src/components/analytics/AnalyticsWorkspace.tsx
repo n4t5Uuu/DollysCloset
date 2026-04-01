@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { AlertTriangle, BarChart3, Download, Loader2, Package, RefreshCcw } from 'lucide-react';
+import { BarChart3, Download, Loader2, Package, RefreshCcw } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import {

@@ -13,8 +13,9 @@ import {
   Legend,
   ResponsiveContainer,
 } from 'recharts';
-import { Users, Eye, TrendingUp, UserPlus, Monitor, Smartphone, Tablet, AlertTriangle, RefreshCcw } from 'lucide-react';
+import { Users, Eye, TrendingUp, UserPlus, Monitor, Smartphone, Tablet, AlertTriangle, RefreshCcw, CircleHelp } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Tooltip as HelpTooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 
 const BRAND = '#E7A3B0';
 const BRAND_LIGHT = '#fdf2f4';
@@ -60,6 +61,13 @@ interface AnalyticsData {
   deviceData: DeviceData[];
 }
 
+interface SummaryCard {
+  label: string;
+  value: number;
+  helpText: string;
+  icon: React.ReactNode;
+}
+
 function formatDate(dateStr: string) {
   const y = dateStr.slice(0, 4);
   const m = dateStr.slice(4, 6);
@@ -70,6 +78,47 @@ function formatDate(dateStr: string) {
 function formatNumber(n: number) {
   if (n >= 1000) return `${(n / 1000).toFixed(1)}k`;
   return n.toString();
+}
+
+function formatMonthLabel(monthValue: string) {
+  const [year, month] = monthValue.split('-').map(Number);
+
+  if (!year || !month) return monthValue;
+
+  return new Date(year, month - 1, 1).toLocaleDateString('en-US', {
+    month: 'short',
+    year: 'numeric',
+  });
+}
+
+function getDailyTrafficTitle(selectedMonth?: string) {
+  if (!selectedMonth || selectedMonth === 'all') {
+    return 'Daily Traffic - Last 30 Days';
+  }
+
+  const now = new Date();
+  const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+
+  if (selectedMonth === currentMonth) {
+    return 'Daily Traffic - This Month';
+  }
+
+  return `Daily Traffic - ${formatMonthLabel(selectedMonth)}`;
+}
+
+function getSummaryScopeLabel(selectedMonth?: string) {
+  if (!selectedMonth || selectedMonth === 'all') {
+    return 'Last 30 days';
+  }
+
+  const now = new Date();
+  const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+
+  if (selectedMonth === currentMonth) {
+    return 'This month';
+  }
+
+  return `For ${formatMonthLabel(selectedMonth)}`;
 }
 
 const card: React.CSSProperties = {
@@ -158,7 +207,7 @@ export function AnalyticsDashboard({ selectedMonth }: { selectedMonth?: string }
           setLastUpdated(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
         }
       })
-      .catch((e) => {
+      .catch(() => {
         if (!isMounted) return;
         setError('Unable to load analytics data right now.');
         setData(null);
@@ -206,12 +255,34 @@ export function AnalyticsDashboard({ selectedMonth }: { selectedMonth?: string }
 
   const chartData = data.dailyData.map(d => ({ ...d, date: formatDate(d.date) }));
   const totalDeviceUsers = data.deviceData.reduce((sum, d) => sum + d.users, 0);
+  const dailyTrafficTitle = getDailyTrafficTitle(selectedMonth);
+  const summaryScopeLabel = getSummaryScopeLabel(selectedMonth);
 
-  const summaryCards = [
-    { label: 'Active Users', value: data.totals.activeUsers, icon: <Users className="w-5 h-5" style={{ color: BRAND }} /> },
-    { label: 'Sessions', value: data.totals.sessions, icon: <TrendingUp className="w-5 h-5" style={{ color: BRAND }} /> },
-    { label: 'Page Views', value: data.totals.pageViews, icon: <Eye className="w-5 h-5" style={{ color: BRAND }} /> },
-    { label: 'New Users', value: data.totals.newUsers, icon: <UserPlus className="w-5 h-5" style={{ color: BRAND }} /> },
+  const summaryCards: SummaryCard[] = [
+    {
+      label: 'Active Users',
+      value: data.totals.activeUsers,
+      helpText: 'Visitors Google Analytics counted as active during this time. This is based on engagement, not a guaranteed count of individual people, so the same person may be counted separately on different devices or browsers.',
+      icon: <Users className="w-5 h-5" style={{ color: BRAND }} />,
+    },
+    {
+      label: 'Sessions',
+      value: data.totals.sessions,
+      helpText: 'The total number of visits during this time. One visitor can create multiple sessions by coming back again later or using a different device or browser.',
+      icon: <TrendingUp className="w-5 h-5" style={{ color: BRAND }} />,
+    },
+    {
+      label: 'Page Views',
+      value: data.totals.pageViews,
+      helpText: 'The total number of pages people viewed during this time. Repeated views of the same page are included.',
+      icon: <Eye className="w-5 h-5" style={{ color: BRAND }} />,
+    },
+    {
+      label: 'New Users',
+      value: data.totals.newUsers,
+      helpText: 'Visitors Google Analytics detected for the first time during this period. This usually depends on browser or device tracking, so it is not always the same as a real first-time person.',
+      icon: <UserPlus className="w-5 h-5" style={{ color: BRAND }} />,
+    },
   ];
 
   return (
@@ -229,59 +300,76 @@ export function AnalyticsDashboard({ selectedMonth }: { selectedMonth?: string }
 
       {/* Summary Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
-        {summaryCards.map(c => (
-          <div key={c.label} style={card} className="p-6">
-            <div className="flex items-center justify-between mb-3">
-              <span className="text-sm font-medium" style={{ color: '#6b7280' }}>{c.label}</span>
-              <div className="p-2 rounded-lg" style={{ backgroundColor: BRAND_LIGHT }}>
-                {c.icon}
+        {summaryCards.map((cardItem) => (
+          <div key={cardItem.label} style={card} className="p-6">
+            <div className="flex items-center justify-between mb-3 gap-3">
+              <div className="flex items-center gap-2 min-w-0">
+                <span className="text-sm font-medium" style={{ color: '#6b7280' }}>{cardItem.label}</span>
+                <HelpTooltip>
+                  <TooltipTrigger asChild>
+                    <button
+                      type="button"
+                      aria-label={`What ${cardItem.label.toLowerCase()} means`}
+                      className="inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full transition-colors hover:bg-gray-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#E7A3B0] focus-visible:ring-offset-2"
+                      style={{ color: '#9ca3af' }}
+                    >
+                      <CircleHelp className="h-3.5 w-3.5" />
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent side="top" sideOffset={8} className="max-w-[280px] px-3 py-2 text-left leading-relaxed">
+                    {cardItem.helpText}
+                  </TooltipContent>
+                </HelpTooltip>
+              </div>
+              <div className="p-2 rounded-lg shrink-0" style={{ backgroundColor: BRAND_LIGHT }}>
+                {cardItem.icon}
               </div>
             </div>
-            <p className="text-2xl font-bold" style={{ color: '#111827' }}>{formatNumber(c.value)}</p>
-            <p className="text-xs mt-1" style={{ color: '#9ca3af' }}>Last 30 days</p>
+            <p className="text-2xl font-bold" style={{ color: '#111827' }}>{formatNumber(cardItem.value)}</p>
+            <p className="text-xs mt-1" style={{ color: '#9ca3af' }}>{summaryScopeLabel}</p>
           </div>
         ))}
       </div>
 
       {/* Daily Traffic Chart */}
       <div style={card} className="p-6">
-        <h2 className="text-base font-semibold mb-4" style={{ color: '#111827' }}>Daily Traffic — Last 30 Days</h2>
+        <h2 className="text-base font-semibold mb-4" style={{ color: '#111827' }}>{dailyTrafficTitle}</h2>
         <div id="pdf-chart-traffic">
-        <ResponsiveContainer width="100%" height={280}>
-          <LineChart data={chartData} margin={{ top: 4, right: 40, left: 0, bottom: 0 }}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" />
-            <XAxis
-              dataKey="date"
-              tick={{ fontSize: 11, fill: '#9ca3af' }}
-              interval="preserveStartEnd"
-              tickLine={false}
-              axisLine={false}
-            />
-            <YAxis yAxisId="left" tick={{ fontSize: 11, fill: '#9ca3af' }} tickLine={false} axisLine={false} allowDecimals={false} />
-            <YAxis yAxisId="right" orientation="right" tick={{ fontSize: 11, fill: '#9ca3af' }} tickLine={false} axisLine={false} allowDecimals={false} />
-            <Tooltip
-              contentStyle={{
-                fontSize: 12,
-                borderRadius: 8,
-                border: '1px solid #e5e7eb',
-                backgroundColor: '#ffffff',
-                color: '#111827',
-                boxShadow: '0 4px 6px rgba(0,0,0,0.05)',
-              }}
-            />
-            <Legend wrapperStyle={{ fontSize: 12, color: '#6b7280' }} />
-            <Line yAxisId="left" type="linear" dataKey="users" stroke={BRAND} strokeWidth={2} dot={false} name="Users" />
-            <Line yAxisId="left" type="linear" dataKey="sessions" stroke="#111827" strokeWidth={2} dot={false} name="Sessions" />
-            <Line yAxisId="right" type="linear" dataKey="pageViews" stroke="#9ca3af" strokeWidth={2} dot={false} name="Page Views" />
-          </LineChart>
-        </ResponsiveContainer>
+          <ResponsiveContainer width="100%" height={280}>
+            <LineChart data={chartData} margin={{ top: 4, right: 40, left: 0, bottom: 0 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" />
+              <XAxis
+                dataKey="date"
+                tick={{ fontSize: 11, fill: '#9ca3af' }}
+                interval="preserveStartEnd"
+                tickLine={false}
+                axisLine={false}
+              />
+              <YAxis yAxisId="left" tick={{ fontSize: 11, fill: '#9ca3af' }} tickLine={false} axisLine={false} allowDecimals={false} />
+              <YAxis yAxisId="right" orientation="right" tick={{ fontSize: 11, fill: '#9ca3af' }} tickLine={false} axisLine={false} allowDecimals={false} />
+              <Tooltip
+                contentStyle={{
+                  fontSize: 12,
+                  borderRadius: 8,
+                  border: '1px solid #e5e7eb',
+                  backgroundColor: '#ffffff',
+                  color: '#111827',
+                  boxShadow: '0 4px 6px rgba(0,0,0,0.05)',
+                }}
+              />
+              <Legend wrapperStyle={{ fontSize: 12, color: '#6b7280' }} />
+              <Line yAxisId="left" type="linear" dataKey="users" stroke={BRAND} strokeWidth={2} dot={false} name="Users" />
+              <Line yAxisId="left" type="linear" dataKey="sessions" stroke="#111827" strokeWidth={2} dot={false} name="Sessions" />
+              <Line yAxisId="right" type="linear" dataKey="pageViews" stroke="#9ca3af" strokeWidth={2} dot={false} name="Page Views" />
+            </LineChart>
+          </ResponsiveContainer>
         </div>
       </div>
 
       {/* Monthly Traffic Chart */}
       {data.monthlyData.length > 0 && (
         <div style={card} className="p-6">
-          <h2 className="text-base font-semibold mb-4" style={{ color: '#111827' }}>Monthly Traffic — Last 12 Months</h2>
+          <h2 className="text-base font-semibold mb-4" style={{ color: '#111827' }}>Monthly Traffic - Last 12 Months</h2>
           <div id="pdf-chart-monthly">
             <ResponsiveContainer width="100%" height={260}>
               <BarChart data={data.monthlyData} margin={{ top: 4, right: 40, left: 0, bottom: 0 }}>
@@ -303,7 +391,7 @@ export function AnalyticsDashboard({ selectedMonth }: { selectedMonth?: string }
         </div>
       )}
 
-      {/* Pages — two columns */}
+      {/* Pages - two columns */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <PageList title="Customer Pages" subtitle="Public-facing pages visited by customers" pages={data.customerPages} color={BRAND} />
         <PageList title="Admin & Internal Pages" subtitle="Dashboard and management pages" pages={data.internalPages} color="#6b7280" />
