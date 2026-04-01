@@ -3,10 +3,10 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { AlertTriangle, Calendar, ChevronDown, ClipboardList, Search, X, Eye, SlidersHorizontal, RefreshCcw } from "lucide-react";
+import { Calendar, ChevronDown, ClipboardList, X, Eye, SlidersHorizontal, RefreshCcw } from "lucide-react";
 import CustomPagination from "@/components/general-components/CustomPagination";
+import AdminSearchInput from "@/components/general-components/AdminSearchInput";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty";
 import {
@@ -143,11 +143,6 @@ export default function ActivityLogsClient() {
   const activeRequestControllerRef = useRef<AbortController | null>(null);
   const requestVersionRef = useRef(0);
   const fetchLogsRef = useRef<((isBackground?: boolean) => Promise<boolean>) | undefined>(undefined);
-
-  useEffect(() => {
-    const t = setTimeout(() => setDebouncedSearch(searchQuery), 400);
-    return () => clearTimeout(t);
-  }, [searchQuery]);
 
   const fetchLogs = useCallback(async (isBackground = false) => {
     const requestVersion = requestVersionRef.current + 1;
@@ -347,7 +342,10 @@ export default function ActivityLogsClient() {
       chips.push({
         key: "search",
         label: `Search: ${debouncedSearch.trim()}`,
-        onRemove: () => setSearchQuery(""),
+        onRemove: () => {
+          setSearchQuery("");
+          setDebouncedSearch("");
+        },
       });
     }
 
@@ -373,15 +371,9 @@ export default function ActivityLogsClient() {
     return chips;
   }, [actionTypeFilter, debouncedSearch, hasSearch, selectedMonth, selectedMonthLabel]);
 
-  const actionNoticeStyles =
-    actionNotice?.type === "success"
-      ? "bg-emerald-50 border-emerald-200 text-emerald-700"
-      : actionNotice?.type === "warning"
-        ? "bg-amber-50 border-amber-200 text-amber-700"
-        : "bg-blue-50 border-blue-200 text-blue-700";
-
   const clearAllFilters = () => {
     setSearchQuery("");
+    setDebouncedSearch("");
     setSelectedMonth(null);
     setActionTypeFilter(new Set());
     setShowFilters(false);
@@ -407,6 +399,7 @@ export default function ActivityLogsClient() {
       setTotalCount(0);
       setAvailableMonths([]);
       setSearchQuery("");
+      setDebouncedSearch("");
       setSelectedMonth(null);
       setActionTypeFilter(new Set());
       setShowFilters(false);
@@ -492,169 +485,160 @@ export default function ActivityLogsClient() {
 
       <div className="space-y-3">
         <div className="flex items-center gap-3 flex-wrap">
-        <div className="relative flex-1 min-w-[200px]">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-3.5 h-3.5" />
-          <Input
+          <AdminSearchInput
             ref={searchInputRef}
-            placeholder="Search by log ID, product ID, user UUID or key, action, description, or editor..."
             value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            aria-label="Search activity logs"
-            className="pl-9 pr-10 h-9 text-sm rounded-lg border-gray-300 text-gray-900 bg-white"
+            onChange={setSearchQuery}
+            onDebouncedChange={setDebouncedSearch}
+            debounceMs={400}
+            placeholder="Search by log ID, product ID, user UUID or key, action, description, or editor..."
+            ariaLabel="Search activity logs"
+            className="min-w-[240px]"
+            clearLabel="Clear activity log search"
           />
-          {searchQuery && (
-            <button
-              type="button"
-              onClick={() => setSearchQuery("")}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 transition-colors hover:text-gray-600"
-              aria-label="Clear activity log search"
+
+          <div className="relative" ref={filtersRef}>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowFilters((p) => !p)}
+              className="flex items-center gap-2 h-9 text-xs hover:bg-[#fff5f7] hover:text-[#E7A3B0] hover:border-[#E7A3B0] hover:scale-105 hover:shadow-md active:scale-95 transition-all duration-300"
             >
-              <X className="h-4 w-4" />
-            </button>
-          )}
-        </div>
-
-        <div className="relative" ref={filtersRef}>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setShowFilters((p) => !p)}
-            className="flex items-center gap-2 h-9 text-xs hover:bg-[#fff5f7] hover:text-[#E7A3B0] hover:border-[#E7A3B0] hover:scale-105 hover:shadow-md active:scale-95 transition-all duration-300"
-          >
-            <SlidersHorizontal className="w-3.5 h-3.5" />
-            Filters
-            {activeFilterCount > 0 && (
-              <span className="ml-1 flex h-4 w-4 items-center justify-center rounded-full bg-[#E7A3B0] text-[9px] font-semibold text-white">
-                {activeFilterCount}
-              </span>
-            )}
-          </Button>
-          {showFilters && (
-            <div className="absolute left-0 z-20 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg p-4 w-72 space-y-4">
-              <div>
-                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Action Type</p>
-                <div className="flex gap-1.5 flex-wrap">
-                  {Object.entries(actionTypeGroups).map(([key, { label }]) => (
-                    <button
-                      key={key}
-                      onClick={() => toggleActionType(key)}
-                      className={`px-3 py-1.5 text-xs rounded-full border transition-all duration-200 hover:scale-105 active:scale-95 cursor-pointer ${
-                        actionTypeFilter.has(key)
-                          ? "bg-[#E7A3B0] text-white border-[#E7A3B0] shadow-sm"
-                          : "border-gray-200 text-gray-600 hover:border-[#E7A3B0] hover:bg-[#fff5f7] hover:text-[#E7A3B0] hover:shadow-sm"
-                      }`}
-                    >
-                      {label}
-                    </button>
-                  ))}
-                </div>
-              </div>
+              <SlidersHorizontal className="w-3.5 h-3.5" />
+              Filters
               {activeFilterCount > 0 && (
-                <button
-                  onClick={() => setActionTypeFilter(new Set())}
-                  className="w-full text-xs text-gray-500 py-1.5 hover:bg-[#fff5f7] hover:border-[#E7A3B0] hover:text-[#E7A3B0] rounded-md transition-all duration-200 hover:scale-[1.02] active:scale-95 cursor-pointer border border-gray-200"
-                >
-                  Clear all filters
-                </button>
+                <span className="ml-1 flex h-4 w-4 items-center justify-center rounded-full bg-[#E7A3B0] text-[9px] font-semibold text-white">
+                  {activeFilterCount}
+                </span>
               )}
-            </div>
-          )}
-        </div>
-
-        <div className="relative" ref={pickerRef}>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setShowPicker((p) => !p)}
-            className="flex items-center gap-2 h-9 text-xs hover:bg-[#fff5f7] hover:text-[#E7A3B0] hover:border-[#E7A3B0] hover:scale-105 hover:shadow-md active:scale-95 transition-all duration-300"
-          >
-            <Calendar className="w-3.5 h-3.5" />
-            {selectedMonthLabel}
-            <ChevronDown className="w-3.5 h-3.5" />
-          </Button>
-          {showPicker && (
-            <div className="absolute left-0 z-10 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg p-3 w-72">
-              <div className="mb-3">
-                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Available Months</p>
-              </div>
-              <div className="max-h-72 overflow-y-auto space-y-3 pr-1">
-                {groupedMonthEntries.length > 0 ? (
-                  groupedMonthEntries.map(([year, yearMonths]) => (
-                    <div key={year} className="space-y-1.5">
-                      <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">{year}</p>
-                      <div className="space-y-1">
-                        {yearMonths.map((monthOption) => (
-                          <button
-                            key={monthOption.value}
-                            onClick={() => {
-                              setSelectedMonth({ month: monthOption.month, year: monthOption.year });
-                              setShowPicker(false);
-                            }}
-                            className={`flex w-full items-center justify-between rounded-md px-3 py-2 text-left text-sm transition-colors ${
-                              selectedMonthValue === monthOption.value
-                                ? "bg-[#E7A3B0] text-white shadow-sm"
-                                : "text-gray-700 hover:bg-gray-100"
-                            }`}
-                          >
-                            <span>{monthOption.label}</span>
-                            <span className={`text-xs ${selectedMonthValue === monthOption.value ? "text-white/90" : "text-gray-400"}`}>
-                              {monthOption.count}
-                            </span>
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  ))
-                ) : (
-                  <p className="text-sm text-gray-500 px-1 py-2">No months with logs yet.</p>
+            </Button>
+            {showFilters && (
+              <div className="absolute left-0 z-20 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg p-4 w-72 space-y-4">
+                <div>
+                  <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Action Type</p>
+                  <div className="flex gap-1.5 flex-wrap">
+                    {Object.entries(actionTypeGroups).map(([key, { label }]) => (
+                      <button
+                        key={key}
+                        onClick={() => toggleActionType(key)}
+                        className={`px-3 py-1.5 text-xs rounded-full border transition-all duration-200 hover:scale-105 active:scale-95 cursor-pointer ${
+                          actionTypeFilter.has(key)
+                            ? "bg-[#E7A3B0] text-white border-[#E7A3B0] shadow-sm"
+                            : "border-gray-200 text-gray-600 hover:border-[#E7A3B0] hover:bg-[#fff5f7] hover:text-[#E7A3B0] hover:shadow-sm"
+                        }`}
+                      >
+                        {label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                {activeFilterCount > 0 && (
+                  <button
+                    onClick={() => setActionTypeFilter(new Set())}
+                    className="w-full text-xs text-gray-500 py-1.5 hover:bg-[#fff5f7] hover:border-[#E7A3B0] hover:text-[#E7A3B0] rounded-md transition-all duration-200 hover:scale-[1.02] active:scale-95 cursor-pointer border border-gray-200"
+                  >
+                    Clear all filters
+                  </button>
                 )}
               </div>
-              {selectedMonth && (
-                <button
-                  onClick={() => { setSelectedMonth(null); setShowPicker(false); }}
-                  className="w-full mt-2 text-xs text-gray-500 hover:text-gray-700 py-1.5 hover:bg-gray-50 rounded-md transition-colors cursor-pointer"
-                >
-                  Clear filter
-                </button>
-              )}
-            </div>
-          )}
-        </div>
-        <span className="text-sm text-gray-600">
-          {totalCount > 0
-            ? `Showing ${startIndex + 1}-${Math.min(startIndex + itemsPerPage, totalCount)} of ${totalCount} logs`
-            : "Showing 0 logs"}
-        </span>
-      </div>
+            )}
+          </div>
 
-        <div className="flex items-center justify-between gap-3 flex-wrap">
-          <p className="text-sm text-gray-600">{browseSummaryMessage}</p>
+          <div className="relative" ref={pickerRef}>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowPicker((p) => !p)}
+              className="flex items-center gap-2 h-9 text-xs hover:bg-[#fff5f7] hover:text-[#E7A3B0] hover:border-[#E7A3B0] hover:scale-105 hover:shadow-md active:scale-95 transition-all duration-300"
+            >
+              <Calendar className="w-3.5 h-3.5" />
+              {selectedMonthLabel}
+              <ChevronDown className="w-3.5 h-3.5" />
+            </Button>
+            {showPicker && (
+              <div className="absolute left-0 z-10 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg p-3 w-72">
+                <div className="mb-3">
+                  <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Available Months</p>
+                </div>
+                <div className="max-h-72 overflow-y-auto space-y-3 pr-1">
+                  {groupedMonthEntries.length > 0 ? (
+                    groupedMonthEntries.map(([year, yearMonths]) => (
+                      <div key={year} className="space-y-1.5">
+                        <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">{year}</p>
+                        <div className="space-y-1">
+                          {yearMonths.map((monthOption) => (
+                            <button
+                              key={monthOption.value}
+                              onClick={() => {
+                                setSelectedMonth({ month: monthOption.month, year: monthOption.year });
+                                setShowPicker(false);
+                              }}
+                              className={`flex w-full items-center justify-between rounded-md px-3 py-2 text-left text-sm transition-colors ${
+                                selectedMonthValue === monthOption.value
+                                  ? "bg-[#E7A3B0] text-white shadow-sm"
+                                  : "text-gray-700 hover:bg-gray-100"
+                              }`}
+                            >
+                              <span>{monthOption.label}</span>
+                              <span className={`text-xs ${selectedMonthValue === monthOption.value ? "text-white/90" : "text-gray-400"}`}>
+                                {monthOption.count}
+                              </span>
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <p className="text-sm text-gray-500 px-1 py-2">No months with logs yet.</p>
+                  )}
+                </div>
+                {selectedMonth && (
+                  <button
+                    onClick={() => { setSelectedMonth(null); setShowPicker(false); }}
+                    className="w-full mt-2 text-xs text-gray-500 hover:text-gray-700 py-1.5 hover:bg-gray-50 rounded-md transition-colors cursor-pointer"
+                  >
+                    Clear filter
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
+          <span className="text-sm text-gray-600">
+            {totalCount > 0
+              ? `Showing ${startIndex + 1}-${Math.min(startIndex + itemsPerPage, totalCount)} of ${totalCount} logs`
+              : "Showing 0 logs"}
+          </span>
         </div>
 
         {activeFilterChips.length > 0 && (
-          <div className="flex items-center gap-2 flex-wrap">
+          <div className="flex flex-wrap items-center gap-2 rounded-xl border border-[#E7A3B0]/15 bg-[#fffcfd] px-4 py-3">
+            <span className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[#b47c88]">
+              Active
+            </span>
             {activeFilterChips.map((chip) => (
               <button
                 key={chip.key}
                 type="button"
                 onClick={chip.onRemove}
-                className="inline-flex items-center gap-2 rounded-full bg-[#fff5f7] px-3 py-1 text-xs font-medium text-[#b96d7d] transition-colors hover:bg-[#ffeaf0]"
+                className="inline-flex items-center gap-2 rounded-full border border-[#E7A3B0]/25 bg-white px-3 py-1.5 text-xs font-medium text-[#6f5058] transition-colors hover:bg-[#fff5f7]"
               >
-                <span>{chip.label}</span>
-                <X className="h-3 w-3" />
+                <span className="max-w-[280px] truncate">{chip.label}</span>
+                <X className="h-3.5 w-3.5 text-[#b47c88]" />
               </button>
             ))}
-            <Button
+            <button
               type="button"
-              variant="outline"
-              size="sm"
               onClick={clearAllFilters}
-              className="h-8 border-zinc-200 text-zinc-600 hover:bg-zinc-50"
+              className="inline-flex items-center rounded-full px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.2em] text-[#b47c88] transition-colors hover:text-[#8f5f69]"
             >
               Clear all
-            </Button>
+            </button>
           </div>
         )}
+
+        <div className="flex items-center justify-between gap-3 flex-wrap">
+          <p className="text-sm text-gray-600">{browseSummaryMessage}</p>
+        </div>
       </div>
 
       {loading ? (

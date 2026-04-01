@@ -2,14 +2,14 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams, useRouter, usePathname } from "next/navigation";
-import { Plus, Search, X, AlertTriangle, Trash, RefreshCcw } from "lucide-react";
+import { Plus, Trash, RefreshCcw, X } from "lucide-react";
 import { browserSupabase } from "@/lib/supabase/browser";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import AddEmployee from "@/components/modals/AddEmployee";
 import { EmployeeTable } from "@/components/tables/EmployeeTable";
 import { Employee } from "@/types/employee.types";
 import CustomPagination from "@/components/general-components/CustomPagination";
+import AdminSearchInput from "@/components/general-components/AdminSearchInput";
 
 import ViewEmployeeDialog from "@/components/dialogs/ViewEmployeeDialog";
 import DeleteEmployeeDialog from "@/components/dialogs/DeleteEmployeeDialog";
@@ -293,6 +293,17 @@ export default function EmployeesClient() {
 
   const selectedCount = selectedRows.size;
   const hasSearch = searchTerm.trim().length > 0;
+  const activeFilterChips = useMemo(() => {
+    if (!hasSearch) return [];
+
+    return [
+      {
+        key: "search",
+        label: `Search: ${searchTerm.trim()}`,
+        onRemove: () => setSearchTerm(""),
+      },
+    ];
+  }, [hasSearch, searchTerm]);
   const rangeSummaryMessage = useMemo(() => {
     if (loading) {
       return "Preparing employee results...";
@@ -317,6 +328,9 @@ export default function EmployeesClient() {
   const emptyDescription = hasSearch
     ? "Try a different name or email, or clear the search to view the full employee directory."
     : "Create your first employee account to start managing staff access.";
+  const clearAllFilters = () => {
+    setSearchTerm("");
+  };
 
   return (
     <div className="space-y-6">
@@ -375,30 +389,43 @@ export default function EmployeesClient() {
         )}
 
         <div className="space-y-3">
-          <div className="flex items-center gap-4 flex-wrap">
-            <div className="relative flex-1 min-w-[240px]">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-3.5 h-3.5" />
-            <Input
+          <div className="flex items-center gap-3 flex-wrap">
+            <AdminSearchInput
               ref={searchInputRef}
-              type="text"
-              placeholder="Search by name or email..."
               value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              aria-label="Search employees by name or email"
-              className="w-full pl-9 pr-10 h-9 rounded-full border-gray-300 text-sm text-gray-900 bg-white"
+              onChange={setSearchTerm}
+              placeholder="Search by name or email..."
+              ariaLabel="Search employees by name or email"
+              className="min-w-[240px]"
+              clearLabel="Clear employee search"
             />
-            {searchTerm && (
+          </div>
+
+          {activeFilterChips.length > 0 && (
+            <div className="flex flex-wrap items-center gap-2 rounded-xl border border-[#E7A3B0]/15 bg-[#fffcfd] px-4 py-3">
+              <span className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[#b47c88]">
+                Active
+              </span>
+              {activeFilterChips.map((chip) => (
+                <button
+                  key={chip.key}
+                  type="button"
+                  onClick={chip.onRemove}
+                  className="inline-flex items-center gap-2 rounded-full border border-[#E7A3B0]/25 bg-white px-3 py-1.5 text-xs font-medium text-[#6f5058] transition-colors hover:bg-[#fff5f7]"
+                >
+                  <span className="max-w-[280px] truncate">{chip.label}</span>
+                  <X className="h-3.5 w-3.5 text-[#b47c88]" />
+                </button>
+              ))}
               <button
                 type="button"
-                onClick={() => setSearchTerm("")}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 transition-colors hover:text-gray-600"
-                aria-label="Clear employee search"
+                onClick={clearAllFilters}
+                className="inline-flex items-center rounded-full px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.2em] text-[#b47c88] transition-colors hover:text-[#8f5f69]"
               >
-                <X className="h-4 w-4" />
+                Clear all
               </button>
-            )}
-          </div>
-          </div>
+            </div>
+          )}
 
           <div className="flex items-center justify-between gap-3 flex-wrap">
             <p className="text-sm text-gray-600">{rangeSummaryMessage}</p>

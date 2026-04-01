@@ -2,10 +2,9 @@
 
 import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { useSearchParams, useRouter, usePathname } from "next/navigation";
-import { Plus, Trash, AlertTriangle, Search, X, Upload, SlidersHorizontal, RefreshCw } from "lucide-react";
+import { Plus, Trash, X, Upload, SlidersHorizontal, RefreshCw } from "lucide-react";
 import { browserSupabase } from "@/lib/supabase/browser";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import {
   Select,
   SelectContent,
@@ -21,6 +20,7 @@ import BulkImportModal from "@/components/modals/BulkImportModal";
 import { InventoryTable } from "@/components/tables/InventoryTable";
 import { InventoryProduct as Product, InventoryCategory as Category, InventoryProductImage as ProductImage } from "@/types/inventory.types";
 import CustomPagination from "@/components/general-components/CustomPagination";
+import AdminSearchInput from "@/components/general-components/AdminSearchInput";
 import ViewProductDialog from "@/components/dialogs/ViewProductDialog";
 import { toast } from "sonner";
 import {
@@ -39,6 +39,28 @@ import { AdminNoticeBanner } from "@/components/ui/admin-notice-banner";
 interface InventoryManagementProps {
   initialAvailabilityFilter?: string;
 }
+
+const availabilityLabels: Record<string, string> = {
+  "all": "All stock",
+  "in-stock": "In stock",
+  "low-stock": "Low stock",
+  "out-of-stock": "Out of stock",
+  "stock-alerts": "Stock alerts",
+  "no-image": "No image",
+};
+
+const visibilityLabels: Record<string, string> = {
+  "all": "All visibility",
+  "published": "Published",
+  "unpublished": "Unpublished",
+};
+
+const sortLabels: Record<string, string> = {
+  "newest": "Newest first",
+  "oldest": "Oldest first",
+  "az": "Name A to Z",
+  "za": "Name Z to A",
+};
 
 export default function InventoryManagement({ initialAvailabilityFilter }: InventoryManagementProps) {
   const searchParams = useSearchParams();
@@ -82,25 +104,6 @@ export default function InventoryManagement({ initialAvailabilityFilter }: Inven
 
   const itemsPerPage = 10;
   const lowStockThreshold = 10;
-  const availabilityLabels: Record<string, string> = {
-    "all": "All stock",
-    "in-stock": "In stock",
-    "low-stock": "Low stock",
-    "out-of-stock": "Out of stock",
-    "stock-alerts": "Stock alerts",
-    "no-image": "No image",
-  };
-  const visibilityLabels: Record<string, string> = {
-    "all": "All visibility",
-    "published": "Published",
-    "unpublished": "Unpublished",
-  };
-  const sortLabels: Record<string, string> = {
-    "newest": "Newest first",
-    "oldest": "Oldest first",
-    "az": "Name A to Z",
-    "za": "Name Z to A",
-  };
 
   const fetchProducts = useCallback(async (showGlobalLoader = false) => {
     try {
@@ -601,29 +604,15 @@ export default function InventoryManagement({ initialAvailabilityFilter }: Inven
       </div>
 
       <div className="flex items-center gap-3 flex-wrap">
-        <div className="relative flex-1 min-w-[200px]">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-3.5 h-3.5" />
-          <Input
-            ref={searchInputRef}
-            type="text"
-            placeholder="Search products..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-9 pr-10 h-9 rounded-full border-gray-300 text-sm text-gray-900 bg-white"
-            aria-label="Search inventory products"
-          />
-          {searchQuery.trim() !== "" && (
-            <button
-              type="button"
-              onClick={() => setSearchQuery("")}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 transition-colors hover:text-[#E7A3B0] cursor-pointer"
-              aria-label="Clear inventory search"
-              title="Clear search"
-            >
-              <X className="w-3.5 h-3.5" />
-            </button>
-          )}
-        </div>
+        <AdminSearchInput
+          ref={searchInputRef}
+          value={searchQuery}
+          onChange={setSearchQuery}
+          placeholder="Search products..."
+          ariaLabel="Search inventory products"
+          className="min-w-[240px]"
+          clearLabel="Clear inventory search"
+        />
 
         {/* Filters popover */}
         <div className="relative" ref={filtersRef}>
