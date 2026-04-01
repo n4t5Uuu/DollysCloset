@@ -96,9 +96,26 @@ The portal uses a dynamic, OKLCH-based color system for precise control over per
 
 ## 📁 Project Structure
 
-- `/src/app`: Next.js App Router routes (Admin, Dashboard, Auth, etc.).
-- `/src/components`: Reusable UI components (Shared, Layout, Specific features).
-- `/src/hooks`: Custom React hooks for data fetching and state logic.
-- `/src/lib`: Utility functions and direct Supabase/Analytics helpers.
 - `/src/types`: TypeScript definitions and schemas.
+- `/docs`: High-level architecture and developer guides.
+
+---
+
+## 🛠️ Developer Reference
+
+For a deep dive into the application's design patterns, authentication flow, and state management, see the **[Architecture Guide](./docs/ARCHITECTURE.md)**.
+
+### Common Tasks
+
+*   **Adding a Protected Route**: Add the new path to the `matcher` in `middleware.ts`.
+*   **Enforcing Unsaved Change Warnings**:
+    1. Import `useUnsavedChanges` from `@/contexts/UnsavedChangesContext`.
+    2. Use `setIsDirty(true)` when form fields are modified.
+    3. Use `setUnsavedMessage("Your custom message")` to provide context to the user.
+
+### Debugging Tips
+
+*   **Auth Issues**: Check the browser console and the `middleware.ts` logs. Authentication is session-persistent but requires valid cookies.
+*   **Navigation Blocks**: If a link isn't navigating, ensure the `isDirty` state is being cleared after a successful save.
+*   **Environment Variables**: Ensure all keys in `.env.local` are correct. Missing Supabase keys will cause app-wide failures.
 

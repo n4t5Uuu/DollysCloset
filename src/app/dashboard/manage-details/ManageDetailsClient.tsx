@@ -37,6 +37,18 @@ import {
   parseContactBody,
 } from "@/lib/business-details/business-details";
 
+/**
+ * ManageDetailsClient.tsx
+ * 
+ * Administrative client component for managing business-wide configuration strings 
+ * (Announcement banner, Contact info, FAQ, About page content).
+ * 
+ * Key Logic:
+ * 1. Independent persistence: Each field or item saves independently once its "Save" action is triggered.
+ * 2. Complex Dirty Tracking: Keeps a "shadow" copy of saved values to determine if a field is modified.
+ * 3. Navigation Guard Integration: Summarizes `isDirty` counts across all tabs to block accidental exits.
+ */
+
 type ManageDetailsClientProps = {
   role: "admin" | "employee";
 };

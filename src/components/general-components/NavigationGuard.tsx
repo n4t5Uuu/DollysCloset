@@ -1,3 +1,10 @@
+/**
+ * NavigationGuard.tsx
+ * 
+ * A listener component that intercepts navigation attempts (both browser-level and client-side)
+ * when there are unsaved changes. It renders a confirmation UI if isDirty is true.
+ */
+
 "use client";
 
 import { useEffect, useState } from "react";
@@ -14,6 +21,17 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 
+/**
+ * NavigationGuard Interceptor Component
+ * 
+ * Works by:
+ * 1. Listening to the window `beforeunload` event (standard browser prompt).
+ * 2. Listening to click events globally to intercept standard <a> tag clicks
+ *    and prevent Next.js from performing its default client-side navigation.
+ * 
+ * Note: Blocking navigation in Next.js App Router is limited. This pattern intercepts
+ * Link clicks specifically, which covers most dashboard sidebar/navbar navigation.
+ */
 export function NavigationGuard() {
   const router = useRouter();
   const { isDirty, setIsDirty, unsavedMessage } = useUnsavedChanges();

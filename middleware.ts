@@ -4,14 +4,18 @@ import { NextResponse, type NextRequest } from 'next/server'
 import { buildLoginPath, buildUnauthorizedPath } from '@/lib/auth/auth-routing'
 
 /**
- * Next.js Middleware for Route Protection and Authentication
+ * middleware.ts
  * 
- * Middleware runs before a request is completed. It intercepts requests entirely
- * and enforces correct routing according to the authenticated status of a user 
- * accessing `/admin` or `/employee` secure routes.
+ * Next.js Middleware for Route Protection and Authentication.
+ * 
+ * Intercepts requests to `/admin`, `/employee`, and `/dashboard` to:
+ * 1. Refresh Supabase auth tokens and propagate them to both Request and Response.
+ * 2. Enforce Role-Based Access Control (RBAC) by checking `tbl_users.role`.
+ * 3. Prevent browser "Back-Forward Cache" (bfcache) for secure data by forcing 
+ *    re-validation on every navigation via strict Cache-Control headers.
  *
  * @param {NextRequest} request - The incoming HTTP request.
- * @returns {Promise<NextResponse>} The outgoing HTTP response, optionally manipulated or redirected.
+ * @returns {Promise<NextResponse>} The outgoing HTTP response (redirect or content).
  */
 export async function middleware(request: NextRequest) {
   const response = NextResponse.next({
