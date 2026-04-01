@@ -7,6 +7,7 @@ import { browserSupabase } from "@/lib/supabase/browser";
 import { changePasswordAction } from "./actions";
 import { Button } from "@/components/ui/button";
 import { AdminNoticeBanner } from "@/components/ui/admin-notice-banner";
+import { useUnsavedChanges } from "@/contexts/UnsavedChangesContext";
 
 interface Profile {
   displayName: string;
@@ -19,6 +20,7 @@ export default function SettingsPage() {
   const [profileLoading, setProfileLoading] = useState(true);
   const [profileError, setProfileError] = useState<string | null>(null);
   const [refreshingProfile, setRefreshingProfile] = useState(false);
+  const { setIsDirty, setUnsavedMessage } = useUnsavedChanges();
 
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
@@ -54,6 +56,19 @@ export default function SettingsPage() {
     }
     loadProfile();
   }, []);
+
+  // Track unsaved changes in password fields
+  useEffect(() => {
+    const isActuallyDirty = currentPassword.length > 0 || newPassword.length > 0 || confirmPassword.length > 0;
+    setIsDirty(isActuallyDirty);
+    setUnsavedMessage(isActuallyDirty ? "You have unsaved password changes. If you leave now, your progress will be lost." : undefined);
+
+    // Cleanup on unmount
+    return () => {
+      setIsDirty(false);
+      setUnsavedMessage(undefined);
+    };
+  }, [currentPassword, newPassword, confirmPassword, setIsDirty, setUnsavedMessage]);
 
   const refreshProfile = useCallback(async () => {
     try {
@@ -156,6 +171,7 @@ export default function SettingsPage() {
     setCurrentPassword("");
     setNewPassword("");
     setConfirmPassword("");
+    setIsDirty(false); // Explicitly clear dirty state on success
     setSuccess(true);
     setFormError(null);
     setLoading(false);
@@ -209,7 +225,7 @@ export default function SettingsPage() {
 
         {profileLoading ? (
           <div className="flex items-center gap-4 animate-pulse">
-            <div className="w-14 h-14 rounded-full bg-gray-100 flex-shrink-0" />
+            <div className="w-14 h-14 rounded-full bg-gray-100 shrink-0" />
             <div className="space-y-2">
               <div className="h-4 w-36 bg-gray-100 rounded-full" />
               <div className="h-3 w-48 bg-gray-100 rounded-full" />
@@ -217,7 +233,7 @@ export default function SettingsPage() {
           </div>
         ) : (
           <div className="flex items-center gap-4">
-            <div className="w-14 h-14 rounded-full bg-[#FFF0F3] flex items-center justify-center flex-shrink-0">
+            <div className="w-14 h-14 rounded-full bg-[#FFF0F3] flex items-center justify-center shrink-0">
               <span className="text-xl font-bold font-oswald text-[#E7A3B0]">
                 {avatarInitial}
               </span>
@@ -404,7 +420,7 @@ export default function SettingsPage() {
           <button
             type="submit"
             disabled={loading || !isFormReady}
-            className="w-full bg-gradient-to-r from-[#E7A3B0] to-[#E2899A] text-white font-bold py-[18px] rounded-xl hover:from-[#E2899A] hover:to-[#DE7588] transition-all duration-300 text-[13px] tracking-widest uppercase shadow-[0_8px_20px_-6px_rgba(231,163,176,0.6)] hover:shadow-[0_12px_24px_-6px_rgba(231,163,176,0.8)] hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.98] disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:translate-y-0 disabled:hover:shadow-[0_8px_20px_-6px_rgba(231,163,176,0.6)]"
+            className="w-full bg-linear-to-r from-[#E7A3B0] to-[#E2899A] text-white font-bold py-[18px] rounded-xl hover:from-[#E2899A] hover:to-[#DE7588] transition-all duration-300 text-[13px] tracking-widest uppercase shadow-[0_8px_20px_-6px_rgba(231,163,176,0.6)] hover:shadow-[0_12px_24px_-6px_rgba(231,163,176,0.8)] hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.98] disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:translate-y-0 disabled:hover:shadow-[0_8px_20px_-6px_rgba(231,163,176,0.6)]"
           >
             {loading ? "Updating..." : "Update Password"}
           </button>

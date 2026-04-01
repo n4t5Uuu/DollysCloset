@@ -18,6 +18,7 @@ import CustomPagination from "@/components/general-components/CustomPagination";
 import { toast } from "sonner";
 import { Skeleton } from "@/components/ui/skeleton";
 import { AdminNoticeBanner } from "@/components/ui/admin-notice-banner";
+import { useUnsavedChanges } from "@/contexts/UnsavedChangesContext";
 import {
   ANNOUNCEMENT_SLUG,
   ANNOUNCEMENT_TITLE,
@@ -44,6 +45,7 @@ export default function ManageDetailsClient({ role }: ManageDetailsClientProps) 
   const isAdmin = role === "admin";
   const inputClassName = "border-gray-200 bg-white text-gray-900 placeholder:text-gray-400 focus-visible:border-[#E7A3B0] focus-visible:ring-[#E7A3B0]";
   const textareaClassName = "border-gray-200 bg-white text-gray-900 placeholder:text-gray-400 focus-visible:border-[#E7A3B0] focus-visible:ring-[#E7A3B0]";
+  const { setIsDirty, setUnsavedMessage } = useUnsavedChanges();
 
   const [activeSection, setActiveSection] = useState<"announcement" | "contact" | "about">("announcement");
   const [announcementText, setAnnouncementText] = useState(defaultAnnouncementText);
@@ -171,6 +173,18 @@ export default function ManageDetailsClient({ role }: ManageDetailsClientProps) 
 
     return dirtyCount;
   }, [aboutDetails, savedAboutDetails]);
+
+  // Sync with global navigation guard
+  useEffect(() => {
+    const isActuallyDirty = announcementDirty || contactDirtyCount > 0 || aboutDirtyCount > 0;
+    setIsDirty(isActuallyDirty);
+    setUnsavedMessage(isActuallyDirty ? "You have unsaved business details. If you leave now, your changes will be lost." : undefined);
+
+    return () => {
+      setIsDirty(false);
+      setUnsavedMessage(undefined);
+    };
+  }, [announcementDirty, contactDirtyCount, aboutDirtyCount, setIsDirty, setUnsavedMessage]);
 
   const currentSectionUnsavedCount =
     activeSection === "announcement"
