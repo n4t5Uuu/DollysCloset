@@ -38,7 +38,10 @@ export function NavigationGuard() {
   const [showDialog, setShowDialog] = useState(false);
   const [pendingUrl, setPendingUrl] = useState<string | null>(null);
 
-  // Handle browser-level navigation (refresh, close tab, etc.)
+  /**
+   * Browser-level event handler for destructive navigation (back button, refresh, tab close).
+   * Triggers a standard browser confirmation dialog if the current state is dirty.
+   */
   useEffect(() => {
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
       if (isDirty) {
@@ -51,7 +54,11 @@ export function NavigationGuard() {
     return () => window.removeEventListener("beforeunload", handleBeforeUnload);
   }, [isDirty]);
 
-  // Handle client-side navigation (next/link clicks)
+  /**
+   * Next.js-level click interceptor.
+   * Captures global click events on anchors and prevents navigation if the form is dirty, 
+   * showing a custom AlertDialog instead of the browser native one.
+   */
   useEffect(() => {
     const handleAnchorClick = (e: MouseEvent) => {
       if (!isDirty) return;
@@ -83,6 +90,10 @@ export function NavigationGuard() {
     return () => document.removeEventListener("click", handleAnchorClick, true);
   }, [isDirty]);
 
+  /**
+   * Finalizes navigation after user confirmation.
+   * Resets the dirty state and pushes the pending URL to the router.
+   */
   const handleConfirm = () => {
     setIsDirty(false); // Reset dirty state so we don't block the next action
     setShowDialog(false);
@@ -91,6 +102,9 @@ export function NavigationGuard() {
     }
   };
 
+  /**
+   * Aborts navigation and stays on the current page.
+   */
   const handleCancel = () => {
     setShowDialog(false);
     setPendingUrl(null);

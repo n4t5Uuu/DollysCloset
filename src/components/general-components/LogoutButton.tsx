@@ -11,6 +11,15 @@ interface LogoutButtonProps {
     variant?: "pill" | "link" | "sidebar";
 }
 
+/**
+ * LogoutButton Component
+ * 
+ * Provides a secure entry point for ending the user's current session. 
+ * Invokes the `useUser` hook's `signOut` method which clears Supabase 
+ * cookies and session state before redirecting to the login portal.
+ * 
+ * Styled as a premium, theme-neutral button with a hover effect for clear interactivity.
+ */
 export default function LogoutButton({ variant = "pill" }: LogoutButtonProps) {
     const { user, loading, signOut } = useUser();
     const [isLoggingOut, setIsLoggingOut] = useState(false);

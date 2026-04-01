@@ -11,6 +11,15 @@ import {
   PaginationPrevious,
 } from "@/components/ui/pagination";
 
+/**
+ * CustomPaginationProps Interface
+ * @interface CustomPaginationProps
+ * @property {number} currentPage - The currently active page index (1-based).
+ * @property {number} totalPages - Total number of available pages.
+ * @property {function} onPageChange - Callback triggered when a new page is selected.
+ * @property {string} [className] - Optional CSS classes for the container.
+ * @property {boolean} [disabled] - If true, disables all pagination interactions.
+ */
 interface CustomPaginationProps {
   currentPage: number;
   totalPages: number;
@@ -19,6 +28,21 @@ interface CustomPaginationProps {
   disabled?: boolean;
 }
 
+/**
+ * CustomPagination Component
+ * 
+ * A specialized pagination control tailored for the Dolly's Closet dashboard.
+ * Includes "First/Last" shortcuts, a sliding window of page numbers, and a 
+ * "Go to page" direct input field for high-volume catalogs.
+ * 
+ * Features brand-consistent styling with pink accents and responsive accessibility labels.
+ * 
+ * Logic:
+ * The page number window uses a sliding logic:
+ * - If total pages <= 5, show all.
+ * - Otherwise, keep the current page centered within a 5-page window, 
+ *   clamping to the start or end of the range.
+ */
 export default function CustomPagination({
   currentPage,
   totalPages,

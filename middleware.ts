@@ -41,11 +41,16 @@ export async function middleware(request: NextRequest) {
 
           // Apply changes to the response cookies propagating safely iteratively
           cookiesToSet.forEach(({ name, value, options }) => {
+            // Strictly enforce session-only auth cookies by removing persistence markers.
+            const sessionOptions = { ...options };
+            delete sessionOptions.maxAge;
+            delete sessionOptions.expires;
+
             // In development, strip the Secure flag so cookies work
             // over plain HTTP (e.g. local-network mobile testing).
             const safeOptions = process.env.NODE_ENV === 'development'
-              ? { ...options, secure: false }
-              : options;
+              ? { ...sessionOptions, secure: false }
+              : sessionOptions;
             response.cookies.set(name, value, safeOptions);
           });
         },
@@ -58,6 +63,56 @@ export async function middleware(request: NextRequest) {
 
   if (authError) {
     console.warn('Middleware auth error:', authError.message)
+  }
+
+  const isProtectedRoute = 
+    request.nextUrl.pathname.startsWith('/admin') ||
+    request.nextUrl.pathname.startsWith('/employee') ||
+    request.nextUrl.pathname.startsWith('/dashboard');
+
+  /**
+   * --- Inactivity Timeout Implementation ---
+   * 
+   * Tracks the user's last interaction time via the `dollys-closet-last-active` cookie.
+   * If the time elapsed since the last request exceeds 30 minutes:
+   * 1. The user's Supabase session is revoked via `signOut()`.
+   * 2. The activity cookie is purged.
+   * 3. The user is redirected to the login page with a `session-expired` reason.
+   * 
+   * This logic runs exclusively on protected routes (/admin, /employee, /dashboard).
+   */
+  const INACTIVITY_THRESHOLD = 30 * 60 * 1000; // 30 minutes
+  const lastActiveCookieName = 'dollys-closet-last-active';
+  const lastActive = request.cookies.get(lastActiveCookieName)?.value;
+
+  console.log(`Middleware Activity Check: [Path: ${request.nextUrl.pathname}] [User: ${user ? 'Yes' : 'No'}] [LastActive: ${lastActive || 'None'}]`);
+
+  if (user && isProtectedRoute) {
+    const now = Date.now();
+    if (lastActive) {
+      const lastActiveTime = parseInt(lastActive, 10);
+      if (!isNaN(lastActiveTime) && now - lastActiveTime > INACTIVITY_THRESHOLD) {
+        console.log('Inactivity timeout reached. Logging user out.');
+        await supabase.auth.signOut();
+        response.cookies.delete(lastActiveCookieName);
+        
+        const nextPath = `${request.nextUrl.pathname}${request.nextUrl.search}`;
+        return NextResponse.redirect(new URL(buildLoginPath({
+          nextPath,
+          reason: 'session-expired'
+        }), request.url));
+      }
+    }
+    
+    // Always update the last active timestamp on protected routes
+    // We use session-only cookie options here so browser closure clears it.
+    response.cookies.set(lastActiveCookieName, now.toString(), {
+      path: '/',
+      sameSite: 'lax',
+      httpOnly: false, // Accessible by client-side guard
+      secure: process.env.NODE_ENV !== 'development',
+    });
+    console.log(`Updated last-active cookie: ${now}`);
   }
 
   /**

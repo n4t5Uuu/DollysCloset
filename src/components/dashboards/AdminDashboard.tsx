@@ -51,6 +51,18 @@ function extractProductName(description: string, productId: number | string | nu
     return "Product";
 }
 
+/**
+ * AdminDashboard Component
+ * 
+ * The primary command center for administrative users.
+ * Provides a high-level overview of inventory health, recent activity, 
+ * and actionable alerts (stock levels, missing images).
+ * 
+ * Key Features:
+ * - Real-time polling: Refreshes dashboard data every 20 seconds.
+ * - Responsive Metrics: Displays items added, listed/unlisted counts, and stock alerts.
+ * - Integrated Search/Edit: Quick access to product editing from alert lists.
+ */
 export default function AdminDashboard() {
     const [products, setProducts] = useState<InventoryProduct[]>([]);
     const [logs, setLogs] = useState<ActivityLog[]>([]);
@@ -62,6 +74,10 @@ export default function AdminDashboard() {
     const [categories, setCategories] = useState<InventoryCategory[]>([]);
     const [loadingProductId, setLoadingProductId] = useState<string | null>(null);
 
+    /**
+     * Retrieves the current user's profile metadata from the server.
+     * Used primarily for the personalized greeting and permission verification.
+     */
     const fetchProfile = useCallback(async () => {
         const response = await fetch("/api/auth/profile", { cache: "no-store" });
         if (!response.ok) {
@@ -73,6 +89,12 @@ export default function AdminDashboard() {
         setFirstName(result?.data?.firstName ?? "");
     }, []);
 
+    /**
+     * Orchestrates the fetching of inventory and activity log data.
+     * can be run in "background" mode to avoid triggering global loading spinners 
+     * during periodic refreshes.
+     * @param isBackground - If true, suppresses the `loading` state toggle.
+     */
     const fetchDashboardData = useCallback(async (isBackground = false) => {
         try {
             if (!isBackground) setLoading(true);
@@ -113,6 +135,11 @@ export default function AdminDashboard() {
         }
     }, []);
 
+    /**
+     * Prepares and opens the product editing modal for a specific item.
+     * Fetches current category lists to ensure the edit form is populated correctly.
+     * @param productId - The unique identifier of the product to edit.
+     */
     const handleEditClick = useCallback(async (productId: string) => {
         setLoadingProductId(productId);
         try {

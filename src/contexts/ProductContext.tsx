@@ -91,6 +91,11 @@ export function ProductProvider({ children }: { children: React.ReactNode }) {
     }
   }, [activityLogs]);
 
+  /**
+   * Internal telemetry helper recording significant catalog modifications.
+   * Merges user session metadata onto specific action payloads before syncing with state.
+   * @param log - Initial log payload containing action and product details.
+   */
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const logActivity = (log: any) => {
     // Only log if user data is available
@@ -110,6 +115,12 @@ export function ProductProvider({ children }: { children: React.ReactNode }) {
     setActivityLogs((prev) => [newLog, ...prev]);
   };
 
+  /**
+   * Appends a new product record to the global list and initializes its catalog status.
+   * Triggers an activity log entry for the "added" action.
+   * @param product - The full product data object being instantiated.
+   * @param status - The initial visibility status (featured/standard/unlisted).
+   */
   const addProduct = (product: Product, status: CatalogStatus) => {
     setProductList([product, ...productList]);
     setCatalogStatusState({ ...catalogStatus, [product.id]: status });
@@ -125,6 +136,12 @@ export function ProductProvider({ children }: { children: React.ReactNode }) {
     });
   };
 
+  /**
+   * Synchronizes an updated product record with the global list and updates its status.
+   * Performs a delta check against the old record to generate detailed activity trail logs.
+   * @param product - Updated product data.
+   * @param status - The target visibility status.
+   */
   const updateProduct = (product: Product, status: CatalogStatus) => {
     const oldProduct = productList.find(p => p.id === product.id);
     setProductList(productList.map(p => p.id === product.id ? product : p));
@@ -157,6 +174,11 @@ export function ProductProvider({ children }: { children: React.ReactNode }) {
     });
   };
 
+  /**
+   * Permanently removes a product from the local catalog and clears its status mapping.
+   * Records a "deleted" activity trail event.
+   * @param productId - Unique identifier of the product to purge.
+   */
   const deleteProduct = (productId: string) => {
     const productToDelete = productList.find((p) => p.id === productId);
     setProductList(productList.filter(p => p.id !== productId));
@@ -171,6 +193,11 @@ export function ProductProvider({ children }: { children: React.ReactNode }) {
     });
   };
 
+  /**
+   * Directly updates the visibility tier of a specific product.
+   * @param productId - Target product ID.
+   * @param status - Target CatalogStatus.
+   */
   const setCatalogStatus = (productId: string, status: CatalogStatus) => {
     const fromStatus = catalogStatus[productId];
     setCatalogStatusState({ ...catalogStatus, [productId]: status });
@@ -184,6 +211,11 @@ export function ProductProvider({ children }: { children: React.ReactNode }) {
     });
   };
 
+  /**
+   * Toggles a product between its last active visibility status and "unlisted".
+   * Primarily used for quick publish/unpublish actions on the management dashboard.
+   * @param productId - Target product ID.
+   */
   const togglePublishStatus = (productId: string) => {
     const currentStatus = catalogStatus[productId];
     if (currentStatus === "unlisted") {
@@ -211,6 +243,11 @@ export function ProductProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  /**
+   * Rotates a product through the visibility hierarchy: standard -> featured -> unlisted.
+   * Provides a simplified status management cycle for high-velocity inventory updates.
+   * @param productId - Target product ID.
+   */
   const cycleCatalogStatus = (productId: string) => {
     const currentStatus = catalogStatus[productId];
     let newStatus: CatalogStatus;

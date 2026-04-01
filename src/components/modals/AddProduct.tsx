@@ -57,6 +57,18 @@ const normalizeCategoryId = (value: unknown) => {
     return raw;
 };
 
+/**
+ * AddProduct Modal Component
+ * 
+ * A comprehensive form for listing new products or updating existing inventory.
+ * Handles complex state for product metadata, category selection, and image management.
+ * 
+ * Features:
+ * - Dual Workflow: Supports both "Create" (POST) and "Edit" (PUT) operations.
+ * - Image Staging: Allows previewing and removing images before final submission.
+ * - Form Guard: Intercepts close attempts if unsaved changes are detected.
+ * - Real-time Validation: Disables save if required fields (Name, Category, Price) are missing.
+ */
 export default function AddProduct({ isOpen, onClose, categories, productToEdit, onProductSaved }: AddProductProps) {
     const [actionLoading, setActionLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -111,6 +123,11 @@ export default function AddProduct({ isOpen, onClose, categories, productToEdit,
         };
     }, [actionLoading, isOpen]);
 
+    /**
+     * Determines if the user has modified any form fields compared to the 
+     * initial state or the loaded product data.
+     * @returns Boolean indicating if there is unsaved progress.
+     */
     const hasUnsavedChanges = () => {
         const normalizeString = (str: string | null | undefined) => (str || "").trim();
         if (productToEdit) {
@@ -317,6 +334,13 @@ export default function AddProduct({ isOpen, onClose, categories, productToEdit,
      * Communicates with either /api/admin/create-product or /api/admin/edit-product endpoints.
      * Also triggers the uploading of staged image files after a successful product creation.
      * @param e - Form submission event.
+     */
+    /**
+     * Orchestrates the final submission of product data.
+     * 1. Validates input constraints (Price, Stock).
+     * 2. Synchronizes metadata with the appropriate /api/admin endpoint.
+     * 3. Triggers `uploadStagedImages` if the product was successfully created.
+     * @param e - React FormEvent.
      */
     const handleSaveProduct = async (e: React.FormEvent) => {
         e.preventDefault();

@@ -4,6 +4,14 @@ import { usePathname } from "next/navigation";
 import Footer from "@/components/general-components/footer";
 import Navbar from "@/components/general-components/navbar";
 
+/**
+ * ConditionalNavbar Component
+ * 
+ * Logic-driven wrapper for the global Navigation Bar.
+ * Analyzes the current `pathname` to determine visibility:
+ * - Hides the navbar on auth pages (login, reset-password), unauthorized pages, 
+ *   and all sub-routes of /admin and /employee (which use their own sidebars).
+ */
 export function ConditionalNavbar() {
     const pathname = usePathname();
     const hiddenNavbarPaths = ["/", "/unauthorized", "/login", "/forgot-password", "/reset-password"];
@@ -19,6 +27,13 @@ export function ConditionalNavbar() {
     return <Navbar />;
 }
 
+/**
+ * ConditionalFooter Component
+ * 
+ * Logic-driven wrapper for the global Footer.
+ * Hides the footer on intensive management routes (/admin, /employee, /dashboard) 
+ * and auth pages to maintain a clean, focused user interface for work tasks.
+ */
 export function ConditionalFooter() {
     const pathname = usePathname();
 

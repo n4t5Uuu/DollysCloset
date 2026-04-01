@@ -22,6 +22,11 @@ export function useUser() {
     const [userRole, setUserRole] = useState<'admin' | 'employee' | null>(null);
     const [loading, setLoading] = useState(true);
 
+    /**
+     * Retrieves the user's role (admin/employee) from the server-side profile API.
+     * Validates the response against the current user ID to prevent role leakage.
+     * @param userId - The ID of the currently authenticated user.
+     */
     async function fetchUserRole(userId: string) {
         try {
             const response = await fetch("/api/auth/profile", { cache: "no-store" });
@@ -50,6 +55,11 @@ export function useUser() {
     useEffect(() => {
         let isMounted = true;
 
+        /**
+         * Core session-to-state mapper. Updates local React state based on 
+         * Supabase session data asynchronously.
+         * @param session - The Supabase session object.
+         */
         const applySession = async (session: Session | null) => {
             if (!isMounted) {
                 return;
@@ -67,6 +77,10 @@ export function useUser() {
             setUserRole(null);
         };
 
+        /**
+         * Initial auth bootstrapper. Attempts to read the session from the browser 
+         * and then verifies it against the server for maximum security.
+         */
         async function bootstrapUser() {
             try {
                 // Read the browser session first so session-aware UI can render immediately.

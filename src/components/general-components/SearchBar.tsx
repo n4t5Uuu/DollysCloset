@@ -5,11 +5,30 @@ import {Search, X} from "lucide-react"
 
 import {useEffect, useRef, useState} from "react";
 
+/**
+ * SearchBarProps Interface
+ * @interface SearchBarProps
+ * @property {function} [onSearch] - Callback triggered with the sanitized query string.
+ * @property {string} [initialQuery] - Pre-filled value for the search input.
+ */
 interface SearchBarProps {
     onSearch?: (query: string) => void;
     initialQuery?: string;
 }
 
+/**
+ * SearchBar Component
+ * 
+ * A high-quality, debounced search input field used across the product catalogs.
+ * 
+ * Implementation Details:
+ * 1. Debouncing: Uses a 300ms window to delay triggering the `onSearch` callback, 
+ *    ensuring efficient resource utilization during rapid typing.
+ * 2. Clear Function: Explicitly resets the query and immediately notifies parent 
+ *    components of the empty state.
+ * 3. Responsive UI: Dynamically updates the placeholder text to "Search..." for 
+ *    extremely narrow mobile displays (below 380px).
+ */
 export default function SearchBar({ onSearch, initialQuery = "" }: SearchBarProps) {
     const [query, setQuery] = useState(initialQuery);
     const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
