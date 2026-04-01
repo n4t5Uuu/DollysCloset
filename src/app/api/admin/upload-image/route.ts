@@ -152,7 +152,7 @@ export async function POST(request: NextRequest) {
     await activityHelper.logActivity({
       actionType: "upload_image",
       productId: productIdValue,
-      description: `Uploaded image: ${file.name}`,
+      description: `Uploaded image: ${file.name} on product ID ${productIdValue}`,
       editor: editor,
       user_id: user.id,
       supabase: admin
