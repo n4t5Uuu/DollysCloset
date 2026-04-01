@@ -27,6 +27,7 @@ interface ActivityLog {
   created_at: string;
   action_type: string;
   product_id: number | null;
+  business_details: number | null;
   description: string;
   editor: string | null;
   user_id: string | null;
@@ -670,7 +671,7 @@ export default function ActivityLogsClient() {
               <TableRow>
                 <TableHead className="p-4 font-bold">Date & Time</TableHead>
                 <TableHead className="p-4 font-bold">Action</TableHead>
-                <TableHead className="p-4 font-bold">Product ID</TableHead>
+                <TableHead className="p-4 font-bold">Linked ID</TableHead>
                 <TableHead className="p-4 font-bold">User</TableHead>
                 <TableHead className="p-4 font-bold w-[30%]">Description</TableHead>
                 <TableHead className="p-4 font-bold">Editor</TableHead>
@@ -696,7 +697,7 @@ export default function ActivityLogsClient() {
                       </div>
                     </TableCell>
                     <TableCell className="p-4 text-sm text-gray-900">
-                      <div className="line-clamp-2 break-all">{log.product_id || "-"}</div>
+                      <div className="line-clamp-2 break-all">{log.product_id ?? log.business_details ?? "-"}</div>
                     </TableCell>
                     <TableCell className="p-4 text-sm text-gray-900">
                       <div className="line-clamp-2 break-all">
@@ -799,8 +800,8 @@ export default function ActivityLogsClient() {
                   </span>
                 </div>
                 <div className="bg-gray-50 rounded-xl p-4">
-                  <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Product ID</p>
-                  <p className="text-sm font-semibold text-gray-900">{viewLog.product_id ?? "-"}</p>
+                  <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Linked ID</p>
+                  <p className="text-sm font-semibold text-gray-900">{viewLog.product_id ?? viewLog.business_details ?? "-"}</p>
                 </div>
                 <div className="bg-gray-50 rounded-xl p-4">
                   <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">User</p>

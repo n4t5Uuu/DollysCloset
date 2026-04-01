@@ -32,6 +32,22 @@ function getRowIdColumn(row: BusinessDetailsRow): "business_details_id" | "busin
   return null;
 }
 
+function toNumericId(value: unknown): number | null {
+  if (typeof value === "number" && Number.isFinite(value)) return value;
+  if (typeof value === "string" && value.trim() !== "") {
+    const parsed = Number.parseInt(value, 10);
+    return Number.isNaN(parsed) ? null : parsed;
+  }
+  return null;
+}
+
+function getBusinessDetailId(row: BusinessDetailsRow | null | undefined): number | null {
+  if (!row) return null;
+  const idColumn = getRowIdColumn(row);
+  if (!idColumn) return null;
+  return toNumericId(row[idColumn]);
+}
+
 async function resolveTableName() {
   return businessDetailsHelper.resolveTableName(admin);
 }
@@ -179,6 +195,7 @@ export async function PUT(request: NextRequest) {
     if (slug === CONTACT_SLUG || slug === ABOUT_SLUG) {
       const isContact = slug === CONTACT_SLUG;
       const updates: Array<{ label: string; value: string }> = [];
+      const updatedDetailIds = new Set<number>();
 
       if (body && typeof body === "object" && !Array.isArray(body)) {
         for (const [incomingKey, incomingValue] of Object.entries(body)) {
@@ -222,6 +239,12 @@ export async function PUT(request: NextRequest) {
           return NextResponse.json({ error: updateResult.error.message }, { status: 500 });
         }
 
+        const updatedRows = (updateResult.data || []) as BusinessDetailsRow[];
+        updatedRows.forEach((row) => {
+          const detailId = getBusinessDetailId(row);
+          if (detailId !== null) updatedDetailIds.add(detailId);
+        });
+
         if (!updateResult.data || updateResult.data.length === 0) {
           const insertResult = await businessDetailsHelper.insertDetailGeneric(
             tableName,
@@ -232,14 +255,23 @@ export async function PUT(request: NextRequest) {
           if (insertResult.error) {
             return NextResponse.json({ error: insertResult.error.message }, { status: 500 });
           }
+
+          const insertedRows = (insertResult.data || []) as BusinessDetailsRow[];
+          insertedRows.forEach((row) => {
+            const detailId = getBusinessDetailId(row);
+            if (detailId !== null) updatedDetailIds.add(detailId);
+          });
         }
       }
 
       const changedLabels = updates.map((item) => item.label);
+      const linkedDetailIds = Array.from(updatedDetailIds);
+      const linkedDetailId = linkedDetailIds[0] ?? null;
 
       await activityHelper.logActivity({
         actionType: isContact ? "edit_contact_details" : "edit_about_details",
         productId: null,
+        businessDetailsId: linkedDetailId,
         description:
           changedLabels.length === 1
             ? `Updated ${isContact ? "contact" : "about"} detail: ${changedLabels[0]}`
@@ -279,6 +311,7 @@ export async function PUT(request: NextRequest) {
       const previousTitle = toText(latest.data.title);
       const previousBody = toText(latest.data.body);
       const changedParts: string[] = [];
+      const linkedDetailId = getBusinessDetailId(latest.data);
 
       if (normalizeTitle(previousTitle) !== normalizeTitle(title || "")) changedParts.push("title");
       if (previousBody !== serializedBody) changedParts.push("body");
@@ -286,6 +319,7 @@ export async function PUT(request: NextRequest) {
       await activityHelper.logActivity({
         actionType: isAnnouncement ? "edit_announcement" : slug === ABOUT_SLUG ? "edit_about_details" : "edit_contact_details",
         productId: null,
+        businessDetailsId: linkedDetailId,
         description:
           isAnnouncement
             ? "Edited announcement"
@@ -316,10 +350,12 @@ export async function PUT(request: NextRequest) {
     }
 
     const insertedData = insertResult.data?.[0] || insertResult.data || null;
+    const linkedDetailId = getBusinessDetailId((insertedData || null) as BusinessDetailsRow | null);
 
     await activityHelper.logActivity({
       actionType: slug === ANNOUNCEMENT_SLUG ? "edit_announcement" : slug === ABOUT_SLUG ? "edit_about_details" : "edit_contact_details",
       productId: null,
+      businessDetailsId: linkedDetailId,
       description:
         slug === ANNOUNCEMENT_SLUG
           ? "Edited announcement"

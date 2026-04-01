@@ -50,7 +50,7 @@ export const activityHelper = {
     async fetchLogs(supabase = browserSupabase) {
         const { data, error } = await supabase
             .from("tbl_activity_log")
-            .select("log_id, created_at, action_type, product_id, description, editor, user_id")
+            .select("log_id, created_at, action_type, product_id, business_details, description, editor, user_id")
             .order("created_at", { ascending: false });
 
         if (error) {
@@ -88,7 +88,7 @@ export const activityHelper = {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         let query: any = supabase
             .from("tbl_activity_log")
-            .select("log_id, created_at, action_type, product_id, description, editor, user_id, tbl_users(user_key)", { count: "exact" })
+            .select("log_id, created_at, action_type, product_id, business_details, description, editor, user_id, tbl_users(user_key)", { count: "exact" })
             .order("created_at", { ascending: false })
             .range(from, to);
 
@@ -111,6 +111,7 @@ export const activityHelper = {
                 if (/^\d+$/.test(safeSearch)) {
                     const numericSearch = Number(safeSearch);
                     orClauses.push(`product_id.eq.${numericSearch}`);
+                    orClauses.push(`business_details.eq.${numericSearch}`);
                     orClauses.push(`log_id.eq.${numericSearch}`);
                 }
 
@@ -250,7 +251,7 @@ export const activityHelper = {
     async fetchLogsByAction(actionType: string, since?: string, until?: string, supabase = browserSupabase) {
         let q = supabase
             .from("tbl_activity_log")
-            .select("product_id, created_at")
+            .select("product_id, business_details, created_at")
             .eq("action_type", actionType);
 
         if (since) q = q.gte("created_at", since);
@@ -269,11 +270,12 @@ export const activityHelper = {
     /**
      * Logs user activity such as modifying a product or performing an administrative action.
      */
-    async logActivity({ actionType, productId = null, description = "", editor = null, user_id = null, supabase = null }: LogActivityProps) {
+    async logActivity({ actionType, productId = null, businessDetailsId = null, description = "", editor = null, user_id = null, supabase = null }: LogActivityProps) {
         const client = supabase || await createServerSupabase();
         const payload = {
             action_type: actionType,
             product_id: productId,
+            business_details: businessDetailsId,
             description: description,
             editor: editor,
             user_id: user_id,
