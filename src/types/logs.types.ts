@@ -17,6 +17,7 @@ export type ActivityLog = {
     created_at: string;
     action_type: string;
     product_id: number | string | null;
+    business_details: number | string | null;
     description: string;
     editor: string | null;
     user_id: string | number | null;
@@ -41,6 +42,7 @@ export type ActivityLogExtended = ActivityLog & {
 export interface LogActivityProps {
     actionType: string;
     productId?: number | null;
+    businessDetailsId?: number | null;
     description?: string;
     editor?: string | null;
     user_id?: string | number | null;

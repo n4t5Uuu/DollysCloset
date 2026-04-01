@@ -48,13 +48,13 @@ export default function LogoutButton({ variant = "pill" }: LogoutButtonProps) {
                 disabled={isLoggingOut}
                 className="w-full flex items-center gap-3 px-4 py-3.5 rounded-2xl transition-all duration-300 ease-out 
                     text-zinc-600 hover:bg-white hover:text-red-500 hover:translate-x-1 
-                    hover:shadow-[0_4px_12px_-4px_rgba(239,68,68,0.15)] group cursor-pointer
+                    hover:shadow-[0_4px_12px_-4px_rgba(239,68,68,0.15)] group/logout cursor-pointer
                     disabled:opacity-70 disabled:cursor-not-allowed font-medium"
             >
                 {isLoggingOut ? (
                     <Loader2 className="w-5 h-5 animate-spin" />
                 ) : (
-                    <LogOut className="w-5 h-5 transition-colors group-hover:text-red-500" />
+                    <LogOut className="w-5 h-5 transition-colors group-hover/logout:text-red-500" />
                 )}
                 <span>{isLoggingOut ? "Logging out..." : "Logout"}</span>
             </button>

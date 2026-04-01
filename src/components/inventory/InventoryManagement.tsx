@@ -536,15 +536,17 @@ export default function InventoryManagement({ initialAvailabilityFilter }: Inven
           <p className="text-gray-500 text-sm">Create, update, and organize products and categories.</p>
         </div>
         <div className="flex items-center gap-2 sm:shrink-0">
-          <button
+          <Button
+            type="button"
+            variant="outline"
             onClick={() => fetchProducts(true)}
-            className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 hover:border-[#E7A3B0] hover:bg-[#fff5f7] text-gray-700 rounded-lg text-sm font-medium transition-all duration-300 shadow-sm hover:shadow-md cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
+            className="h-10 border-[#E7A3B0]/30 text-[#b96d7d] hover:bg-[#fff5f7] hover:text-[#b96d7d]"
             disabled={loading || actionLoading}
             title="Refresh inventory"
           >
-            <RefreshCw size={16} />
+            <RefreshCw className={`mr-2 h-4 w-4 ${(loading || actionLoading) ? "animate-spin" : ""}`} />
             Refresh
-          </button>
+          </Button>
           <button
             onClick={() => setShowBulkImport(true)}
             className="flex items-center gap-2 px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-800 rounded-lg text-sm font-medium transition-all duration-300 shadow-sm hover:shadow-md hover:scale-105 cursor-pointer"

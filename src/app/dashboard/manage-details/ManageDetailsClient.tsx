@@ -18,6 +18,7 @@ import CustomPagination from "@/components/general-components/CustomPagination";
 import { toast } from "sonner";
 import { Skeleton } from "@/components/ui/skeleton";
 import { AdminNoticeBanner } from "@/components/ui/admin-notice-banner";
+import { useUnsavedChanges } from "@/contexts/UnsavedChangesContext";
 import {
   ANNOUNCEMENT_SLUG,
   ANNOUNCEMENT_TITLE,
@@ -36,6 +37,18 @@ import {
   parseContactBody,
 } from "@/lib/business-details/business-details";
 
+/**
+ * ManageDetailsClient.tsx
+ * 
+ * Administrative client component for managing business-wide configuration strings 
+ * (Announcement banner, Contact info, FAQ, About page content).
+ * 
+ * Key Logic:
+ * 1. Independent persistence: Each field or item saves independently once its "Save" action is triggered.
+ * 2. Complex Dirty Tracking: Keeps a "shadow" copy of saved values to determine if a field is modified.
+ * 3. Navigation Guard Integration: Summarizes `isDirty` counts across all tabs to block accidental exits.
+ */
+
 type ManageDetailsClientProps = {
   role: "admin" | "employee";
 };
@@ -44,6 +57,7 @@ export default function ManageDetailsClient({ role }: ManageDetailsClientProps) 
   const isAdmin = role === "admin";
   const inputClassName = "border-gray-200 bg-white text-gray-900 placeholder:text-gray-400 focus-visible:border-[#E7A3B0] focus-visible:ring-[#E7A3B0]";
   const textareaClassName = "border-gray-200 bg-white text-gray-900 placeholder:text-gray-400 focus-visible:border-[#E7A3B0] focus-visible:ring-[#E7A3B0]";
+  const { setIsDirty, setUnsavedMessage } = useUnsavedChanges();
 
   const [activeSection, setActiveSection] = useState<"announcement" | "contact" | "about">("announcement");
   const [announcementText, setAnnouncementText] = useState(defaultAnnouncementText);
@@ -172,6 +186,18 @@ export default function ManageDetailsClient({ role }: ManageDetailsClientProps) 
     return dirtyCount;
   }, [aboutDetails, savedAboutDetails]);
 
+  // Sync with global navigation guard
+  useEffect(() => {
+    const isActuallyDirty = announcementDirty || contactDirtyCount > 0 || aboutDirtyCount > 0;
+    setIsDirty(isActuallyDirty);
+    setUnsavedMessage(isActuallyDirty ? "You have unsaved business details. If you leave now, your changes will be lost." : undefined);
+
+    return () => {
+      setIsDirty(false);
+      setUnsavedMessage(undefined);
+    };
+  }, [announcementDirty, contactDirtyCount, aboutDirtyCount, setIsDirty, setUnsavedMessage]);
+
   const currentSectionUnsavedCount =
     activeSection === "announcement"
       ? announcementDirty
@@ -251,8 +277,7 @@ export default function ManageDetailsClient({ role }: ManageDetailsClientProps) 
             : await fetchAboutDetails();
 
       if (refreshed) {
-      setSuccess(`${sectionMeta.title} refreshed from the latest saved content.`);
-      toast.success(`${sectionMeta.title} refreshed.`);
+        setError(null);
       }
     } finally {
       setRefreshingSection(false);
@@ -447,6 +472,7 @@ export default function ManageDetailsClient({ role }: ManageDetailsClientProps) 
           onAction={() => {
             void handleRefreshCurrentSection();
           }}
+          className="mb-6"
         />
       )}
 
@@ -456,6 +482,7 @@ export default function ManageDetailsClient({ role }: ManageDetailsClientProps) 
           title={`${sectionMeta.title} updated`}
           message={success}
           onDismiss={() => setSuccess(null)}
+          className="mb-6"
         />
       )}
 

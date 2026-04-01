@@ -174,7 +174,7 @@ export async function DELETE(request: NextRequest) {
     await activityHelper.logActivity({
       actionType: "delete_image",
       productId: Number.isNaN(parsedProductIdForLog) ? null : parsedProductIdForLog,
-      description: `Deleted image (was displaying as #${display_order}${is_primary ? ", primary" : ""})`,
+      description: `Deleted image (was displaying as #${display_order}${is_primary ? ", primary" : ""}) on product ID ${String(productIdValue)}`,
       editor: editor,
       user_id: user.id,
       supabase: admin

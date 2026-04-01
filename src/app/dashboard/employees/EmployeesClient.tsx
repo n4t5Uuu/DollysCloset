@@ -193,13 +193,7 @@ export default function EmployeesClient() {
   };
 
   const handleRefreshEmployees = async () => {
-    const refreshed = await fetchEmployees();
-    if (refreshed) {
-      setActionNotice({
-        type: "info",
-        message: "Employee directory refreshed with the latest records.",
-      });
-    }
+    await fetchEmployees();
   };
 
   const handleEmployeeSaved = async (mode: "created" | "updated") => {
