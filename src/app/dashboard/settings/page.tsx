@@ -291,6 +291,7 @@ export default function SettingsPage() {
             tone="success"
             title="Password updated"
             message="Your password was updated successfully. Other sessions have been signed out for safety."
+            className="mb-6"
           />
         )}
 
@@ -300,6 +301,7 @@ export default function SettingsPage() {
             title="Unable to update password"
             message={formError}
             onDismiss={() => setFormError(null)}
+            className="mb-6"
           />
         )}
 

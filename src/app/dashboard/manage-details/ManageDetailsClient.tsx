@@ -460,6 +460,7 @@ export default function ManageDetailsClient({ role }: ManageDetailsClientProps) 
           onAction={() => {
             void handleRefreshCurrentSection();
           }}
+          className="mb-6"
         />
       )}
 
@@ -469,6 +470,7 @@ export default function ManageDetailsClient({ role }: ManageDetailsClientProps) 
           title={`${sectionMeta.title} updated`}
           message={success}
           onDismiss={() => setSuccess(null)}
+          className="mb-6"
         />
       )}
 
