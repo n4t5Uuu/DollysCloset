@@ -147,46 +147,50 @@ export default function CatalogSidebar({
 
     const handleMinSliderChange = (nextValue: number) => {
         const clampedValue = clampPrice(nextValue);
-        setDraftMinPrice(Math.min(clampedValue, draftMaxPrice));
+        const nextMinPrice = Math.min(clampedValue, draftMaxPrice);
+        setDraftMinPrice(nextMinPrice);
+        onPriceRangeChange(nextMinPrice, draftMaxPrice);
     };
 
     const handleMaxSliderChange = (nextValue: number) => {
         const clampedValue = clampPrice(nextValue);
-        setDraftMaxPrice(Math.max(clampedValue, draftMinPrice));
+        const nextMaxPrice = Math.max(clampedValue, draftMinPrice);
+        setDraftMaxPrice(nextMaxPrice);
+        onPriceRangeChange(draftMinPrice, nextMaxPrice);
     };
 
     const handleMinInputChange = (value: string) => {
         const parsedValue = Number(value);
         if (value === "") {
             setDraftMinPrice(minAvailablePrice);
+            onPriceRangeChange(minAvailablePrice, draftMaxPrice);
             return;
         }
 
         const clampedValue = clampPrice(parsedValue);
-        setDraftMinPrice(Math.min(clampedValue, draftMaxPrice));
+        const nextMinPrice = Math.min(clampedValue, draftMaxPrice);
+        setDraftMinPrice(nextMinPrice);
+        onPriceRangeChange(nextMinPrice, draftMaxPrice);
     };
 
     const handleMaxInputChange = (value: string) => {
         const parsedValue = Number(value);
         if (value === "") {
             setDraftMaxPrice(maxAvailablePrice);
+            onPriceRangeChange(draftMinPrice, maxAvailablePrice);
             return;
         }
 
         const clampedValue = clampPrice(parsedValue);
-        setDraftMaxPrice(Math.max(clampedValue, draftMinPrice));
-    };
-
-    const applyPriceRange = () => {
-        onPriceRangeChange(draftMinPrice, draftMaxPrice);
-        onInteractionComplete?.();
+        const nextMaxPrice = Math.max(clampedValue, draftMinPrice);
+        setDraftMaxPrice(nextMaxPrice);
+        onPriceRangeChange(draftMinPrice, nextMaxPrice);
     };
 
     const resetPriceRange = () => {
         setDraftMinPrice(minAvailablePrice);
         setDraftMaxPrice(maxAvailablePrice);
         onClearPrice();
-        onInteractionComplete?.();
     };
 
     const getCategoryPath = (categoryId: number) => {
@@ -365,15 +369,15 @@ export default function CatalogSidebar({
     return(
         <aside className="w-full lg:w-64 flex flex-col gap-10 pb-10 pr-2 lg:pr-6">
             <div className="space-y-6">
-                <div className="rounded-2xl border border-gray-200 bg-white shadow-sm overflow-hidden">
-                    <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
+                <div className="rounded-2xl border border-[#E7A3B0]/20 bg-linear-to-b from-[#fffafc] to-white shadow-sm overflow-hidden">
+                    <div className="flex items-center justify-between px-4 py-3 border-b border-[#E7A3B0]/12">
                         <h3 className="font-oswald text-sm font-bold uppercase tracking-[0.2em] text-gray-700">
                             Categories
                         </h3>
                         <button
                             type="button"
                             onClick={() => setTreeRenderKey((previous) => previous + 1)}
-                            className="text-xs text-gray-400 cursor-pointer hover:text-[#E7A3B0] transition-colors"
+                                    className="text-xs text-[#bfa0a8] cursor-pointer hover:text-[#E7A3B0] transition-colors"
                         >
                             Collapse all
                         </button>
@@ -469,23 +473,10 @@ export default function CatalogSidebar({
                         </div>
 
                         <div className="border-t border-[#E7A3B0]/12 pt-4">
-                            <div className="mb-3 flex items-center justify-between gap-3">
+                            <div className="mb-3">
                                 <p className="font-oswald text-[10px] uppercase tracking-[0.28em] text-[#b47c88]">
                                     Price
                                 </p>
-                                <button
-                                    type="button"
-                                    onClick={resetPriceRange}
-                                    disabled={isShowingAllPrices}
-                                    className={cn(
-                                        "font-oswald text-[11px] uppercase tracking-[0.2em] transition-colors",
-                                        isShowingAllPrices
-                                            ? "text-[#d2b7bf] cursor-not-allowed"
-                                            : "text-[#b47c88] hover:text-[#8f5f69]"
-                                    )}
-                                >
-                                    Reset
-                                </button>
                             </div>
 
                             {hasPriceData ? (
@@ -561,37 +552,19 @@ export default function CatalogSidebar({
                                         </label>
                                     </div>
 
-                                    <div className="flex items-center gap-3">
-                                        <button
-                                            type="button"
-                                            onClick={applyPriceRange}
-                                            disabled={!isPriceRangeDirty}
-                                            className={cn(
-                                                "flex-1 rounded-xl px-4 py-2.5 font-oswald text-[11px] uppercase tracking-[0.24em] transition-colors",
-                                                isPriceRangeDirty
-                                                    ? "bg-[#E7A3B0] text-white hover:bg-[#d891a0]"
-                                                    : "bg-[#f7edf0] text-[#c7a6af] cursor-not-allowed"
-                                            )}
-                                        >
-                                            Apply
-                                        </button>
-                                        <button
-                                            type="button"
-                                            onClick={() => {
-                                                setDraftMinPrice(selectedMinPrice);
-                                                setDraftMaxPrice(selectedMaxPrice);
-                                            }}
-                                            disabled={!isPriceRangeDirty}
-                                            className={cn(
-                                                "rounded-xl border px-4 py-2.5 font-oswald text-[11px] uppercase tracking-[0.24em] transition-colors",
-                                                isPriceRangeDirty
-                                                    ? "border-[#E7A3B0]/25 text-[#8f5f69] hover:bg-[#fff5f7]"
-                                                    : "border-[#edd7dd] text-[#c7a6af] cursor-not-allowed"
-                                            )}
-                                        >
-                                            Undo
-                                        </button>
-                                    </div>
+                                    <button
+                                        type="button"
+                                        onClick={resetPriceRange}
+                                        disabled={isShowingAllPrices}
+                                        className={cn(
+                                            "w-full rounded-xl px-4 py-3 font-oswald text-[11px] uppercase tracking-[0.24em] transition-colors",
+                                            isShowingAllPrices
+                                                ? "bg-[#f7edf0] text-[#c7a6af] cursor-not-allowed"
+                                                : "bg-[#121212] text-[#f7d5dc] hover:bg-[#2a2a2a]"
+                                        )}
+                                    >
+                                        Reset Price Filter
+                                    </button>
                                 </div>
                             ) : (
                                 <div className="rounded-xl border border-dashed border-[#E7A3B0]/20 bg-white px-4 py-4 text-center">

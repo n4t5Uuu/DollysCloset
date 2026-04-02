@@ -46,7 +46,7 @@ export default function ProductCard({ product, href, onClick }: ProductCardProps
     if (!product) {
         return (
             <div className="w-full max-w-[280px]">
-                <div className="bg-[#f5f5f5] aspect-3/4 w-full flex items-center justify-center flex-col relative overflow-hidden rounded-[1.75rem]">
+                <div className="bg-[#f5f5f5] aspect-3/4 w-full flex items-center justify-center flex-col relative overflow-hidden rounded-[0.85rem]">
                     <div className="font-oswald font-bold text-xl tracking-widest text-black/90">
                         NO PRODUCT
                     </div>
@@ -141,11 +141,11 @@ export default function ProductCard({ product, href, onClick }: ProductCardProps
         >
             <article
                 className={cn(
-                    "flex h-full flex-col rounded-[2rem] bg-white p-1.5 shadow-[0_8px_24px_rgba(18,18,18,0.10),0_2px_8px_rgba(231,163,176,0.10)] transition-all duration-300",
+                    "flex h-full flex-col rounded-[1rem] bg-white p-1.5 shadow-[0_8px_24px_rgba(18,18,18,0.10),0_2px_8px_rgba(231,163,176,0.10)] transition-all duration-300",
                     "group-hover:-translate-y-1 group-hover:shadow-[0_20px_48px_rgba(18,18,18,0.15),0_4px_16px_rgba(231,163,176,0.15)]"
                 )}
             >
-                <div className="relative aspect-3/4 overflow-hidden rounded-[1.5rem] bg-[#f7eef1]">
+                <div className="relative aspect-3/4 overflow-hidden rounded-[0.8rem] bg-[#f7eef1]">
                     {/* Current image — transitions out left only during animating phase */}
                     <div
                         className={cn(
