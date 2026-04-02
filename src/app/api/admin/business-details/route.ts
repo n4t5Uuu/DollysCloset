@@ -13,17 +13,22 @@ import {
   buildAboutAggregate,
   buildContactAggregate,
   normalizeTitle,
+  sanitizeAnnouncementBody,
   resolveAboutKey,
   resolveContactKey,
   toText,
 } from "../../../../lib/business-details/business-details";
-
-const BUSINESS_DETAILS_TABLES = ["tbl_business_details", "business_details"] as const;
-let cachedBusinessDetailsTable: string | null = null;
+import {
+  sanitizeAboutDetailText,
+  sanitizeAnnouncementText,
+  sanitizeContactDetailText,
+} from "@/lib/input-sanitization";
 
 import {
   BusinessDetailsRow,
-  AdminValidationResult
+  AdminValidationResult,
+  AboutFieldKey,
+  ContactFieldKey,
 } from "@/types/business-details.types";
 
 function getRowIdColumn(row: BusinessDetailsRow): "business_details_id" | "business_deta" | null {
@@ -147,6 +152,15 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: latest.error.message }, { status: 500 });
     }
 
+    if (slug === ANNOUNCEMENT_SLUG && latest.data) {
+      return NextResponse.json({
+        data: {
+          ...latest.data,
+          body: sanitizeAnnouncementBody(latest.data.body),
+        },
+      });
+    }
+
     return NextResponse.json({ data: latest.data || null });
   } catch (error: unknown) {
     return NextResponse.json(
@@ -194,7 +208,7 @@ export async function PUT(request: NextRequest) {
 
     if (slug === CONTACT_SLUG || slug === ABOUT_SLUG) {
       const isContact = slug === CONTACT_SLUG;
-      const updates: Array<{ label: string; value: string }> = [];
+      const updates: Array<{ key: ContactFieldKey | AboutFieldKey; label: string; value: string }> = [];
       const updatedDetailIds = new Set<number>();
 
       if (body && typeof body === "object" && !Array.isArray(body)) {
@@ -203,10 +217,13 @@ export async function PUT(request: NextRequest) {
           if (!resolvedKey) continue;
 
           updates.push({
+            key: resolvedKey,
             label: isContact
               ? CONTACT_LABEL_BY_KEY[resolvedKey as keyof typeof CONTACT_LABEL_BY_KEY]
               : ABOUT_LABEL_BY_KEY[resolvedKey as keyof typeof ABOUT_LABEL_BY_KEY],
-            value: toText(incomingValue),
+            value: isContact
+              ? sanitizeContactDetailText(resolvedKey as ContactFieldKey, incomingValue)
+              : sanitizeAboutDetailText(resolvedKey as AboutFieldKey, incomingValue),
           });
         }
       } else {
@@ -216,10 +233,13 @@ export async function PUT(request: NextRequest) {
         }
 
         updates.push({
+          key: resolvedKey,
           label: isContact
             ? CONTACT_LABEL_BY_KEY[resolvedKey as keyof typeof CONTACT_LABEL_BY_KEY]
             : ABOUT_LABEL_BY_KEY[resolvedKey as keyof typeof ABOUT_LABEL_BY_KEY],
-          value: toText(body),
+          value: isContact
+            ? sanitizeContactDetailText(resolvedKey as ContactFieldKey, body)
+            : sanitizeAboutDetailText(resolvedKey as AboutFieldKey, body),
         });
       }
 
@@ -284,7 +304,9 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json({ data: { slug, updated: updates } });
     }
 
-    const serializedBody = toText(body);
+    const serializedBody = slug === ANNOUNCEMENT_SLUG
+      ? sanitizeAnnouncementText(body)
+      : toText(body);
     const latest = await findLatestBySlug(tableName, slug);
     if (latest.error) {
       return NextResponse.json({ error: latest.error.message }, { status: 500 });
@@ -293,7 +315,7 @@ export async function PUT(request: NextRequest) {
     if (latest.data) {
       const isAnnouncement = slug === ANNOUNCEMENT_SLUG;
       const idColumn = getRowIdColumn(latest.data);
-      const criteria: Record<string, any> = idColumn && latest.data
+      const criteria: Record<string, string | number | null | undefined> = idColumn && latest.data
         ? { [idColumn]: latest.data[idColumn] }
         : { slug };
 
@@ -336,6 +358,15 @@ export async function PUT(request: NextRequest) {
         return NextResponse.json({ error: refreshed.error.message }, { status: 500 });
       }
 
+      if (slug === ANNOUNCEMENT_SLUG && refreshed.data) {
+        return NextResponse.json({
+          data: {
+            ...refreshed.data,
+            body: sanitizeAnnouncementBody(refreshed.data.body),
+          },
+        });
+      }
+
       return NextResponse.json({ data: refreshed.data || null });
     }
 
@@ -366,6 +397,15 @@ export async function PUT(request: NextRequest) {
       user_id: user.id,
       supabase: admin,
     });
+
+    if (slug === ANNOUNCEMENT_SLUG && insertedData) {
+      return NextResponse.json({
+        data: {
+          ...insertedData,
+          body: sanitizeAnnouncementBody((insertedData as BusinessDetailsRow).body),
+        },
+      }, { status: 201 });
+    }
 
     return NextResponse.json({ data: insertedData }, { status: 201 });
   } catch (error: unknown) {

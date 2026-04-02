@@ -3,8 +3,12 @@ import { productHelper } from "@/lib/products/product-helper";
 import { activityHelper } from "@/lib/activity/activity-helper";
 import { admin } from "@/lib/supabase/admin";
 import { requireRequestAuth } from "@/lib/auth/auth-server";
-
-const MAX_META_LENGTH = 9;
+import {
+  sanitizeMultilineText,
+  sanitizeSingleLineText,
+  schemaExactLimits,
+  uiContentLimits,
+} from "@/lib/input-sanitization";
 
 /**
  * Edits metadata properties corresponding to an existing catalog product record inside `tbl_product`.
@@ -28,11 +32,14 @@ export async function PUT(request: NextRequest) {
 
     // Get product data from request
     const { product_id, product_name, category_id, product_price, product_brand, product_description, product_stock, product_condition, size_label, show_in_catalog, image_id } = await request.json();
-    const normalizedCondition = String(product_condition || 'New').trim().slice(0, MAX_META_LENGTH);
-    const normalizedSizeLabel = String(size_label || 'One Size').trim().slice(0, MAX_META_LENGTH);
+    const normalizedProductName = sanitizeSingleLineText(product_name, schemaExactLimits.productName);
+    const normalizedBrand = sanitizeSingleLineText(product_brand, schemaExactLimits.productBrand) || "Dolly's Closet";
+    const normalizedDescription = sanitizeMultilineText(product_description, uiContentLimits.productDescription.maxLength);
+    const normalizedCondition = sanitizeSingleLineText(product_condition || 'New', schemaExactLimits.productCondition) || 'New';
+    const normalizedSizeLabel = sanitizeSingleLineText(size_label || 'One Size', schemaExactLimits.productSizeLabel) || 'One Size';
 
     // Validate required fields
-    if (!product_id || !product_name || !category_id || product_price === undefined) {
+    if (!product_id || !normalizedProductName || !category_id || product_price === undefined) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
     }
 
@@ -81,14 +88,14 @@ export async function PUT(request: NextRequest) {
 
     // Update tbl_product using productHelper
     const { error: updateError } = await productHelper.updateProduct(product_id, {
-      product_name,
+      product_name: normalizedProductName,
       category_id,
       product_price: parseFloat(product_price),
-      product_brand: product_brand || "Dolly's Closet",
-      product_description: product_description || '',
+      product_brand: normalizedBrand,
+      product_description: normalizedDescription,
       product_stock: parsedStock,
-      product_condition: normalizedCondition || 'New',
-      size_label: normalizedSizeLabel || 'One Size',
+      product_condition: normalizedCondition,
+      size_label: normalizedSizeLabel,
       show_in_catalog: finalShowInCatalog,
       image_id: normalizedImageId,
     }, admin);
@@ -102,7 +109,7 @@ export async function PUT(request: NextRequest) {
     await activityHelper.logActivity({
       actionType: 'edit_product',
       productId: product_id,
-      description: changes.length > 0 ? `Updated product "${product_name}": ${changes.join(', ')}` : `Updated product "${product_name}"`,
+      description: changes.length > 0 ? `Updated product "${normalizedProductName}": ${changes.join(', ')}` : `Updated product "${normalizedProductName}"`,
       editor: editor,
       user_id: user.id,
       supabase: admin

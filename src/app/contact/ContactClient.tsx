@@ -12,9 +12,28 @@ import { Spotlight } from "@/components/motion-primitives/spotlight";
 import { InView } from "@/components/motion-primitives/in-view";
 
 import { ContactDetailsPayload } from "@/types/business-details.types";
+import {
+  sanitizeEmail,
+  sanitizeEmailInput,
+  sanitizeMultilineInput,
+  sanitizeMultilineText,
+  sanitizeSingleLineInput,
+  sanitizeSingleLineText,
+  uiContentLimits,
+} from "@/lib/input-sanitization";
 
 const STORE_ADDRESS_CANONICAL = "04 Admiral, Talon Tres, Las Piñas City";
 const STORE_OSM_EMBED_URL = "https://www.openstreetmap.org/export/embed.html?bbox=120.9996%2C14.4409%2C121.0019%2C14.4420&layer=mapnik&marker=14.441534%2C121.000729";
+
+const CONTACT_EMAIL_LIMIT = uiContentLimits.email.maxLength;
+const CONTACT_SUBJECT_LIMIT = uiContentLimits.contactUsSubject.maxLength;
+const CONTACT_MESSAGE_LIMIT = uiContentLimits.contactUsMessage.maxLength;
+
+function renderLengthMeta(value: string, maxLength: number, recommendedLength?: string) {
+  return recommendedLength
+    ? `${value.length}/${maxLength} characters - Recommended ${recommendedLength}`
+    : `${value.length}/${maxLength} characters`;
+}
 
 function normalizeUrl(url: string): string {
   const trimmed = url.trim();
@@ -112,9 +131,23 @@ export default function ContactClient({ pageTitle, initialDetails }: ContactClie
   const onSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setStatus("submitting");
+    setErrorMessage("");
 
-    const payload = new FormData(event.currentTarget);
+    const normalizedEmail = sanitizeEmail(formData.email);
+    const normalizedSubject = sanitizeSingleLineText(formData.subject, CONTACT_SUBJECT_LIMIT);
+    const normalizedBody = sanitizeMultilineText(formData.body, CONTACT_MESSAGE_LIMIT);
+
+    if (!normalizedEmail || !normalizedSubject || !normalizedBody) {
+      setStatus("error");
+      setErrorMessage("Please complete the email, subject, and message fields.");
+      return;
+    }
+
+    const payload = new FormData();
     payload.append("access_key", "6458c7f4-91cd-4c75-b769-56dc0546686c");
+    payload.append("email", normalizedEmail);
+    payload.append("subject", normalizedSubject);
+    payload.append("body", normalizedBody);
 
     try {
       const response = await fetch("https://api.web3forms.com/submit", {
@@ -493,11 +526,15 @@ export default function ContactClient({ pageTitle, initialDetails }: ContactClie
                     placeholder="your@email.com"
                     value={formData.email}
                     onChange={(e) =>
-                      setFormData({ ...formData, email: e.target.value })
+                      setFormData({ ...formData, email: sanitizeEmailInput(e.target.value) })
                     }
+                    maxLength={CONTACT_EMAIL_LIMIT}
                     className="bg-gray-50 border-gray-200 rounded-xl h-12 px-4 placeholder:text-gray-400 font-montserrat focus-visible:ring-[#E7A3B0] focus-visible:border-[#E7A3B0] transition-all"
                     required
                   />
+                  <p className="text-right text-xs text-gray-500">
+                    {renderLengthMeta(formData.email, CONTACT_EMAIL_LIMIT)}
+                  </p>
                 </div>
 
                 <div className="space-y-2">
@@ -510,11 +547,15 @@ export default function ContactClient({ pageTitle, initialDetails }: ContactClie
                     placeholder="What is this about?"
                     value={formData.subject}
                     onChange={(e) =>
-                      setFormData({ ...formData, subject: e.target.value })
+                      setFormData({ ...formData, subject: sanitizeSingleLineInput(e.target.value, CONTACT_SUBJECT_LIMIT) })
                     }
+                    maxLength={CONTACT_SUBJECT_LIMIT}
                     className="bg-gray-50 border-gray-200 rounded-xl h-12 px-4 placeholder:text-gray-400 font-montserrat focus-visible:ring-[#E7A3B0] focus-visible:border-[#E7A3B0] transition-all"
                     required
                   />
+                  <p className="text-right text-xs text-gray-500">
+                    {renderLengthMeta(formData.subject, CONTACT_SUBJECT_LIMIT, uiContentLimits.contactUsSubject.recommendedLength)}
+                  </p>
                 </div>
 
                 <div className="space-y-2 flex-1 flex flex-col">
@@ -526,11 +567,15 @@ export default function ContactClient({ pageTitle, initialDetails }: ContactClie
                     name="body"
                     value={formData.body}
                     onChange={(e) =>
-                      setFormData({ ...formData, body: e.target.value })
+                      setFormData({ ...formData, body: sanitizeMultilineInput(e.target.value, CONTACT_MESSAGE_LIMIT) })
                     }
+                    maxLength={CONTACT_MESSAGE_LIMIT}
                     className="bg-gray-50 border-gray-200 rounded-xl flex-1 p-4 placeholder:text-gray-400 font-montserrat resize-none focus-visible:ring-[#E7A3B0] focus-visible:border-[#E7A3B0] transition-all min-h-[180px]"
                     required
                   />
+                  <p className="text-right text-xs text-gray-500">
+                    {renderLengthMeta(formData.body, CONTACT_MESSAGE_LIMIT, uiContentLimits.contactUsMessage.recommendedLength)}
+                  </p>
                 </div>
 
                 <Button

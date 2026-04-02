@@ -30,6 +30,7 @@ export default function ProductModal({ product, isOpen, onClose, onExitComplete 
   const [lensPos, setLensPos] = useState({ x: 0, y: 0 });
   const [zoomPanelStyle, setZoomPanelStyle] = useState<React.CSSProperties>({});
   const [bgPos, setBgPos] = useState({ x: 0, y: 0 });
+  const [zoomImageSize, setZoomImageSize] = useState({ width: 0, height: 0 });
 
   const imageContainerRef = useRef<HTMLDivElement>(null);
   const cardRef = useRef<HTMLDivElement>(null);
@@ -75,6 +76,10 @@ export default function ProductModal({ product, isOpen, onClose, onExitComplete 
     const bgX = -(lx * ZOOM_FACTOR);
     const bgY = -(ly * ZOOM_FACTOR);
     setBgPos({ x: bgX, y: bgY });
+    setZoomImageSize({
+      width: imgRect.width * ZOOM_FACTOR,
+      height: imgRect.height * ZOOM_FACTOR,
+    });
 
     // Position zoom panel to the left of the modal card, vertically centered on cursor
     const panelLeft = cardRect.left - ZOOM_PANEL_SIZE - 16;
@@ -226,19 +231,19 @@ export default function ProductModal({ product, isOpen, onClose, onExitComplete 
                       { label: "Size", value: product.size },
                       { label: "Condition", value: product.condition },
                     ].map(({ label, value }) => (
-                      <div key={label} className="flex items-center justify-between py-3">
+                      <div key={label} className="flex min-w-0 items-center justify-between gap-4 py-3">
                         <span className="text-xs font-semibold tracking-widest text-gray-400 uppercase">
                           {label}
                         </span>
-                        <span className="text-sm text-[#121212] font-medium">{value}</span>
+                        <span className="max-w-[60%] text-right text-sm font-medium text-[#121212] break-words [overflow-wrap:anywhere]">{value}</span>
                       </div>
                     ))}
 
-                    <div className="flex items-center justify-between py-3">
+                    <div className="flex min-w-0 items-center justify-between gap-4 py-3">
                       <span className="text-xs font-semibold tracking-widest text-gray-400 uppercase">
                         Stock
                       </span>
-                      <span className="inline-flex items-center gap-1.5 text-sm font-medium text-[#121212]">
+                      <span className="inline-flex max-w-[60%] items-center justify-end gap-1.5 text-right text-sm font-medium text-[#121212] break-words [overflow-wrap:anywhere]">
                         <span className={`w-2 h-2 rounded-full ${product.stock > 0 ? "bg-green-400" : "bg-red-400"}`} />
                         {product.stock > 0 ? `${product.stock} available` : "Out of stock"}
                       </span>
@@ -246,7 +251,7 @@ export default function ProductModal({ product, isOpen, onClose, onExitComplete 
                   </div>
 
                   {product.description && (
-                    <p className="text-sm text-gray-500 leading-relaxed">{product.description}</p>
+                    <p className="text-sm text-gray-500 leading-relaxed whitespace-pre-wrap break-words [overflow-wrap:anywhere]">{product.description}</p>
                   )}
                 </div>
 
@@ -277,8 +282,8 @@ export default function ProductModal({ product, isOpen, onClose, onExitComplete 
                 alt=""
                 style={{
                   display: "block",
-                  width: (imageContainerRef.current?.offsetWidth ?? 0) * ZOOM_FACTOR,
-                  height: (imageContainerRef.current?.offsetHeight ?? 0) * ZOOM_FACTOR,
+                  width: zoomImageSize.width,
+                  height: zoomImageSize.height,
                   objectFit: "cover",
                   transform: `translate(${bgPos.x}px, ${bgPos.y}px)`,
                   maxWidth: "none",

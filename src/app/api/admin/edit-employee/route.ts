@@ -3,6 +3,10 @@ import { employeeHelper } from "@/lib/employees/employee-helper";
 import { activityHelper } from "@/lib/activity/activity-helper";
 import { admin } from "@/lib/supabase/admin";
 import { requireRequestAuth } from "@/lib/auth/auth-server";
+import {
+  sanitizeSingleLineText,
+  schemaExactLimits,
+} from "@/lib/input-sanitization";
 
 /**
  * Handles modification logic surrounding existing employee accounts on the system.
@@ -26,9 +30,12 @@ export async function PUT(request: NextRequest) {
 
     // Get employee data from request
     const { employee_id, username, first_name, last_name, password } = await request.json();
+    const normalizedUsername = sanitizeSingleLineText(username, schemaExactLimits.userUsername).toLowerCase();
+    const normalizedFirstName = sanitizeSingleLineText(first_name, schemaExactLimits.userFirstName);
+    const normalizedLastName = sanitizeSingleLineText(last_name, schemaExactLimits.userLastName);
 
     // Validate input
-    if (!employee_id || !username || !first_name || !last_name) {
+    if (!employee_id || !normalizedUsername || !normalizedFirstName || !normalizedLastName) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
     }
 
@@ -46,9 +53,9 @@ export async function PUT(request: NextRequest) {
 
     // Update employee profile & password using employeeHelper
     const { error: updateError } = await employeeHelper.updateEmployeeAccount(employee_id, {
-      username,
-      first_name,
-      last_name,
+      username: normalizedUsername,
+      first_name: normalizedFirstName,
+      last_name: normalizedLastName,
       password
     }, admin);
 
@@ -60,7 +67,7 @@ export async function PUT(request: NextRequest) {
     await activityHelper.logActivity({
       actionType: 'edit_employee',
       productId: null,
-      description: changes.length > 0 ? `Updated employee "${first_name} ${last_name}": ${changes.join(', ')}` : `Updated employee "${first_name} ${last_name}"`,
+      description: changes.length > 0 ? `Updated employee "${normalizedFirstName} ${normalizedLastName}": ${changes.join(', ')}` : `Updated employee "${normalizedFirstName} ${normalizedLastName}"`,
       editor: editor,
       user_id: user.id,
       supabase: admin

@@ -19,6 +19,8 @@ export type ContactFieldConfig = {
     label: string;
     type: "input" | "textarea";
     minHeightClassName?: string;
+    maxLength: number;
+    recommendedLength?: string;
 };
 
 export type AboutFieldKey =
@@ -48,6 +50,8 @@ export type AboutFieldConfig = {
   label: string;
   type: "input" | "textarea";
   minHeightClassName?: string;
+  maxLength: number;
+  recommendedLength?: string;
 };
 
 export type BusinessDetailsRowLike = {

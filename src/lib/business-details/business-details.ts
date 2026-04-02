@@ -3,8 +3,17 @@ import {
   ContactDetailsPayload,
   AboutFieldKey,
   AboutDetailsPayload,
-  BusinessDetailsRowLike
+  BusinessDetailsRowLike,
+  ContactFieldConfig,
+  AboutFieldConfig,
 } from "@/types/business-details.types";
+import {
+  aboutFieldLimits,
+  contactFieldLimits,
+  sanitizeAboutDetailsPayload,
+  sanitizeAnnouncementText,
+  sanitizeContactDetailsPayload,
+} from "@/lib/input-sanitization";
 
 export type {
   ContactFieldKey,
@@ -50,20 +59,83 @@ export const defaultContactDetails: ContactDetailsPayload = {
   weekendHours: "10:00 AM - 5:00 PM",
 };
 
-import { ContactFieldConfig } from "@/types/business-details.types";
-
 export const CONTACT_FIELD_CONFIG: ContactFieldConfig[] = [
-  { key: "facebookName", label: CONTACT_LABEL_BY_KEY.facebookName, type: "input" },
-  { key: "facebookLink", label: CONTACT_LABEL_BY_KEY.facebookLink, type: "input" },
-  { key: "instagramHandle", label: CONTACT_LABEL_BY_KEY.instagramHandle, type: "input" },
-  { key: "instagramLink", label: CONTACT_LABEL_BY_KEY.instagramLink, type: "input" },
-  { key: "viberName", label: CONTACT_LABEL_BY_KEY.viberName, type: "input" },
-  { key: "viberLink", label: CONTACT_LABEL_BY_KEY.viberLink, type: "input" },
-  { key: "contactNumberDisplay", label: CONTACT_LABEL_BY_KEY.contactNumberDisplay, type: "input" },
-  { key: "contactNumberLink", label: CONTACT_LABEL_BY_KEY.contactNumberLink, type: "input" },
-  { key: "weekdaysHours", label: CONTACT_LABEL_BY_KEY.weekdaysHours, type: "input" },
-  { key: "weekendHours", label: CONTACT_LABEL_BY_KEY.weekendHours, type: "input" },
-  { key: "address", label: CONTACT_LABEL_BY_KEY.address, type: "textarea", minHeightClassName: "min-h-[90px]" },
+  {
+    key: "introText",
+    label: CONTACT_LABEL_BY_KEY.introText,
+    type: "textarea",
+    minHeightClassName: "min-h-[120px]",
+    maxLength: contactFieldLimits.introText.maxLength,
+    recommendedLength: contactFieldLimits.introText.recommendedLength,
+  },
+  {
+    key: "facebookName",
+    label: CONTACT_LABEL_BY_KEY.facebookName,
+    type: "input",
+    maxLength: contactFieldLimits.facebookName.maxLength,
+  },
+  {
+    key: "facebookLink",
+    label: CONTACT_LABEL_BY_KEY.facebookLink,
+    type: "input",
+    maxLength: contactFieldLimits.facebookLink.maxLength,
+  },
+  {
+    key: "instagramHandle",
+    label: CONTACT_LABEL_BY_KEY.instagramHandle,
+    type: "input",
+    maxLength: contactFieldLimits.instagramHandle.maxLength,
+  },
+  {
+    key: "instagramLink",
+    label: CONTACT_LABEL_BY_KEY.instagramLink,
+    type: "input",
+    maxLength: contactFieldLimits.instagramLink.maxLength,
+  },
+  {
+    key: "viberName",
+    label: CONTACT_LABEL_BY_KEY.viberName,
+    type: "input",
+    maxLength: contactFieldLimits.viberName.maxLength,
+  },
+  {
+    key: "viberLink",
+    label: CONTACT_LABEL_BY_KEY.viberLink,
+    type: "input",
+    maxLength: contactFieldLimits.viberLink.maxLength,
+  },
+  {
+    key: "contactNumberDisplay",
+    label: CONTACT_LABEL_BY_KEY.contactNumberDisplay,
+    type: "input",
+    maxLength: contactFieldLimits.contactNumberDisplay.maxLength,
+  },
+  {
+    key: "contactNumberLink",
+    label: CONTACT_LABEL_BY_KEY.contactNumberLink,
+    type: "input",
+    maxLength: contactFieldLimits.contactNumberLink.maxLength,
+  },
+  {
+    key: "weekdaysHours",
+    label: CONTACT_LABEL_BY_KEY.weekdaysHours,
+    type: "input",
+    maxLength: contactFieldLimits.weekdaysHours.maxLength,
+  },
+  {
+    key: "weekendHours",
+    label: CONTACT_LABEL_BY_KEY.weekendHours,
+    type: "input",
+    maxLength: contactFieldLimits.weekendHours.maxLength,
+  },
+  {
+    key: "address",
+    label: CONTACT_LABEL_BY_KEY.address,
+    type: "textarea",
+    minHeightClassName: "min-h-[90px]",
+    maxLength: contactFieldLimits.address.maxLength,
+    recommendedLength: contactFieldLimits.address.recommendedLength,
+  },
 ];
 
  
@@ -122,30 +194,146 @@ export const defaultAboutDetails: AboutDetailsPayload = {
   answer8: "We do not offer reservations. Our items are sold on a first-come, first-served basis.",
 };
 
-import { AboutFieldConfig } from "@/types/business-details.types";
-
 export const ABOUT_SECTION_FIELD_CONFIG: AboutFieldConfig[] = [
-  { key: "aboutBody", label: "About Dolly's Closet Body", type: "textarea", minHeightClassName: "min-h-[180px]" },
-  { key: "historyBody", label: "History Body", type: "textarea", minHeightClassName: "min-h-[180px]" },
+  {
+    key: "aboutBody",
+    label: "About Dolly's Closet Body",
+    type: "textarea",
+    minHeightClassName: "min-h-[180px]",
+    maxLength: aboutFieldLimits.aboutBody.maxLength,
+    recommendedLength: aboutFieldLimits.aboutBody.recommendedLength,
+  },
+  {
+    key: "historyBody",
+    label: "History Body",
+    type: "textarea",
+    minHeightClassName: "min-h-[180px]",
+    maxLength: aboutFieldLimits.historyBody.maxLength,
+    recommendedLength: aboutFieldLimits.historyBody.recommendedLength,
+  },
 ];
 
 export const FAQ_FIELD_CONFIG: AboutFieldConfig[] = [
-  { key: "question1", label: "Question 1", type: "input" },
-  { key: "answer1", label: "Answer 1", type: "textarea", minHeightClassName: "min-h-[90px]" },
-  { key: "question2", label: "Question 2", type: "input" },
-  { key: "answer2", label: "Answer 2", type: "textarea", minHeightClassName: "min-h-[90px]" },
-  { key: "question3", label: "Question 3", type: "input" },
-  { key: "answer3", label: "Answer 3", type: "textarea", minHeightClassName: "min-h-[90px]" },
-  { key: "question4", label: "Question 4", type: "input" },
-  { key: "answer4", label: "Answer 4", type: "textarea", minHeightClassName: "min-h-[90px]" },
-  { key: "question5", label: "Question 5", type: "input" },
-  { key: "answer5", label: "Answer 5", type: "textarea", minHeightClassName: "min-h-[90px]" },
-  { key: "question6", label: "Question 6", type: "input" },
-  { key: "answer6", label: "Answer 6", type: "textarea", minHeightClassName: "min-h-[90px]" },
-  { key: "question7", label: "Question 7", type: "input" },
-  { key: "answer7", label: "Answer 7", type: "textarea", minHeightClassName: "min-h-[90px]" },
-  { key: "question8", label: "Question 8", type: "input" },
-  { key: "answer8", label: "Answer 8", type: "textarea", minHeightClassName: "min-h-[90px]" },
+  {
+    key: "question1",
+    label: "Question 1",
+    type: "input",
+    maxLength: aboutFieldLimits.question1.maxLength,
+    recommendedLength: aboutFieldLimits.question1.recommendedLength,
+  },
+  {
+    key: "answer1",
+    label: "Answer 1",
+    type: "textarea",
+    minHeightClassName: "min-h-[90px]",
+    maxLength: aboutFieldLimits.answer1.maxLength,
+    recommendedLength: aboutFieldLimits.answer1.recommendedLength,
+  },
+  {
+    key: "question2",
+    label: "Question 2",
+    type: "input",
+    maxLength: aboutFieldLimits.question2.maxLength,
+    recommendedLength: aboutFieldLimits.question2.recommendedLength,
+  },
+  {
+    key: "answer2",
+    label: "Answer 2",
+    type: "textarea",
+    minHeightClassName: "min-h-[90px]",
+    maxLength: aboutFieldLimits.answer2.maxLength,
+    recommendedLength: aboutFieldLimits.answer2.recommendedLength,
+  },
+  {
+    key: "question3",
+    label: "Question 3",
+    type: "input",
+    maxLength: aboutFieldLimits.question3.maxLength,
+    recommendedLength: aboutFieldLimits.question3.recommendedLength,
+  },
+  {
+    key: "answer3",
+    label: "Answer 3",
+    type: "textarea",
+    minHeightClassName: "min-h-[90px]",
+    maxLength: aboutFieldLimits.answer3.maxLength,
+    recommendedLength: aboutFieldLimits.answer3.recommendedLength,
+  },
+  {
+    key: "question4",
+    label: "Question 4",
+    type: "input",
+    maxLength: aboutFieldLimits.question4.maxLength,
+    recommendedLength: aboutFieldLimits.question4.recommendedLength,
+  },
+  {
+    key: "answer4",
+    label: "Answer 4",
+    type: "textarea",
+    minHeightClassName: "min-h-[90px]",
+    maxLength: aboutFieldLimits.answer4.maxLength,
+    recommendedLength: aboutFieldLimits.answer4.recommendedLength,
+  },
+  {
+    key: "question5",
+    label: "Question 5",
+    type: "input",
+    maxLength: aboutFieldLimits.question5.maxLength,
+    recommendedLength: aboutFieldLimits.question5.recommendedLength,
+  },
+  {
+    key: "answer5",
+    label: "Answer 5",
+    type: "textarea",
+    minHeightClassName: "min-h-[90px]",
+    maxLength: aboutFieldLimits.answer5.maxLength,
+    recommendedLength: aboutFieldLimits.answer5.recommendedLength,
+  },
+  {
+    key: "question6",
+    label: "Question 6",
+    type: "input",
+    maxLength: aboutFieldLimits.question6.maxLength,
+    recommendedLength: aboutFieldLimits.question6.recommendedLength,
+  },
+  {
+    key: "answer6",
+    label: "Answer 6",
+    type: "textarea",
+    minHeightClassName: "min-h-[90px]",
+    maxLength: aboutFieldLimits.answer6.maxLength,
+    recommendedLength: aboutFieldLimits.answer6.recommendedLength,
+  },
+  {
+    key: "question7",
+    label: "Question 7",
+    type: "input",
+    maxLength: aboutFieldLimits.question7.maxLength,
+    recommendedLength: aboutFieldLimits.question7.recommendedLength,
+  },
+  {
+    key: "answer7",
+    label: "Answer 7",
+    type: "textarea",
+    minHeightClassName: "min-h-[90px]",
+    maxLength: aboutFieldLimits.answer7.maxLength,
+    recommendedLength: aboutFieldLimits.answer7.recommendedLength,
+  },
+  {
+    key: "question8",
+    label: "Question 8",
+    type: "input",
+    maxLength: aboutFieldLimits.question8.maxLength,
+    recommendedLength: aboutFieldLimits.question8.recommendedLength,
+  },
+  {
+    key: "answer8",
+    label: "Answer 8",
+    type: "textarea",
+    minHeightClassName: "min-h-[90px]",
+    maxLength: aboutFieldLimits.answer8.maxLength,
+    recommendedLength: aboutFieldLimits.answer8.recommendedLength,
+  },
 ];
 
  
@@ -249,28 +437,28 @@ export function resolveAboutKey(value: string): AboutFieldKey | null {
  */
 export function parseContactBody(rawBody: unknown): ContactDetailsPayload {
   if (!rawBody) {
-    return defaultContactDetails;
+    return sanitizeContactDetailsPayload(defaultContactDetails);
   }
 
   if (typeof rawBody === "object") {
-    return {
+    return sanitizeContactDetailsPayload({
       ...defaultContactDetails,
       ...(rawBody as Partial<ContactDetailsPayload>),
-    };
+    });
   }
 
   if (typeof rawBody !== "string") {
-    return defaultContactDetails;
+    return sanitizeContactDetailsPayload(defaultContactDetails);
   }
 
   try {
     const parsed = JSON.parse(rawBody) as Partial<ContactDetailsPayload>;
-    return {
+    return sanitizeContactDetailsPayload({
       ...defaultContactDetails,
       ...parsed,
-    };
+    });
   } catch {
-    return defaultContactDetails;
+    return sanitizeContactDetailsPayload(defaultContactDetails);
   }
 }
 
@@ -282,28 +470,28 @@ export function parseContactBody(rawBody: unknown): ContactDetailsPayload {
  */
 export function parseAboutBody(rawBody: unknown): AboutDetailsPayload {
   if (!rawBody) {
-    return defaultAboutDetails;
+    return sanitizeAboutDetailsPayload(defaultAboutDetails);
   }
 
   if (typeof rawBody === "object") {
-    return {
+    return sanitizeAboutDetailsPayload({
       ...defaultAboutDetails,
       ...(rawBody as Partial<AboutDetailsPayload>),
-    };
+    });
   }
 
   if (typeof rawBody !== "string") {
-    return defaultAboutDetails;
+    return sanitizeAboutDetailsPayload(defaultAboutDetails);
   }
 
   try {
     const parsed = JSON.parse(rawBody) as Partial<AboutDetailsPayload>;
-    return {
+    return sanitizeAboutDetailsPayload({
       ...defaultAboutDetails,
       ...parsed,
-    };
+    });
   } catch {
-    return defaultAboutDetails;
+    return sanitizeAboutDetailsPayload(defaultAboutDetails);
   }
 }
 
@@ -364,10 +552,10 @@ export function buildContactAggregate(rows: BusinessDetailsRowLike[]) {
   return {
     slug: CONTACT_SLUG,
     title,
-    body: {
+    body: sanitizeContactDetailsPayload({
       ...defaultContactDetails,
       ...body,
-    },
+    }),
   };
 }
 
@@ -409,9 +597,14 @@ export function buildAboutAggregate(rows: BusinessDetailsRowLike[]) {
   return {
     slug: ABOUT_SLUG,
     title: "About Us",
-    body: {
+    body: sanitizeAboutDetailsPayload({
       ...defaultAboutDetails,
       ...body,
-    },
+    }),
   };
+}
+
+export function sanitizeAnnouncementBody(rawBody: unknown) {
+  const nextBody = typeof rawBody === "string" ? rawBody : toText(rawBody);
+  return sanitizeAnnouncementText(nextBody || defaultAnnouncementText);
 }

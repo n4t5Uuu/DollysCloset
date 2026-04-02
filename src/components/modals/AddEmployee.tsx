@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Loader2, X } from "lucide-react";
 import { browserSupabase } from "@/lib/supabase/browser";
 import { Button } from "@/components/ui/button";
@@ -13,6 +13,11 @@ import {
 import { Employee } from "@/types/employee.types";
 import DiscardChangesDialog from "@/components/dialogs/DiscardChangesDialog";
 import { toast } from "sonner";
+import {
+    sanitizeSingleLineInput,
+    sanitizeSingleLineText,
+    schemaExactLimits,
+} from "@/lib/input-sanitization";
 
 interface AddEmployeeProps {
     isOpen: boolean;
@@ -20,6 +25,8 @@ interface AddEmployeeProps {
     employeeToEdit?: Employee | null;
     onEmployeeSaved: () => void;
 }
+
+const renderLengthMeta = (value: string, maxLength: number) => `${value.length}/${maxLength} characters`;
 
 export default function AddEmployee({ isOpen, onClose, employeeToEdit, onEmployeeSaved }: AddEmployeeProps) {
     const [actionLoading, setActionLoading] = useState(false);
@@ -36,7 +43,7 @@ export default function AddEmployee({ isOpen, onClose, employeeToEdit, onEmploye
     const trimmedLastName = formData.last_name.trim();
     const isSubmitBlocked = actionLoading || !trimmedEmail || !trimmedFirstName || !trimmedLastName || (!employeeToEdit && formData.password.length < 6);
 
-    const hasUnsavedChanges = () => {
+    const hasUnsavedChanges = useCallback(() => {
         if (employeeToEdit) {
             return (
                 formData.username !== employeeToEdit.username ||
@@ -51,23 +58,23 @@ export default function AddEmployee({ isOpen, onClose, employeeToEdit, onEmploye
             formData.last_name !== "" ||
             formData.password !== ""
         );
-    };
+    }, [employeeToEdit, formData]);
 
-    const handleClose = () => {
+    const handleClose = useCallback(() => {
         if (hasUnsavedChanges()) {
             setShowDiscardConfirm(true);
         } else {
             onClose();
         }
-    };
+    }, [hasUnsavedChanges, onClose]);
 
     useEffect(() => {
         if (isOpen) {
             if (employeeToEdit) {
                 setFormData({
-                    username: employeeToEdit.username,
-                    first_name: employeeToEdit.first_name,
-                    last_name: employeeToEdit.last_name,
+                    username: sanitizeSingleLineInput(employeeToEdit.username, schemaExactLimits.userUsername),
+                    first_name: sanitizeSingleLineInput(employeeToEdit.first_name, schemaExactLimits.userFirstName),
+                    last_name: sanitizeSingleLineInput(employeeToEdit.last_name, schemaExactLimits.userLastName),
                     password: "",
                 });
             } else {
@@ -95,7 +102,7 @@ export default function AddEmployee({ isOpen, onClose, employeeToEdit, onEmploye
             document.body.style.overflow = originalOverflow;
             document.removeEventListener("keydown", handleEscape);
         };
-    }, [actionLoading, isOpen]);
+    }, [actionLoading, handleClose, isOpen]);
 
     /**
      * Handles saving an employee to the backend.
@@ -110,7 +117,11 @@ export default function AddEmployee({ isOpen, onClose, employeeToEdit, onEmploye
 
         try {
             const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-            if (!emailRegex.test(formData.username)) {
+            const normalizedUsername = sanitizeSingleLineText(formData.username, schemaExactLimits.userUsername).toLowerCase();
+            const normalizedFirstName = sanitizeSingleLineText(formData.first_name, schemaExactLimits.userFirstName);
+            const normalizedLastName = sanitizeSingleLineText(formData.last_name, schemaExactLimits.userLastName);
+
+            if (!emailRegex.test(normalizedUsername)) {
                 setError('Please enter a valid email address.');
                 setActionLoading(false);
                 return;
@@ -123,9 +134,9 @@ export default function AddEmployee({ isOpen, onClose, employeeToEdit, onEmploye
             const method = employeeToEdit ? 'PUT' : 'POST';
             
             const body: Record<string, string> = {
-                username: formData.username,
-                first_name: formData.first_name,
-                last_name: formData.last_name,
+                username: normalizedUsername,
+                first_name: normalizedFirstName,
+                last_name: normalizedLastName,
             };
 
             if (employeeToEdit) {
@@ -198,12 +209,16 @@ export default function AddEmployee({ isOpen, onClose, employeeToEdit, onEmploye
                             <Input
                                 type="email"
                                 value={formData.username}
-                                onChange={(e) => setFormData({ ...formData, username: e.target.value })}
+                                onChange={(e) => setFormData({ ...formData, username: sanitizeSingleLineInput(e.target.value, schemaExactLimits.userUsername) })}
                                 placeholder="Enter email address"
+                                maxLength={schemaExactLimits.userUsername}
                                 required
                                 disabled={actionLoading}
                                 className="border-gray-300 text-gray-900 bg-white"
                             />
+                            <p className="text-right text-xs text-gray-500">
+                                {renderLengthMeta(formData.username, schemaExactLimits.userUsername)}
+                            </p>
                         </div>
 
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -212,12 +227,16 @@ export default function AddEmployee({ isOpen, onClose, employeeToEdit, onEmploye
                                 <Input
                                     type="text"
                                     value={formData.first_name}
-                                    onChange={(e) => setFormData({ ...formData, first_name: e.target.value })}
+                                    onChange={(e) => setFormData({ ...formData, first_name: sanitizeSingleLineInput(e.target.value, schemaExactLimits.userFirstName) })}
                                     placeholder="First name"
+                                    maxLength={schemaExactLimits.userFirstName}
                                     required
                                     disabled={actionLoading}
                                     className="border-gray-300 text-gray-900 bg-white"
                                 />
+                                <p className="text-right text-xs text-gray-500">
+                                    {renderLengthMeta(formData.first_name, schemaExactLimits.userFirstName)}
+                                </p>
                             </div>
 
                             <div className="space-y-2">
@@ -225,12 +244,16 @@ export default function AddEmployee({ isOpen, onClose, employeeToEdit, onEmploye
                                 <Input
                                     type="text"
                                     value={formData.last_name}
-                                    onChange={(e) => setFormData({ ...formData, last_name: e.target.value })}
+                                    onChange={(e) => setFormData({ ...formData, last_name: sanitizeSingleLineInput(e.target.value, schemaExactLimits.userLastName) })}
                                     placeholder="Last name"
+                                    maxLength={schemaExactLimits.userLastName}
                                     required
                                     disabled={actionLoading}
                                     className="border-gray-300 text-gray-900 bg-white"
                                 />
+                                <p className="text-right text-xs text-gray-500">
+                                    {renderLengthMeta(formData.last_name, schemaExactLimits.userLastName)}
+                                </p>
                             </div>
                         </div>
 

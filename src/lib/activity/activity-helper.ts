@@ -1,6 +1,10 @@
 import { browserSupabase } from "../supabase/browser";
 import { createServerSupabase } from "../supabase/server";
 import { LogActivityProps } from "@/types/logs.types";
+import {
+    sanitizeSingleLineText,
+    schemaExactLimits,
+} from "@/lib/input-sanitization";
 
 export interface AvailableLogMonth {
     value: string;
@@ -273,11 +277,11 @@ export const activityHelper = {
     async logActivity({ actionType, productId = null, businessDetailsId = null, description = "", editor = null, user_id = null, supabase = null }: LogActivityProps) {
         const client = supabase || await createServerSupabase();
         const payload = {
-            action_type: actionType,
+            action_type: sanitizeSingleLineText(actionType, schemaExactLimits.activityActionType),
             product_id: productId,
             business_details: businessDetailsId,
-            description: description,
-            editor: editor,
+            description: sanitizeSingleLineText(description, schemaExactLimits.activityDescription),
+            editor: sanitizeSingleLineText(editor, 255),
             user_id: user_id,
             created_at: new Date().toISOString(),
         };

@@ -3,8 +3,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   Loader2,
-  AlertTriangle,
-  CheckCircle2,
   RefreshCcw,
   Megaphone,
   Phone,
@@ -26,6 +24,7 @@ import {
   ABOUT_SECTION_FIELD_CONFIG,
   CONTACT_FIELD_CONFIG,
   CONTACT_SLUG,
+  FAQ_FIELD_CONFIG,
   AboutDetailsPayload,
   AboutFieldKey,
   ContactFieldKey,
@@ -36,6 +35,18 @@ import {
   parseAboutBody,
   parseContactBody,
 } from "@/lib/business-details/business-details";
+import {
+  getRemainingCharacters,
+  sanitizeAboutDetailInput,
+  sanitizeAboutDetailsPayload,
+  sanitizeAboutDetailText,
+  sanitizeAnnouncementInput,
+  sanitizeAnnouncementText,
+  sanitizeContactDetailInput,
+  sanitizeContactDetailsPayload,
+  sanitizeContactDetailText,
+  uiContentLimits,
+} from "@/lib/input-sanitization";
 
 /**
  * ManageDetailsClient.tsx
@@ -79,6 +90,17 @@ export default function ManageDetailsClient({ role }: ManageDetailsClientProps) 
   const [refreshingSection, setRefreshingSection] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  const aboutFieldConfigByKey = useMemo(
+    () => new Map([...ABOUT_SECTION_FIELD_CONFIG, ...FAQ_FIELD_CONFIG].map((field) => [field.key, field])),
+    []
+  );
+
+  const formatLengthMeta = useCallback((value: string, maxLength: number, recommendedLength?: string) => {
+    const remaining = getRemainingCharacters(value, maxLength);
+    return recommendedLength
+      ? `${remaining} left - Recommended ${recommendedLength}`
+      : `${remaining} left`;
+  }, []);
 
   const fetchContactDetails = useCallback(async () => {
     try {
@@ -89,7 +111,7 @@ export default function ManageDetailsClient({ role }: ManageDetailsClientProps) 
       });
       const result = await response.json();
       if (!response.ok) throw new Error(result.error || "Failed to fetch contact details");
-      const parsedDetails = parseContactBody(result.data?.body);
+      const parsedDetails = sanitizeContactDetailsPayload(parseContactBody(result.data?.body));
       setDetails(parsedDetails);
       setSavedDetails(parsedDetails);
       return true;
@@ -110,7 +132,7 @@ export default function ManageDetailsClient({ role }: ManageDetailsClientProps) 
       });
       const result = await response.json();
       if (!response.ok) throw new Error(result.error || "Failed to fetch announcement");
-      const nextAnnouncement = (result.data?.body || defaultAnnouncementText) as string;
+      const nextAnnouncement = sanitizeAnnouncementText((result.data?.body || defaultAnnouncementText) as string);
       setAnnouncementText(nextAnnouncement);
       setSavedAnnouncementText(nextAnnouncement);
       setHasLoadedAnnouncement(true);
@@ -132,7 +154,7 @@ export default function ManageDetailsClient({ role }: ManageDetailsClientProps) 
       });
       const result = await response.json();
       if (!response.ok) throw new Error(result.error || "Failed to fetch about details");
-      const parsedAboutDetails = parseAboutBody(result.data?.body);
+      const parsedAboutDetails = sanitizeAboutDetailsPayload(parseAboutBody(result.data?.body));
       setAboutDetails(parsedAboutDetails);
       setSavedAboutDetails(parsedAboutDetails);
       setHasLoadedAbout(true);
@@ -289,20 +311,25 @@ export default function ManageDetailsClient({ role }: ManageDetailsClientProps) 
       setSavingField(fieldKey);
       setError(null);
       setSuccess(null);
+      const sanitizedValue = sanitizeContactDetailText(fieldKey, details[fieldKey]);
       const response = await fetch("/api/admin/business-details", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           slug: CONTACT_SLUG,
           title: label,
-          body: details[fieldKey],
+          body: sanitizedValue,
         }),
       });
       const result = await response.json();
       if (!response.ok) throw new Error(result.error || "Failed to save contact details");
+      setDetails((prev) => ({
+        ...prev,
+        [fieldKey]: sanitizedValue,
+      }));
       setSavedDetails((prev) => ({
         ...prev,
-        [fieldKey]: details[fieldKey],
+        [fieldKey]: sanitizedValue,
       }));
       setSuccess(`${label} saved and published.`);
       toast.success(`${label} saved.`);
@@ -320,20 +347,25 @@ export default function ManageDetailsClient({ role }: ManageDetailsClientProps) 
       setSavingAboutField(fieldKey);
       setError(null);
       setSuccess(null);
+      const sanitizedValue = sanitizeAboutDetailText(fieldKey, aboutDetails[fieldKey]);
       const response = await fetch("/api/admin/business-details", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           slug: ABOUT_SLUG,
           title: label,
-          body: aboutDetails[fieldKey],
+          body: sanitizedValue,
         }),
       });
       const result = await response.json();
       if (!response.ok) throw new Error(result.error || "Failed to save about details");
+      setAboutDetails((prev) => ({
+        ...prev,
+        [fieldKey]: sanitizedValue,
+      }));
       setSavedAboutDetails((prev) => ({
         ...prev,
-        [fieldKey]: aboutDetails[fieldKey],
+        [fieldKey]: sanitizedValue,
       }));
       setSuccess(`${label} saved and published.`);
       toast.success(`${label} saved.`);
@@ -351,18 +383,20 @@ export default function ManageDetailsClient({ role }: ManageDetailsClientProps) 
       setSavingAnnouncement(true);
       setError(null);
       setSuccess(null);
+      const sanitizedAnnouncement = sanitizeAnnouncementText(announcementText);
       const response = await fetch("/api/admin/business-details", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           slug: ANNOUNCEMENT_SLUG,
           title: ANNOUNCEMENT_TITLE,
-          body: announcementText,
+          body: sanitizedAnnouncement,
         }),
       });
       const result = await response.json();
       if (!response.ok) throw new Error(result.error || "Failed to save announcement");
-      setSavedAnnouncementText(announcementText);
+      setAnnouncementText(sanitizedAnnouncement);
+      setSavedAnnouncementText(sanitizedAnnouncement);
       setSuccess("Announcement saved and published.");
       toast.success("Announcement saved.");
     } catch (err: unknown) {
@@ -375,11 +409,11 @@ export default function ManageDetailsClient({ role }: ManageDetailsClientProps) 
   }
 
   function updateDetails(key: ContactFieldKey, value: string) {
-    setDetails((prev: ContactDetailsPayload) => ({ ...prev, [key]: value }));
+    setDetails((prev: ContactDetailsPayload) => ({ ...prev, [key]: sanitizeContactDetailInput(key, value) }));
   }
 
   function updateAboutDetails(key: AboutFieldKey, value: string) {
-    setAboutDetails((prev: AboutDetailsPayload) => ({ ...prev, [key]: value }));
+    setAboutDetails((prev: AboutDetailsPayload) => ({ ...prev, [key]: sanitizeAboutDetailInput(key, value) }));
   }
 
   return (
@@ -543,11 +577,12 @@ export default function ManageDetailsClient({ role }: ManageDetailsClientProps) 
                             <Textarea
                               value={details[field.key]}
                               onChange={(e) => updateDetails(field.key, e.target.value)}
+                              maxLength={field.maxLength}
                               className={`${field.minHeightClassName || "min-h-[90px]"} ${textareaClassName}`}
                             />
                             <div className="flex items-center justify-between gap-3">
                               <p className="text-xs text-gray-500">
-                                {isDirty ? "This field has unsaved edits." : "No pending changes."}
+                                {isDirty ? "This field has unsaved edits." : "No pending changes."} {formatLengthMeta(details[field.key], field.maxLength, field.recommendedLength)}
                               </p>
                               <Button
                                 type="button"
@@ -573,8 +608,12 @@ export default function ManageDetailsClient({ role }: ManageDetailsClientProps) 
                             <Input
                               value={details[field.key]}
                               onChange={(e) => updateDetails(field.key, e.target.value)}
+                              maxLength={field.maxLength}
                               className={inputClassName}
                             />
+                            <div className="text-right text-xs text-gray-500 md:min-w-28">
+                              {formatLengthMeta(details[field.key], field.maxLength, field.recommendedLength)}
+                            </div>
                             <Button
                               type="button"
                               onClick={() => handleSaveContactField(field.key, field.label)}
@@ -635,12 +674,13 @@ export default function ManageDetailsClient({ role }: ManageDetailsClientProps) 
                 </div>
                 <Textarea
                   value={announcementText}
-                  onChange={(e) => setAnnouncementText(e.target.value)}
+                  onChange={(e) => setAnnouncementText(sanitizeAnnouncementInput(e.target.value))}
+                  maxLength={uiContentLimits.announcement.maxLength}
                   className={`min-h-[120px] ${textareaClassName}`}
                 />
                 <div className="flex items-center justify-between gap-3">
                   <p className="text-xs text-gray-500">
-                    {announcementDirty ? "You have unsaved banner edits." : "No pending changes in the banner text."}
+                    {announcementDirty ? "You have unsaved banner edits." : "No pending changes in the banner text."} {formatLengthMeta(announcementText, uiContentLimits.announcement.maxLength, uiContentLimits.announcement.recommendedLength)}
                   </p>
                   <Button
                     type="button"
@@ -723,11 +763,12 @@ export default function ManageDetailsClient({ role }: ManageDetailsClientProps) 
                             <Textarea
                               value={aboutDetails[field.key]}
                               onChange={(e) => updateAboutDetails(field.key, e.target.value)}
+                              maxLength={field.maxLength}
                               className={`${field.minHeightClassName || "min-h-[90px]"} ${textareaClassName}`}
                             />
                             <div className="mt-3 flex items-center justify-between gap-3">
                               <p className="text-xs text-gray-500">
-                                {isDirty ? "This field has unsaved edits." : "No pending changes."}
+                                {isDirty ? "This field has unsaved edits." : "No pending changes."} {formatLengthMeta(aboutDetails[field.key], field.maxLength, field.recommendedLength)}
                               </p>
                               <Button
                                 type="button"
@@ -765,6 +806,8 @@ export default function ManageDetailsClient({ role }: ManageDetailsClientProps) 
                         const answerLabel = `Answer ${number}`;
                         const questionDirty = aboutDetails[questionKey] !== savedAboutDetails[questionKey];
                         const answerDirty = aboutDetails[answerKey] !== savedAboutDetails[answerKey];
+                        const questionConfig = aboutFieldConfigByKey.get(questionKey);
+                        const answerConfig = aboutFieldConfigByKey.get(answerKey);
                         return (
                           <div key={number} className="space-y-3 rounded-lg border border-gray-200 p-4">
                             <div>
@@ -783,7 +826,15 @@ export default function ManageDetailsClient({ role }: ManageDetailsClientProps) 
                                 </span>
                               </div>
                               <div className="flex flex-col gap-2 md:flex-row">
-                                <Input value={aboutDetails[questionKey]} onChange={(e) => updateAboutDetails(questionKey, e.target.value)} className={inputClassName} />
+                                <Input
+                                  value={aboutDetails[questionKey]}
+                                  onChange={(e) => updateAboutDetails(questionKey, e.target.value)}
+                                  maxLength={questionConfig?.maxLength}
+                                  className={inputClassName}
+                                />
+                                <div className="text-right text-xs text-gray-500 md:min-w-28">
+                                  {questionConfig ? formatLengthMeta(aboutDetails[questionKey], questionConfig.maxLength, questionConfig.recommendedLength) : null}
+                                </div>
                                 <Button type="button" onClick={() => handleSaveAboutField(questionKey, questionLabel)} disabled={savingAboutField !== null || !questionDirty} className="bg-[#cc7f8f] text-white hover:bg-[#b96f80] md:min-w-28">
                                   {savingAboutField === questionKey ? (
                                     <span className="inline-flex items-center gap-2"><Loader2 className="h-4 w-4 animate-spin" />Saving</span>
@@ -806,8 +857,16 @@ export default function ManageDetailsClient({ role }: ManageDetailsClientProps) 
                                   {answerDirty ? "Unsaved" : "Saved"}
                                 </span>
                               </div>
-                              <Textarea value={aboutDetails[answerKey]} onChange={(e) => updateAboutDetails(answerKey, e.target.value)} className={`min-h-[90px] ${textareaClassName}`} />
+                              <Textarea
+                                value={aboutDetails[answerKey]}
+                                onChange={(e) => updateAboutDetails(answerKey, e.target.value)}
+                                maxLength={answerConfig?.maxLength}
+                                className={`min-h-[90px] ${textareaClassName}`}
+                              />
                               <div className="flex justify-end">
+                                <p className="mr-auto text-xs text-gray-500">
+                                  {answerConfig ? formatLengthMeta(aboutDetails[answerKey], answerConfig.maxLength, answerConfig.recommendedLength) : null}
+                                </p>
                                 <Button type="button" onClick={() => handleSaveAboutField(answerKey, answerLabel)} disabled={savingAboutField !== null || !answerDirty} className="bg-[#cc7f8f] text-white hover:bg-[#b96f80]">
                                   {savingAboutField === answerKey ? (
                                     <span className="inline-flex items-center gap-2"><Loader2 className="h-4 w-4 animate-spin" />Saving</span>

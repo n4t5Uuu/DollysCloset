@@ -1,10 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { admin } from "@/lib/supabase/admin";
-import { ABOUT_SLUG, CONTACT_SLUG, buildAboutAggregate, buildContactAggregate } from "../../../lib/business-details/business-details";
+import {
+  ABOUT_SLUG,
+  ANNOUNCEMENT_SLUG,
+  CONTACT_SLUG,
+  buildAboutAggregate,
+  buildContactAggregate,
+  sanitizeAnnouncementBody,
+} from "../../../lib/business-details/business-details";
 import { businessDetailsHelper } from "@/lib/business-details/business-details-helper";
-
-const BUSINESS_DETAILS_TABLES = ["tbl_business_details", "business_details"] as const;
-
 import { BusinessDetailsRow } from "@/types/business-details.types";
 
 /**
@@ -35,14 +39,25 @@ export async function GET(request: NextRequest) {
     }
 
     if (slug === CONTACT_SLUG) {
-      return NextResponse.json({ data: buildContactAggregate(rows as any) });
+      return NextResponse.json({ data: buildContactAggregate((rows as BusinessDetailsRow[]) || []) });
     }
 
     if (slug === ABOUT_SLUG) {
-      return NextResponse.json({ data: buildAboutAggregate(rows as any) });
+      return NextResponse.json({ data: buildAboutAggregate((rows as BusinessDetailsRow[]) || []) });
     }
 
-    return NextResponse.json({ data: rows[0] || null });
+    const latestRow = (rows as BusinessDetailsRow[])[0] || null;
+
+    if (slug === ANNOUNCEMENT_SLUG && latestRow) {
+      return NextResponse.json({
+        data: {
+          ...latestRow,
+          body: sanitizeAnnouncementBody(latestRow.body),
+        },
+      });
+    }
+
+    return NextResponse.json({ data: latestRow });
 
     return NextResponse.json({ error: "Could not find business details table" }, { status: 500 });
   } catch (error: unknown) {

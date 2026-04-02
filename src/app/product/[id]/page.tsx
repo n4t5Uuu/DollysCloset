@@ -485,11 +485,11 @@ export default function ProductDetailsPage() {
                         { label: "Condition", value: product.condition },
                         { label: "Availability", value: product.stock > 0 ? `${product.stock} piece${product.stock > 1 ? "s" : ""} available` : "Currently sold out" },
                       ].map((item) => (
-                        <div key={item.label} className="flex items-start justify-between gap-4 border-b border-[#f2dbe0] pb-2.5 last:border-b-0 last:pb-0">
+                        <div key={item.label} className="flex min-w-0 items-start justify-between gap-4 border-b border-[#f2dbe0] pb-2.5 last:border-b-0 last:pb-0">
                           <span className="font-oswald text-[11px] uppercase tracking-[0.24em] text-[#b98b96]">
                             {item.label}
                           </span>
-                          <span className="text-right text-sm text-[#121212] font-medium">
+                          <span className="max-w-[60%] text-right text-sm font-medium text-[#121212] break-words [overflow-wrap:anywhere]">
                             {item.value}
                           </span>
                         </div>
@@ -499,7 +499,7 @@ export default function ProductDetailsPage() {
 
                   <div className="space-y-2">
                     <h2 className="font-playfair-display text-lg md:text-xl text-[#121212]">Description</h2>
-                    <p className="text-sm leading-6 text-[#5f5a5c]">
+                    <p className="text-sm leading-6 text-[#5f5a5c] whitespace-pre-wrap break-words [overflow-wrap:anywhere]">
                       {decodeHtmlEntities(product.description || "A thoughtfully curated piece from Dolly's Closet, chosen for its style, condition, and timeless wearability.")}
                     </p>
                   </div>

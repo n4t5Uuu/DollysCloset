@@ -3,6 +3,10 @@ import { employeeHelper } from "@/lib/employees/employee-helper";
 import { activityHelper } from "@/lib/activity/activity-helper";
 import { admin } from "@/lib/supabase/admin";
 import { requireRequestAuth } from "@/lib/auth/auth-server";
+import {
+  sanitizeSingleLineText,
+  schemaExactLimits,
+} from "@/lib/input-sanitization";
 
 /**
  * Registers a new employee user account and attaches initial authentication parameters.
@@ -26,18 +30,21 @@ export async function POST(request: NextRequest) {
 
     // Get employee data from request
     const { username, password, first_name, last_name } = await request.json();
+    const normalizedUsername = sanitizeSingleLineText(username, schemaExactLimits.userUsername).toLowerCase();
+    const normalizedFirstName = sanitizeSingleLineText(first_name, schemaExactLimits.userFirstName);
+    const normalizedLastName = sanitizeSingleLineText(last_name, schemaExactLimits.userLastName);
 
     // Validate input
-    if (!username || !password || !first_name || !last_name) {
+    if (!normalizedUsername || !password || !normalizedFirstName || !normalizedLastName) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
     }
 
     // Create employee account using employeeHelper
     const { data: employeeData, error: createError } = await employeeHelper.createEmployeeAccount({
-      username,
+      username: normalizedUsername,
       password,
-      first_name,
-      last_name
+      first_name: normalizedFirstName,
+      last_name: normalizedLastName
     }, admin);
 
     if (createError) {
@@ -51,7 +58,7 @@ export async function POST(request: NextRequest) {
     await activityHelper.logActivity({
       actionType: 'create_employee',
       productId: null,
-      description: `Created employee: ${first_name} ${last_name} (${username})`,
+      description: `Created employee: ${normalizedFirstName} ${normalizedLastName} (${normalizedUsername})`,
       editor: editor,
       user_id: user.id,
       supabase: admin
@@ -61,9 +68,9 @@ export async function POST(request: NextRequest) {
       success: true, 
       user: {
         id: employeeData?.id,
-        username,
-        first_name,
-        last_name,
+        username: normalizedUsername,
+        first_name: normalizedFirstName,
+        last_name: normalizedLastName,
         role: 'employee'
       }
     });

@@ -82,21 +82,21 @@ export default function ProductModal({ product, isOpen, onClose }: ProductModalP
             </div>
 
             <div className="space-y-3 text-black">
-              <div className="flex justify-between">
+              <div className="flex min-w-0 justify-between gap-4">
                 <span className="font-semibold">Brand:</span>
-                <span>{product.brand}</span>
+                <span className="max-w-[60%] text-right break-words [overflow-wrap:anywhere]">{product.brand}</span>
               </div>
-              <div className="flex justify-between">
+              <div className="flex min-w-0 justify-between gap-4">
                 <span className="font-semibold">Size:</span>
-                <span>{product.size}</span>
+                <span className="max-w-[60%] text-right break-words [overflow-wrap:anywhere]">{product.size}</span>
               </div>
-              <div className="flex justify-between">
+              <div className="flex min-w-0 justify-between gap-4">
                 <span className="font-semibold">Condition:</span>
-                <span>{product.condition}</span>
+                <span className="max-w-[60%] text-right break-words [overflow-wrap:anywhere]">{product.condition}</span>
               </div>
             </div>
 
-            <p className="text-black leading-relaxed">
+            <p className="text-black leading-relaxed whitespace-pre-wrap break-words [overflow-wrap:anywhere]">
               {product.description}
             </p>
 

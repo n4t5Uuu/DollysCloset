@@ -3,8 +3,12 @@ import { productHelper } from "@/lib/products/product-helper";
 import { activityHelper } from "@/lib/activity/activity-helper";
 import { admin } from "@/lib/supabase/admin";
 import { requireRequestAuth } from "@/lib/auth/auth-server";
-
-const MAX_META_LENGTH = 9;
+import {
+  sanitizeMultilineText,
+  sanitizeSingleLineText,
+  schemaExactLimits,
+  uiContentLimits,
+} from "@/lib/input-sanitization";
 
 /**
  * Submits metadata properties encapsulating a brand-new catalog product into the database mapping `tbl_product`.
@@ -27,12 +31,26 @@ export async function POST(request: NextRequest) {
     const editor = user.email || user.user_metadata?.username || 'Unknown';
 
     // Get product data from request
-    const { product_name, category_id, product_price, product_brand, product_description, product_stock, product_condition, size_label, show_in_catalog, image_id } = await request.json();
-    const normalizedCondition = String(product_condition || 'New').trim().slice(0, MAX_META_LENGTH);
-    const normalizedSizeLabel = String(size_label || 'One Size').trim().slice(0, MAX_META_LENGTH);
+    const {
+      product_name,
+      category_id,
+      product_price,
+      product_brand,
+      product_description,
+      product_stock,
+      product_condition,
+      size_label,
+      show_in_catalog,
+      image_id,
+    } = await request.json();
+    const normalizedProductName = sanitizeSingleLineText(product_name, schemaExactLimits.productName);
+    const normalizedBrand = sanitizeSingleLineText(product_brand, schemaExactLimits.productBrand) || "Dolly's Closet";
+    const normalizedDescription = sanitizeMultilineText(product_description, uiContentLimits.productDescription.maxLength);
+    const normalizedCondition = sanitizeSingleLineText(product_condition || "New", schemaExactLimits.productCondition) || "New";
+    const normalizedSizeLabel = sanitizeSingleLineText(size_label || "One Size", schemaExactLimits.productSizeLabel) || "One Size";
 
     // Validate required fields
-    if (!product_name || !category_id || product_price === undefined) {
+    if (!normalizedProductName || !category_id || product_price === undefined) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
     }
 
@@ -46,14 +64,14 @@ export async function POST(request: NextRequest) {
 
     // Insert into tbl_product using productHelper
     const { data: product, error: insertError } = await productHelper.createProduct({
-      product_name,
+      product_name: normalizedProductName,
       category_id,
       product_price: parseFloat(product_price),
-      product_brand: product_brand || "Dolly's Closet",
-      product_description: product_description || '',
+      product_brand: normalizedBrand,
+      product_description: normalizedDescription,
       product_stock: parsedStock,
-      product_condition: normalizedCondition || 'New',
-      size_label: normalizedSizeLabel || 'One Size',
+      product_condition: normalizedCondition,
+      size_label: normalizedSizeLabel,
       show_in_catalog: finalShowInCatalog,
       image_id: image_id || null,
     }, admin);
@@ -68,7 +86,7 @@ export async function POST(request: NextRequest) {
       await activityHelper.logActivity({
         actionType: 'create_product',
         productId: product.product_id,
-        description: `Created product: ${product_name}`,
+        description: `Created product: ${normalizedProductName}`,
         editor: editor,
         user_id: user.id,
         supabase: admin
