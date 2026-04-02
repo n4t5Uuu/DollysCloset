@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { Loader2, X } from "lucide-react";
 import { browserSupabase } from "@/lib/supabase/browser";
 import { Button } from "@/components/ui/button";
@@ -41,7 +41,32 @@ export default function AddEmployee({ isOpen, onClose, employeeToEdit, onEmploye
     const trimmedEmail = formData.username.trim();
     const trimmedFirstName = formData.first_name.trim();
     const trimmedLastName = formData.last_name.trim();
-    const isSubmitBlocked = actionLoading || !trimmedEmail || !trimmedFirstName || !trimmedLastName || (!employeeToEdit && formData.password.length < 6);
+    const missingRequiredFields = useMemo(() => {
+        const missingFields: string[] = [];
+
+        if (!trimmedEmail) missingFields.push("email address");
+        if (!trimmedFirstName) missingFields.push("first name");
+        if (!trimmedLastName) missingFields.push("last name");
+        if (!employeeToEdit && formData.password.length < 6) missingFields.push("password");
+
+        return missingFields;
+    }, [employeeToEdit, formData.password.length, trimmedEmail, trimmedFirstName, trimmedLastName]);
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    const hasInvalidEmail = trimmedEmail !== "" && !emailRegex.test(trimmedEmail);
+    const hasInvalidPassword = formData.password.length > 0 && formData.password.length < 6;
+    const isSubmitBlocked = actionLoading || missingRequiredFields.length > 0 || hasInvalidEmail || hasInvalidPassword;
+    const formStatusMessage = missingRequiredFields.length > 0
+        ? `Add ${missingRequiredFields.join(", ")} to continue.`
+        : hasInvalidEmail
+            ? "Enter a valid email address before saving."
+            : hasInvalidPassword
+                ? employeeToEdit
+                    ? "Use at least 6 characters if you are resetting the password."
+                    : "Password must be at least 6 characters long."
+                : employeeToEdit
+                    ? "Review your updates, then save when you're ready."
+                    : "Required fields are complete. You can add this employee now.";
 
     const hasUnsavedChanges = useCallback(() => {
         if (employeeToEdit) {
@@ -116,7 +141,6 @@ export default function AddEmployee({ isOpen, onClose, employeeToEdit, onEmploye
         setError(null);
 
         try {
-            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
             const normalizedUsername = sanitizeSingleLineText(formData.username, schemaExactLimits.userUsername).toLowerCase();
             const normalizedFirstName = sanitizeSingleLineText(formData.first_name, schemaExactLimits.userFirstName);
             const normalizedLastName = sanitizeSingleLineText(formData.last_name, schemaExactLimits.userLastName);
@@ -182,7 +206,7 @@ export default function AddEmployee({ isOpen, onClose, employeeToEdit, onEmploye
                 handleClose();
             }
         }}>
-            <Card className="bg-white w-full max-w-md max-h-[90vh] flex flex-col overflow-hidden p-0" onClick={(event) => event.stopPropagation()}>
+            <Card className="bg-white w-full max-w-lg max-h-[90vh] flex flex-col overflow-hidden p-0" onClick={(event) => event.stopPropagation()}>
                 <CardHeader className="flex flex-row items-center justify-between border-b p-6 space-y-0 text-gray-900">
                     <div className="space-y-1">
                         <CardTitle>{employeeToEdit ? "Edit Employee" : "Add New Employee"}</CardTitle>
@@ -196,7 +220,7 @@ export default function AddEmployee({ isOpen, onClose, employeeToEdit, onEmploye
                 <form onSubmit={handleSaveEmployee}>
                     <CardContent className="space-y-5 p-6 overflow-y-auto">
                         <div className="rounded-lg border border-[#E7A3B0]/20 bg-[#fff9fb] px-4 py-3 text-sm text-[#8a6b73]">
-                            Fields marked by context are required. Passwords must be at least 6 characters long.
+                            Fields marked with <span className="text-red-500">*</span> are required. Passwords must be at least 6 characters long.
                         </div>
                         {error && (
                             <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">
@@ -205,7 +229,7 @@ export default function AddEmployee({ isOpen, onClose, employeeToEdit, onEmploye
                         )}
 
                         <div className="space-y-2">
-                            <label className="block text-sm font-semibold text-gray-700">Email Address</label>
+                            <label className="block text-sm font-medium text-gray-700">Email Address <span className="text-red-500">*</span></label>
                             <Input
                                 type="email"
                                 value={formData.username}
@@ -214,7 +238,8 @@ export default function AddEmployee({ isOpen, onClose, employeeToEdit, onEmploye
                                 maxLength={schemaExactLimits.userUsername}
                                 required
                                 disabled={actionLoading}
-                                className="border-gray-300 text-gray-900 bg-white"
+                                aria-invalid={hasInvalidEmail || !trimmedEmail}
+                                className="border-gray-300 text-gray-900 bg-white placeholder:text-gray-400"
                             />
                             <p className="text-right text-xs text-gray-500">
                                 {renderLengthMeta(formData.username, schemaExactLimits.userUsername)}
@@ -223,7 +248,7 @@ export default function AddEmployee({ isOpen, onClose, employeeToEdit, onEmploye
 
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <div className="space-y-2">
-                                <label className="block text-sm font-semibold text-gray-700">First Name</label>
+                                <label className="block text-sm font-medium text-gray-700">First Name <span className="text-red-500">*</span></label>
                                 <Input
                                     type="text"
                                     value={formData.first_name}
@@ -232,7 +257,7 @@ export default function AddEmployee({ isOpen, onClose, employeeToEdit, onEmploye
                                     maxLength={schemaExactLimits.userFirstName}
                                     required
                                     disabled={actionLoading}
-                                    className="border-gray-300 text-gray-900 bg-white"
+                                    className="border-gray-300 text-gray-900 bg-white placeholder:text-gray-400"
                                 />
                                 <p className="text-right text-xs text-gray-500">
                                     {renderLengthMeta(formData.first_name, schemaExactLimits.userFirstName)}
@@ -240,7 +265,7 @@ export default function AddEmployee({ isOpen, onClose, employeeToEdit, onEmploye
                             </div>
 
                             <div className="space-y-2">
-                                <label className="block text-sm font-semibold text-gray-700">Last Name</label>
+                                <label className="block text-sm font-medium text-gray-700">Last Name <span className="text-red-500">*</span></label>
                                 <Input
                                     type="text"
                                     value={formData.last_name}
@@ -249,7 +274,7 @@ export default function AddEmployee({ isOpen, onClose, employeeToEdit, onEmploye
                                     maxLength={schemaExactLimits.userLastName}
                                     required
                                     disabled={actionLoading}
-                                    className="border-gray-300 text-gray-900 bg-white"
+                                    className="border-gray-300 text-gray-900 bg-white placeholder:text-gray-400"
                                 />
                                 <p className="text-right text-xs text-gray-500">
                                     {renderLengthMeta(formData.last_name, schemaExactLimits.userLastName)}
@@ -258,8 +283,8 @@ export default function AddEmployee({ isOpen, onClose, employeeToEdit, onEmploye
                         </div>
 
                         <div className="space-y-2">
-                            <label className="block text-sm font-semibold text-gray-700">
-                                {employeeToEdit ? "New Password (optional)" : "Password"}
+                            <label className="block text-sm font-medium text-gray-700">
+                                {employeeToEdit ? "New Password (optional)" : <>Password <span className="text-red-500">*</span></>}
                             </label>
                             <Input
                                 type="password"
@@ -269,26 +294,38 @@ export default function AddEmployee({ isOpen, onClose, employeeToEdit, onEmploye
                                 required={!employeeToEdit}
                                 minLength={6}
                                 disabled={actionLoading}
-                                className="border-gray-300 text-gray-900 bg-white"
+                                aria-invalid={hasInvalidPassword}
+                                className="border-gray-300 text-gray-900 bg-white placeholder:text-gray-400"
                             />
                             <p className="text-xs text-gray-500">Minimum 6 characters {employeeToEdit && "if changing"}</p>
                         </div>
                     </CardContent>
 
-                    <CardFooter className="flex gap-3 p-6 border-t bg-gray-50">
-                        <Button type="button" variant="outline" onClick={handleClose} className="flex-1 border-[#E7A3B0]/40 text-[#cc7f8f] hover:bg-[#fff5f7] hover:text-[#b96d7d]">Cancel</Button>
+                    <CardFooter className="flex flex-col gap-3 border-t bg-gray-50 p-6 sm:flex-row">
+                        <div className="w-full text-xs text-gray-500 sm:hidden">
+                            {formStatusMessage}
+                        </div>
+                        <Button
+                            type="button"
+                            variant="outline"
+                            onClick={handleClose}
+                            disabled={actionLoading}
+                            className="flex-1 border-gray-300 text-gray-700 bg-white hover:bg-white hover:text-black transition-all duration-300 hover:scale-105 hover:shadow-md hover:border-gray-400 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 disabled:hover:shadow-none"
+                        >
+                            Cancel
+                        </Button>
                         <Button
                             type="submit"
-                            className="flex-1 bg-linear-to-r from-[#E7A3B0] to-[#f0b8c3] text-white hover:from-[#d891a0] hover:to-[#E7A3B0]"
+                            className="flex-1 bg-[#E7A3B0] hover:bg-[#ca8c98] text-white transition-all duration-300 hover:scale-[1.03] active:scale-95 shadow-sm hover:shadow-md disabled:hover:scale-100 disabled:hover:shadow-sm"
                             disabled={isSubmitBlocked}
                         >
                             {actionLoading ? (
                                 <>
                                     <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                                    {employeeToEdit ? "Saving..." : "Adding..."}
+                                    Saving...
                                 </>
                             ) : (
-                                employeeToEdit ? 'Save Changes' : 'Add Employee'
+                                employeeToEdit ? "Save Changes" : "Add Employee"
                             )}
                         </Button>
                     </CardFooter>

@@ -36,7 +36,6 @@ import {
   parseContactBody,
 } from "@/lib/business-details/business-details";
 import {
-  getRemainingCharacters,
   sanitizeAboutDetailInput,
   sanitizeAboutDetailsPayload,
   sanitizeAboutDetailText,
@@ -95,11 +94,14 @@ export default function ManageDetailsClient({ role }: ManageDetailsClientProps) 
     []
   );
 
-  const formatLengthMeta = useCallback((value: string, maxLength: number, recommendedLength?: string) => {
-    const remaining = getRemainingCharacters(value, maxLength);
+  const formatSingleLineMeta = useCallback((value: string, maxLength: number) => {
+    return `${value.length}/${maxLength} characters`;
+  }, []);
+
+  const formatLongFormMeta = useCallback((value: string, maxLength: number, recommendedLength?: string) => {
     return recommendedLength
-      ? `${remaining} left - Recommended ${recommendedLength}`
-      : `${remaining} left`;
+      ? `${value.length}/${maxLength} characters. Recommended ${recommendedLength}.`
+      : `${value.length}/${maxLength} characters.`;
   }, []);
 
   const fetchContactDetails = useCallback(async () => {
@@ -580,9 +582,9 @@ export default function ManageDetailsClient({ role }: ManageDetailsClientProps) 
                               maxLength={field.maxLength}
                               className={`${field.minHeightClassName || "min-h-[90px]"} ${textareaClassName}`}
                             />
-                            <div className="flex items-center justify-between gap-3">
+                            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
                               <p className="text-xs text-gray-500">
-                                {isDirty ? "This field has unsaved edits." : "No pending changes."} {formatLengthMeta(details[field.key], field.maxLength, field.recommendedLength)}
+                                {isDirty ? "This field has unsaved edits." : "No pending changes."} {formatLongFormMeta(details[field.key], field.maxLength, field.recommendedLength)}
                               </p>
                               <Button
                                 type="button"
@@ -604,15 +606,17 @@ export default function ManageDetailsClient({ role }: ManageDetailsClientProps) 
                             </div>
                           </div>
                         ) : (
-                          <div className="flex flex-col gap-2 md:flex-row">
-                            <Input
-                              value={details[field.key]}
-                              onChange={(e) => updateDetails(field.key, e.target.value)}
-                              maxLength={field.maxLength}
-                              className={inputClassName}
-                            />
-                            <div className="text-right text-xs text-gray-500 md:min-w-28">
-                              {formatLengthMeta(details[field.key], field.maxLength, field.recommendedLength)}
+                          <div className="flex flex-col gap-3 md:flex-row md:items-start">
+                            <div className="flex-1 space-y-2">
+                              <Input
+                                value={details[field.key]}
+                                onChange={(e) => updateDetails(field.key, e.target.value)}
+                                maxLength={field.maxLength}
+                                className={inputClassName}
+                              />
+                              <div className="text-xs text-gray-500">
+                                {formatSingleLineMeta(details[field.key], field.maxLength)}
+                              </div>
                             </div>
                             <Button
                               type="button"
@@ -680,7 +684,7 @@ export default function ManageDetailsClient({ role }: ManageDetailsClientProps) 
                 />
                 <div className="flex items-center justify-between gap-3">
                   <p className="text-xs text-gray-500">
-                    {announcementDirty ? "You have unsaved banner edits." : "No pending changes in the banner text."} {formatLengthMeta(announcementText, uiContentLimits.announcement.maxLength, uiContentLimits.announcement.recommendedLength)}
+                    {announcementDirty ? "You have unsaved banner edits." : "No pending changes in the banner text."} {formatLongFormMeta(announcementText, uiContentLimits.announcement.maxLength, uiContentLimits.announcement.recommendedLength)}
                   </p>
                   <Button
                     type="button"
@@ -766,9 +770,9 @@ export default function ManageDetailsClient({ role }: ManageDetailsClientProps) 
                               maxLength={field.maxLength}
                               className={`${field.minHeightClassName || "min-h-[90px]"} ${textareaClassName}`}
                             />
-                            <div className="mt-3 flex items-center justify-between gap-3">
+                            <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
                               <p className="text-xs text-gray-500">
-                                {isDirty ? "This field has unsaved edits." : "No pending changes."} {formatLengthMeta(aboutDetails[field.key], field.maxLength, field.recommendedLength)}
+                                {isDirty ? "This field has unsaved edits." : "No pending changes."} {formatLongFormMeta(aboutDetails[field.key], field.maxLength, field.recommendedLength)}
                               </p>
                               <Button
                                 type="button"
@@ -826,14 +830,16 @@ export default function ManageDetailsClient({ role }: ManageDetailsClientProps) 
                                 </span>
                               </div>
                               <div className="flex flex-col gap-2 md:flex-row">
-                                <Input
-                                  value={aboutDetails[questionKey]}
-                                  onChange={(e) => updateAboutDetails(questionKey, e.target.value)}
-                                  maxLength={questionConfig?.maxLength}
-                                  className={inputClassName}
-                                />
-                                <div className="text-right text-xs text-gray-500 md:min-w-28">
-                                  {questionConfig ? formatLengthMeta(aboutDetails[questionKey], questionConfig.maxLength, questionConfig.recommendedLength) : null}
+                                <div className="flex-1 space-y-2">
+                                  <Input
+                                    value={aboutDetails[questionKey]}
+                                    onChange={(e) => updateAboutDetails(questionKey, e.target.value)}
+                                    maxLength={questionConfig?.maxLength}
+                                    className={inputClassName}
+                                  />
+                                  <div className="text-xs text-gray-500">
+                                    {questionConfig ? formatSingleLineMeta(aboutDetails[questionKey], questionConfig.maxLength) : null}
+                                  </div>
                                 </div>
                                 <Button type="button" onClick={() => handleSaveAboutField(questionKey, questionLabel)} disabled={savingAboutField !== null || !questionDirty} className="bg-[#cc7f8f] text-white hover:bg-[#b96f80] md:min-w-28">
                                   {savingAboutField === questionKey ? (
@@ -865,7 +871,7 @@ export default function ManageDetailsClient({ role }: ManageDetailsClientProps) 
                               />
                               <div className="flex justify-end">
                                 <p className="mr-auto text-xs text-gray-500">
-                                  {answerConfig ? formatLengthMeta(aboutDetails[answerKey], answerConfig.maxLength, answerConfig.recommendedLength) : null}
+                                  {answerConfig ? formatLongFormMeta(aboutDetails[answerKey], answerConfig.maxLength, answerConfig.recommendedLength) : null}
                                 </p>
                                 <Button type="button" onClick={() => handleSaveAboutField(answerKey, answerLabel)} disabled={savingAboutField !== null || !answerDirty} className="bg-[#cc7f8f] text-white hover:bg-[#b96f80]">
                                   {savingAboutField === answerKey ? (
