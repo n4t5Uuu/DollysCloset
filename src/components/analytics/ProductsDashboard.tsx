@@ -5,7 +5,7 @@ import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell,
 } from 'recharts';
 import { Package, Tag, AlertTriangle, XCircle, Pencil, Loader2, ImageOff, ArrowRight, RefreshCcw } from 'lucide-react';
-import AddProduct from '@/components/modals/AddProduct';
+import AddProduct from '@/components/dialogs/AddProduct';
 import { Button } from '@/components/ui/button';
 import { InventoryProduct, InventoryCategory } from '@/types/inventory.types';
 
@@ -161,8 +161,8 @@ export function ProductsDashboard({ selectedMonth }: { selectedMonth?: string })
     setLoadingProductId(productId);
     try {
       const [productsRes, categoriesRes] = await Promise.all([
-        fetch('/api/admin/fetch-products'),
-        fetch('/api/admin/fetch-categories'),
+        fetch('/api/admin/products'),
+        fetch('/api/admin/categories'),
       ]);
       const productsJson = await productsRes.json();
       const categoriesJson = await categoriesRes.json();

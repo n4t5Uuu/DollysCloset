@@ -2,10 +2,10 @@
 
 import { useState } from "react";
 import { Upload, X, Star } from "lucide-react";
-import { compressImage } from "@/lib/image-compression";
+import { compressImage } from "@/lib/images/image-compression";
 import { InventoryProductImage as ProductImage } from "@/types/inventory.types";
 import { toast } from "sonner";
-import { uploadProductImageFile } from "@/lib/upload-product-image";
+import { uploadProductImageFile } from "@/lib/images/upload-product-image";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -135,8 +135,8 @@ export default function ProductImageUpload({
 
   /**
    * Uploads multiple image files to the backend for a specific product.
-   * Hits the /api/admin/upload-image endpoint for each file sequentially.
-   * Afterwards, refreshes the product's image list via /api/admin/fetch-images.
+   * Hits the /api/admin/images endpoint for each file sequentially.
+   * Afterwards, refreshes the product's image list via /api/admin/images.
    * @param files - Array of image File objects to be uploaded.
    */
   const uploadFiles = async (files: File[]) => {
@@ -187,7 +187,7 @@ export default function ProductImageUpload({
       }
 
       if (uploadedImages.length > 0) {
-        const refreshResponse = await fetch(`/api/admin/fetch-images?product_id=${encodeURIComponent(String(productId))}`);
+        const refreshResponse = await fetch(`/api/admin/images?product_id=${encodeURIComponent(String(productId))}`);
 
         if (refreshResponse.ok) {
           const result = await refreshResponse.json();
@@ -227,7 +227,7 @@ export default function ProductImageUpload({
   };
 
   /**
-   * Deletes a specific product image from the backend via the /api/admin/delete-image endpoint.
+   * Deletes a specific product image from the backend via the /api/admin/images endpoint.
    * Confirms the action with the user before proceeding, and refreshes the image list upon success.
    * @param imageId - The unique identifier of the image to be deleted.
    */
@@ -240,7 +240,7 @@ export default function ProductImageUpload({
         throw new Error("Not authenticated");
       }
 
-      const response = await fetch(`/api/admin/delete-image?image_id=${encodeURIComponent(imageId)}`, {
+      const response = await fetch(`/api/admin/images?image_id=${encodeURIComponent(imageId)}`, {
         method: "DELETE",
         headers: {
           Authorization: `Bearer ${session.access_token}`,
@@ -255,7 +255,7 @@ export default function ProductImageUpload({
         throw new Error(message);
       }
 
-      const refreshResponse = await fetch(`/api/admin/fetch-images?product_id=${encodeURIComponent(String(productId))}`);
+      const refreshResponse = await fetch(`/api/admin/images?product_id=${encodeURIComponent(String(productId))}`);
       if (refreshResponse.ok) {
         const result = await refreshResponse.json();
         onImagesChange(result.data || []);

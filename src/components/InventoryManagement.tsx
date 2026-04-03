@@ -12,11 +12,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import CategoryCascadingFilter from "@/components/filters/CategoryCascadingFilter";
+import CategoryCascadingFilter from "@/components/CategoryCascadingFilter";
 import { Skeleton } from "@/components/ui/skeleton";
 
-import AddProduct from "@/components/modals/AddProduct";
-import BulkImportModal from "@/components/modals/BulkImportModal";
+import AddProduct from "@/components/dialogs/AddProduct";
+import BulkImportModal from "@/components/dialogs/BulkImportModal";
 import { InventoryTable } from "@/components/tables/InventoryTable";
 import { InventoryProduct as Product, InventoryCategory as Category, InventoryProductImage as ProductImage } from "@/types/inventory.types";
 import CustomPagination from "@/components/general-components/CustomPagination";
@@ -112,7 +112,7 @@ export default function InventoryManagement({ initialAvailabilityFilter }: Inven
       }
       setError(null);
 
-      const response = await fetch('/api/admin/fetch-products', { cache: 'no-store' });
+      const response = await fetch('/api/admin/products', { cache: 'no-store' });
       if (!response.ok) throw new Error('Failed to fetch products');
       
       const result = await response.json();
@@ -129,7 +129,7 @@ export default function InventoryManagement({ initialAvailabilityFilter }: Inven
 
   const fetchCategories = useCallback(async () => {
     try {
-      const response = await fetch('/api/admin/fetch-categories', { cache: 'no-store' });
+      const response = await fetch('/api/admin/categories', { cache: 'no-store' });
       if (!response.ok) throw new Error('Failed to fetch categories');
       const result = await response.json();
       setCategories(result.data || []);
@@ -446,7 +446,7 @@ export default function InventoryManagement({ initialAvailabilityFilter }: Inven
     setViewProduct(product);
     setSelectedViewImage(null);
     try {
-      const response = await fetch(`/api/admin/fetch-images?product_id=${product.product_id}`);
+      const response = await fetch(`/api/admin/images?product_id=${product.product_id}`);
       if (response.ok) {
         const result = await response.json();
         const images: ProductImage[] = result.data || [];
@@ -472,7 +472,7 @@ export default function InventoryManagement({ initialAvailabilityFilter }: Inven
       const { data: { session } } = await browserSupabase.auth.getSession();
       if (!session) throw new Error('Not authenticated');
       
-      const response = await fetch('/api/admin/delete-product', {
+      const response = await fetch('/api/admin/products', {
         method: 'DELETE',
         headers: {
           'Content-Type': 'application/json',
@@ -507,7 +507,7 @@ export default function InventoryManagement({ initialAvailabilityFilter }: Inven
       const { data: { session } } = await browserSupabase.auth.getSession();
       if (!session) throw new Error('Not authenticated');
       
-      const response = await fetch('/api/admin/bulk-delete-products', {
+      const response = await fetch('/api/admin/products/bulk-delete', {
         method: 'DELETE',
         headers: {
           'Content-Type': 'application/json',

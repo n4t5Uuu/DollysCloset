@@ -19,7 +19,7 @@ import { Button } from "@/components/ui/button";
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ANNOUNCEMENT_SLUG } from "@/lib/business-details/business-details";
-import { resolveProductPlaceholder } from "@/lib/product-placeholder";
+import { resolveProductPlaceholder } from "@/lib/images/product-placeholder";
 import { type CatalogApiProduct, type Product } from "@/types/product.types";
 
 function toViewProduct(product: CatalogApiProduct): Product {

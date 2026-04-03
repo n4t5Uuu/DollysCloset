@@ -280,7 +280,7 @@ export default function BulkImportModal({ isOpen, onClose, onImportComplete }: B
           image_id: null,
         };
 
-        const response = await fetch("/api/admin/create-product", {
+        const response = await fetch("/api/admin/products", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -352,7 +352,7 @@ export default function BulkImportModal({ isOpen, onClose, onImportComplete }: B
           </div>
           <div className="flex items-center gap-3">
             <a
-              href="/api/admin/bulk-import-template"
+              href="/api/admin/products/bulk-import-template"
               download="product_bulk_import_template.xlsx"
               className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-800 transition-colors"
             >
