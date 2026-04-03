@@ -230,7 +230,7 @@ export async function PUT(request: NextRequest) {
 
     const updates = orderedImageIds.map((imageId, index) => ({
       image_id: imageId,
-      payload: { display_order: index + 1 }
+      payload: { display_order: index + 1, is_primary: index === 0 }
     }));
 
     const { error: batchError } = await productHelper.batchUpdateProductImages(updates, admin);
