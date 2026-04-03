@@ -1,3 +1,10 @@
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Get In Touch",
+  description: "Contact Dolly's Closet for inquiries about our boutique collection, location, and management services.",
+};
+
 import { unstable_noStore as noStore } from "next/cache";
 import { admin } from "@/lib/supabase/admin";
 import {

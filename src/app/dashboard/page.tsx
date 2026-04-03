@@ -1,7 +1,14 @@
+import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import Dashboard from "@/components/dashboards/Dashboard";
 import { getServerAuthState } from "@/lib/auth/auth-server";
 import { buildLoginPath, buildUnauthorizedPath } from "@/lib/auth/auth-routing";
+
+export const metadata: Metadata = {
+    title: "Dashboard",
+    description: "Manage your Dolly's Closet inventory, staff, and boutique performance analytics. All-in-one boutique management dashboard.",
+};
+
 
 /**
  * DashboardPage (Server Component)

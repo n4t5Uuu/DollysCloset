@@ -34,7 +34,7 @@ function cardTranslateX(offset: number, cardWidth: number, gap: number): number 
 function getCardConfig(w: number): { cardWidth: number; gap: number } {
     if (w < 640) return { cardWidth: 180, gap: 10 };
     if (w < 1024) return { cardWidth: 210, gap: 36 };
-    return { cardWidth: 260, gap: 52 };
+    return { cardWidth: 260, gap: 52 }; 
 }
 
 function normaliseOffset(index: number, activeIndex: number, total: number): number {

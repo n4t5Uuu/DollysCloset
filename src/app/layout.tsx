@@ -1,4 +1,52 @@
 import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: {
+    default: "Dolly's Closet | Admin & Employee Portal",
+    template: "%s | Dolly's Closet",
+  },
+  description: "Secure administrative portal for Dolly's Closet inventory management, analytics, and catalog operations.",
+  keywords: ["Dolly's Closet", "Admin Portal", "Inventory Management"],
+  authors: [{ name: "Dolly's Closet" }],
+  creator: "Dolly's Closet",
+  publisher: "Dolly's Closet",
+  formatDetection: {
+    email: false,
+    address: false,
+    telephone: false,
+  },
+  metadataBase: new URL("https://dollys-closet-admin-and-employee-fawn.vercel.app"),
+  alternates: {
+    canonical: "/",
+  },
+  openGraph: {
+    type: "website",
+    locale: "en_PH",
+    url: "https://dollyscloset.app", // Adjust if needed
+    siteName: "Dolly's Closet",
+    title: "Dolly's Closet | Admin & Employee Portal",
+    description: "Secure administrative portal for Dolly's Closet inventory management and analytics.",
+    images: [
+      {
+        url: "/og-image.png", // Assume there might be one or placeholder
+        width: 1200,
+        height: 630,
+        alt: "Dolly's Closet | Admin & Employee Portal",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Dolly's Closet | Admin & Employee Portal",
+    description: "Secure administrative portal for Dolly's Closet inventory management and analytics.",
+    images: ["/og-image.png"],
+  },
+  robots: {
+    index: false,
+    follow: false,
+  },
+};
+
 import { 
   Oswald,
   Montserrat,
@@ -59,13 +107,8 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body
-        className={`
-            ${oswald.variable}
-            ${montserrat.variable}
-            ${playfairDisplay.variable}
-            ${greatVibes.variable}
-            antialiased`
-          }>
+        className={`${oswald.variable} ${montserrat.variable} ${playfairDisplay.variable} ${greatVibes.variable} antialiased`}
+      >
 
         <ProductProvider>
           <UnsavedChangesProvider>
