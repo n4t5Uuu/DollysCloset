@@ -4,10 +4,13 @@ import Dashboard from "@/components/dashboards/Dashboard";
 import { getServerAuthState } from "@/lib/auth/auth-server";
 import { buildLoginPath, buildUnauthorizedPath } from "@/lib/auth/auth-routing";
 
-export const metadata: Metadata = {
-    title: "Dashboard",
-    description: "Manage your Dolly's Closet inventory, staff, and boutique performance analytics. All-in-one boutique management dashboard.",
-};
+export async function generateMetadata(): Promise<Metadata> {
+    const authState = await getServerAuthState();
+    const roleLabel = authState.ok && authState.role === 'admin' ? "Admin Panel" : "Employee Panel";
+    return {
+        title: `Overview | ${roleLabel}`,
+    };
+}
 
 
 /**

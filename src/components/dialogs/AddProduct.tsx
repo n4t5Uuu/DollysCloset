@@ -468,7 +468,7 @@ export default function AddProduct({ isOpen, onClose, categories, productToEdit,
                 <form onSubmit={handleSaveProduct} className="flex min-h-0 flex-1 flex-col overflow-hidden">
                     <div className="min-h-0 flex-1 overflow-y-auto">
                     <fieldset disabled={actionLoading} className={`m-0 border-none p-0 ${actionLoading ? "pointer-events-none opacity-75" : ""}`}>
-                        <CardContent className="space-y-5 p-6">
+                        <CardContent className="space-y-5 pt-2 px-6 pb-6">
                         <div className="rounded-lg border border-[#E7A3B0]/20 bg-[#fff9fb] px-4 py-3 text-sm text-[#8a6b73]">
                             {formStatusMessage}
                         </div>

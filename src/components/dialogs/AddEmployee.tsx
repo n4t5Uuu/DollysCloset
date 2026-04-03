@@ -218,7 +218,7 @@ export default function AddEmployee({ isOpen, onClose, employeeToEdit, onEmploye
                 </CardHeader>
 
                 <form onSubmit={handleSaveEmployee}>
-                    <CardContent className="space-y-5 p-6 overflow-y-auto">
+                    <CardContent className="space-y-5 pt-2 px-6 pb-6 overflow-y-auto">
                         <div className="rounded-lg border border-[#E7A3B0]/20 bg-[#fff9fb] px-4 py-3 text-sm text-[#8a6b73]">
                             Fields marked with <span className="text-red-500">*</span> are required. Passwords must be at least 6 characters long.
                         </div>
