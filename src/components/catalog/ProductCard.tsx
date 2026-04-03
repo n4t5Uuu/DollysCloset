@@ -208,7 +208,10 @@ export default function ProductCard({ product, href, onClick }: ProductCardProps
                         <p className="font-oswald text-[11px] uppercase tracking-[0.28em] text-[#b47c88]">
                             {eyebrow}
                         </p>
-                        <CardTitle className="mt-1 font-playfair-display text-sm sm:text-base leading-snug text-[#121212] line-clamp-3">
+                        <CardTitle 
+                            className="mt-1 font-playfair-display text-sm sm:text-base leading-snug text-[#121212] line-clamp-3 break-words [overflow-wrap:anywhere]"
+                            title={product.name}
+                        >
                             {product.name}
                         </CardTitle>
                     </div>
