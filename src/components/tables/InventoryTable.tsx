@@ -215,7 +215,7 @@ export function InventoryTable({
                                         <button
                                             type="button"
                                             onClick={() => (onRowActivate ?? handleEditProduct)(product)}
-                                            className="font-medium text-left transition-colors hover:text-[#E7A3B0]"
+                                            className="font-medium text-left transition-colors hover:text-[#E7A3B0] break-words [overflow-wrap:anywhere] block max-w-[200px] md:max-w-xs line-clamp-3"
                                             title={`Edit ${product.product_name}`}
                                         >
                                             {product.product_name}
