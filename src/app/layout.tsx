@@ -58,6 +58,7 @@ import {ConditionalFooter, ConditionalNavbar } from "@/components/general-compon
 import { ProductProvider } from "@/contexts/ProductContext";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { Toaster } from "@/components/ui/sonner";
+import { UserProvider } from "@/contexts/UserContext";
 import { GoogleAnalyticsTracker } from "@/components/analytics/GoogleAnalyticsTracker";
 import { UnsavedChangesProvider } from "@/contexts/UnsavedChangesContext";
 import { NavigationGuard } from "@/components/general-components/NavigationGuard";
@@ -110,7 +111,8 @@ export default function RootLayout({
         className={`${oswald.variable} ${montserrat.variable} ${playfairDisplay.variable} ${greatVibes.variable} antialiased`}
       >
 
-        <ProductProvider>
+        <UserProvider>
+          <ProductProvider>
           <UnsavedChangesProvider>
             <SidebarProvider>
               <div className="flex flex-col min-h-screen w-full">
@@ -125,6 +127,7 @@ export default function RootLayout({
             </SidebarProvider>
           </UnsavedChangesProvider>
         </ProductProvider>
+        </UserProvider>
       </body>
     </html>
   );

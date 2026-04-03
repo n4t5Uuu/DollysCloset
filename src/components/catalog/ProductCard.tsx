@@ -8,23 +8,13 @@ import { Product } from "@/types/product.types"
 import { resolveProductPlaceholder } from "@/lib/images/product-placeholder"
 import { useRef, useState } from "react"
 
+import { useProductMetadata } from "@/hooks/useProductMetadata";
+import { ProductBadge } from "./ProductBadge";
+
 interface ProductCardProps {
     product?: Product;
     href?: string;
     onClick?: () => void;
-}
-
-function hasDisplayValue(value: string | null | undefined) {
-    if (!value) return false;
-    const normalizedValue = value.trim().toLowerCase();
-    return normalizedValue !== "" && normalizedValue !== "n/a" && normalizedValue !== "na";
-}
-
-function formatChipLabel(value: string) {
-    return value
-        .replace(/[_-]+/g, " ")
-        .replace(/\s+/g, " ")
-        .trim();
 }
 
 type AnimPhase = "idle" | "prepare" | "animating";
@@ -42,6 +32,16 @@ export default function ProductCard({ product, href, onClick }: ProductCardProps
     const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
     const animTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const rafRef = useRef<number | null>(null);
+
+    // Get centralized metadata
+    const { 
+        isSoldOut, 
+        eyebrow, 
+        categoryLabel, 
+        badges, 
+        metadataChips, 
+        formattedPrice 
+    } = useProductMetadata(product || {} as Product);
 
     if (!product) {
         return (
@@ -64,16 +64,12 @@ export default function ProductCard({ product, href, onClick }: ProductCardProps
             if (animTimeoutRef.current) clearTimeout(animTimeoutRef.current);
             if (rafRef.current) cancelAnimationFrame(rafRef.current);
 
-            // Step 1: place next image off-screen with no transition
             setNextSrc(newSrc);
             setPhase("prepare");
 
-            // Step 2: after the browser paints the prepare frame, trigger the slide
             rafRef.current = requestAnimationFrame(() => {
                 rafRef.current = requestAnimationFrame(() => {
                     setPhase("animating");
-
-                    // Step 3: after animation finishes, commit and go idle (no snap-back)
                     animTimeoutRef.current = setTimeout(() => {
                         setCurrentSrc(newSrc);
                         setNextSrc("");
@@ -94,42 +90,6 @@ export default function ProductCard({ product, href, onClick }: ProductCardProps
         setPhase("idle");
     };
 
-    const isSoldOut = product.stock <= 0;
-    const hasLowStock = product.stock > 0 && product.stock <= 3;
-    const eyebrow = hasDisplayValue(product.brand) ? product.brand : hasDisplayValue(product.type) ? product.type : "Curated Piece";
-    const categoryLabel = hasDisplayValue(product.type)
-        ? product.type
-        : product.category.split(" > ").filter(Boolean).at(-1) || "Collection";
-
-    const metadataChips = [
-        hasDisplayValue(product.size) ? formatChipLabel(product.size) : null,
-        hasDisplayValue(product.condition) ? formatChipLabel(product.condition) : null,
-    ].filter((value): value is string => Boolean(value));
-
-    const badges: Array<{ label: string; className: string; mobileHidden?: boolean }> = [];
-
-    if (isSoldOut) {
-        badges.push({
-            label: "Sold Out",
-            className: "bg-[#121212] text-white",
-        });
-    } else {
-        if (product.isNewArrival) {
-            badges.push({
-                label: "New",
-                className: "bg-[#fff4f7] text-[#b96f80] ring-1 ring-[#E7A3B0]/40",
-                mobileHidden: hasLowStock,
-            });
-        }
-
-        if (hasLowStock) {
-            badges.push({
-                label: `${product.stock} Left`,
-                className: "bg-[#fff8ec] text-[#9a6a17] ring-1 ring-[#f2c98a]/60",
-            });
-        }
-    }
-
     return (
         <a
             href={href}
@@ -146,7 +106,6 @@ export default function ProductCard({ product, href, onClick }: ProductCardProps
                 )}
             >
                 <div className="relative aspect-3/4 overflow-hidden rounded-[0.8rem] bg-[#f7eef1]">
-                    {/* Current image — transitions out left only during animating phase */}
                     <div
                         className={cn(
                             "absolute inset-0",
@@ -163,7 +122,6 @@ export default function ProductCard({ product, href, onClick }: ProductCardProps
                         />
                     </div>
 
-                    {/* Next image — rendered off-screen in prepare, slides in during animating, removed at idle */}
                     {phase !== "idle" && nextSrc && (
                         <div
                             className={cn(
@@ -186,16 +144,12 @@ export default function ProductCard({ product, href, onClick }: ProductCardProps
 
                     <div className="absolute inset-x-3 top-3 flex max-w-[calc(100%-1.5rem)] flex-wrap gap-2">
                         {badges.map((badge) => (
-                            <span
-                                key={badge.label}
-                                className={cn(
-                                    "rounded-full px-2.5 py-1 font-oswald text-[10px] uppercase tracking-[0.24em]",
-                                    badge.className,
-                                    badge.mobileHidden && "hidden sm:inline-flex"
-                                )}
-                            >
-                                {badge.label}
-                            </span>
+                            <ProductBadge 
+                                key={badge.label} 
+                                label={badge.label} 
+                                className={badge.className} 
+                                mobileHidden={badge.mobileHidden} 
+                            />
                         ))}
                     </div>
                 </div>
@@ -238,7 +192,7 @@ export default function ProductCard({ product, href, onClick }: ProductCardProps
                                 "font-oswald text-xl tracking-[0.04em]",
                                 isSoldOut ? "text-[#8b7580]" : "text-[#E7A3B0]"
                             )}>
-                                {"\u20B1"}{product.price.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                {formattedPrice}
                             </p>
                         </div>
                     </div>

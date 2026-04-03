@@ -5,6 +5,8 @@ import Image from "next/image";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { resolveProductPlaceholder } from "@/lib/images/product-placeholder";
 import { cn } from "@/lib/utils";
+import { useProductMetadata } from "@/hooks/useProductMetadata";
+import { ProductBadge } from "./ProductBadge";
 
 interface FeatureCardCarouselProps {
     products: Product[];
@@ -47,11 +49,7 @@ function normaliseOffset(index: number, activeIndex: number, total: number): num
 type LaunchOverride = { id: string; offset: number };
 type ExitClone = { id: string; startOffset: number; endOffset: number; active: boolean };
 
-function hasDisplayValue(value: string | null | undefined) {
-    if (!value) return false;
-    const normalizedValue = value.trim().toLowerCase();
-    return normalizedValue !== "" && normalizedValue !== "n/a" && normalizedValue !== "na";
-}
+
 
 export default function FeatureCardCarousel({ products, onProductClick }: FeatureCardCarouselProps) {
     const [activeIndex, setActiveIndex] = useState(0);
@@ -198,36 +196,13 @@ export default function FeatureCardCarousel({ products, onProductClick }: Featur
     const containerHeight = cardImageHeight + 104;
 
     const renderCardContent = (product: Product) => {
-        const isSoldOut = product.stock <= 0;
-        const hasLowStock = product.stock > 0 && product.stock <= 3;
-        const eyebrow = hasDisplayValue(product.brand) ? product.brand : hasDisplayValue(product.type) ? product.type : "Curated Piece";
-        const categoryLabel = hasDisplayValue(product.type)
-            ? product.type
-            : product.category.split(" > ").filter(Boolean).at(-1) || "Collection";
-
-        const badges: Array<{ label: string; className: string; mobileHidden?: boolean }> = [];
-
-        if (isSoldOut) {
-            badges.push({
-                label: "Sold Out",
-                className: "bg-[#121212] text-white",
-            });
-        } else {
-            if (product.isNewArrival) {
-                badges.push({
-                    label: "New",
-                    className: "bg-[#fff4f7] text-[#b96f80] ring-1 ring-[#E7A3B0]/40",
-                    mobileHidden: hasLowStock,
-                });
-            }
-
-            if (hasLowStock) {
-                badges.push({
-                    label: `${product.stock} Left`,
-                    className: "bg-[#fff8ec] text-[#9a6a17] ring-1 ring-[#f2c98a]/60",
-                });
-            }
-        }
+        const { 
+            isSoldOut, 
+            eyebrow, 
+            categoryLabel, 
+            badges, 
+            formattedPrice 
+        } = useProductMetadata(product);
 
         return (
             <>
@@ -247,16 +222,12 @@ export default function FeatureCardCarousel({ products, onProductClick }: Featur
 
                     <div className="absolute left-3 top-3 flex max-w-[70%] flex-wrap gap-2">
                         {badges.map((badge) => (
-                            <span
-                                key={badge.label}
-                                className={cn(
-                                    "rounded-full px-2.5 py-1 font-oswald text-[10px] uppercase tracking-[0.24em]",
-                                    badge.className,
-                                    badge.mobileHidden && "hidden sm:inline-flex"
-                                )}
-                            >
-                                {badge.label}
-                            </span>
+                            <ProductBadge 
+                                key={badge.label} 
+                                label={badge.label} 
+                                className={badge.className} 
+                                mobileHidden={badge.mobileHidden} 
+                            />
                         ))}
                     </div>
 
@@ -277,7 +248,7 @@ export default function FeatureCardCarousel({ products, onProductClick }: Featur
                         "font-oswald text-sm tracking-wide",
                         isSoldOut ? "text-[#8b7580]" : "text-[#E7A3B0]"
                     )}>
-                        {"\u20B1"}{product.price.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        {formattedPrice}
                     </p>
                 </div>
             </>
