@@ -5,6 +5,7 @@ import { Search, X } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
+import { useDebouncedSearch } from "@/hooks/useDebouncedSearch";
 
 interface AdminSearchInputProps extends Omit<React.ComponentProps<"div">, "onChange"> {
   value: string;
@@ -34,44 +35,16 @@ const AdminSearchInput = React.forwardRef<HTMLInputElement, AdminSearchInputProp
     ref
   ) => {
     const inputId = React.useId();
-    const debounceTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
-    const hasMountedRef = React.useRef(false);
-    const debouncedChangeRef = React.useRef(onDebouncedChange);
 
-    React.useEffect(() => {
-      debouncedChangeRef.current = onDebouncedChange;
-    }, [onDebouncedChange]);
-
-    React.useEffect(() => {
-      if (!debouncedChangeRef.current) return;
-
-      if (!hasMountedRef.current) {
-        hasMountedRef.current = true;
-        return;
-      }
-
-      if (debounceTimerRef.current) {
-        clearTimeout(debounceTimerRef.current);
-      }
-
-      debounceTimerRef.current = setTimeout(() => {
-        debouncedChangeRef.current?.(value);
-      }, debounceMs);
-
-      return () => {
-        if (debounceTimerRef.current) {
-          clearTimeout(debounceTimerRef.current);
-        }
-      };
-    }, [value, debounceMs]);
+    const { clearAndNotify } = useDebouncedSearch({
+      value,
+      onDebouncedChange: onDebouncedChange ?? (() => {}),
+      debounceMs,
+    });
 
     const handleClear = () => {
-      if (debounceTimerRef.current) {
-        clearTimeout(debounceTimerRef.current);
-      }
-
       onChange("");
-      debouncedChangeRef.current?.("");
+      clearAndNotify();
     };
 
     return (

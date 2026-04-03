@@ -169,7 +169,7 @@ export default function ActivityLogsClient() {
         params.set("actionTypes", allActions.join(","));
       }
 
-      const response = await fetch(`/api/admin/fetch-logs?${params}`, {
+      const response = await fetch(`/api/admin/logs?${params}`, {
         cache: "no-store",
         signal: controller.signal,
       });
@@ -386,7 +386,7 @@ export default function ActivityLogsClient() {
 
   const handleResetLogs = async () => {
     try {
-      const response = await fetch('/api/admin/reset-activity-logs', {
+      const response = await fetch('/api/admin/logs/reset', {
         method: 'POST',
       });
 

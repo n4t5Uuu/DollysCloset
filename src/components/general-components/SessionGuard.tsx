@@ -27,10 +27,9 @@ export function SessionGuard() {
     }
 
     const isTabActive = sessionStorage.getItem("dollys_closet_tab_active");
-    const isProtectedRoute = 
-      pathname.startsWith("/admin") ||
-      pathname.startsWith("/employee") ||
-      pathname.startsWith("/dashboard");
+    // `/dashboard` is the canonical protected app shell. Legacy `/admin` and
+    // `/employee` URLs redirect into it at the route level.
+    const isProtectedRoute = pathname.startsWith("/dashboard");
 
     if (!isTabActive && isProtectedRoute) {
       // This is a new tab accessing a protected route.

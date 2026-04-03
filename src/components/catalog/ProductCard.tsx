@@ -5,7 +5,7 @@ import { cn } from "@/lib/utils"
 
 import Image from "next/image"
 import { Product } from "@/types/product.types"
-import { resolveProductPlaceholder } from "@/lib/product-placeholder"
+import { resolveProductPlaceholder } from "@/lib/images/product-placeholder"
 import { useRef, useState } from "react"
 
 interface ProductCardProps {

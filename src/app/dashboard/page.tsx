@@ -1,6 +1,5 @@
 import { redirect } from "next/navigation";
-import AdminDashboard from "@/components/dashboards/AdminDashboard";
-import EmployeeDashboard from "@/components/dashboards/EmployeeDashboard";
+import Dashboard from "@/components/dashboards/Dashboard";
 import { getServerAuthState } from "@/lib/auth/auth-server";
 import { buildLoginPath, buildUnauthorizedPath } from "@/lib/auth/auth-routing";
 
@@ -18,10 +17,8 @@ export default async function DashboardPage() {
     
     if (!authState.ok) redirect(buildLoginPath({ reason: authState.reason }));
 
-    if (authState.role === 'admin') {
-        return <AdminDashboard />;
-    } else if (authState.role === 'employee') {
-        return <EmployeeDashboard />;
+    if (authState.role === 'admin' || authState.role === 'employee') {
+        return <Dashboard role={authState.role} />;
     }
     redirect(buildUnauthorizedPath("access-denied"));
 }
