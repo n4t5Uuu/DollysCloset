@@ -56,8 +56,7 @@ import {
 import "./globals.css";
 import {ConditionalFooter, ConditionalNavbar } from "@/components/general-components/ConditionalFooterAndHeader";
 import { ProductProvider } from "@/contexts/ProductContext";
-import { SidebarProvider } from "@/components/ui/sidebar";
-import { Toaster } from "@/components/ui/sonner";
+import { SidebarProvider, Toaster } from "@dollys-closet/ui";
 import { UserProvider } from "@/contexts/UserContext";
 import { GoogleAnalyticsTracker } from "@/components/analytics/GoogleAnalyticsTracker";
 import { UnsavedChangesProvider } from "@/contexts/UnsavedChangesContext";
