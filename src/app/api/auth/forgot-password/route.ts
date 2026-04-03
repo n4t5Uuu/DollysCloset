@@ -37,14 +37,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "No account found for that email address." }, { status: 404 });
     }
 
-    const { data, error } = await admin.auth.resetPasswordForEmail(email, { redirectTo });
-
-    if (error) {
-      console.error("Forgot password send error:", error.message);
-      return NextResponse.json({ error: "Unable to send reset email right now." }, { status: 500 });
-    }
-
-    return NextResponse.json({ success: true, data });
+    return NextResponse.json({ success: true });
   } catch (err) {
     console.error("Forgot password API error:", err instanceof Error ? err.message : err);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
