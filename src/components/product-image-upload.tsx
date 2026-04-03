@@ -1,11 +1,28 @@
 "use client";
 
 import { useState } from "react";
-import { Upload, X, Star } from "lucide-react";
+import { Upload, X, Star, GripVertical } from "lucide-react";
 import { compressImage } from "@/lib/images/image-compression";
 import { InventoryProductImage as ProductImage } from "@/types/inventory.types";
 import { toast } from "sonner";
 import { uploadProductImageFile } from "@/lib/images/upload-product-image";
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  rectSortingStrategy,
+  useSortable,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -34,6 +51,87 @@ const ALLOWED_IMAGE_TYPES = new Set([
 
 const isImageFile = (file: File) => ALLOWED_IMAGE_TYPES.has(file.type);
 
+function SortableImageItem({
+  image,
+  index,
+  isPrimary,
+  onDelete,
+}: {
+  image: ProductImage;
+  index: number;
+  isPrimary: boolean;
+  onDelete: (id: string) => void;
+}) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: image.image_id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    zIndex: isDragging ? 50 : undefined,
+    opacity: isDragging ? 0.7 : 1,
+  };
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      className={`relative group border rounded-lg overflow-hidden bg-gray-100 ${
+        isDragging ? "border-pink-400 shadow-lg ring-2 ring-pink-300" : "border-gray-200"
+      }`}
+    >
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src={image.image_url}
+        alt={`Product image ${index + 1}`}
+        className="w-full h-32 object-cover"
+      />
+
+      {/* Overlay */}
+      <div className="absolute inset-0 bg-black/0 group-hover:bg-black/35 transition" />
+
+      {/* Drag Handle */}
+      <button
+        type="button"
+        {...attributes}
+        {...listeners}
+        title="Drag to reorder"
+        className="absolute bottom-2 left-2 p-1.5 bg-white/90 hover:bg-white text-gray-600 rounded shadow-sm cursor-grab active:cursor-grabbing opacity-0 group-hover:opacity-100 transition-opacity"
+      >
+        <GripVertical className="w-4 h-4" />
+      </button>
+
+      {/* Delete Button */}
+      <button
+        type="button"
+        onClick={() => onDelete(image.image_id)}
+        title="Delete image"
+        className="absolute top-2 right-2 p-2 bg-red-500/95 hover:bg-red-600 text-white rounded transition opacity-90 group-hover:opacity-100 shadow-sm cursor-pointer"
+      >
+        <X className="w-4 h-4" />
+      </button>
+
+      {/* Primary Badge */}
+      {isPrimary && (
+        <div className="absolute top-2 left-2 bg-yellow-500 text-white px-2 py-1 rounded text-xs font-semibold flex items-center gap-1">
+          <Star className="w-3 h-3" /> Primary
+        </div>
+      )}
+
+      {/* Order Number */}
+      <div className="absolute bottom-2 right-2 bg-gray-800 text-white px-2 py-1 rounded text-xs font-semibold">
+        #{index + 1}
+      </div>
+    </div>
+  );
+}
+
 export default function ProductImageUpload({
   productId,
   images,
@@ -52,6 +150,13 @@ export default function ProductImageUpload({
     title: "",
     description: "",
   });
+
+  const [reordering, setReordering] = useState(false);
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
+  );
 
   const canUploadMore = images.length < 5;
   const remainingSlots = Math.max(0, 5 - images.length);
@@ -276,6 +381,59 @@ export default function ProductImageUpload({
     }
   };
 
+  const handleDragEnd = async (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+
+    const oldIndex = sortedImages.findIndex((img) => img.image_id === active.id);
+    const newIndex = sortedImages.findIndex((img) => img.image_id === over.id);
+    if (oldIndex === -1 || newIndex === -1) return;
+
+    const reordered = arrayMove(sortedImages, oldIndex, newIndex).map((img, i) => ({
+      ...img,
+      display_order: i + 1,
+      is_primary: i === 0,
+    }));
+
+    // Optimistic update
+    onImagesChange(reordered);
+
+    if (!productId) return;
+
+    setReordering(true);
+    try {
+      const { browserSupabase } = await import("@/lib/supabase/browser");
+      const { data: { session } } = await browserSupabase.auth.getSession();
+
+      if (!session) throw new Error("Not authenticated");
+
+      const response = await fetch("/api/admin/images", {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({
+          product_id: productId,
+          orderedImageIds: reordered.map((img) => img.image_id),
+        }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || "Reorder failed");
+      }
+
+      toast.success("Image order updated.");
+    } catch (error) {
+      toast.error(`Reorder failed: ${(error as Error).message}`);
+      // Revert on failure
+      onImagesChange(images);
+    } finally {
+      setReordering(false);
+    }
+  };
+
   const sortedImages = [...images].sort((a, b) => a.display_order - b.display_order);
   const primaryImageId = sortedImages.find((image) => image.is_primary)?.image_id || sortedImages[0]?.image_id;
 
@@ -331,44 +489,28 @@ export default function ProductImageUpload({
 
       {/* Image Grid */}
       {sortedImages.length > 0 && (
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-          {sortedImages.map((image, index) => (
-            <div
-              key={image.image_id}
-              className="relative group border border-gray-200 rounded-lg overflow-hidden bg-gray-100"
-            >
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={image.image_url}
-                alt={`Product image ${index + 1}`}
-                className="w-full h-32 object-cover"
-              />
-
-              {/* Overlay */}
-              <div className="absolute inset-0 bg-black/0 group-hover:bg-black/35 transition" />
-              <button
-                type="button"
-                onClick={() => setPendingDeleteImageId(image.image_id)}
-                title="Delete image"
-                className="absolute top-2 right-2 p-2 bg-red-500/95 hover:bg-red-600 text-white rounded transition opacity-90 group-hover:opacity-100 shadow-sm cursor-pointer"
-              >
-                <X className="w-4 h-4" />
-              </button>
-
-              {/* Badge */}
-              {image.image_id === primaryImageId && (
-                <div className="absolute top-2 left-2 bg-yellow-500 text-white px-2 py-1 rounded text-xs font-semibold flex items-center gap-1">
-                  <Star className="w-3 h-3" /> Primary
-                </div>
-              )}
-
-              {/* Order Number */}
-              <div className="absolute bottom-2 right-2 bg-gray-800 text-white px-2 py-1 rounded text-xs font-semibold">
-                #{index + 1}
-              </div>
+        <DndContext
+          sensors={sensors}
+          collisionDetection={closestCenter}
+          onDragEnd={handleDragEnd}
+        >
+          <SortableContext
+            items={sortedImages.map((img) => img.image_id)}
+            strategy={rectSortingStrategy}
+          >
+            <div className={`grid grid-cols-2 sm:grid-cols-3 gap-3 ${reordering ? "opacity-60 pointer-events-none" : ""}`}>
+              {sortedImages.map((image, index) => (
+                <SortableImageItem
+                  key={image.image_id}
+                  image={image}
+                  index={index}
+                  isPrimary={image.image_id === primaryImageId}
+                  onDelete={(id) => setPendingDeleteImageId(id)}
+                />
+              ))}
             </div>
-          ))}
-        </div>
+          </SortableContext>
+        </DndContext>
       )}
 
       {images.length === 0 && (
