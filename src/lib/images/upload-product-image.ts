@@ -52,7 +52,7 @@ export async function uploadProductImageFile({
     formData.append("display_order", String(displayOrder));
     formData.append("is_primary", String(isPrimary));
 
-    const response = await fetch("/api/admin/upload-image", {
+    const response = await fetch("/api/admin/images", {
       method: "POST",
       headers: {
         Authorization: `Bearer ${accessToken}`,

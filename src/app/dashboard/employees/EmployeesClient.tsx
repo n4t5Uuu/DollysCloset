@@ -5,7 +5,7 @@ import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import { Plus, Trash, RefreshCcw, X } from "lucide-react";
 import { browserSupabase } from "@/lib/supabase/browser";
 import { Button } from "@/components/ui/button";
-import AddEmployee from "@/components/modals/AddEmployee";
+import AddEmployee from "@/components/dialogs/AddEmployee";
 import { EmployeeTable } from "@/components/tables/EmployeeTable";
 import { Employee } from "@/types/employee.types";
 import CustomPagination from "@/components/general-components/CustomPagination";
@@ -69,7 +69,7 @@ export default function EmployeesClient() {
       if (!isBackground) setLoading(true);
       setError(null);
 
-      const response = await fetch("/api/admin/fetch-employees", {
+      const response = await fetch("/api/admin/employees", {
         cache: "no-store",
       });
       
@@ -216,7 +216,7 @@ export default function EmployeesClient() {
     try {
       const { data: { session } } = await browserSupabase.auth.getSession();
       if (!session) throw new Error('Not authenticated');
-      const response = await fetch('/api/admin/delete-employee', {
+      const response = await fetch('/api/admin/employees', {
         method: 'DELETE',
         headers: {
           'Content-Type': 'application/json',
@@ -255,7 +255,7 @@ export default function EmployeesClient() {
       const idsToDelete = Array.from(selectedRows);
       const { data: { session } } = await browserSupabase.auth.getSession();
       if (!session) throw new Error('Not authenticated');
-      const response = await fetch('/api/admin/bulk-delete-employees', {
+      const response = await fetch('/api/admin/employees/bulk-delete', {
         method: 'DELETE',
         headers: {
           'Content-Type': 'application/json',

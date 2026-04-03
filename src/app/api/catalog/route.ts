@@ -2,8 +2,8 @@ import { NextResponse } from "next/server";
 import { admin } from "@/lib/supabase/admin";
 import { productHelper } from "@/lib/products/product-helper";
 import { InventoryCategory, InventoryProduct, InventoryProductImage } from "@/types/inventory.types";
-import { resolveProductPlaceholder } from "@/lib/product-placeholder";
-import { normalizeImageUrl } from "@/lib/normalize-image-url";
+import { resolveProductPlaceholder } from "@/lib/images/product-placeholder";
+import { normalizeImageUrl } from "@/lib/images/normalize-image-url";
 
 type CatalogProduct = {
   id: string;

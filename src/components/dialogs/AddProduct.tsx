@@ -9,7 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import ProductImageUpload from "@/components/product-image-upload";
 import ImageSelector from "@/components/image-selector";
-import CategoryCascadingSelect from "@/components/selects/CategoryCascadingSelect";
+import CategoryCascadingSelect from "@/components/CategoryCascadingSelect";
 import { toast } from "sonner";
 
 const SIZE_OPTIONS = ["One Size", "Free Size", "XS", "S", "M", "L", "XL", "XXL"];
@@ -23,7 +23,7 @@ import {
 } from "@/components/ui/card";
 import { InventoryProduct as Product, InventoryCategory as Category, InventoryProductImage as ProductImage } from "@/types/inventory.types";
 import DiscardChangesDialog from "@/components/dialogs/DiscardChangesDialog";
-import { uploadProductImageFile } from "@/lib/upload-product-image";
+import { uploadProductImageFile } from "@/lib/images/upload-product-image";
 import {
     sanitizeMultilineInput,
     sanitizeMultilineText,
@@ -284,12 +284,12 @@ export default function AddProduct({ isOpen, onClose, categories, productToEdit,
 
     /**
      * Fetches product images from the backend for a specific product.
-     * Hits the /api/admin/fetch-images endpoint and stores the images in state.
+     * Hits the /api/admin/images endpoint and stores the images in state.
      * @param productId - The unique identifier of the product.
      */
     const fetchProductImages = async (productId: string) => {
         try {
-            const response = await fetch(`/api/admin/fetch-images?product_id=${productId}`);
+            const response = await fetch(`/api/admin/images?product_id=${productId}`);
             if (response.ok) {
                 const result = await response.json();
                 setProductImages(result.data || []);
@@ -309,7 +309,7 @@ export default function AddProduct({ isOpen, onClose, categories, productToEdit,
 
     /**
      * Uploads any newly staged product images to the backend.
-     * Specifically sends POST requests with a FormData payload to /api/admin/upload-image.
+     * Specifically sends POST requests with a FormData payload to /api/admin/images.
      * @param productId - The unique identifier of the product for which images are being uploaded.
      * @param session - An object containing the current user's access token for authorization.
      * @returns An object containing a list of `failedFiles` which didn't successfully upload.
@@ -341,7 +341,7 @@ export default function AddProduct({ isOpen, onClose, categories, productToEdit,
 
     /**
      * Handles creating or updating a product on the backend.
-     * Communicates with either /api/admin/create-product or /api/admin/edit-product endpoints.
+     * Communicates with either /api/admin/products or /api/admin/products endpoints.
      * Also triggers the uploading of staged image files after a successful product creation.
      * @param e - Form submission event.
      */
@@ -364,7 +364,7 @@ export default function AddProduct({ isOpen, onClose, categories, productToEdit,
             const { data: { session } } = await browserSupabase.auth.getSession();
             if (!session) throw new Error('Not authenticated');
 
-            const endpoint = productToEdit ? '/api/admin/edit-product' : '/api/admin/create-product';
+            const endpoint = productToEdit ? '/api/admin/products' : '/api/admin/products';
             const method = productToEdit ? 'PUT' : 'POST';
             const parsedCategoryId = Number.parseInt(formData.category_id, 10);
             const normalizedProductName = sanitizeSingleLineText(formData.product_name, schemaExactLimits.productName);

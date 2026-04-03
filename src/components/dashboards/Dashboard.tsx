@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { AlertTriangle, Package, Pencil, ImageOff, ArrowRight, Loader2 } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
-import AddProduct from "@/components/modals/AddProduct";
+import AddProduct from "@/components/dialogs/AddProduct";
 
 import { ActivityLog } from "@/types/logs.types";
 import { InventoryProduct, InventoryCategory } from "@/types/inventory.types";
@@ -51,19 +51,18 @@ function extractProductName(description: string, productId: number | string | nu
     return "Product";
 }
 
-/**
- * AdminDashboard Component
- * 
- * The primary command center for administrative users.
- * Provides a high-level overview of inventory health, recent activity, 
- * and actionable alerts (stock levels, missing images).
- * 
- * Key Features:
- * - Real-time polling: Refreshes dashboard data every 20 seconds.
- * - Responsive Metrics: Displays items added, listed/unlisted counts, and stock alerts.
- * - Integrated Search/Edit: Quick access to product editing from alert lists.
- */
-export default function AdminDashboard() {
+const roleConfig = {
+    admin: { label: "Admin Home", fallbackName: "Admin" },
+    employee: { label: "Employee Home", fallbackName: "Employee" },
+} as const;
+
+interface DashboardProps {
+    role: "admin" | "employee";
+}
+
+export default function Dashboard({ role }: DashboardProps) {
+    const { label, fallbackName } = roleConfig[role];
+
     const [products, setProducts] = useState<InventoryProduct[]>([]);
     const [logs, setLogs] = useState<ActivityLog[]>([]);
     const [loading, setLoading] = useState(true);
@@ -74,10 +73,6 @@ export default function AdminDashboard() {
     const [categories, setCategories] = useState<InventoryCategory[]>([]);
     const [loadingProductId, setLoadingProductId] = useState<string | null>(null);
 
-    /**
-     * Retrieves the current user's profile metadata from the server.
-     * Used primarily for the personalized greeting and permission verification.
-     */
     const fetchProfile = useCallback(async () => {
         const response = await fetch("/api/auth/profile", { cache: "no-store" });
         if (!response.ok) {
@@ -89,20 +84,14 @@ export default function AdminDashboard() {
         setFirstName(result?.data?.firstName ?? "");
     }, []);
 
-    /**
-     * Orchestrates the fetching of inventory and activity log data.
-     * can be run in "background" mode to avoid triggering global loading spinners 
-     * during periodic refreshes.
-     * @param isBackground - If true, suppresses the `loading` state toggle.
-     */
     const fetchDashboardData = useCallback(async (isBackground = false) => {
         try {
             if (!isBackground) setLoading(true);
             setError(null);
 
             const [productsResponse, logsResponse] = await Promise.all([
-                fetch("/api/admin/fetch-products", { cache: "no-store" }),
-                fetch("/api/admin/fetch-logs?pageSize=200", { cache: "no-store" }),
+                fetch("/api/admin/products", { cache: "no-store" }),
+                fetch("/api/admin/logs?pageSize=200", { cache: "no-store" }),
             ]);
 
             if (!productsResponse.ok) {
@@ -121,7 +110,7 @@ export default function AdminDashboard() {
             setProducts(productsResult.data || []);
             setLogs(logsResult.data || []);
         } catch (err: unknown) {
-            console.error("Error loading admin dashboard:", err);
+            console.error(`Error loading ${role} dashboard:`, err);
             const errorMsg = err instanceof Error ? err.message : "Failed to load dashboard";
 
             if (errorMsg === "Not authenticated") {
@@ -133,20 +122,15 @@ export default function AdminDashboard() {
         } finally {
             if (!isBackground) setLoading(false);
         }
-    }, []);
+    }, [role]);
 
-    /**
-     * Prepares and opens the product editing modal for a specific item.
-     * Fetches current category lists to ensure the edit form is populated correctly.
-     * @param productId - The unique identifier of the product to edit.
-     */
     const handleEditClick = useCallback(async (productId: string) => {
         setLoadingProductId(productId);
         try {
             const product = products.find(p => String(p.product_id) === productId);
             if (!product) return;
 
-            const categoriesRes = await fetch("/api/admin/fetch-categories");
+            const categoriesRes = await fetch("/api/admin/categories");
             const categoriesJson = await categoriesRes.json();
             setCategories(categoriesJson.data ?? []);
             setEditingProduct(product);
@@ -257,9 +241,9 @@ export default function AdminDashboard() {
     return (
         <div className="space-y-6">
             <div>
-                <p className="text-xs uppercase tracking-[0.2em] text-gray-400">Admin Home</p>
-                <h1 className="text-3xl font-bold text-[#121212] mt-1">Good day, {firstName || "Admin"}</h1>
-                <p className="text-gray-500 mt-1">Here’s what needs your attention today.</p>
+                <p className="text-xs uppercase tracking-[0.2em] text-gray-400">{label}</p>
+                <h1 className="text-3xl font-bold text-[#121212] mt-1">Good day, {firstName || fallbackName}</h1>
+                <p className="text-gray-500 mt-1">Here's what needs your attention today.</p>
             </div>
 
             {error && (

@@ -154,7 +154,7 @@ export default function AddEmployee({ isOpen, onClose, employeeToEdit, onEmploye
             const { data: { session } } = await browserSupabase.auth.getSession();
             if (!session) throw new Error('Not authenticated');
 
-            const endpoint = employeeToEdit ? '/api/admin/edit-employee' : '/api/admin/create-employee';
+            const endpoint = employeeToEdit ? '/api/admin/employees' : '/api/admin/employees';
             const method = employeeToEdit ? 'PUT' : 'POST';
             
             const body: Record<string, string> = {

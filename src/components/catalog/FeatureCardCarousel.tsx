@@ -3,7 +3,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Product } from "@/types/product.types";
 import Image from "next/image";
 import { ChevronLeft, ChevronRight } from "lucide-react";
-import { resolveProductPlaceholder } from "@/lib/product-placeholder";
+import { resolveProductPlaceholder } from "@/lib/images/product-placeholder";
 import { cn } from "@/lib/utils";
 
 interface FeatureCardCarouselProps {

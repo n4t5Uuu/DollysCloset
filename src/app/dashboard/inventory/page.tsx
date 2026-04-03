@@ -1,4 +1,4 @@
-import InventoryManagement from "@/components/inventory/InventoryManagement";
+import InventoryManagement from "@/components/InventoryManagement";
 import { getServerAuthState } from "@/lib/auth/auth-server";
 import { redirect } from "next/navigation";
 import { buildLoginPath, buildUnauthorizedPath } from "@/lib/auth/auth-routing";

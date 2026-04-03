@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { Upload, X, Loader2 } from "lucide-react";
-import { compressImage } from "@/lib/image-compression";
+import { compressImage } from "@/lib/images/image-compression";
 import {
   AlertDialog,
   AlertDialogAction,
