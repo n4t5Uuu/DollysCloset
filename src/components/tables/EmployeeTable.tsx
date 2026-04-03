@@ -211,7 +211,7 @@ export function EmployeeTable({
                         <button
                           type="button"
                           onClick={() => openViewModal(employee)}
-                          className="font-medium text-left text-gray-900 transition-colors hover:text-[#b96d7d]"
+                          className="font-medium text-left text-gray-900 transition-colors hover:text-[#b96d7d] break-words [overflow-wrap:anywhere] block max-w-[120px] md:max-w-[200px]"
                         >
                           {employee.username}
                         </button>
@@ -220,7 +220,7 @@ export function EmployeeTable({
                         <button
                           type="button"
                           onClick={() => onRowActivate?.(employee)}
-                          className="text-left transition-colors hover:text-[#b96d7d]"
+                          className="text-left transition-colors hover:text-[#b96d7d] break-words [overflow-wrap:anywhere] block max-w-[100px] md:max-w-[150px]"
                         >
                           {employee.first_name}
                         </button>
@@ -229,7 +229,7 @@ export function EmployeeTable({
                         <button
                           type="button"
                           onClick={() => onRowActivate?.(employee)}
-                          className="text-left transition-colors hover:text-[#b96d7d]"
+                          className="text-left transition-colors hover:text-[#b96d7d] break-words [overflow-wrap:anywhere] block max-w-[100px] md:max-w-[150px]"
                         >
                           {employee.last_name}
                         </button>
