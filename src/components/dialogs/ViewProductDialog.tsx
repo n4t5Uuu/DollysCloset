@@ -148,7 +148,7 @@ export default function ViewProductDialog({
           </div>
           <div>
             <p className="text-sm font-medium text-gray-500">Description</p>
-            <p className="text-sm text-gray-700">{product.product_description || "No description"}</p>
+            <p className="text-sm text-gray-700 whitespace-pre-wrap [overflow-wrap:anywhere]">{product.product_description || "No description"}</p>
           </div>
         </CardContent>
         <CardFooter className="border-t flex justify-end gap-3 p-6 bg-gray-50">
