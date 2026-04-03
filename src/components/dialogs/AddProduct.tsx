@@ -586,10 +586,10 @@ export default function AddProduct({ isOpen, onClose, categories, productToEdit,
                                     <div className="flex h-9 w-full rounded-md bg-white" style={{ border: '1px solid #101722' }}> 
                                         <input
                                             value={formData.size_label}
-                                            onChange={(e) => setFormData({ ...formData, size_label: sanitizeSingleLineInput(e.target.value, schemaExactLimits.productSizeLabel) })}
+                                            readOnly
+                                            onClick={() => setSizeDropdownOpen((prev) => !prev)}
                                             placeholder="e.g., M, L, One Size"
-                                            maxLength={schemaExactLimits.productSizeLabel}
-                                            className="flex-1 min-w-0 rounded-l-md px-3 text-sm text-gray-900 bg-transparent placeholder:text-gray-400 outline-none"
+                                            className="flex-1 min-w-0 rounded-l-md px-3 text-sm text-gray-900 bg-transparent placeholder:text-gray-400 outline-none cursor-pointer"
                                         />
                                         <button
                                             type="button"
@@ -630,10 +630,10 @@ export default function AddProduct({ isOpen, onClose, categories, productToEdit,
                                     <div className="flex h-9 w-full rounded-md bg-white" style={{ border: '1px solid #101722' }}>
                                         <input
                                             value={formData.product_condition}
-                                            onChange={(e) => setFormData({ ...formData, product_condition: sanitizeSingleLineInput(e.target.value, schemaExactLimits.productCondition) })}
+                                            readOnly
+                                            onClick={() => setConditionDropdownOpen((prev) => !prev)}
                                             placeholder="e.g., New, Good, Used"
-                                            maxLength={schemaExactLimits.productCondition}
-                                            className="flex-1 min-w-0 rounded-l-md px-3 text-sm text-gray-900 bg-transparent placeholder:text-gray-400 outline-none"
+                                            className="flex-1 min-w-0 rounded-l-md px-3 text-sm text-gray-900 bg-transparent placeholder:text-gray-400 outline-none cursor-pointer"
                                         />
                                         <button
                                             type="button"
