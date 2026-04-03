@@ -29,8 +29,7 @@ export function AnalyticsWorkspace() {
   const [loadingMonths, setLoadingMonths] = useState(true);
   const [monthsError, setMonthsError] = useState<string | null>(null);
   const [refreshToken, setRefreshToken] = useState(0);
-  const currentYearMonth = new Date().toISOString().slice(0, 7);
-  const [selectedMonth, setSelectedMonth] = useState<string>(currentYearMonth);
+  const [selectedMonth, setSelectedMonth] = useState<string>('all');
   const [activeMonths, setActiveMonths] = useState<{ value: string; label: string }[]>([]);
 
   const loadMonths = useCallback(async (isRefresh = false) => {
