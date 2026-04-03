@@ -317,8 +317,8 @@ export default function ProductDetailsPage() {
 
       {loading ? renderLoadingState() : error ? renderMissingState(error) : !product ? renderMissingState("This item could not be found in the collection.") : (
         <div className="w-full max-w-7xl mx-auto px-4 md:px-8 py-6 md:py-8">
-          <div className="space-y-3 md:space-y-4 mb-6 md:mb-8">
-            <nav className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-[#8A5B64]">
+          <div className="space-y-3 md:space-y-4 mb-6 md:mb-8 min-w-0 w-full">
+            <nav className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-[#8A5B64] min-w-0 w-full">
               <Link href={fromPath} className="hover:text-[#cc7f8f] transition-colors">Collection</Link>
               {breadcrumbSegments.map((segment) => (
                 <span key={segment} className="contents">
@@ -327,7 +327,9 @@ export default function ProductDetailsPage() {
                 </span>
               ))}
               <span className="text-[#d6a5af]">/</span>
-              <span className="text-[#121212] font-medium">{product.name}</span>
+              <span className="text-[#121212] font-medium truncate max-w-[120px] sm:max-w-[200px] md:max-w-[300px]" title={product.name}>
+                {product.name}
+              </span>
             </nav>
 
             <Button asChild variant="ghost" className="h-auto rounded-full px-0 text-[#8A5B64] hover:bg-transparent hover:text-[#cc7f8f]">
@@ -456,11 +458,14 @@ export default function ProductDetailsPage() {
               )}
             </div>
 
-            <aside className="lg:sticky lg:top-[108px]">
-              <div className="rounded-[28px] border border-[#f2dbe0] bg-white/92 p-5 md:p-6 lg:px-7 shadow-[0_28px_70px_-38px_rgba(187,117,132,0.35)] backdrop-blur">
-                <div className="space-y-5">
-                  <div className="space-y-2.5">
-                    <h1 className="font-playfair-display text-xl md:text-[2.2rem] leading-tight text-[#121212]">
+            <aside className="lg:sticky lg:top-[108px] min-w-0 w-full">
+              <div className="rounded-[28px] border border-[#f2dbe0] bg-white/92 p-5 md:p-6 lg:px-7 shadow-[0_28px_70px_-38px_rgba(187,117,132,0.35)] backdrop-blur min-w-0 w-full">
+                <div className="space-y-5 min-w-0">
+                  <div className="space-y-2.5 min-w-0">
+                    <h1 
+                      className="font-playfair-display text-xl md:text-[2.2rem] leading-tight text-[#121212] break-words [overflow-wrap:anywhere] line-clamp-3 md:line-clamp-4"
+                      title={product.name}
+                    >
                       {product.name}
                     </h1>
                     <div className="flex flex-wrap items-center gap-2.5">
