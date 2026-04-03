@@ -70,7 +70,9 @@ export async function middleware(request: NextRequest) {
     const now = Date.now();
     if (lastActive) {
       const lastActiveTime = parseInt(lastActive, 10);
-      if (!isNaN(lastActiveTime) && now - lastActiveTime > INACTIVITY_THRESHOLD) {
+      const isStaleGhostSession = now - lastActiveTime > (60 * 60 * 1000); // 1 hour
+
+      if (!isNaN(lastActiveTime) && !isStaleGhostSession && (now - lastActiveTime > INACTIVITY_THRESHOLD)) {
         console.log('Inactivity timeout reached. Logging user out.');
         await supabase.auth.signOut();
         response.cookies.delete(lastActiveCookieName);
