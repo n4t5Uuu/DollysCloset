@@ -207,6 +207,10 @@ export default function Home() {
         console.log("Other active sessions for this account have been terminated.");
       }
       
+      // RESET INACTIVITY CLOCK: Clear the last-active cookie to ensure the 
+      // Middleware treats this as a fresh session, avoiding "Session Expired" loops.
+      document.cookie = "dollys-closet-last-active=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT;";
+
       toast.success("Login successful. Redirecting to dashboard...");
       window.location.replace(nextPath);
       // Note: We don't set loading to false here to prevent button re-enable during redirect
