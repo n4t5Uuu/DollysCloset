@@ -62,9 +62,22 @@ export default function Home() {
   useEffect(() => {
     if (typeof window !== "undefined") {
       const params = new URLSearchParams(window.location.search);
-      setCallbackError(params.get("error") === "auth_callback_failed");
-      setLoginReason(params.get("reason"));
-      setNextPath(getSafeInternalPath(params.get("next"), "/dashboard"));
+      const errorParam = params.get("error");
+      const reasonParam = params.get("reason");
+      const nextParam = params.get("next");
+
+      setCallbackError(errorParam === "auth_callback_failed");
+      setLoginReason(reasonParam);
+      setNextPath(getSafeInternalPath(nextParam, "/dashboard"));
+
+      // Clean up the URL by removing auth-related params if they exist.
+      // This ensures that refreshing the page doesn't keep showing the error.
+      if (errorParam || reasonParam) {
+        const newUrl = new URL(window.location.href);
+        newUrl.searchParams.delete("error");
+        newUrl.searchParams.delete("reason");
+        window.history.replaceState({}, "", newUrl.toString());
+      }
     }
   }, []);
 

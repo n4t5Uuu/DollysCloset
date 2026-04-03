@@ -21,7 +21,7 @@ export function SessionGuard() {
 
   useEffect(() => {
     // Skip logical segments that don't need protection or are part of auth flow.
-    if (pathname.includes("/login") || pathname.includes("/unauthorized") || pathname.includes("/reset-password")) {
+    if (pathname === "/" || pathname.includes("/login") || pathname.includes("/unauthorized") || pathname.includes("/reset-password")) {
       sessionStorage.setItem("dollys_closet_tab_active", "true");
       return;
     }
@@ -43,7 +43,7 @@ export function SessionGuard() {
         // Force the browser to drop all auth cookies
         await browserSupabase.auth.signOut();
         // Redirect to login explicitly to trigger clean state
-        router.replace("/login?reason=session-expired");
+        router.replace("/?reason=session-expired");
       };
 
       clearSession();
