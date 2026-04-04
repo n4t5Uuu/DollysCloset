@@ -1,307 +1,80 @@
-"use client";
-
-import Image from "next/image";
-import Link from "next/link";
-import { useParams, useRouter, useSearchParams } from "next/navigation";
-import { type CSSProperties, type MouseEvent, useEffect, useMemo, useRef, useState } from "react";
-import {
-  ArrowLeft,
-  ChevronLeft,
-  ChevronRight,
-  MapPin,
-  PackageSearch,
-} from "lucide-react";
-import { AnimatePresence, motion } from "motion/react";
-
-import ProductCard from "@/components/catalog/ProductCard";
-import { InfiniteSlider } from "@/components/motion-primitives/infinite-slider";
-import { Button } from "@/components/ui/button";
-import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty";
-import { Skeleton } from "@/components/ui/skeleton";
-import { ANNOUNCEMENT_SLUG } from "@/lib/business-details/business-details";
+import { admin } from "@/lib/supabase/admin";
+import { type CatalogApiProduct } from "@/types/product.types";
+import ProductDetailsClient from "@/components/catalog/ProductDetailsClient";
+import { type Metadata, type ResolvingMetadata } from "next";
 import { resolveProductPlaceholder } from "@/lib/images/product-placeholder";
-import { type CatalogApiProduct, type Product } from "@/types/product.types";
 
-function toViewProduct(product: CatalogApiProduct): Product {
-  return {
-    id: product.id,
-    name: product.name,
-    category: product.categoryPath,
-    type: product.categoryName,
-    price: product.price,
-    brand: product.brand,
-    size: product.size,
-    condition: product.condition,
-    description: product.description,
-    stock: product.stock,
-    isNewArrival: product.isNewArrival,
-    images: product.images,
-  };
-}
-
-function buildProductPath(productId: string, fromPath: string) {
-  return `/product/${productId}?from=${encodeURIComponent(fromPath)}`;
-}
-
-function getSafeInternalPath(candidatePath: string | null, fallbackPath: string) {
-  if (!candidatePath || !candidatePath.startsWith("/") || candidatePath.startsWith("//")) {
-    return fallbackPath;
-  }
-
-  return candidatePath;
-}
-
-function formatPrice(price: number) {
-  return `₱${price.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-}
-
-function decodeHtmlEntities(value: string) {
-  return value
-    .replace(/&apos;|&#39;|&rsquo;/g, "'")
-    .replace(/&quot;|&#34;/g, '"')
-    .replace(/&amp;/g, "&")
-    .replace(/&lt;/g, "<")
-    .replace(/&gt;/g, ">");
-}
-
-const slideVariants = {
-  enter: (direction: number) => ({ x: direction > 0 ? "100%" : "-100%", opacity: 0 }),
-  center: { x: 0, opacity: 1 },
-  exit: (direction: number) => ({ x: direction > 0 ? "-100%" : "100%", opacity: 0 }),
+type Props = {
+  params: Promise<{ id: string }>;
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 };
 
-const ZOOM_FACTOR = 2.5;
-const ZOOM_PANEL_SIZE = 320;
+async function getProduct(id: string): Promise<CatalogApiProduct | null> {
+  const { data, error } = await admin
+    .from("products")
+    .select("*, category:categories(name, parent:parent_id(name))")
+    .eq("id", id)
+    .single();
 
-export default function ProductDetailsPage() {
-  const params = useParams<{ id: string }>();
-  const router = useRouter();
-  const searchParams = useSearchParams();
-  const productId = String(params?.id ?? "");
-  const fromPath = useMemo(() => getSafeInternalPath(searchParams.get("from"), "/collection"), [searchParams]);
+  if (error || !data) return null;
 
-  const [announcementText, setAnnouncementText] = useState<string | null>(null);
-  const [product, setProduct] = useState<CatalogApiProduct | null>(null);
-  const [products, setProducts] = useState<CatalogApiProduct[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [selectedImage, setSelectedImage] = useState(0);
-  const [slideDirection, setSlideDirection] = useState(1);
-  const [isZoomed, setIsZoomed] = useState(false);
-  const [lensPos, setLensPos] = useState({ x: 0, y: 0 });
-  const [zoomPanelStyle, setZoomPanelStyle] = useState<CSSProperties>({});
-  const [bgPos, setBgPos] = useState({ x: 0, y: 0 });
-  const imageContainerRef = useRef<HTMLDivElement>(null);
+  // Manual join processing if needed, though usually Next.js handles this
+  return data as CatalogApiProduct;
+}
 
-  useEffect(() => {
-    const fetchProductPageData = async () => {
-      try {
-        setLoading(true);
-        setError(null);
+async function getCatalog(): Promise<CatalogApiProduct[]> {
+  const { data, error } = await admin
+    .from("products")
+    .select("*, category:categories(name, parent:parent_id(name))")
+    .limit(20);
 
-        const [productResponse, catalogResponse] = await Promise.all([
-          fetch(`/api/catalog/product/${productId}`, { cache: "no-store" }),
-          fetch("/api/catalog", { cache: "no-store" }),
-        ]);
-        const [productResult, catalogResult] = await Promise.all([
-          productResponse.json(),
-          catalogResponse.json(),
-        ]);
+  return (data as CatalogApiProduct[]) || [];
+}
 
-        if (!productResponse.ok) {
-          throw new Error(productResult.error || "Failed to load product");
-        }
+export async function generateMetadata(
+  { params }: Props,
+  parent: ResolvingMetadata
+): Promise<Metadata> {
+  const id = (await params).id;
+  const product = await getProduct(id);
 
-        if (!catalogResponse.ok) {
-          throw new Error(catalogResult.error || "Failed to load catalog");
-        }
-
-        setProduct(productResult.data || null);
-        setProducts(catalogResult.data?.products || []);
-      } catch (err: unknown) {
-        setError(err instanceof Error ? err.message : "Failed to load product");
-        setProduct(null);
-        setProducts([]);
-      } finally {
-        setLoading(false);
-      }
+  if (!product) {
+    return {
+      title: "Product Not Found",
     };
+  }
 
-    fetchProductPageData();
-  }, [productId]);
+  const previousImages = (await parent).openGraph?.images || [];
+  const productImage = product.images[0] || resolveProductPlaceholder(product.categoryPath);
 
-  useEffect(() => {
-    const fetchAnnouncement = async () => {
-      try {
-        const response = await fetch(`/api/business-details?slug=${ANNOUNCEMENT_SLUG}`, { cache: "no-store" });
-        const result = await response.json();
-
-        if (!response.ok) {
-          return;
-        }
-
-        const rawAnnouncement = result?.data?.body;
-        if (typeof rawAnnouncement === "string" && rawAnnouncement.trim()) {
-          setAnnouncementText(rawAnnouncement.trim());
-        }
-      } catch {
-      }
-    };
-
-    fetchAnnouncement();
-  }, []);
-
-  useEffect(() => {
-    setSelectedImage(0);
-    setSlideDirection(1);
-    setIsZoomed(false);
-    window.scrollTo({ top: 0, left: 0, behavior: "auto" });
-  }, [productId]);
-
-  const breadcrumbSegments = useMemo(() => {
-    if (!product) {
-      return [];
-    }
-
-    return product.categoryPath.split(" > ").filter(Boolean);
-  }, [product]);
-
-  const relatedProducts = useMemo(() => {
-    if (!product) {
-      return [];
-    }
-
-    const sameCategory = products.filter(
-      (item) => item.id !== product.id && item.categoryId === product.categoryId
-    );
-
-    const sameRoot = products.filter((item) => {
-      if (item.id === product.id) {
-        return false;
-      }
-
-      const [itemRoot] = item.categoryPath.split(" > ");
-      const [productRoot] = product.categoryPath.split(" > ");
-      return itemRoot === productRoot;
-    });
-
-    const newestFallback = products.filter((item) => item.id !== product.id);
-
-    const combined = [...sameCategory, ...sameRoot, ...newestFallback];
-    const unique = combined.filter(
-      (item, index, list) => list.findIndex((entry) => entry.id === item.id) === index
-    );
-
-    return unique.slice(0, 4);
-  }, [product, products]);
-
-  const currentImageSrc = product
-    ? product.images[selectedImage] || resolveProductPlaceholder(product.categoryPath)
-    : resolveProductPlaceholder(null);
-  const lensW = ZOOM_PANEL_SIZE / ZOOM_FACTOR;
-  const lensH = ZOOM_PANEL_SIZE / ZOOM_FACTOR;
-
-  const goToImage = (index: number, direction?: number) => {
-    setIsZoomed(false);
-    setSlideDirection(direction ?? (index > selectedImage ? 1 : -1));
-    setSelectedImage(index);
+  return {
+    title: `${product.name} | ${product.brand}`,
+    description: product.description.replace(/<[^>]*>/g, "").slice(0, 160),
+    openGraph: {
+      title: `${product.name} | Dolly's Closet`,
+      description: `Check out this ${product.name} from Dolly's Closet. Available for viewing in our boutique.`,
+      images: [productImage, ...previousImages],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: product.name,
+      description: `Special piece from Dolly's Closet: ${product.name}`,
+      images: [productImage],
+    },
   };
+}
 
-  const handleMouseLeave = () => {
-    setIsZoomed(false);
-  };
-
-  const handleMouseMove = (e: MouseEvent<HTMLDivElement>) => {
-    if (window.innerWidth < 1024) {
-      setIsZoomed(false);
-      return;
-    }
-
-    const imageElement = imageContainerRef.current;
-    if (!imageElement) return;
-
-    setIsZoomed(true);
-    const imageRect = imageElement.getBoundingClientRect();
-    const cx = e.clientX - imageRect.left;
-    const cy = e.clientY - imageRect.top;
-
-    const lx = Math.max(0, Math.min(cx - lensW / 2, imageRect.width - lensW));
-    const ly = Math.max(0, Math.min(cy - lensH / 2, imageRect.height - lensH));
-    setLensPos({ x: lx, y: ly });
-    setBgPos({ x: -(lx * ZOOM_FACTOR), y: -(ly * ZOOM_FACTOR) });
-
-    let panelLeft = imageRect.right + 20;
-    if (panelLeft + ZOOM_PANEL_SIZE > window.innerWidth - 16) {
-      panelLeft = imageRect.left - ZOOM_PANEL_SIZE - 20;
-    }
-
-    let panelTop = e.clientY - ZOOM_PANEL_SIZE / 2;
-    panelTop = Math.max(16, Math.min(panelTop, window.innerHeight - ZOOM_PANEL_SIZE - 16));
-
-    setZoomPanelStyle({
-      position: "fixed",
-      left: Math.max(16, panelLeft),
-      top: panelTop,
-      width: ZOOM_PANEL_SIZE,
-      height: ZOOM_PANEL_SIZE,
-      zIndex: 50,
-    });
-  };
-
-  const renderLoadingState = () => (
-    <div className="w-full max-w-7xl mx-auto px-4 md:px-8 py-6 md:py-8">
-      <div className="space-y-3 mb-6">
-        <Skeleton className="h-4 w-40" />
-        <Skeleton className="h-5 w-36" />
-      </div>
-
-      <div className="grid gap-6 xl:gap-10 lg:grid-cols-[minmax(0,1fr)_430px]">
-        <div className="space-y-3 md:space-y-0 md:grid md:grid-cols-[112px_minmax(0,1fr)] md:items-start md:gap-3">
-          <Skeleton className="aspect-[4/4.8] w-full rounded-[24px] md:col-start-2 md:row-start-1 lg:h-[calc(112px*5+2.5rem)] lg:max-h-[calc(112px*5+2.5rem)] lg:aspect-auto" />
-            <div className="grid grid-cols-4 gap-2.5 md:col-start-1 md:row-start-1 md:grid-cols-1 md:gap-2.5">
-            {Array.from({ length: 4 }).map((_, index) => (
-              <Skeleton key={index} className="aspect-square rounded-[18px]" />
-            ))}
-          </div>
-        </div>
-
-        <div className="space-y-3">
-          <Skeleton className="h-5 w-28" />
-          <Skeleton className="h-10 w-3/4" />
-          <Skeleton className="h-7 w-32" />
-          <Skeleton className="h-24 w-full rounded-[24px]" />
-          <Skeleton className="h-28 w-full rounded-[24px]" />
-        </div>
-      </div>
-    </div>
-  );
-
-  const renderMissingState = (message: string) => (
-    <div className="w-full max-w-7xl mx-auto px-4 md:px-8 py-16 md:py-24">
-      <div className="mb-8">
-        <Button asChild variant="ghost" className="rounded-full px-0 text-[#8A5B64] hover:bg-transparent hover:text-[#cc7f8f]">
-          <Link href={fromPath}>
-            <ArrowLeft className="h-4 w-4" />
-            Back to Collection
-          </Link>
-        </Button>
-      </div>
-
-      <Empty className="border-dashed border-[#E7A3B0]/20 bg-white/80">
-        <EmptyHeader>
-          <EmptyMedia variant="icon" className="bg-[#fff0f5]">
-            <PackageSearch className="size-6 text-[#E7A3B0]" />
-          </EmptyMedia>
-          <EmptyTitle className="font-playfair-display text-2xl">Product unavailable</EmptyTitle>
-          <EmptyDescription className="font-montserrat">
-            {message}
-          </EmptyDescription>
-        </EmptyHeader>
-      </Empty>
-    </div>
-  );
+export default async function ProductPage({ params }: Props) {
+  const id = (await params).id;
+  
+  // Prefetch data on server for instant load
+  const [product, catalog] = await Promise.all([
+    getProduct(id),
+    getCatalog()
+  ]);
 
   return (
+<<<<<<< HEAD
     <main className="w-full flex flex-col items-center bg-[linear-gradient(180deg,#ffffff_0%,#fff9fb_42%,#ffffff_100%)]">
       {announcementText && (
         <div className="w-full py-3 bg-[#E7A3B0] flex items-center justify-center">
@@ -552,5 +325,12 @@ export default function ProductDetailsPage() {
         </div>
       )}
     </main>
+=======
+    <ProductDetailsClient 
+      productId={id} 
+      initialProduct={product} 
+      initialCatalog={catalog} 
+    />
+>>>>>>> e144923558a9cdc35a536bb32461f4364035461e
   );
 }

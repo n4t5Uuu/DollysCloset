@@ -675,7 +675,7 @@ export default function ActivityLogsClient() {
                       <span className="font-medium text-gray-900">{log.log_id}</span>
                     </TableCell>
                     <TableCell className="p-4 text-sm text-gray-700">
-                      <div className="line-clamp-2 wrap-break-word">{new Date(log.created_at).toLocaleString()}</div>
+                      <div className="line-clamp-2 break-words [overflow-wrap:anywhere]">{new Date(log.created_at).toLocaleString()}</div>
                     </TableCell>
                     <TableCell className="p-4">
                       <div className="line-clamp-2">
@@ -698,8 +698,8 @@ export default function ActivityLogsClient() {
                         {employeeManagementActions.has(log.action_type) ? (log.user_key || log.user_id || "-") : "-"}
                       </div>
                     </TableCell>
-                    <TableCell className="p-4 text-sm text-gray-600 overflow-hidden">
-                      <div className="line-clamp-2 wrap-break-word">{log.description || "-"}</div>
+                    <TableCell className="p-4 text-sm text-gray-600 max-w-0 overflow-hidden">
+                      <div className="line-clamp-2 break-words [overflow-wrap:anywhere]">{log.description || "-"}</div>
                     </TableCell>
                     <TableCell className="p-4 text-sm text-gray-600">
                       <div className="line-clamp-2 break-all">
@@ -808,14 +808,14 @@ export default function ActivityLogsClient() {
                 </div>
                 <div className="bg-gray-50 rounded-xl p-4">
                   <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">User</p>
-                  <p className="text-sm font-semibold text-gray-900 break-all">
+                  <p className="text-sm font-semibold text-gray-900 break-words [overflow-wrap:anywhere]">
                     {employeeManagementActions.has(viewLog.action_type) ? (viewLog.user_key || (viewLog.user_id ?? "-")) : "-"}
                   </p>
                 </div>
               </div>
               <div className="bg-gray-50 rounded-xl p-4">
                 <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Description</p>
-                <p className="text-sm text-gray-700 whitespace-pre-wrap">{viewLog.description || "-"}</p>
+                <p className="text-sm text-gray-700 whitespace-pre-wrap break-words [overflow-wrap:anywhere]">{viewLog.description || "-"}</p>
               </div>
               <div className="bg-gray-50 rounded-xl p-4">
                 <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Editor</p>

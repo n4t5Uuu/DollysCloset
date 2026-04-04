@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { authHelper } from "@/lib/auth/auth-helper";
+import { browserSupabase } from "@/lib/supabase/browser";
 import { toast } from "sonner";
 import { ArrowLeft, Mail } from "lucide-react";
 
@@ -80,10 +81,28 @@ export default function ForgotPassword() {
     }
 
     try {
-      const origin = window.location.origin;
+      const origin = typeof window !== "undefined" ? window.location.origin : "";
       const redirectTo = `${origin}/api/auth/callback?next=/reset-password`;
 
-      const { error } = await authHelper.resetPasswordForEmail(trimmedEmail, redirectTo);
+      // Step 1: Validate account existence via our custom API
+      const response = await fetch("/api/auth/forgot-password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: trimmedEmail, redirectTo }),
+      });
+
+      const result = await response.json().catch(() => ({}));
+
+      if (!response.ok) {
+        toast.error(result.error || "Unable to process request.");
+        return;
+      }
+
+      // Step 2: Trigger the actual reset email from the BROWSER.
+      // This is crucial for @supabase/ssr to set the PKCE code_verifier cookie.
+      const { error } = await browserSupabase.auth.resetPasswordForEmail(trimmedEmail, {
+        redirectTo,
+      });
 
       if (error) {
         toast.error(error.message || "Unable to send reset email.");
@@ -93,7 +112,8 @@ export default function ForgotPassword() {
       setEmail(trimmedEmail);
       setSubmitted(true);
       startCooldown(COOLDOWN_SECONDS);
-    } catch {
+    } catch (err) {
+      console.error("Forgot password error:", err);
       toast.error("Unable to send reset email.");
     } finally {
       setLoading(false);

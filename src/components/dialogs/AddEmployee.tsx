@@ -13,6 +13,9 @@ import {
 import { Employee } from "@/types/employee.types";
 import DiscardChangesDialog from "@/components/dialogs/DiscardChangesDialog";
 import { toast } from "sonner";
+import { AdminDialogHeader } from "./AdminDialogHeader";
+import { AdminDialogFooter } from "./AdminDialogFooter";
+import { FormNotice } from "@/components/ui/form-notice";
 import {
     sanitizeSingleLineInput,
     sanitizeSingleLineText,
@@ -207,21 +210,18 @@ export default function AddEmployee({ isOpen, onClose, employeeToEdit, onEmploye
             }
         }}>
             <Card className="bg-white w-full max-w-lg max-h-[90vh] flex flex-col overflow-hidden p-0" onClick={(event) => event.stopPropagation()}>
-                <CardHeader className="flex flex-row items-center justify-between border-b p-6 space-y-0 text-gray-900">
-                    <div className="space-y-1">
-                        <CardTitle>{employeeToEdit ? "Edit Employee" : "Add New Employee"}</CardTitle>
-                        <p className="text-sm text-gray-500">
-                            {employeeToEdit ? "Update employee details or reset the password if needed." : "Create an employee account with a valid email and temporary password."}
-                        </p>
-                    </div>
-                    <button type="button" onClick={handleClose} className="text-[#cc7f8f] hover:text-[#b96d7d] rounded-md p-1 hover:bg-[#fff5f7] cursor-pointer"><X className="w-5 h-5" /></button>
-                </CardHeader>
+                <AdminDialogHeader 
+                    title={employeeToEdit ? "Edit Employee" : "Add New Employee"}
+                    description={employeeToEdit ? "Update employee details or reset the password if needed." : "Create an employee account with a valid email and temporary password."}
+                    onClose={handleClose}
+                    isLoading={actionLoading}
+                />
 
                 <form onSubmit={handleSaveEmployee}>
-                    <CardContent className="space-y-5 p-6 overflow-y-auto">
-                        <div className="rounded-lg border border-[#E7A3B0]/20 bg-[#fff9fb] px-4 py-3 text-sm text-[#8a6b73]">
+                    <CardContent className="space-y-5 pt-2 px-6 pb-6 overflow-y-auto">
+                        <FormNotice>
                             Fields marked with <span className="text-red-500">*</span> are required. Passwords must be at least 6 characters long.
-                        </div>
+                        </FormNotice>
                         {error && (
                             <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">
                                 {error}
@@ -301,34 +301,13 @@ export default function AddEmployee({ isOpen, onClose, employeeToEdit, onEmploye
                         </div>
                     </CardContent>
 
-                    <CardFooter className="flex flex-col gap-3 border-t bg-gray-50 p-6 sm:flex-row">
-                        <div className="w-full text-xs text-gray-500 sm:hidden">
-                            {formStatusMessage}
-                        </div>
-                        <Button
-                            type="button"
-                            variant="outline"
-                            onClick={handleClose}
-                            disabled={actionLoading}
-                            className="flex-1 border-gray-300 text-gray-700 bg-white hover:bg-white hover:text-black transition-all duration-300 hover:scale-105 hover:shadow-md hover:border-gray-400 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 disabled:hover:shadow-none"
-                        >
-                            Cancel
-                        </Button>
-                        <Button
-                            type="submit"
-                            className="flex-1 bg-[#E7A3B0] hover:bg-[#ca8c98] text-white transition-all duration-300 hover:scale-[1.03] active:scale-95 shadow-sm hover:shadow-md disabled:hover:scale-100 disabled:hover:shadow-sm"
-                            disabled={isSubmitBlocked}
-                        >
-                            {actionLoading ? (
-                                <>
-                                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                                    Saving...
-                                </>
-                            ) : (
-                                employeeToEdit ? "Save Changes" : "Add Employee"
-                            )}
-                        </Button>
-                    </CardFooter>
+                    <AdminDialogFooter 
+                        onCancel={handleClose}
+                        statusMessage={formStatusMessage}
+                        actionLabel={employeeToEdit ? "Save Changes" : "Add Employee"}
+                        isLoading={actionLoading}
+                        isActionDisabled={isSubmitBlocked}
+                    />
                 </form>
             </Card>
 
