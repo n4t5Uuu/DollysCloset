@@ -70,7 +70,9 @@ export async function middleware(request: NextRequest) {
     const now = Date.now();
     if (lastActive) {
       const lastActiveTime = parseInt(lastActive, 10);
-      if (!isNaN(lastActiveTime) && now - lastActiveTime > INACTIVITY_THRESHOLD) {
+      const isStaleGhostSession = now - lastActiveTime > (60 * 60 * 1000); // 1 hour
+
+      if (!isNaN(lastActiveTime) && !isStaleGhostSession && (now - lastActiveTime > INACTIVITY_THRESHOLD)) {
         console.log('Inactivity timeout reached. Logging user out.');
         await supabase.auth.signOut();
         response.cookies.delete(lastActiveCookieName);
@@ -108,12 +110,21 @@ export async function middleware(request: NextRequest) {
 
   // Redirect unauthenticated users to login
   if (!user && isDashboardRoute) {
-    console.log('User not authenticated, redirecting to login')
-    const nextPath = `${request.nextUrl.pathname}${request.nextUrl.search}`
+    console.log('User not authenticated, redirecting to login');
+    const nextPath = `${request.nextUrl.pathname}${request.nextUrl.search}`;
+
+    // SELF-HEALING: If an auth error exists (stale/invalid cookie), 
+    // explicitly sign out to purge those cookies from the browser 
+    // before redirecting. This prevents "Session Expired" loops.
+    if (authError) {
+      console.warn('Stale session detected. Purging cookies for safety.');
+      await supabase.auth.signOut();
+    }
+
     return redirect(buildLoginPath({
       nextPath,
       reason: authError ? 'session-expired' : 'login-required',
-    }))
+    }));
   }
 
   // Prevent bfcache on protected routes

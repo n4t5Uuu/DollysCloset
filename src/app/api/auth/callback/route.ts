@@ -11,6 +11,9 @@ export async function GET(request: NextRequest) {
   const next = rawNext.startsWith('/') && !rawNext.startsWith('//') ? rawNext : '/'
 
   if (code) {
+    const type = searchParams.get('type') ?? ''
+    const isRecovery = type === 'recovery' || next.includes('reset-password')
+
     // Build the redirect response first so we can attach cookies directly to it
     const redirectResponse = NextResponse.redirect(`${origin}${next}`)
 
@@ -40,13 +43,13 @@ export async function GET(request: NextRequest) {
     console.error("Callback Exchange Error:", error.message || error)
 
     // Fallback for "refresh token not found" or double-click / scanner-consumption issues.
-    // If the browser already has a valid session from the first concurrent request, proceed.
     const { data: { session } } = await supabase.auth.getSession()
     if (session) {
       return redirectResponse
     }
 
-    if (next.includes("reset-password")) {
+    // In a recovery flow, a failure usually means the link is expired or already used.
+    if (isRecovery) {
       return NextResponse.redirect(`${origin}/forgot-password?error=expired`)
     }
   }

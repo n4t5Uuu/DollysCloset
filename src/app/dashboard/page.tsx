@@ -1,7 +1,17 @@
+import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import Dashboard from "@/components/dashboards/Dashboard";
 import { getServerAuthState } from "@/lib/auth/auth-server";
 import { buildLoginPath, buildUnauthorizedPath } from "@/lib/auth/auth-routing";
+
+export async function generateMetadata(): Promise<Metadata> {
+    const authState = await getServerAuthState();
+    const roleLabel = authState.ok && authState.role === 'admin' ? "Admin Panel" : "Employee Panel";
+    return {
+        title: `Overview | ${roleLabel}`,
+    };
+}
+
 
 /**
  * DashboardPage (Server Component)
