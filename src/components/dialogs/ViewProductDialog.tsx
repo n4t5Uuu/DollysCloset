@@ -112,18 +112,18 @@ export default function ViewProductDialog({
               </div>
             )}
           </div>
-          <div className="w-full min-w-0">
+          <div className="min-w-0">
             <p className="text-sm font-medium text-gray-500">Product Name</p>
-            <p className="text-lg font-semibold line-clamp-2 break-all" title={product.product_name}>{product.product_name}</p>
+            <p className="text-lg font-semibold break-words [overflow-wrap:anywhere]">{product.product_name}</p>
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div className="min-w-0">
               <p className="text-sm font-medium text-gray-500">Category</p>
-              <p className="font-medium truncate" title={getCategoryName(product.category_id)}>{getCategoryName(product.category_id)}</p>
+              <p className="font-medium break-words [overflow-wrap:anywhere]">{getCategoryName(product.category_id)}</p>
             </div>
             <div className="min-w-0">
               <p className="text-sm font-medium text-gray-500">Brand</p>
-              <p className="font-medium truncate" title={product.product_brand}>{product.product_brand}</p>
+              <p className="font-medium break-words [overflow-wrap:anywhere]">{product.product_brand}</p>
             </div>
             <div className="min-w-0">
               <p className="text-sm font-medium text-gray-500">Price</p>
@@ -135,11 +135,11 @@ export default function ViewProductDialog({
             </div>
             <div className="min-w-0">
               <p className="text-sm font-medium text-gray-500">Condition</p>
-              <p className="font-medium truncate" title={product.product_condition}>{product.product_condition}</p>
+              <p className="font-medium break-words [overflow-wrap:anywhere]">{product.product_condition}</p>
             </div>
             <div className="min-w-0">
               <p className="text-sm font-medium text-gray-500">Size</p>
-              <p className="font-medium truncate" title={product.size_label}>{product.size_label}</p>
+              <p className="font-medium break-words [overflow-wrap:anywhere]">{product.size_label}</p>
             </div>
             <div className="min-w-0">
               <p className="text-sm font-medium text-gray-500">Visibility</p>

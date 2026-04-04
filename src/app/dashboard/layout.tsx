@@ -5,6 +5,16 @@ import { SidebarInset } from "@/components/ui/sidebar";
 import ClientAuthGuard from "@/components/ClientAuthGuard";
 import { getServerAuthState } from "@/lib/auth/auth-server";
 import { buildLoginPath, buildUnauthorizedPath } from "@/lib/auth/auth-routing";
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+    title: "Admin Dashboard",
+    description: "Manage Dolly's Closet inventory, view analytics, and handle boutique operations.",
+    robots: {
+        index: false,
+        follow: false,
+    },
+};
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
     const authState = await getServerAuthState();

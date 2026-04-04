@@ -11,6 +11,9 @@ import ProductImageUpload from "@/components/product-image-upload";
 import ImageSelector from "@/components/image-selector";
 import CategoryCascadingSelect from "@/components/CategoryCascadingSelect";
 import { toast } from "sonner";
+import { AdminDialogHeader } from "./AdminDialogHeader";
+import { AdminDialogFooter } from "./AdminDialogFooter";
+import { FormNotice } from "@/components/ui/form-notice";
 
 const SIZE_OPTIONS = ["One Size", "Free Size", "XS", "S", "M", "L", "XL", "XXL"];
 const CONDITION_OPTIONS = ["New", "Like New", "Good", "Used", "Fair"];
@@ -453,25 +456,20 @@ export default function AddProduct({ isOpen, onClose, categories, productToEdit,
             }
         }}>
             <Card className="bg-white w-full max-w-2xl max-h-[90vh] flex flex-col overflow-hidden p-0" onClick={(event) => event.stopPropagation()}>
-                <CardHeader className="flex flex-row items-center justify-between border-b p-6 space-y-0 text-gray-900">
-                    <div className="space-y-1">
-                        <CardTitle className="text-gray-900">{productToEdit ? "Edit Product" : "Add Product"}</CardTitle>
-                        <p className="text-sm text-gray-500">
-                            Fields marked with <span className="text-red-500">*</span> are required.
-                        </p>
-                    </div>
-                    <button type="button" onClick={handleClose} disabled={actionLoading} className="text-gray-400 hover:text-gray-600 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed">
-                        <X className="w-5 h-5" />
-                    </button>
-                </CardHeader>
+                <AdminDialogHeader 
+                    title={productToEdit ? "Edit Product" : "Add New Product"}
+                    description={productToEdit ? "Update details for this curated piece." : "Add a new curator pick to your boutique's collection."}
+                    onClose={handleClose}
+                    isLoading={actionLoading}
+                />
 
                 <form onSubmit={handleSaveProduct} className="flex min-h-0 flex-1 flex-col overflow-hidden">
                     <div className="min-h-0 flex-1 overflow-y-auto">
                     <fieldset disabled={actionLoading} className={`m-0 border-none p-0 ${actionLoading ? "pointer-events-none opacity-75" : ""}`}>
-                        <CardContent className="space-y-5 p-6">
-                        <div className="rounded-lg border border-[#E7A3B0]/20 bg-[#fff9fb] px-4 py-3 text-sm text-[#8a6b73]">
-                            {formStatusMessage}
-                        </div>
+                        <CardContent className="space-y-5 pt-2 px-6 pb-6">
+                            <FormNotice>
+                                {formStatusMessage}
+                            </FormNotice>
                         {error && (
                             <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm mb-4">
                                 {error}
@@ -586,10 +584,10 @@ export default function AddProduct({ isOpen, onClose, categories, productToEdit,
                                     <div className="flex h-9 w-full rounded-md bg-white" style={{ border: '1px solid #101722' }}> 
                                         <input
                                             value={formData.size_label}
-                                            onChange={(e) => setFormData({ ...formData, size_label: sanitizeSingleLineInput(e.target.value, schemaExactLimits.productSizeLabel) })}
+                                            readOnly
+                                            onClick={() => setSizeDropdownOpen((prev) => !prev)}
                                             placeholder="e.g., M, L, One Size"
-                                            maxLength={schemaExactLimits.productSizeLabel}
-                                            className="flex-1 min-w-0 rounded-l-md px-3 text-sm text-gray-900 bg-transparent placeholder:text-gray-400 outline-none"
+                                            className="flex-1 min-w-0 rounded-l-md px-3 text-sm text-gray-900 bg-transparent placeholder:text-gray-400 outline-none cursor-pointer"
                                         />
                                         <button
                                             type="button"
@@ -630,10 +628,10 @@ export default function AddProduct({ isOpen, onClose, categories, productToEdit,
                                     <div className="flex h-9 w-full rounded-md bg-white" style={{ border: '1px solid #101722' }}>
                                         <input
                                             value={formData.product_condition}
-                                            onChange={(e) => setFormData({ ...formData, product_condition: sanitizeSingleLineInput(e.target.value, schemaExactLimits.productCondition) })}
+                                            readOnly
+                                            onClick={() => setConditionDropdownOpen((prev) => !prev)}
                                             placeholder="e.g., New, Good, Used"
-                                            maxLength={schemaExactLimits.productCondition}
-                                            className="flex-1 min-w-0 rounded-l-md px-3 text-sm text-gray-900 bg-transparent placeholder:text-gray-400 outline-none"
+                                            className="flex-1 min-w-0 rounded-l-md px-3 text-sm text-gray-900 bg-transparent placeholder:text-gray-400 outline-none cursor-pointer"
                                         />
                                         <button
                                             type="button"
@@ -702,7 +700,7 @@ export default function AddProduct({ isOpen, onClose, categories, productToEdit,
                                 onChange={(e) => setFormData({ ...formData, product_description: sanitizeMultilineInput(e.target.value, PRODUCT_DESCRIPTION_LIMIT) })}
                                 maxLength={PRODUCT_DESCRIPTION_LIMIT}
                                 rows={5}
-                                className="field-sizing-fixed w-full overflow-x-hidden whitespace-pre-wrap [overflow-wrap:anywhere] border border-gray-300 rounded px-3 py-2 min-h-[112px] focus:outline-none focus:ring-2 focus:ring-pink-500 bg-white text-gray-900 placeholder:text-gray-400 resize-y"
+                                className="field-sizing-fixed w-full overflow-x-hidden whitespace-pre-wrap wrap-anywhere border border-gray-300 rounded px-3 py-2 min-h-[112px] focus:outline-none focus:ring-2 focus:ring-pink-500 bg-white text-gray-900 placeholder:text-gray-400 resize-y"
                             />
                             <p className="mt-1 text-right text-xs text-gray-500">
                                 {renderLengthMeta(formData.product_description, PRODUCT_DESCRIPTION_LIMIT, uiContentLimits.productDescription.recommendedLength)}
@@ -715,7 +713,7 @@ export default function AddProduct({ isOpen, onClose, categories, productToEdit,
                                     id="show_in_catalog"
                                     checked={formData.show_in_catalog}
                                     onCheckedChange={(checked) => setFormData({ ...formData, show_in_catalog: checked as boolean })}
-                                    className="border border-black data-[state=unchecked]:border-black"
+                                    className="!border-gray-600"
                                 />
                                 <label htmlFor="show_in_catalog" className="text-sm font-medium text-gray-700 cursor-pointer">
                                     Show in Catalog
@@ -729,20 +727,13 @@ export default function AddProduct({ isOpen, onClose, categories, productToEdit,
                     </fieldset>
                     </div>
 
-                    <CardFooter className="flex flex-col gap-3 border-t bg-gray-50 p-6 sm:flex-row">
-                        <div className="w-full text-xs text-gray-500 sm:hidden">
-                            {formStatusMessage}
-                        </div>
-                        <Button type="button" variant="outline" onClick={handleClose} disabled={actionLoading} className="flex-1 border-gray-300 text-gray-700 bg-white hover:bg-white hover:text-black transition-all duration-300 hover:scale-105 hover:shadow-md hover:border-gray-400 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 disabled:hover:shadow-none">Cancel</Button>
-                        <Button type="submit" className="flex-1 bg-[#E7A3B0] hover:bg-[#ca8c98] text-white transition-all duration-300 hover:scale-[1.03] active:scale-95 shadow-sm hover:shadow-md disabled:hover:scale-100 disabled:hover:shadow-sm" disabled={isSaveBlocked}>
-                            {actionLoading ? (<>
-                                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                                Saving...
-                            </>) : (
-                                productToEdit ? "✓ Update" : "✚ Add"
-                            )}
-                        </Button>
-                    </CardFooter>
+                    <AdminDialogFooter 
+                        onCancel={handleClose}
+                        statusMessage={formStatusMessage}
+                        actionLabel={productToEdit ? "Save Changes" : "Add Product"}
+                        isLoading={actionLoading}
+                        isActionDisabled={isSaveBlocked}
+                    />
                 </form>
             </Card>
 

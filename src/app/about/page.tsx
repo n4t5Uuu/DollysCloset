@@ -1,3 +1,10 @@
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "About Dolly's Closet",
+  description: "Learn about the heart and history of Dolly's Closet - premium boutique selection curated for your style.",
+};
+
 import Image from "next/image";
 import Link from "next/link";
 import { unstable_noStore as noStore } from "next/cache";
