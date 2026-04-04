@@ -72,7 +72,7 @@ export default function ViewProductDialog({
             <X className="w-5 h-5" />
           </button>
         </CardHeader>
-        <CardContent className="space-y-4 overflow-y-auto p-6 text-gray-900">
+        <CardContent className="space-y-4 overflow-y-auto overflow-x-hidden p-6 text-gray-900">
           <div className="w-full">
             {images.length > 0 ? (
               <>
@@ -112,43 +112,43 @@ export default function ViewProductDialog({
               </div>
             )}
           </div>
-          <div>
+          <div className="w-full min-w-0">
             <p className="text-sm font-medium text-gray-500">Product Name</p>
-            <p className="text-lg font-semibold">{product.product_name}</p>
+            <p className="text-lg font-semibold line-clamp-2 break-all" title={product.product_name}>{product.product_name}</p>
           </div>
           <div className="grid grid-cols-2 gap-4">
-            <div>
+            <div className="min-w-0">
               <p className="text-sm font-medium text-gray-500">Category</p>
-              <p className="font-medium">{getCategoryName(product.category_id)}</p>
+              <p className="font-medium truncate" title={getCategoryName(product.category_id)}>{getCategoryName(product.category_id)}</p>
             </div>
-            <div>
+            <div className="min-w-0">
               <p className="text-sm font-medium text-gray-500">Brand</p>
-              <p className="font-medium">{product.product_brand}</p>
+              <p className="font-medium truncate" title={product.product_brand}>{product.product_brand}</p>
             </div>
-            <div>
+            <div className="min-w-0">
               <p className="text-sm font-medium text-gray-500">Price</p>
-              <p className="font-medium">₱{product.product_price.toFixed(2)}</p>
+              <p className="font-medium truncate">₱{product.product_price.toFixed(2)}</p>
             </div>
-            <div>
+            <div className="min-w-0">
               <p className="text-sm font-medium text-gray-500">Stock</p>
-              <p className="font-medium">{product.product_stock}</p>
+              <p className="font-medium truncate">{product.product_stock}</p>
             </div>
-            <div>
+            <div className="min-w-0">
               <p className="text-sm font-medium text-gray-500">Condition</p>
-              <p className="font-medium">{product.product_condition}</p>
+              <p className="font-medium truncate" title={product.product_condition}>{product.product_condition}</p>
             </div>
-            <div>
+            <div className="min-w-0">
               <p className="text-sm font-medium text-gray-500">Size</p>
-              <p className="font-medium">{product.size_label}</p>
+              <p className="font-medium truncate" title={product.size_label}>{product.size_label}</p>
             </div>
-            <div>
+            <div className="min-w-0">
               <p className="text-sm font-medium text-gray-500">Visibility</p>
-              <p className="font-medium">{product.show_in_catalog ? "Listed" : "Hidden"}</p>
+              <p className="font-medium truncate">{product.show_in_catalog ? "Listed" : "Hidden"}</p>
             </div>
           </div>
-          <div>
+          <div className="w-full min-w-0">
             <p className="text-sm font-medium text-gray-500">Description</p>
-            <p className="text-sm text-gray-700 whitespace-pre-wrap [overflow-wrap:anywhere]">{product.product_description || "No description"}</p>
+            <p className="text-sm text-gray-700 whitespace-pre-wrap break-all line-clamp-4" title={product.product_description || "No description"}>{product.product_description || "No description"}</p>
           </div>
         </CardContent>
         <CardFooter className="border-t flex justify-end gap-3 p-6 bg-gray-50">

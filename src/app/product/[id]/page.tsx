@@ -258,7 +258,7 @@ export default function ProductDetailsPage() {
       <div className="grid gap-6 xl:gap-10 lg:grid-cols-[minmax(0,1fr)_430px]">
         <div className="space-y-3 md:space-y-0 md:grid md:grid-cols-[112px_minmax(0,1fr)] md:items-start md:gap-3">
           <Skeleton className="aspect-[4/4.8] w-full rounded-[24px] md:col-start-2 md:row-start-1 lg:h-[calc(112px*5+2.5rem)] lg:max-h-[calc(112px*5+2.5rem)] lg:aspect-auto" />
-            <div className="grid grid-cols-4 gap-2.5 md:col-start-1 md:row-start-1 md:grid-cols-1 md:gap-2.5">
+          <div className="grid grid-cols-4 gap-2.5 md:col-start-1 md:row-start-1 md:grid-cols-1 md:gap-2.5">
             {Array.from({ length: 4 }).map((_, index) => (
               <Skeleton key={index} className="aspect-square rounded-[18px]" />
             ))}
@@ -302,7 +302,7 @@ export default function ProductDetailsPage() {
   );
 
   return (
-    <main className="w-full flex flex-col items-center bg-[linear-gradient(180deg,#ffffff_0%,#fff9fb_42%,#ffffff_100%)]">
+    <main className="w-full flex flex-col items-center bg-[linear-gradient(180deg,#ffffff_0%,#fff9fb_42%,#ffffff_100%)] overflow-x-hidden">
       {announcementText && (
         <div className="w-full py-3 bg-[#E7A3B0] flex items-center justify-center">
           <InfiniteSlider className="w-full h-full">
@@ -414,11 +414,10 @@ export default function ProductDetailsPage() {
                       key={`${image}-${index}`}
                       type="button"
                       onClick={() => goToImage(index)}
-                      className={`relative aspect-square overflow-hidden rounded-[18px] border transition-all ${
-                        selectedImage === index
+                      className={`relative aspect-square overflow-hidden rounded-[18px] border transition-all ${selectedImage === index
                           ? "border-[#E7A3B0] shadow-[0_18px_40px_-28px_rgba(187,117,132,0.65)]"
                           : "border-[#f0dde1] hover:border-[#E7A3B0]/70"
-                      }`}
+                        }`}
                       aria-label={`View image ${index + 1}`}
                     >
                       <Image
@@ -459,11 +458,11 @@ export default function ProductDetailsPage() {
             </div>
 
             <aside className="lg:sticky lg:top-[108px] min-w-0 w-full">
-              <div className="rounded-[28px] border border-[#f2dbe0] bg-white/92 p-5 md:p-6 lg:px-7 shadow-[0_28px_70px_-38px_rgba(187,117,132,0.35)] backdrop-blur min-w-0 w-full">
+              <div className="rounded-[28px] border border-[#f2dbe0] bg-white/92 p-5 md:p-6 lg:px-7 shadow-[0_28px_70px_-38px_rgba(187,117,132,0.35)] backdrop-blur min-w-0 w-full overflow-hidden">
                 <div className="space-y-5 min-w-0">
                   <div className="space-y-2.5 min-w-0">
-                    <h1 
-                      className="font-playfair-display text-xl md:text-[2.2rem] leading-tight text-[#121212] break-words [overflow-wrap:anywhere] line-clamp-3 md:line-clamp-4"
+                    <h1
+                      className="font-playfair-display text-xl md:text-[2.2rem] leading-tight text-[#121212] break-all line-clamp-3 md:line-clamp-4"
                       title={product.name}
                     >
                       {product.name}
@@ -472,11 +471,10 @@ export default function ProductDetailsPage() {
                       <p className="font-oswald text-xl md:text-[1.7rem] tracking-wide text-[#E7A3B0]">
                         {formatPrice(product.price)}
                       </p>
-                      <span className={`inline-flex items-center rounded-full px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] ${
-                        product.stock > 0
+                      <span className={`inline-flex items-center rounded-full px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] ${product.stock > 0
                           ? "bg-[#edf8f0] text-[#2f7a49]"
                           : "bg-[#fff0f0] text-[#b65252]"
-                      }`}>
+                        }`}>
                         {product.stock > 0 ? "In Stock" : "Out of Stock"}
                       </span>
                     </div>
@@ -494,7 +492,7 @@ export default function ProductDetailsPage() {
                           <span className="font-oswald text-[11px] uppercase tracking-[0.24em] text-[#b98b96]">
                             {item.label}
                           </span>
-                          <span className="max-w-[60%] text-right text-sm font-medium text-[#121212] break-words [overflow-wrap:anywhere]">
+                          <span className="max-w-[50%] sm:max-w-[60%] text-right text-sm font-medium text-[#121212] truncate" title={String(item.value)}>
                             {item.value}
                           </span>
                         </div>
@@ -504,14 +502,14 @@ export default function ProductDetailsPage() {
 
                   <div className="space-y-2">
                     <h2 className="font-playfair-display text-lg md:text-xl text-[#121212]">Description</h2>
-                    <p className="text-sm leading-6 text-[#5f5a5c] whitespace-pre-wrap break-words [overflow-wrap:anywhere]">
+                    <p className="text-sm leading-6 text-[#5f5a5c] whitespace-pre-wrap break-all">
                       {decodeHtmlEntities(product.description || "A thoughtfully curated piece from Dolly's Closet, chosen for its style, condition, and timeless wearability.")}
                     </p>
                   </div>
 
                   <div className="flex flex-col gap-2.5 pt-1">
                     <Button asChild className="h-11 rounded-full bg-[#121212] text-white hover:bg-[#2b2b2b]">
-                      <a 
+                      <a
                         href="https://www.google.com/maps/search/?api=1&query=04+Admiral,+Talon+Tres,+Las+Piñas+City"
                         target="_blank"
                         rel="noopener noreferrer"

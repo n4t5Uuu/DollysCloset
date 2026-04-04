@@ -266,11 +266,11 @@ export default function FeatureCardCarousel({ products, onProductClick }: Featur
                         </p>
                     </div>
                 </div>
-                <div className="mt-3 flex flex-col items-center text-center gap-1 px-2">
-                    <p className="font-oswald text-[11px] uppercase tracking-[0.28em] text-[#b47c88]">
+                <div className="mt-3 flex flex-col items-center text-center gap-1 px-2 w-full">
+                    <p className="font-oswald text-[11px] uppercase tracking-[0.28em] text-[#b47c88] w-full truncate">
                         {eyebrow}
                     </p>
-                    <p className="font-playfair-display font-medium text-sm md:text-base text-[#121212] line-clamp-2 w-full">
+                    <p className="font-playfair-display font-medium text-sm md:text-base text-[#121212] line-clamp-2 w-full break-all" title={product.name}>
                         {product.name}
                     </p>
                     <p className={cn(

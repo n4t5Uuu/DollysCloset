@@ -202,14 +202,14 @@ export default function ProductCard({ product, href, onClick }: ProductCardProps
 
                 <div className="flex flex-1 flex-col gap-2 px-2 pb-1.5 pt-3">
                     <div className="min-w-0">
-                        <p className="hidden sm:block font-montserrat text-[10px] font-semibold uppercase tracking-[0.16em] text-[#6f5058]">
+                        <p className="hidden sm:block font-montserrat text-[10px] font-semibold uppercase tracking-[0.16em] text-[#6f5058] truncate">
                             {categoryLabel}
                         </p>
-                        <p className="font-oswald text-[11px] uppercase tracking-[0.28em] text-[#b47c88]">
+                        <p className="font-oswald text-[11px] uppercase tracking-[0.28em] text-[#b47c88] truncate">
                             {eyebrow}
                         </p>
                         <CardTitle 
-                            className="mt-1 font-playfair-display text-sm sm:text-base leading-snug text-[#121212] line-clamp-3 break-words [overflow-wrap:anywhere]"
+                            className="mt-1 font-playfair-display text-sm sm:text-base leading-snug text-[#121212] line-clamp-3 break-all"
                             title={product.name}
                         >
                             {product.name}
@@ -221,7 +221,7 @@ export default function ProductCard({ product, href, onClick }: ProductCardProps
                             {metadataChips.map((chip) => (
                                 <span
                                     key={chip}
-                                    className="rounded-full bg-[#f8f3f4] px-2 py-0.5 font-montserrat text-[9px] sm:text-[10px] font-medium uppercase tracking-[0.12em] text-[#6a5a5f]"
+                                    className="rounded-full bg-[#f8f3f4] px-2 py-0.5 font-montserrat text-[9px] sm:text-[10px] font-medium uppercase tracking-[0.12em] text-[#6a5a5f] truncate max-w-full"
                                 >
                                     {chip}
                                 </span>
