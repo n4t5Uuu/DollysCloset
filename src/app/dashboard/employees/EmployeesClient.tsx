@@ -101,7 +101,7 @@ export default function EmployeesClient() {
         const username = (emp.username ?? "").toLowerCase();
         const firstName = (emp.first_name ?? "").toLowerCase();
         const lastName = (emp.last_name ?? "").toLowerCase();
-        return username.includes(query) || firstName.includes(query) || lastName.includes(query);
+        return String(emp.user_key).includes(query) || username.includes(query) || firstName.includes(query) || lastName.includes(query);
       }),
     [employees, searchTerm]
   );
@@ -149,13 +149,17 @@ export default function EmployeesClient() {
 
   useEffect(() => {
     setSelectedRows(new Set());
-  }, [searchTerm, safePage]);
+  }, [searchTerm]);
 
   const toggleSelectAll = () => {
     if (allSelectableRowsSelected) {
-      setSelectedRows(new Set());
+      const next = new Set(selectedRows);
+      selectableEmployees.forEach((e) => next.delete(e.user_id));
+      setSelectedRows(next);
     } else {
-      setSelectedRows(new Set(selectableEmployees.map((e) => e.user_id)));
+      const next = new Set(selectedRows);
+      selectableEmployees.forEach((e) => next.add(e.user_id));
+      setSelectedRows(next);
     }
   };
 
@@ -431,7 +435,7 @@ export default function EmployeesClient() {
             <p className="text-sm text-gray-600">{rangeSummaryMessage}</p>
             {selectedCount > 0 && (
               <div className="flex items-center gap-2 flex-wrap">
-                <span className="rounded-full bg-[#fff5f7] px-3 py-1 text-xs font-medium text-[#b96d7d]">
+                <span className="rounded-md bg-[#fff0f3] px-2.5 py-1 text-xs font-semibold text-[#b96d7d]">
                   {selectedCount} selected
                 </span>
                 <Button
@@ -443,23 +447,15 @@ export default function EmployeesClient() {
                 >
                   Clear selection
                 </Button>
+                <Button
+                  size="sm"
+                  className="bg-red-500 hover:bg-red-600 text-white h-9 text-xs font-medium"
+                  onClick={() => setShowBulkDeleteModal(true)}
+                >
+                  <Trash className="w-4 h-4 mr-2" />
+                  Delete ({selectedCount})
+                </Button>
               </div>
-            )}
-          </div>
-        </div>
-
-        <div className="flex items-center justify-between flex-wrap gap-4 mb-4">
-          <div className="text-sm text-gray-600" />
-          <div className="flex gap-3">
-            {selectedRows.size > 0 && (
-              <Button
-                size="sm"
-                className="bg-red-500 hover:bg-red-600 text-white h-9 text-xs font-medium"
-                onClick={() => setShowBulkDeleteModal(true)}
-              >
-                <Trash className="w-4 h-4 mr-2" />
-                Delete ({selectedRows.size})
-              </Button>
             )}
           </div>
         </div>
