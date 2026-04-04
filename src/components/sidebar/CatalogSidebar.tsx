@@ -233,8 +233,8 @@ export default function CatalogSidebar({
                         "group w-full cursor-pointer rounded-md px-2.5 text-left font-montserrat transition-colors duration-200",
                         depth === 0 ? "text-base font-medium tracking-wide py-1.5" : "text-sm py-1.5",
                         activeFilter === filterValue
-                            ? "bg-[#121212] text-[#E7A3B0] font-semibold"
-                            : "text-gray-600 hover:bg-[#fff5f7] hover:text-[#E7A3B0]"
+                            ? "bg-[#121212] text-white font-semibold border-l-[3px] border-[#E7A3B0]"
+                            : "text-gray-600 hover:bg-[#f5eef0] hover:text-[#3f2d31]"
                     )}
                     style={{ paddingLeft: `${8 + depth * 14}px` }}
                     title={getCategoryPath(Number(category.category_id))}
@@ -254,7 +254,7 @@ export default function CatalogSidebar({
                                 "shrink-0 rounded-full px-2 py-0.5 text-[10px] font-oswald tracking-[0.18em]",
                                 activeFilter === filterValue
                                     ? "bg-[#2a2a2a] text-[#f6ccd4]"
-                                    : "bg-[#f8f3f4] text-[#8d7078]"
+                                    : "bg-[#ede5e7] text-[#4a3a40]"
                             )}
                         >
                             {categoryCount}
@@ -268,7 +268,7 @@ export default function CatalogSidebar({
             <AccordionItem value={`item-${category.category_id}-${depth}`} key={`${category.category_id}-${depth}`} className="border-none">
                 <AccordionTrigger
                     className={cn(
-                        "rounded-md px-2.5 font-montserrat cursor-pointer py-2 hover:no-underline text-gray-700 hover:bg-[#fff5f7] hover:text-[#E7A3B0] [&>svg]:text-[#94a3b8] [&>svg]:size-3.5 data-[state=open]:bg-[#fff5f7] data-[state=open]:text-[#E7A3B0]",
+                        "rounded-md px-2.5 font-montserrat cursor-pointer py-2 hover:no-underline text-gray-700 hover:bg-[#f5eef0] hover:text-[#3f2d31] [&>svg]:text-[#94a3b8] [&>svg]:size-3.5 data-[state=open]:bg-[#f5eef0] data-[state=open]:text-[#3f2d31] data-[state=open]:font-semibold",
                         depth === 0 ? "text-base font-medium tracking-wide" : "text-sm"
                     )}
                     style={{ paddingLeft: `${8 + depth * 14}px` }}
@@ -285,15 +285,18 @@ export default function CatalogSidebar({
                         className={cn(
                             "text-left text-sm font-montserrat py-1 transition-colors w-full cursor-pointer rounded-md px-2.5",
                             activeFilter === filterValue
-                                ? "bg-[#121212] text-[#E7A3B0] font-semibold"
-                                : "text-gray-500 hover:bg-[#fff5f7] hover:text-[#E7A3B0]"
+                                ? "bg-[#121212] text-white font-semibold border-l-[3px] border-[#E7A3B0]"
+                                : "text-gray-500 hover:bg-[#f5eef0] hover:text-[#3f2d31]"
                         )}
                         style={{ paddingLeft: `${8 + (depth + 1) * 12}px` }}
                         title={getCategoryPath(Number(category.category_id))}
                     >
                         <span className="flex items-center justify-between gap-3">
                             <span className="truncate">All {category.category_name}</span>
-                            <span className="rounded-full bg-[#f8f3f4] px-2 py-0.5 text-[10px] font-oswald tracking-[0.18em] text-[#8d7078]">
+                            <span className={cn(
+                                "rounded-full px-2 py-0.5 text-[10px] font-oswald tracking-[0.18em]",
+                                activeFilter === filterValue ? "bg-[#2a2a2a] text-[#f6ccd4]" : "bg-[#ede5e7] text-[#4a3a40]"
+                            )}>
                                 {categoryCount}
                             </span>
                         </span>
@@ -320,8 +323,8 @@ export default function CatalogSidebar({
             <AccordionItem value={`root-${group.key}`} key={`root-${group.key}`} className="border-none">
                 <AccordionTrigger
                     className={cn(
-                        "rounded-md px-2.5 font-montserrat cursor-pointer py-2 hover:no-underline text-gray-700 hover:bg-[#fff5f7] hover:text-[#E7A3B0] text-base font-semibold tracking-wide [&>svg]:text-[#94a3b8] [&>svg]:size-3.5 data-[state=open]:bg-[#fff5f7] data-[state=open]:text-[#E7A3B0]",
-                        activeFilter === rootFilterValue ? "text-[#E7A3B0] font-bold" : ""
+                        "rounded-md px-2.5 font-montserrat cursor-pointer py-2 hover:no-underline text-gray-700 hover:bg-[#f5eef0] hover:text-[#3f2d31] text-base font-semibold tracking-wide [&>svg]:text-[#94a3b8] [&>svg]:size-3.5 data-[state=open]:bg-[#f5eef0] data-[state=open]:text-[#3f2d31] data-[state=open]:font-bold",
+                        activeFilter === rootFilterValue ? "text-[#3f2d31] font-bold" : ""
                     )}
                 >
                     <span className="flex min-w-0 items-center gap-2">
@@ -332,8 +335,8 @@ export default function CatalogSidebar({
                         className={cn(
                             "ml-3 rounded-full px-2 py-0.5 text-[10px] font-oswald tracking-[0.18em]",
                             activeFilter === rootFilterValue
-                                ? "bg-[#fff0f5] text-[#b47c88]"
-                                : "bg-[#f8f3f4] text-[#8d7078]"
+                                ? "bg-[#ede5e7] text-[#4a3a40]"
+                                : "bg-[#ede5e7] text-[#4a3a40]"
                         )}
                     >
                         {getRootGroupCount(group.key)}
@@ -346,13 +349,16 @@ export default function CatalogSidebar({
                         className={cn(
                             "text-left text-sm font-montserrat py-1 transition-colors w-full cursor-pointer rounded-md px-2.5",
                             activeFilter === rootFilterValue
-                                ? "bg-[#121212] text-[#E7A3B0] font-semibold"
-                                : "text-gray-500 hover:bg-[#fff5f7] hover:text-[#E7A3B0]"
+                                ? "bg-[#121212] text-white font-semibold border-l-[3px] border-[#E7A3B0]"
+                                : "text-gray-500 hover:bg-[#f5eef0] hover:text-[#3f2d31]"
                         )}
                     >
                         <span className="flex items-center justify-between gap-3">
                             <span className="truncate">All {group.label}</span>
-                            <span className="rounded-full bg-[#f8f3f4] px-2 py-0.5 text-[10px] font-oswald tracking-[0.18em] text-[#8d7078]">
+                            <span className={cn(
+                                "rounded-full px-2 py-0.5 text-[10px] font-oswald tracking-[0.18em]",
+                                activeFilter === rootFilterValue ? "bg-[#2a2a2a] text-[#f6ccd4]" : "bg-[#ede5e7] text-[#4a3a40]"
+                            )}>
                                 {getRootGroupCount(group.key)}
                             </span>
                         </span>
@@ -387,15 +393,15 @@ export default function CatalogSidebar({
                         <button
                             onClick={() => handleFilterChange("all")}
                             className={cn(
-                                "text-left cursor-pointer rounded-md px-2.5 py-2 font-montserrat text-sm font-medium transition-colors duration-200 hover:text-[#E7A3B0] hover:bg-[#fff5f7]",
-                                activeFilter === "all" ? "bg-[#121212] text-[#E7A3B0] font-semibold" : "text-gray-600"
+                                "text-left cursor-pointer rounded-md px-2.5 py-2 font-montserrat text-sm font-medium transition-colors duration-200 hover:text-[#3f2d31] hover:bg-[#f5eef0]",
+                                activeFilter === "all" ? "bg-[#121212] text-white font-semibold border-l-[3px] border-[#E7A3B0]" : "text-gray-600"
                             )}
                         >
                             <span className="flex items-center justify-between gap-3">
                                 <span>All Products</span>
                                 <span className={cn(
                                     "rounded-full px-2 py-0.5 text-[10px] font-oswald tracking-[0.18em]",
-                                    activeFilter === "all" ? "bg-[#2a2a2a] text-[#f6ccd4]" : "bg-[#f8f3f4] text-[#8d7078]"
+                                    activeFilter === "all" ? "bg-[#2a2a2a] text-[#f6ccd4]" : "bg-[#ede5e7] text-[#4a3a40]"
                                 )}>
                                     {allCount}
                                 </span>
@@ -405,15 +411,15 @@ export default function CatalogSidebar({
                         <button
                             onClick={() => handleFilterChange("new")}
                             className={cn(
-                                "text-left cursor-pointer rounded-md px-2.5 py-2 font-montserrat text-sm font-medium transition-colors duration-200 hover:text-[#E7A3B0] hover:bg-[#fff5f7]",
-                                activeFilter === "new" ? "bg-[#121212] text-[#E7A3B0] font-semibold" : "text-gray-600"
+                                "text-left cursor-pointer rounded-md px-2.5 py-2 font-montserrat text-sm font-medium transition-colors duration-200 hover:text-[#3f2d31] hover:bg-[#f5eef0]",
+                                activeFilter === "new" ? "bg-[#121212] text-white font-semibold border-l-[3px] border-[#E7A3B0]" : "text-gray-600"
                             )}
                         >
                             <span className="flex items-center justify-between gap-3">
                                 <span>New Arrivals</span>
                                 <span className={cn(
                                     "rounded-full px-2 py-0.5 text-[10px] font-oswald tracking-[0.18em]",
-                                    activeFilter === "new" ? "bg-[#2a2a2a] text-[#f6ccd4]" : "bg-[#f8f3f4] text-[#8d7078]"
+                                    activeFilter === "new" ? "bg-[#2a2a2a] text-[#f6ccd4]" : "bg-[#ede5e7] text-[#4a3a40]"
                                 )}>
                                     {newCount}
                                 </span>
@@ -432,7 +438,7 @@ export default function CatalogSidebar({
                             <h3 className="font-oswald text-sm font-bold uppercase tracking-[0.2em] text-gray-700">
                                 Refine Results
                             </h3>
-                            <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-[#fff0f5] text-[#b47c88]">
+                            <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-[#ede5e7] text-[#4a3a40]">
                                 <ArrowUpDown className="h-4 w-4" />
                             </span>
                         </div>
@@ -441,14 +447,14 @@ export default function CatalogSidebar({
                     <div className="space-y-5 px-4 py-4">
                         <div className="space-y-2">
                             <div className="flex items-center justify-between gap-3">
-                                <p className="font-oswald text-[10px] uppercase tracking-[0.28em] text-[#b47c88]">
+                                <p className="font-oswald text-[10px] uppercase tracking-[0.28em] text-[#6b5a60]">
                                     Sort
                                 </p>
                                 {sortBy !== "newest" && (
                                     <button
                                         type="button"
                                         onClick={() => handleSortChange("newest")}
-                                        className="font-oswald text-[11px] uppercase tracking-[0.2em] text-[#b47c88] transition-colors hover:text-[#8f5f69]"
+                                        className="font-oswald text-[11px] uppercase tracking-[0.2em] text-[#6b5a60] transition-colors hover:text-[#8f5f69]"
                                     >
                                         Reset
                                     </button>
@@ -474,7 +480,7 @@ export default function CatalogSidebar({
 
                         <div className="border-t border-[#E7A3B0]/12 pt-4">
                             <div className="mb-3">
-                                <p className="font-oswald text-[10px] uppercase tracking-[0.28em] text-[#b47c88]">
+                                <p className="font-oswald text-[10px] uppercase tracking-[0.28em] text-[#6b5a60]">
                                     Price
                                 </p>
                             </div>
@@ -485,7 +491,7 @@ export default function CatalogSidebar({
                                         <span className="font-montserrat text-sm text-[#3f2d31]">
                                             {isShowingAllPrices ? "All Prices" : "Selected Range"}
                                         </span>
-                                        <span className="font-oswald text-sm tracking-[0.06em] text-[#b47c88]">
+                                        <span className="font-oswald text-sm tracking-[0.06em] text-[#6b5a60]">
                                             {isShowingAllPrices
                                                 ? `${formatCurrency(minAvailablePrice)} - ${formatCurrency(maxAvailablePrice)}`
                                                 : `${formatCurrency(draftMinPrice)} - ${formatCurrency(draftMaxPrice)}`}
@@ -525,7 +531,7 @@ export default function CatalogSidebar({
 
                                     <div className="grid grid-cols-2 gap-3">
                                         <label className="space-y-1.5">
-                                            <span className="font-oswald text-[10px] uppercase tracking-[0.24em] text-[#b47c88]">
+                                            <span className="font-oswald text-[10px] uppercase tracking-[0.24em] text-[#6b5a60]">
                                                 Min
                                             </span>
                                             <input
@@ -538,7 +544,7 @@ export default function CatalogSidebar({
                                             />
                                         </label>
                                         <label className="space-y-1.5">
-                                            <span className="font-oswald text-[10px] uppercase tracking-[0.24em] text-[#b47c88]">
+                                            <span className="font-oswald text-[10px] uppercase tracking-[0.24em] text-[#6b5a60]">
                                                 Max
                                             </span>
                                             <input

@@ -200,25 +200,22 @@ export default function ProductCard({ product, href, onClick }: ProductCardProps
                     </div>
                 </div>
 
-                <div className="flex flex-1 flex-col gap-2 px-2 pb-1.5 pt-3">
+                <div className="flex flex-1 flex-col gap-2.5 px-3.5 pb-4 pt-3.5">
                     <div className="min-w-0">
-                        <p className="hidden sm:block font-montserrat text-[10px] font-semibold uppercase tracking-[0.16em] text-[#6f5058]">
-                            {categoryLabel}
-                        </p>
-                        <p className="font-oswald text-[11px] uppercase tracking-[0.28em] text-[#b47c88]">
+                        <p className="font-oswald text-[10px] uppercase tracking-[0.28em] text-[#9a8a90] truncate">
                             {eyebrow}
                         </p>
-                        <CardTitle className="mt-1 font-playfair-display text-sm sm:text-base leading-snug text-[#121212] line-clamp-3">
+                        <CardTitle className="mt-1 font-playfair-display text-[15px] sm:text-base font-semibold leading-snug text-[#2d2226] line-clamp-3 break-words [overflow-wrap:anywhere]">
                             {product.name}
                         </CardTitle>
                     </div>
 
                     {metadataChips.length > 0 && (
-                        <div className="flex flex-wrap gap-1.5">
+                        <div className="flex flex-wrap gap-1.5 min-w-0">
                             {metadataChips.map((chip) => (
                                 <span
                                     key={chip}
-                                    className="rounded-full bg-[#f8f3f4] px-2 py-0.5 font-montserrat text-[9px] sm:text-[10px] font-medium uppercase tracking-[0.12em] text-[#6a5a5f]"
+                                    className="rounded-full bg-[#f5f0f1] px-2.5 py-1 font-montserrat text-[10px] sm:text-[11px] font-medium uppercase tracking-[0.1em] text-[#5a4a50] truncate max-w-full"
                                 >
                                     {chip}
                                 </span>
@@ -226,16 +223,16 @@ export default function ProductCard({ product, href, onClick }: ProductCardProps
                         </div>
                     )}
 
-                    <div className="mt-auto border-t border-[#E7A3B0]/12 pt-2">
-                        <div>
-                            <p className="font-oswald text-[10px] uppercase tracking-[0.28em] text-[#c0929d]">
-                                {isSoldOut ? "Last Price" : "Price"}
-                            </p>
+                    <div className="mt-auto border-t border-gray-200 pt-3">
+                        <div className="flex items-baseline justify-between gap-2">
                             <p className={cn(
-                                "font-oswald text-xl tracking-[0.04em]",
-                                isSoldOut ? "text-[#8b7580]" : "text-[#E7A3B0]"
+                                "font-oswald text-lg font-bold tracking-[0.02em]",
+                                isSoldOut ? "text-[#8b7580]" : "text-[#2d2226]"
                             )}>
                                 {"\u20B1"}{product.price.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                            </p>
+                            <p className="hidden sm:block font-montserrat text-[10px] font-medium text-[#9a8a90] truncate max-w-[45%]">
+                                {categoryLabel}
                             </p>
                         </div>
                     </div>

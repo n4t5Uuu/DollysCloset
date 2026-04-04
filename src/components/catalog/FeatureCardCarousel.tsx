@@ -267,15 +267,15 @@ export default function FeatureCardCarousel({ products, onProductClick }: Featur
                     </div>
                 </div>
                 <div className="mt-3 flex flex-col items-center text-center gap-1 px-2">
-                    <p className="font-oswald text-[11px] uppercase tracking-[0.28em] text-[#b47c88]">
+                    <p className="font-oswald text-[10px] uppercase tracking-[0.28em] text-[#9a8a90] truncate w-full">
                         {eyebrow}
                     </p>
-                    <p className="font-playfair-display font-medium text-sm md:text-base text-[#121212] line-clamp-2 w-full">
+                    <p className="font-playfair-display font-semibold text-sm md:text-base text-[#2d2226] line-clamp-2 w-full">
                         {product.name}
                     </p>
                     <p className={cn(
-                        "font-oswald text-sm tracking-wide",
-                        isSoldOut ? "text-[#8b7580]" : "text-[#E7A3B0]"
+                        "font-oswald text-base font-bold tracking-wide",
+                        isSoldOut ? "text-[#8b7580]" : "text-[#2d2226]"
                     )}>
                         {"\u20B1"}{product.price.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                     </p>

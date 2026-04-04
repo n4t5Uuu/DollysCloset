@@ -327,7 +327,7 @@ export default function ProductDetailsPage() {
                 </span>
               ))}
               <span className="text-[#d6a5af]">/</span>
-              <span className="text-[#121212] font-medium">{product.name}</span>
+              <span className="text-[#121212] font-medium break-words [overflow-wrap:anywhere]">{product.name}</span>
             </nav>
 
             <Button asChild variant="ghost" className="h-auto rounded-full px-0 text-[#8A5B64] hover:bg-transparent hover:text-[#cc7f8f]">
@@ -338,7 +338,7 @@ export default function ProductDetailsPage() {
             </Button>
           </div>
 
-          <section className="grid gap-6 xl:gap-10 lg:grid-cols-[minmax(0,1fr)_430px] items-start">
+          <section className="grid gap-6 xl:gap-10 lg:grid-cols-[minmax(0,1fr)_520px] items-start">
             <div className="space-y-3 md:space-y-0 mx-auto w-full max-w-[568px] md:grid md:grid-cols-[112px_minmax(0,1fr)] md:items-start md:gap-3">
               <div
                 ref={imageContainerRef}
@@ -460,11 +460,11 @@ export default function ProductDetailsPage() {
               <div className="rounded-[28px] border border-[#f2dbe0] bg-white/92 p-5 md:p-6 lg:px-7 shadow-[0_28px_70px_-38px_rgba(187,117,132,0.35)] backdrop-blur">
                 <div className="space-y-5">
                   <div className="space-y-2.5">
-                    <h1 className="font-playfair-display text-xl md:text-[2.2rem] leading-tight text-[#121212]">
+                    <h1 className="font-playfair-display text-xl md:text-[2.2rem] font-bold leading-tight text-[#2d2226] break-words [overflow-wrap:anywhere]">
                       {product.name}
                     </h1>
                     <div className="flex flex-wrap items-center gap-2.5">
-                      <p className="font-oswald text-xl md:text-[1.7rem] tracking-wide text-[#E7A3B0]">
+                      <p className="font-oswald text-xl md:text-[1.7rem] font-bold tracking-wide text-[#2d2226]">
                         {formatPrice(product.price)}
                       </p>
                       <span className={`inline-flex items-center rounded-full px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] ${
@@ -486,7 +486,7 @@ export default function ProductDetailsPage() {
                         { label: "Availability", value: product.stock > 0 ? `${product.stock} piece${product.stock > 1 ? "s" : ""} available` : "Currently sold out" },
                       ].map((item) => (
                         <div key={item.label} className="flex min-w-0 items-start justify-between gap-4 border-b border-[#f2dbe0] pb-2.5 last:border-b-0 last:pb-0">
-                          <span className="font-oswald text-[11px] uppercase tracking-[0.24em] text-[#b98b96]">
+                          <span className="font-oswald text-[11px] uppercase tracking-[0.24em] text-[#8a7a80]">
                             {item.label}
                           </span>
                           <span className="max-w-[60%] text-right text-sm font-medium text-[#121212] break-words [overflow-wrap:anywhere]">
