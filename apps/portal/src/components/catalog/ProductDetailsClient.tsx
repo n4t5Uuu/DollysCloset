@@ -13,13 +13,14 @@ import {
 } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 
-import ProductCard from "@/components/catalog/ProductCard";
-import { InfiniteSlider } from "@/components/motion-primitives/infinite-slider";
-import { Button } from "@/components/ui/button";
-import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty";
-import { Skeleton } from "@/components/ui/skeleton";
-import { ANNOUNCEMENT_SLUG } from "@/lib/business-details/business-details";
-import { resolveProductPlaceholder } from "@/lib/images/product-placeholder";
+import { 
+  ProductCard, 
+  InfiniteSlider, 
+  Button, 
+  Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle, 
+  Skeleton 
+} from "@dollys-closet/ui";
+import { ANNOUNCEMENT_SLUG, resolveProductPlaceholder } from "@dollys-closet/core";
 import { type CatalogApiProduct, type Product } from "@/types/product.types";
 
 function toViewProduct(product: CatalogApiProduct): Product {

@@ -3,17 +3,17 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { BarChart3, Download, Loader2, Package, RefreshCcw } from 'lucide-react';
 import { toast } from 'sonner';
-import { Button } from '@/components/ui/button';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
+import { 
+  Button, 
+  Select, 
+  SelectContent, 
+  SelectItem, 
+  SelectTrigger, 
   SelectValue,
-} from '@/components/ui/select';
+  AdminNoticeBanner
+} from '@dollys-closet/ui';
 import { AnalyticsDashboard } from './AnalyticsDashboard';
 import { ProductsDashboard } from './ProductsDashboard';
-import { AdminNoticeBanner } from '@/components/ui/admin-notice-banner';
 
 const tabs = [
   { key: 'overview', label: 'Overview', icon: BarChart3 },

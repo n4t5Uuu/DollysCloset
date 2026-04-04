@@ -1,6 +1,4 @@
-// src/lib/supabase/server.ts
 import { createServerClient } from "@supabase/ssr";
-import { cookies } from "next/headers";
 
 /**
  * Instantiates a Supabase Server Client for use in Server Components and API Routes.
@@ -14,6 +12,7 @@ import { cookies } from "next/headers";
  * @returns Instantiated server mapping tracking internal cookie stores seamlessly.
  */
 export async function createServerSupabase() {
+  const { cookies } = await import("next/headers");
   const cookieStore = await cookies();
 
   return createServerClient(

@@ -6,8 +6,8 @@ import {
 } from 'recharts';
 import { Package, Tag, AlertTriangle, XCircle, Pencil, Loader2, ImageOff, ArrowRight, RefreshCcw } from 'lucide-react';
 import AddProduct from '@/components/dialogs/AddProduct';
-import { Button } from '@/components/ui/button';
-import { InventoryProduct, InventoryCategory } from '@/types/inventory.types';
+import { Button } from '@dollys-closet/ui';
+import { InventoryProduct, InventoryCategory } from "@dollys-closet/core";
 
 const BRAND = '#E7A3B0';
 const BRAND_LIGHT = '#fdf2f4';

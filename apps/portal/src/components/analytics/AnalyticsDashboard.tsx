@@ -14,8 +14,7 @@ import {
   ResponsiveContainer,
 } from 'recharts';
 import { Users, Eye, TrendingUp, UserPlus, Monitor, Smartphone, Tablet, AlertTriangle, RefreshCcw, CircleHelp } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Tooltip as HelpTooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { Button, Tooltip as HelpTooltip, TooltipContent, TooltipTrigger } from '@dollys-closet/ui';
 
 const BRAND = '#E7A3B0';
 const BRAND_LIGHT = '#fdf2f4';

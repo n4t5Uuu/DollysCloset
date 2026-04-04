@@ -1,4 +1,5 @@
-import { createClient, createServerSupabase } from "@dollys-closet/core";
+import { createClient } from "@dollys-closet/core";
+import { createServerSupabase } from "@dollys-closet/core/lib/supabase/server";
 import { LogActivityProps } from "@/types/logs.types";
 import {
     sanitizeSingleLineText,
