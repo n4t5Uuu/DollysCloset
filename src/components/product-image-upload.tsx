@@ -489,28 +489,30 @@ export default function ProductImageUpload({
 
       {/* Image Grid */}
       {sortedImages.length > 0 && (
-        <DndContext
-          sensors={sensors}
-          collisionDetection={closestCenter}
-          onDragEnd={handleDragEnd}
-        >
-          <SortableContext
-            items={sortedImages.map((img) => img.image_id)}
-            strategy={rectSortingStrategy}
+        <div className="overflow-x-clip">
+          <DndContext
+            sensors={sensors}
+            collisionDetection={closestCenter}
+            onDragEnd={handleDragEnd}
           >
-            <div className={`grid grid-cols-2 sm:grid-cols-3 gap-3 ${reordering ? "opacity-60 pointer-events-none" : ""}`}>
-              {sortedImages.map((image, index) => (
-                <SortableImageItem
-                  key={image.image_id}
-                  image={image}
-                  index={index}
-                  isPrimary={image.image_id === primaryImageId}
-                  onDelete={(id) => setPendingDeleteImageId(id)}
-                />
-              ))}
-            </div>
-          </SortableContext>
-        </DndContext>
+            <SortableContext
+              items={sortedImages.map((img) => img.image_id)}
+              strategy={rectSortingStrategy}
+            >
+              <div className={`grid grid-cols-2 sm:grid-cols-3 gap-3 ${reordering ? "opacity-60 pointer-events-none" : ""}`}>
+                {sortedImages.map((image, index) => (
+                  <SortableImageItem
+                    key={image.image_id}
+                    image={image}
+                    index={index}
+                    isPrimary={image.image_id === primaryImageId}
+                    onDelete={(id) => setPendingDeleteImageId(id)}
+                  />
+                ))}
+              </div>
+            </SortableContext>
+          </DndContext>
+        </div>
       )}
 
       {images.length === 0 && (

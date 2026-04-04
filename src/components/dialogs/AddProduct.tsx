@@ -713,7 +713,7 @@ export default function AddProduct({ isOpen, onClose, categories, productToEdit,
                                     id="show_in_catalog"
                                     checked={formData.show_in_catalog}
                                     onCheckedChange={(checked) => setFormData({ ...formData, show_in_catalog: checked as boolean })}
-                                    className="border border-black data-[state=unchecked]:border-black"
+                                    className="!border-gray-600"
                                 />
                                 <label htmlFor="show_in_catalog" className="text-sm font-medium text-gray-700 cursor-pointer">
                                     Show in Catalog

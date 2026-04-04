@@ -650,16 +650,17 @@ export default function ActivityLogsClient() {
         </div>
       ) : (
         <div className="bg-white rounded-lg border overflow-x-auto">
-          <Table className="w-full">
+          <Table className="w-full table-fixed">
             <TableHeader className="border-b bg-gray-50">
               <TableRow>
-                <TableHead className="p-4 font-bold">Date & Time</TableHead>
-                <TableHead className="p-4 font-bold">Action</TableHead>
-                <TableHead className="p-4 font-bold">Linked ID</TableHead>
-                <TableHead className="p-4 font-bold">User</TableHead>
-                <TableHead className="p-4 font-bold w-[30%]">Description</TableHead>
+                <TableHead className="p-4 text-left font-bold w-[60px]">Log</TableHead>
+                <TableHead className="p-4 font-bold w-[14%]">Date & Time</TableHead>
+                <TableHead className="p-4 font-bold w-[17%]">Action</TableHead>
+                <TableHead className="p-4 font-bold w-[7%]">Linked ID</TableHead>
+                <TableHead className="p-4 font-bold w-[7%]">User</TableHead>
+                <TableHead className="p-4 font-bold w-[21%]">Description</TableHead>
                 <TableHead className="p-4 font-bold">Editor</TableHead>
-                <TableHead className="p-4 font-bold text-center w-[100px]">Actions</TableHead>
+                <TableHead className="p-4 font-bold text-center w-[130px]">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -670,6 +671,9 @@ export default function ActivityLogsClient() {
                     className="border-b hover:bg-gray-50"
                     onDoubleClick={() => setViewLog(log)}
                   >
+                    <TableCell className="p-4">
+                      <span className="font-medium text-gray-900">{log.log_id}</span>
+                    </TableCell>
                     <TableCell className="p-4 text-sm text-gray-700">
                       <div className="line-clamp-2 break-words [overflow-wrap:anywhere]">{new Date(log.created_at).toLocaleString()}</div>
                     </TableCell>
@@ -682,6 +686,12 @@ export default function ActivityLogsClient() {
                     </TableCell>
                     <TableCell className="p-4 text-sm text-gray-900">
                       <div className="line-clamp-2 break-all">{log.product_id ?? log.business_details ?? "-"}</div>
+                      {log.product_id && (
+                        <div className="text-[11px] text-gray-400 mt-0.5">Product</div>
+                      )}
+                      {!log.product_id && log.business_details && (
+                        <div className="text-[11px] text-gray-400 mt-0.5">Business</div>
+                      )}
                     </TableCell>
                     <TableCell className="p-4 text-sm text-gray-900">
                       <div className="line-clamp-2 break-all">
@@ -714,7 +724,7 @@ export default function ActivityLogsClient() {
                 ))
               ) : (
                 <TableRow>
-                  <TableCell colSpan={7} className="p-0 border-none">
+                  <TableCell colSpan={8} className="p-0 border-none">
                     <Empty className="border-none rounded-none py-12">
                       <EmptyHeader>
                         <EmptyMedia variant="icon">
@@ -766,7 +776,10 @@ export default function ActivityLogsClient() {
             onClick={(e) => e.stopPropagation()}
           >
             <div className="sticky top-0 bg-white border-b border-gray-100 px-6 py-4 flex items-center justify-between rounded-t-2xl">
-              <h2 id="activity-log-details-title" className="text-xl font-bold text-gray-900">Log Details</h2>
+              <div>
+                <h2 id="activity-log-details-title" className="text-xl font-bold text-gray-900">Log Details</h2>
+                <p className="text-[11px] text-gray-400 mt-0.5">Log #{viewLog.log_id}</p>
+              </div>
               <button onClick={() => setViewLog(null)} aria-label="Close log details" className="p-2 hover:bg-gray-100 rounded-lg text-gray-500 hover:text-gray-700">
                 <X size={20} />
               </button>
@@ -785,7 +798,13 @@ export default function ActivityLogsClient() {
                 </div>
                 <div className="bg-gray-50 rounded-xl p-4">
                   <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Linked ID</p>
-                  <p className="text-sm font-semibold text-gray-900">{viewLog.product_id ?? viewLog.business_details ?? "-"}</p>
+                  <p className="text-sm font-semibold text-gray-900 break-all">{viewLog.product_id ?? viewLog.business_details ?? "-"}</p>
+                  {viewLog.product_id && (
+                    <p className="text-[11px] text-gray-400 mt-0.5">Product</p>
+                  )}
+                  {!viewLog.product_id && viewLog.business_details && (
+                    <p className="text-[11px] text-gray-400 mt-0.5">Business</p>
+                  )}
                 </div>
                 <div className="bg-gray-50 rounded-xl p-4">
                   <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">User</p>
