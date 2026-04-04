@@ -1,6 +1,6 @@
 import { X } from "lucide-react";
-import { CardHeader, CardTitle } from "@/components/ui/card";
-import { cn } from "@/lib/utils";
+import { CardHeader, CardTitle } from "@dollys-closet/ui";
+import { cn } from "@dollys-closet/core";
 
 interface AdminDialogHeaderProps {
     title: string;

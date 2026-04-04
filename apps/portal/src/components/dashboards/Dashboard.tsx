@@ -2,12 +2,12 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { AlertTriangle, Package, Pencil, ImageOff, ArrowRight, Loader2 } from "lucide-react";
-import { Skeleton } from "@/components/ui/skeleton";
-import { Button } from "@/components/ui/button";
+import { Skeleton } from "@dollys-closet/ui";
+import { Button } from "@dollys-closet/ui";
 import AddProduct from "@/components/dialogs/AddProduct";
 
-import { ActivityLog } from "@/types/logs.types";
-import { InventoryProduct, InventoryCategory } from "@/types/inventory.types";
+import { ActivityLog } from "@dollys-closet/core";
+import { InventoryProduct, InventoryCategory } from "@dollys-closet/core";
 
 const actionLabels: Record<string, string> = {
     create_product: "Listed Product",
@@ -461,3 +461,4 @@ export default function Dashboard({ role }: DashboardProps) {
         </div>
     );
 }
+

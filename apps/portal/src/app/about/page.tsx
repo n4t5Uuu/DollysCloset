@@ -1,4 +1,4 @@
-import { admin } from "@dollys-closet/core/lib/supabase/admin";
+import { createAdminClient } from "@dollys-closet/core/lib/supabase/admin";
 import { getAboutDetails } from "@dollys-closet/core";
 import { AboutView } from "@dollys-closet/ui";
 import type { Metadata } from "next";
@@ -9,7 +9,8 @@ export const metadata: Metadata = {
 };
 
 export default async function AboutPage() {
-  const aboutDetails = await getAboutDetails(admin);
+  const supabaseAdmin = createAdminClient();
+  const aboutDetails = await getAboutDetails(supabaseAdmin);
 
   return <AboutView aboutDetails={aboutDetails} />;
 }

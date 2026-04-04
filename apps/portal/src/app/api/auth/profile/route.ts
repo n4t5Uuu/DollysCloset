@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { createServerSupabase } from "@dollys-closet/core/lib/supabase/server";
-import { admin } from "@dollys-closet/core/lib/supabase/admin";
+import { createAdminClient } from "@dollys-closet/core/lib/supabase/admin";
 import { employeeHelper } from "@/lib/employees/employee-helper";
 
 export async function GET() {
@@ -15,7 +15,8 @@ export async function GET() {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const { data: userRow } = await employeeHelper.getUserById(user.id, admin);
+    const supabaseAdmin = createAdminClient();
+    const { data: userRow } = await employeeHelper.getUserById(user.id, supabaseAdmin);
 
     const firstName = String(userRow?.first_name || "").trim();
     const lastName = String(userRow?.last_name || "").trim();

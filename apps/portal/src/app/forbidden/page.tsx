@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import DynamicError from "@/components/general-components/DynamicError";
+import { DynamicError } from "@dollys-closet/ui";
 
 export const metadata: Metadata = {
   title: "Access Forbidden",

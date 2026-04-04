@@ -1,4 +1,4 @@
-import { Employee } from "@/types/employee.types";
+import { Employee } from "@dollys-closet/core";
 import BaseModalDialog from "@/components/dialogs/BaseModalDialog";
 
 interface ViewEmployeeDialogProps {
@@ -67,3 +67,4 @@ export default function ViewEmployeeDialog({ employee, onClose }: ViewEmployeeDi
     </BaseModalDialog>
   );
 }
+

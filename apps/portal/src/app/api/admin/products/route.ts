@@ -1,14 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { productHelper } from "@/lib/products/product-helper";
 import { activityHelper } from "@/lib/activity/activity-helper";
-import { admin } from "@dollys-closet/core/lib/supabase/admin";
+import { createAdminClient } from "@dollys-closet/core/lib/supabase/admin";
 import { requireRequestAuth } from "@/lib/auth/auth-server";
 import {
   sanitizeMultilineText,
   sanitizeSingleLineText,
   schemaExactLimits,
   uiContentLimits,
-} from "@/lib/input-sanitization";
+} from "@dollys-closet/core";
 
 export async function GET(request: Request) {
   try {
@@ -21,7 +21,8 @@ export async function GET(request: Request) {
       return authResult.response;
     }
 
-    const { data, error } = await productHelper.getProducts(admin);
+    const supabaseAdmin = createAdminClient();
+    const { data, error } = await productHelper.getProducts(supabaseAdmin);
 
     if (error) {
       console.error('Error fetching products:', error)
@@ -84,6 +85,7 @@ export async function POST(request: NextRequest) {
       finalShowInCatalog = false;
     }
 
+    const supabaseAdmin = createAdminClient();
     const { data: product, error: insertError } = await productHelper.createProduct({
       product_name: normalizedProductName,
       category_id,
@@ -95,7 +97,7 @@ export async function POST(request: NextRequest) {
       size_label: normalizedSizeLabel,
       show_in_catalog: finalShowInCatalog,
       image_id: image_id || null,
-    }, admin);
+    }, supabaseAdmin);
 
     if (insertError) {
       console.error('Insert error:', insertError);
@@ -109,7 +111,7 @@ export async function POST(request: NextRequest) {
         description: `Created product: ${normalizedProductName}`,
         editor: editor,
         user_id: user.id,
-        supabase: admin
+        supabase: supabaseAdmin
       });
     }
 
@@ -148,7 +150,8 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
     }
 
-    const { data: currentProduct } = await productHelper.getProductById(product_id, admin);
+    const supabaseAdmin = createAdminClient();
+    const { data: currentProduct } = await productHelper.getProductById(product_id, supabaseAdmin);
 
     const parsedStock = parseInt(product_stock) || 0;
     let finalShowInCatalog = show_in_catalog !== false;
@@ -178,7 +181,7 @@ export async function PUT(request: NextRequest) {
       const { data: linkedImage, error: linkedImageError } = await productHelper.verifyProductImage(
         imageIdValue,
         product_id,
-        admin
+        supabaseAdmin
       );
 
       if (linkedImageError) {
@@ -199,7 +202,7 @@ export async function PUT(request: NextRequest) {
       size_label: normalizedSizeLabel,
       show_in_catalog: finalShowInCatalog,
       image_id: normalizedImageId,
-    }, admin);
+    }, supabaseAdmin);
 
     if (updateError) {
       console.error('Update error:', updateError);
@@ -212,7 +215,7 @@ export async function PUT(request: NextRequest) {
       description: changes.length > 0 ? `Updated product "${normalizedProductName}": ${changes.join(', ')}` : `Updated product "${normalizedProductName}"`,
       editor: editor,
       user_id: user.id,
-      supabase: admin
+      supabase: supabaseAdmin
     });
 
     return NextResponse.json({
@@ -250,7 +253,8 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid product_id' }, { status: 400 });
     }
 
-    const { data: images, error: imagesError } = await productHelper.getProductImages(productIdValue, admin);
+    const supabaseAdmin = createAdminClient();
+    const { data: images, error: imagesError } = await productHelper.getProductImages(productIdValue, supabaseAdmin);
 
     if (imagesError) {
       console.error('Image fetch error:', imagesError);
@@ -261,7 +265,7 @@ export async function DELETE(request: NextRequest) {
       const { error: clearImageReferenceError } = await productHelper.updateProduct(
         productIdValue,
         { image_id: null },
-        admin
+        supabaseAdmin
       );
 
       if (clearImageReferenceError) {
@@ -274,12 +278,12 @@ export async function DELETE(request: NextRequest) {
         .filter((path) => path);
 
       if (filePaths.length > 0) {
-        await admin.storage.from('product-images').remove(filePaths);
+        await supabaseAdmin.storage.from('product-images').remove(filePaths);
       }
 
       const { error: imageDeleteError } = await productHelper.deleteProductImageReferences(
         productIdValue,
-        admin
+        supabaseAdmin
       );
 
       if (imageDeleteError) {
@@ -288,7 +292,7 @@ export async function DELETE(request: NextRequest) {
       }
     }
 
-    const { error: deleteError } = await productHelper.deleteProduct(productIdValue, admin);
+    const { error: deleteError } = await productHelper.deleteProduct(productIdValue, supabaseAdmin);
 
     if (deleteError) {
       console.error('Delete error:', deleteError);
@@ -301,7 +305,7 @@ export async function DELETE(request: NextRequest) {
       description: 'Deleted product',
       editor: editor,
       user_id: user.id,
-      supabase: admin
+      supabase: supabaseAdmin
     });
 
     return NextResponse.json({

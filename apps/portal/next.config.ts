@@ -14,6 +14,7 @@ const nextConfig: NextConfig = {
       },
     ],
   },
+  transpilePackages: ["@dollys-closet/core", "@dollys-closet/ui"],
   experimental: {
     optimizePackageImports: ['lucide-react', 'recharts', '@radix-ui/react-icons'],
   },

@@ -1,7 +1,6 @@
 import { redirect } from "next/navigation";
-import AdminSidebar from "@/components/sidebar/AdminSidebar";
-import EmployeeSidebar from "@/components/sidebar/EmployeeSidebar";
-import { SidebarInset } from "@/components/ui/sidebar";
+import { AdminSidebar, EmployeeSidebar } from "@dollys-closet/ui";
+import { SidebarInset } from "@dollys-closet/ui";
 import ClientAuthGuard from "@/components/ClientAuthGuard";
 import { getServerAuthState } from "@/lib/auth/auth-server";
 import { buildLoginPath, buildUnauthorizedPath } from "@/lib/auth/auth-routing";

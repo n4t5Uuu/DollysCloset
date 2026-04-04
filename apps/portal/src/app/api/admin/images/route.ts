@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { admin } from "@dollys-closet/core/lib/supabase/admin";
+import { createAdminClient } from "@dollys-closet/core/lib/supabase/admin";
 import { productHelper } from "@/lib/products/product-helper";
 import { activityHelper } from "@/lib/activity/activity-helper";
 import { requireRequestAuth } from "@/lib/auth/auth-server";
@@ -59,7 +59,8 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "Missing product_id" }, { status: 400 });
     }
 
-    const { data: images, error } = await productHelper.getProductImages(productId, admin);
+    const supabaseAdmin = createAdminClient();
+    const { data: images, error } = await productHelper.getProductImages(productId, supabaseAdmin);
 
     if (error) throw error;
 
@@ -124,7 +125,8 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Invalid product_id" }, { status: 400 });
     }
 
-    const { data: existingImages, error: fetchError } = await productHelper.getProductImages(productIdValue, admin);
+    const supabaseAdmin = createAdminClient();
+    const { data: existingImages, error: fetchError } = await productHelper.getProductImages(productIdValue, supabaseAdmin);
 
     if (fetchError) {
       return NextResponse.json(
@@ -139,7 +141,7 @@ export async function POST(request: NextRequest) {
     const fileName = `${productId}/${Date.now()}-${file.name}`;
     const fileBuffer = Buffer.from(await file.arrayBuffer());
 
-    const { error: uploadError } = await admin.storage
+    const { error: uploadError } = await supabaseAdmin.storage
       .from("product-images")
       .upload(fileName, fileBuffer, {
         contentType: file.type,
@@ -153,7 +155,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { data: { publicUrl } } = admin.storage
+    const { data: { publicUrl } } = supabaseAdmin.storage
       .from("product-images")
       .getPublicUrl(fileName);
 
@@ -173,7 +175,7 @@ export async function POST(request: NextRequest) {
       is_primary: isFirstImage,
       display_order: displayOrder,
       created_at: new Date().toISOString(),
-    }, admin);
+    }, supabaseAdmin);
 
     if (insertError) {
       return NextResponse.json(
@@ -183,10 +185,10 @@ export async function POST(request: NextRequest) {
     }
 
     if (imageData?.image_id) {
-      const { data: productRow } = await productHelper.getProductById(productIdValue, admin);
+      const { data: productRow } = await productHelper.getProductById(productIdValue, supabaseAdmin);
 
       if (isFirstImage || productRow?.image_id == null) {
-        await productHelper.updateProduct(productIdValue, { image_id: imageData.image_id }, admin);
+        await productHelper.updateProduct(productIdValue, { image_id: imageData.image_id }, supabaseAdmin);
       }
     }
 
@@ -197,7 +199,7 @@ export async function POST(request: NextRequest) {
       description: `Uploaded image: ${file.name} on product ID ${productIdValue}`,
       editor: editor,
       user_id: user.id,
-      supabase: admin
+      supabase: supabaseAdmin
     });
 
     return NextResponse.json(imageData, { status: 201 });
@@ -233,10 +235,11 @@ export async function PUT(request: NextRequest) {
       payload: { display_order: index + 1, is_primary: index === 0 }
     }));
 
-    const { error: batchError } = await productHelper.batchUpdateProductImages(updates, admin);
+    const supabaseAdmin = createAdminClient();
+    const { error: batchError } = await productHelper.batchUpdateProductImages(updates, supabaseAdmin);
     if (batchError) throw batchError;
 
-    const { data: updatedImages } = await productHelper.getProductImages(product_id, admin);
+    const { data: updatedImages } = await productHelper.getProductImages(product_id, supabaseAdmin);
 
     const editor = user.email || user.user_metadata?.username || "Unknown";
     await activityHelper.logActivity({
@@ -245,7 +248,7 @@ export async function PUT(request: NextRequest) {
       description: "Reordered product images",
       editor: editor,
       user_id: user.id,
-      supabase: admin
+      supabase: supabaseAdmin
     });
 
     return NextResponse.json(updatedImages);
@@ -279,7 +282,8 @@ export async function DELETE(request: NextRequest) {
     const parsedImageId = Number.parseInt(imageIdRaw, 10);
     const imageIdValue = Number.isNaN(parsedImageId) ? imageIdRaw : parsedImageId;
 
-    const { data: image, error: fetchError } = await productHelper.getImageById(imageIdValue, admin);
+    const supabaseAdmin = createAdminClient();
+    const { data: image, error: fetchError } = await productHelper.getImageById(imageIdValue, supabaseAdmin);
 
     if (fetchError || !image) {
       return NextResponse.json({ error: "Image not found" }, { status: 404 });
@@ -291,7 +295,7 @@ export async function DELETE(request: NextRequest) {
     const { data: remainingBeforeDelete, error: remainingBeforeDeleteError } = await productHelper.getRemainingImagesExcluding(
       productIdValue,
       imageIdValue,
-      admin
+      supabaseAdmin
     );
 
     if (remainingBeforeDeleteError) {
@@ -302,7 +306,7 @@ export async function DELETE(request: NextRequest) {
 
     const { data: productRow, error: productFetchError } = await productHelper.getProductById(
       productIdValue,
-      admin
+      supabaseAdmin
     );
 
     if (productFetchError && productFetchError.code !== "PGRST116") {
@@ -318,7 +322,7 @@ export async function DELETE(request: NextRequest) {
       const { error: rebindProductError } = await productHelper.updateProduct(
         productIdValue,
         { image_id: preferredNextImage?.image_id || null },
-        admin
+        supabaseAdmin
       );
 
       if (rebindProductError) {
@@ -328,7 +332,7 @@ export async function DELETE(request: NextRequest) {
 
     const storageObjectPath = getStorageObjectPath(String(image_url || ""));
     if (storageObjectPath) {
-      const { error: storageDeleteError } = await admin.storage
+      const { error: storageDeleteError } = await supabaseAdmin.storage
         .from("product-images")
         .remove([storageObjectPath]);
 
@@ -337,13 +341,13 @@ export async function DELETE(request: NextRequest) {
       }
     }
 
-    const { error: deleteError } = await productHelper.deleteImageById(imageIdValue, admin);
+    const { error: deleteError } = await productHelper.deleteImageById(imageIdValue, supabaseAdmin);
 
     if (deleteError) throw deleteError;
 
     const { data: remainingImages, error: remainingImagesError } = await productHelper.getProductImages(
       productIdValue,
-      admin
+      supabaseAdmin
     );
 
     if (remainingImagesError) {
@@ -354,7 +358,7 @@ export async function DELETE(request: NextRequest) {
       const { error: clearProductImageError } = await productHelper.updateProduct(
         productIdValue,
         { image_id: null },
-        admin
+        supabaseAdmin
       );
 
       if (clearProductImageError) {
@@ -371,7 +375,7 @@ export async function DELETE(request: NextRequest) {
         }
       }));
 
-      const { success, error: normalizeError } = await productHelper.batchUpdateProductImages(updates, admin);
+      const { success, error: normalizeError } = await productHelper.batchUpdateProductImages(updates, supabaseAdmin);
 
       if (!success && normalizeError) {
         return NextResponse.json({ error: normalizeError.message }, { status: 500 });
@@ -380,7 +384,7 @@ export async function DELETE(request: NextRequest) {
       const { error: setProductImageError } = await productHelper.updateProduct(
         productIdValue,
         { image_id: normalizedPrimaryId },
-        admin
+        supabaseAdmin
       );
 
       if (setProductImageError) {
@@ -397,7 +401,7 @@ export async function DELETE(request: NextRequest) {
       description: `Deleted image (was displaying as #${display_order}${is_primary ? ", primary" : ""}) on product ID ${String(productIdValue)}`,
       editor: editor,
       user_id: user.id,
-      supabase: admin
+      supabase: supabaseAdmin
     });
 
     return NextResponse.json({ success: true });

@@ -1,6 +1,6 @@
 import { SupabaseClient } from "@supabase/supabase-js";
 import { createClient } from "@dollys-closet/core";
-import { Employee } from "@/types/employee.types";
+import { Employee } from "@dollys-closet/core";
 
 interface EmployeeAccountPayload {
     username: string;
@@ -298,3 +298,4 @@ export const employeeHelper = {
         };
     },
 };
+

@@ -3,7 +3,8 @@ import { NextResponse } from "next/server";
 import { authHelper } from "@dollys-closet/core";
 import { AuthRedirectReason } from "@/lib/auth/auth-routing";
 import { createServerSupabase } from "@dollys-closet/core/lib/supabase/server";
-import { admin } from "@dollys-closet/core/lib/supabase/admin";
+import { createAdminClient } from "@dollys-closet/core/lib/supabase/admin";
+import { employeeHelper } from "@/lib/employees/employee-helper";
 
 /**
  * Represents the two primary administrative roles supported by the application.
@@ -39,7 +40,9 @@ interface ServerAuthFailure {
 }
 
 function isAppRole(role: string | null | undefined): role is AppRole {
-  return role === "admin" || role === "employee";
+  if (!role) return false;
+  const normalized = role.toLowerCase();
+  return normalized === "admin" || normalized === "employee";
 }
 
 function getUnauthorizedResponse(reason: AuthRedirectReason = "login-required") {
@@ -54,17 +57,32 @@ function getForbiddenResponse() {
  * Internal private helper to resolve a user's role from the database 
  * using the elevated admin client.
  * @param userId - Target user ID to lookup.
+ * @param supabase - Administrative Supabase client.
  * @returns The resolved AppRole or null if not found or invalid.
  */
-async function getUserRole(userId: string) {
-  const { data, error } = await authHelper.getUserRole(userId, admin);
+async function getUserRole(userId: string, supabase = createAdminClient()) {
+  try {
+    console.log(`[auth-server] getUserRole called for userId: ${userId}`);
+    const { data: userRow, error } = await employeeHelper.getUserById(userId, supabase);
+    console.log(`[auth-server] getUserById result:`, { data: userRow, error });
 
-  if (error || !isAppRole(data?.role)) {
+    if (error) {
+      console.error(`[auth-server] Error fetching user row for ${userId}:`, error);
+      return null;
+    }
+
+    if (!userRow || !isAppRole(userRow.role)) {
+      console.warn(`[auth-server] User ${userId} has no valid app role in tbl_users. Found:`, userRow?.role);
+      return null;
+    }
+
+    return userRow.role.toLowerCase() as AppRole;
+  } catch (e) {
+    console.error(`[auth-server] EXCEPTION in getUserRole for ${userId}:`, e);
     return null;
   }
-
-  return data.role;
 }
+
 
 /**
  * A comprehensive server-side authentication guard for API Routes.
@@ -81,10 +99,11 @@ export async function requireRequestAuth(
   const authHeader = request.headers.get("authorization");
   let user: User | null = null;
   let reason: AuthRedirectReason = "login-required";
+  const supabaseAdmin = createAdminClient();
 
   if (authHeader?.startsWith("Bearer ")) {
     const token = authHeader.replace("Bearer ", "").trim();
-    const { data, error } = await admin.auth.getUser(token);
+    const { data, error } = await supabaseAdmin.auth.getUser(token);
 
     if (error || !data.user) {
       return {
@@ -120,7 +139,7 @@ export async function requireRequestAuth(
     };
   }
 
-  const role = await getUserRole(user.id);
+  const role = await getUserRole(user.id, supabaseAdmin);
 
   if (options.allowedRoles && (!role || !options.allowedRoles.includes(role))) {
     return {
@@ -148,6 +167,8 @@ export async function getServerAuthState(): Promise<ServerAuthSuccess | ServerAu
     error,
   } = await supabase.auth.getUser();
 
+  console.log(`[auth-server] getServerAuthState: user=${user?.id ?? 'null'}, error=${error?.message ?? 'none'}`);
+
   if (error || !user) {
     return {
       ok: false,
@@ -156,5 +177,6 @@ export async function getServerAuthState(): Promise<ServerAuthSuccess | ServerAu
   }
 
   const role = await getUserRole(user.id);
+  console.log(`[auth-server] getServerAuthState: resolved role=${role}`);
   return { ok: true, user, role };
 }

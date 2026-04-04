@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { admin } from "@dollys-closet/core/lib/supabase/admin";
+import { createAdminClient } from "@dollys-closet/core/lib/supabase/admin";
 import {
   ABOUT_SLUG,
   ANNOUNCEMENT_SLUG,
@@ -7,9 +7,9 @@ import {
   buildAboutAggregate,
   buildContactAggregate,
   sanitizeAnnouncementBody,
-} from "../../../lib/business-details/business-details";
-import { businessDetailsHelper } from "@/lib/business-details/business-details-helper";
-import { BusinessDetailsRow } from "@/types/business-details.types";
+  businessDetailsHelper,
+} from "@dollys-closet/core";
+import { BusinessDetailsRow } from "@dollys-closet/core";
 
 /**
  * Securely extracts active generic business configuration contexts aligned universally toward UI presentations.
@@ -27,12 +27,13 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "Missing slug" }, { status: 400 });
     }
 
-    const tableResult = await businessDetailsHelper.resolveTableName(admin);
+    const supabaseAdmin = createAdminClient();
+    const tableResult = await businessDetailsHelper.resolveTableName(supabaseAdmin);
     if (tableResult.error) {
       return NextResponse.json({ error: tableResult.error.message }, { status: 500 });
     }
 
-    const { data: rows, error: fetchError } = await businessDetailsHelper.findAllBySlug(tableResult.tableName, slug, admin);
+    const { data: rows, error: fetchError } = await businessDetailsHelper.findAllBySlug(tableResult.tableName, slug, supabaseAdmin);
 
     if (fetchError) {
       return NextResponse.json({ error: fetchError.message }, { status: 500 });
@@ -58,8 +59,6 @@ export async function GET(request: NextRequest) {
     }
 
     return NextResponse.json({ data: latestRow });
-
-    return NextResponse.json({ error: "Could not find business details table" }, { status: 500 });
   } catch (error: unknown) {
     return NextResponse.json(
       { error: error instanceof Error ? error.message : "Failed to fetch business details" },
@@ -67,3 +66,4 @@ export async function GET(request: NextRequest) {
     );
   }
 }
+

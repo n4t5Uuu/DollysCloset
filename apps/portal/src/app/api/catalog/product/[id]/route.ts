@@ -1,10 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
-
-import { admin } from "@dollys-closet/core/lib/supabase/admin";
+import { createAdminClient } from "@dollys-closet/core/lib/supabase/admin";
 import { productHelper } from "@/lib/products/product-helper";
-import { resolveProductPlaceholder } from "@/lib/images/product-placeholder";
-import { normalizeImageUrl } from "@/lib/images/normalize-image-url";
-import { InventoryCategory, InventoryProduct, InventoryProductImage } from "@/types/inventory.types";
+import { resolveProductPlaceholder, normalizeImageUrl } from "@dollys-closet/core";
+import { InventoryCategory, InventoryProduct, InventoryProductImage } from "@dollys-closet/core";
 
 type CatalogProduct = {
   id: string;
@@ -95,11 +93,12 @@ export async function GET(
 ) {
   try {
     const { id } = await params;
+    const supabaseAdmin = createAdminClient();
 
     const [categoriesResult, productResult, imagesResult] = await Promise.all([
-      productHelper.getCategories(admin),
-      productHelper.getProductById(id, admin),
-      productHelper.getProductImages(id, admin),
+      productHelper.getCategories(supabaseAdmin),
+      productHelper.getProductById(id, supabaseAdmin),
+      productHelper.getProductImages(id, supabaseAdmin),
     ]);
 
     if (categoriesResult.error) {

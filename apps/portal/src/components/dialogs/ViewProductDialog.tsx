@@ -1,8 +1,8 @@
 import { useEffect } from "react";
 /* eslint-disable @next/next/no-img-element */
-import { InventoryProduct as Product, InventoryProductImage as ProductImage } from "@/types/inventory.types";
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
+import { InventoryProduct as Product, InventoryProductImage as ProductImage } from "@dollys-closet/core";
+import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@dollys-closet/ui";
+import { Button } from "@dollys-closet/ui";
 import { X } from "lucide-react";
 
 interface ViewProductDialogProps {
@@ -158,3 +158,4 @@ export default function ViewProductDialog({
     </div>
   );
 }
+

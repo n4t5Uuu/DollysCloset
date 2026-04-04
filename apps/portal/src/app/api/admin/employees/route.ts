@@ -1,12 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { employeeHelper } from "@/lib/employees/employee-helper";
 import { activityHelper } from "@/lib/activity/activity-helper";
-import { admin } from "@dollys-closet/core/lib/supabase/admin";
+import { createAdminClient } from "@dollys-closet/core/lib/supabase/admin";
 import { requireRequestAuth } from "@/lib/auth/auth-server";
 import {
   sanitizeSingleLineText,
   schemaExactLimits,
-} from "@/lib/input-sanitization";
+} from "@dollys-closet/core";
 
 export async function GET(request: Request) {
   try {
@@ -19,7 +19,8 @@ export async function GET(request: Request) {
       return authResult.response;
     }
 
-    const { data, error } = await employeeHelper.getUsers(admin);
+    const supabaseAdmin = createAdminClient();
+    const { data, error } = await employeeHelper.getUsers(supabaseAdmin);
 
     if (error) {
       console.error('Error fetching employees:', error)
@@ -62,12 +63,13 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
     }
 
+    const supabaseAdmin = createAdminClient();
     const { data: employeeData, error: createError } = await employeeHelper.createEmployeeAccount({
       username: normalizedUsername,
       password,
       first_name: normalizedFirstName,
       last_name: normalizedLastName
-    }, admin);
+    }, supabaseAdmin);
 
     if (createError) {
       console.error('Employee creation error:', createError);
@@ -80,7 +82,7 @@ export async function POST(request: NextRequest) {
       description: `Created employee: ${normalizedFirstName} ${normalizedLastName} (${normalizedUsername})`,
       editor: editor,
       user_id: user.id,
-      supabase: admin
+      supabase: supabaseAdmin
     });
 
     return NextResponse.json({
@@ -122,7 +124,8 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
     }
 
-    const { data: currentEmployee } = await employeeHelper.getUserById(employee_id, admin);
+    const supabaseAdmin = createAdminClient();
+    const { data: currentEmployee } = await employeeHelper.getUserById(employee_id, supabaseAdmin);
 
     const changes: string[] = [];
     if (currentEmployee) {
@@ -137,7 +140,7 @@ export async function PUT(request: NextRequest) {
       first_name: normalizedFirstName,
       last_name: normalizedLastName,
       password
-    }, admin);
+    }, supabaseAdmin);
 
     if (updateError) {
       return NextResponse.json({ error: updateError.message }, { status: 500 });
@@ -149,7 +152,7 @@ export async function PUT(request: NextRequest) {
       description: changes.length > 0 ? `Updated employee "${normalizedFirstName} ${normalizedLastName}": ${changes.join(', ')}` : `Updated employee "${normalizedFirstName} ${normalizedLastName}"`,
       editor: editor,
       user_id: user.id,
-      supabase: admin
+      supabase: supabaseAdmin
     });
 
     return NextResponse.json({
@@ -186,7 +189,8 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ error: 'You cannot delete your own account.' }, { status: 403 });
     }
 
-    const { error: deleteError } = await employeeHelper.deleteEmployeeAccount(employee_id, admin);
+    const supabaseAdmin = createAdminClient();
+    const { error: deleteError } = await employeeHelper.deleteEmployeeAccount(employee_id, supabaseAdmin);
 
     if (deleteError) {
       return NextResponse.json({ error: deleteError.message }, { status: 500 });
@@ -198,7 +202,7 @@ export async function DELETE(request: NextRequest) {
       description: 'Deleted employee',
       editor: editor,
       user_id: user.id,
-      supabase: admin
+      supabase: supabaseAdmin
     });
 
     return NextResponse.json({

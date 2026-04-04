@@ -1,4 +1,4 @@
-import { Employee } from "@/types/employee.types";
+import { Employee } from "@dollys-closet/core";
 import { AlertTriangle, Loader2 } from "lucide-react";
 import {
   AlertDialog,
@@ -9,7 +9,7 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
+} from "@dollys-closet/ui";
 
 interface DeleteEmployeeDialogProps {
   employee: Employee;
@@ -63,3 +63,4 @@ export default function DeleteEmployeeDialog({ employee, onClose, onDelete, acti
     </AlertDialog>
   );
 }
+

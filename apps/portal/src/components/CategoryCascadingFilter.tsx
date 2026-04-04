@@ -3,7 +3,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Check, ChevronDown, ChevronRight } from "lucide-react";
-import { InventoryCategory as Category } from "@/types/inventory.types";
+import { InventoryCategory as Category } from "@dollys-closet/core";
 
 interface CategoryCascadingFilterProps {
   categories: Category[];
@@ -360,3 +360,4 @@ export default function CategoryCascadingFilter({
     </div>
   );
 }
+

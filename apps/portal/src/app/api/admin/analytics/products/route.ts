@@ -1,5 +1,5 @@
 import { BetaAnalyticsDataClient } from '@google-analytics/data';
-import { admin } from '@dollys-closet/core/lib/supabase/admin';
+import { createAdminClient } from '@dollys-closet/core/lib/supabase/admin';
 import { NextResponse } from 'next/server';
 import { productHelper } from '@/lib/products/product-helper';
 import { activityHelper } from '@/lib/activity/activity-helper';
@@ -74,10 +74,12 @@ export async function GET(request: Request) {
       sinceDate = d.toISOString();
     }
 
+    const supabaseAdmin = createAdminClient();
+
     const [productsResult, categoriesResult, logsResult] = await Promise.all([
-      productHelper.getProducts(admin),
-      productHelper.getCategories(admin),
-      activityHelper.fetchLogsByAction('edit_product', sinceDate || undefined, untilDate || undefined, admin),
+      productHelper.getProducts(supabaseAdmin),
+      productHelper.getCategories(supabaseAdmin),
+      activityHelper.fetchLogsByAction('edit_product', sinceDate || undefined, untilDate || undefined, supabaseAdmin),
     ]);
 
     const products = productsResult.data ?? [];

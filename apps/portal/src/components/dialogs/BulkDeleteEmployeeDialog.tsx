@@ -8,7 +8,7 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
+} from "@dollys-closet/ui";
 
 interface BulkDeleteEmployeeDialogProps {
   selectedCount: number;

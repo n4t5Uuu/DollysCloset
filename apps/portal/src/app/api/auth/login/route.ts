@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServerSupabase } from "@dollys-closet/core/lib/supabase/server";
-import { admin } from "@dollys-closet/core/lib/supabase/admin";
+import { createAdminClient } from "@dollys-closet/core/lib/supabase/admin";
 
 // Simple in-memory sliding-window rate limiter
 // Note: resets on serverless cold starts — provides best-effort protection.
@@ -121,7 +121,8 @@ export async function POST(request: NextRequest) {
     // can be logged in at a time. Uses scope "others" to preserve the new session.
     let otherSessionsRevoked = false;
     if (data.session?.access_token) {
-      const { error: revokeError } = await admin.auth.admin.signOut(
+      const supabaseAdmin = createAdminClient();
+      const { error: revokeError } = await supabaseAdmin.auth.admin.signOut(
         data.session.access_token,
         "others"
       );

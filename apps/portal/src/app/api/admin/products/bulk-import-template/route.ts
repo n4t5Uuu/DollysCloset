@@ -5,7 +5,7 @@ import { strFromU8, strToU8, unzipSync, zipSync } from "fflate";
 
 import { requireRequestAuth } from "@/lib/auth/auth-server";
 import { productHelper } from "@/lib/products/product-helper";
-import { admin } from "@dollys-closet/core/lib/supabase/admin";
+import { createAdminClient } from "@dollys-closet/core/lib/supabase/admin";
 
 interface CategoryRecord {
   category_id: number | string;
@@ -120,7 +120,8 @@ export async function GET(request: NextRequest) {
       return authResult.response;
     }
 
-    const { data: categories, error } = await productHelper.getCategories(admin);
+    const supabaseAdmin = createAdminClient();
+    const { data: categories, error } = await productHelper.getCategories(supabaseAdmin);
     if (error) {
       return NextResponse.json({ error: error.message }, { status: 500 });
     }

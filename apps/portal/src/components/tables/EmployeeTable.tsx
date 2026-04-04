@@ -1,9 +1,9 @@
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Button } from "@/components/ui/button";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@dollys-closet/ui";
+import { Checkbox } from "@dollys-closet/ui";
+import { Button } from "@dollys-closet/ui";
 import { Eye, Pencil, Trash2, Users } from "lucide-react";
-import { Employee } from "@/types/employee.types";
-import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty";
+import { Employee } from "@dollys-closet/core";
+import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@dollys-closet/ui";
 
 interface EmployeeTableProps {
   sortedEmployees: Employee[];
@@ -289,3 +289,4 @@ export function EmployeeTable({
     </>
   );
 }
+

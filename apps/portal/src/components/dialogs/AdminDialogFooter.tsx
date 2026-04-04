@@ -1,7 +1,7 @@
 import { Loader2 } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { CardFooter } from "@/components/ui/card";
-import { cn } from "@/lib/utils";
+import { Button } from "@dollys-closet/ui";
+import { CardFooter } from "@dollys-closet/ui";
+import { cn } from "@dollys-closet/core";
 
 interface AdminDialogFooterProps {
     onCancel: () => void;

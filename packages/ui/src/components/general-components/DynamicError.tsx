@@ -56,7 +56,7 @@ export default function DynamicError({
         {/* Top Logo Branding */}
         <div className="mb-4">
           <img 
-            src="https://raw.githubusercontent.com/Alden-Olmedo/DollysCloset-AdminAndEmployee/main/packages/core/src/assets/images/logo/no-bg-logo.png" 
+            src="/logo.png" 
             alt="Dolly's Closet Logo" 
             width={120} 
             height={120} 
@@ -103,7 +103,7 @@ export default function DynamicError({
           {showHomeButton && (
             <Link 
               href="/" 
-              className="px-8 py-3.5 bg-linear-to-r from-[#E7A3B0] to-[#e2899a] hover:from-[#e2899a] hover:to-[#DE7588] text-white font-bold rounded-xl shadow-[0_8px_20px_-6px_rgba(231,163,176,0.6)] hover:shadow-[0_12px_24px_-6px_rgba(231,163,176,0.8)] transition-all duration-300 hover:-translate-y-0.5 active:scale-95 text-xs uppercase tracking-widest text-center"
+              className="min-w-[220px] w-full sm:w-auto px-10 py-4 bg-[#E7A3B0] hover:bg-[#DE7588] text-white font-bold rounded-xl shadow-[0_8px_20px_-6px_rgba(231,163,176,0.6)] hover:shadow-[0_12px_24px_-6px_rgba(231,163,176,0.8)] transition-all duration-300 hover:-translate-y-0.5 active:scale-95 text-sm uppercase tracking-widest text-center"
             >
               Return Home
             </Link>

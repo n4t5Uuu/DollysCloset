@@ -1,10 +1,10 @@
 import { createClient } from "@dollys-closet/core";
 import { createServerSupabase } from "@dollys-closet/core/lib/supabase/server";
-import { LogActivityProps } from "@/types/logs.types";
+import { LogActivityProps } from "@dollys-closet/core";
 import {
     sanitizeSingleLineText,
     schemaExactLimits,
-} from "@/lib/input-sanitization";
+} from "@dollys-closet/core";
 
 export interface AvailableLogMonth {
     value: string;
@@ -296,4 +296,5 @@ export const activityHelper = {
         return true;
     },
 };
+
 

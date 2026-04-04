@@ -10,7 +10,7 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select';
+} from '@dollys-closet/ui';
 
 import { useEffect } from 'react';
 

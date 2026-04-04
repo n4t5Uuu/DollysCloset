@@ -41,3 +41,7 @@ export * from "./components/general-components/SessionGuard";
 export { default as Footer } from "./components/general-components/footer";
 export { default as Navbar } from "./components/general-components/navbar";
 export { default as AdminSearchInput } from "./components/general-components/AdminSearchInput";
+
+export * from "./components/sidebar/AdminSidebar";
+export * from "./components/sidebar/EmployeeSidebar";
+export * from "./components/sidebar/CatalogSidebar";

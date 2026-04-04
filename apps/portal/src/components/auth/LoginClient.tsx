@@ -198,7 +198,8 @@ export default function LoginClient() {
       />
 
       <div className="relative z-10 w-full max-w-[420px] bg-white/98 backdrop-blur-xl rounded-[32px] shadow-[0_16px_40px_-12px_rgba(231,163,176,0.25)] border border-white/60 p-10 md:px-12 md:py-12 animate-in fade-in zoom-in-95 duration-700">
-        <div className="text-center mb-10">
+        <div className="flex flex-col items-center mb-10">
+
           <h1 className="text-[2.75rem] leading-none font-oswald font-bold text-[#1A1A1A] tracking-wider mb-3 uppercase">
             Log In
           </h1>

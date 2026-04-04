@@ -1,8 +1,8 @@
-import { admin } from "@dollys-closet/core/lib/supabase/admin";
+import { createAdminClient } from "@dollys-closet/core/lib/supabase/admin";
 import { type CatalogApiProduct } from "@/types/product.types";
 import ProductDetailsClient from "@/components/catalog/ProductDetailsClient";
 import { type Metadata, type ResolvingMetadata } from "next";
-import { resolveProductPlaceholder } from "@/lib/images/product-placeholder";
+import { resolveProductPlaceholder } from "@dollys-closet/core";
 
 type Props = {
   params: Promise<{ id: string }>;
@@ -10,7 +10,8 @@ type Props = {
 };
 
 async function getProduct(id: string): Promise<CatalogApiProduct | null> {
-  const { data, error } = await admin
+  const supabaseAdmin = createAdminClient();
+  const { data, error } = await supabaseAdmin
     .from("products")
     .select("*, category:categories(name, parent:parent_id(name))")
     .eq("id", id)
@@ -18,12 +19,12 @@ async function getProduct(id: string): Promise<CatalogApiProduct | null> {
 
   if (error || !data) return null;
 
-  // Manual join processing if needed, though usually Next.js handles this
   return data as CatalogApiProduct;
 }
 
 async function getCatalog(): Promise<CatalogApiProduct[]> {
-  const { data, error } = await admin
+  const supabaseAdmin = createAdminClient();
+  const { data, error } = await supabaseAdmin
     .from("products")
     .select("*, category:categories(name, parent:parent_id(name))")
     .limit(20);

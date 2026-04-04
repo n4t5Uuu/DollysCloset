@@ -7,7 +7,7 @@ import {
     AlertDialogFooter,
     AlertDialogHeader,
     AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
+} from "@dollys-closet/ui";
 
 interface DiscardChangesDialogProps {
     isOpen: boolean;

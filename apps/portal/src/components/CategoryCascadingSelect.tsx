@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { Check, ChevronDown, ChevronRight } from "lucide-react";
-import { InventoryCategory as Category } from "@/types/inventory.types";
+import { InventoryCategory as Category } from "@dollys-closet/core";
 
 interface CategoryCascadingSelectProps {
   categories: Category[];
@@ -324,3 +324,4 @@ export default function CategoryCascadingSelect({
     </div>
   );
 }
+

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { productHelper } from "@/lib/products/product-helper";
 import { activityHelper } from "@/lib/activity/activity-helper";
-import { admin } from "@dollys-closet/core/lib/supabase/admin";
+import { createAdminClient } from "@dollys-closet/core/lib/supabase/admin";
 import { requireRequestAuth } from "@/lib/auth/auth-server";
 
 const MAX_BULK_DELETE_PRODUCTS = 100;
@@ -49,8 +49,10 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ error: 'No valid product_ids provided' }, { status: 400 });
     }
 
+    const supabaseAdmin = createAdminClient();
+
     // Fetch product images for cleanup using productHelper
-    const { data: images, error: imagesError } = await productHelper.getProductImagesBulk(productIds, admin);
+    const { data: images, error: imagesError } = await productHelper.getProductImagesBulk(productIds, supabaseAdmin);
 
     if (imagesError) {
       console.error('Image fetch error:', imagesError);
@@ -58,7 +60,7 @@ export async function DELETE(request: NextRequest) {
     }
 
     if (images && images.length > 0) {
-      const { error: clearImageReferenceError } = await productHelper.updateProductsBulk(productIds, { image_id: null }, admin);
+      const { error: clearImageReferenceError } = await productHelper.updateProductsBulk(productIds, { image_id: null }, supabaseAdmin);
 
       if (clearImageReferenceError) {
         console.error('Clear image reference error:', clearImageReferenceError);
@@ -70,10 +72,10 @@ export async function DELETE(request: NextRequest) {
         .filter((path) => path);
 
       if (filePaths.length > 0) {
-        await admin.storage.from('product-images').remove(filePaths);
+        await supabaseAdmin.storage.from('product-images').remove(filePaths);
       }
 
-      const { error: imageDeleteError } = await productHelper.deleteProductImagesBulk(productIds, admin);
+      const { error: imageDeleteError } = await productHelper.deleteProductImagesBulk(productIds, supabaseAdmin);
 
       if (imageDeleteError) {
         console.error('Image delete error:', imageDeleteError);
@@ -82,7 +84,7 @@ export async function DELETE(request: NextRequest) {
     }
 
     // Delete from tbl_product using productHelper
-    const { error: deleteError } = await productHelper.deleteProductsBulk(productIds, admin);
+    const { error: deleteError } = await productHelper.deleteProductsBulk(productIds, supabaseAdmin);
 
     if (deleteError) {
       console.error('Delete error:', deleteError);
@@ -96,7 +98,7 @@ export async function DELETE(request: NextRequest) {
       description: `Bulk deleted ${product_ids.length} product(s)`,
       editor: editor,
       user_id: user.id,
-      supabase: admin
+      supabase: supabaseAdmin
     });
 
     return NextResponse.json({ 

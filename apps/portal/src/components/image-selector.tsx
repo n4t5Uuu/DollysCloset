@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { Upload, X, Loader2 } from "lucide-react";
-import { compressImage } from "@/lib/images/image-compression";
+import { compressImage } from "@dollys-closet/core";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -11,7 +11,7 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
+} from "@dollys-closet/ui";
 
 interface ImageSelectorProps {
   stagedFiles: File[];

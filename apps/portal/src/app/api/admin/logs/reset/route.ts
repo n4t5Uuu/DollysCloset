@@ -1,9 +1,8 @@
-import { admin } from "@dollys-closet/core/lib/supabase/admin";
+import { createAdminClient } from "@dollys-closet/core/lib/supabase/admin";
 import { authHelper } from "@dollys-closet/core";
 import { activityHelper } from "@/lib/activity/activity-helper";
 import { createServerSupabase } from "@dollys-closet/core/lib/supabase/server";
-import { NextRequest } from "next/server";
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 
 /**
  * Hard resets all underlying history tracked inside the `tbl_activity_log` component natively.
@@ -14,11 +13,12 @@ import { NextResponse } from "next/server";
 export async function POST(request: NextRequest) {
   try {
     let userId: string | null = null;
+    const supabaseAdmin = createAdminClient();
 
     const authHeader = request.headers.get('authorization');
     if (authHeader) {
       const token = authHeader.replace('Bearer ', '');
-      const { data: { user }, error: authError } = await admin.auth.getUser(token);
+      const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(token);
       if (!authError && user) {
         userId = user.id;
       }
@@ -33,12 +33,12 @@ export async function POST(request: NextRequest) {
       userId = user.id;
     }
 
-    const { data: userData, error: roleError } = await authHelper.getUserRole(userId, admin);
+    const { data: userData, error: roleError } = await authHelper.getUserRole(userId, supabaseAdmin);
     if (roleError || userData?.role !== 'admin') {
       return NextResponse.json({ error: 'Forbidden: Admin access required' }, { status: 403 });
     }
 
-    const { error } = await activityHelper.clearLogs(admin);
+    const { error } = await activityHelper.clearLogs(supabaseAdmin);
 
     if (error) throw error;
 

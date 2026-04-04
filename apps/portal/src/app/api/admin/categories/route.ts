@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { productHelper } from '@/lib/products/product-helper';
 import { requireRequestAuth } from '@/lib/auth/auth-server';
-import { admin } from '@dollys-closet/core/lib/supabase/admin';
+import { createAdminClient } from '@dollys-closet/core/lib/supabase/admin';
 
 /**
  * Retrieves the complete list of available product categories.
@@ -19,7 +19,8 @@ export async function GET(request: Request) {
       return authResult.response;
     }
 
-    const { data, error } = await productHelper.getCategories(admin);
+    const supabaseAdmin = createAdminClient();
+    const { data, error } = await productHelper.getCategories(supabaseAdmin);
     
     if (error) {
       console.error('Error fetching categories:', error)

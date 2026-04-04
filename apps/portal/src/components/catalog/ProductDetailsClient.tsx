@@ -21,7 +21,7 @@ import {
   Skeleton 
 } from "@dollys-closet/ui";
 import { ANNOUNCEMENT_SLUG, resolveProductPlaceholder } from "@dollys-closet/core";
-import { type CatalogApiProduct, type Product } from "@/types/product.types";
+import { type CatalogApiProduct, type Product } from "@dollys-closet/core";
 
 function toViewProduct(product: CatalogApiProduct): Product {
   return {
@@ -481,3 +481,4 @@ export default function ProductDetailsClient({
     </div>
   );
 }
+

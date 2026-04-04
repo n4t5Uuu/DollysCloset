@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { employeeHelper } from "@/lib/employees/employee-helper";
 import { activityHelper } from "@/lib/activity/activity-helper";
-import { admin } from "@dollys-closet/core/lib/supabase/admin";
+import { createAdminClient } from "@dollys-closet/core/lib/supabase/admin";
 import { requireRequestAuth } from "@/lib/auth/auth-server";
 
 const MAX_BULK_DELETE_EMPLOYEES = 100;
@@ -43,8 +43,10 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ error: 'You cannot delete your own account.' }, { status: 403 });
     }
 
+    const supabaseAdmin = createAdminClient();
+
     // Delete employee accounts in bulk using employeeHelper
-    const { failures, deletedIds } = await employeeHelper.deleteEmployeesBulkAccount(employee_ids, admin);
+    const { failures, deletedIds } = await employeeHelper.deleteEmployeesBulkAccount(employee_ids, supabaseAdmin);
 
     // this logs the activity if the user is valid
     if (user) {
@@ -55,7 +57,7 @@ export async function DELETE(request: NextRequest) {
         description: `Bulk deleted ${deletedIds.length} employee(s)`,
         editor: editor,
         user_id: user?.id,
-        supabase: admin
+        supabase: supabaseAdmin
       });
     }
 
