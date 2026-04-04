@@ -5,7 +5,8 @@ import { Eye, EyeOff, CheckCircle2, AlertTriangle, RefreshCcw, ShieldCheck } fro
 import { toast } from "sonner";
 import { createClient, useUnsavedChanges } from "@dollys-closet/core";
 import { changePasswordAction } from "./actions";
-import { Button, AdminNoticeBanner } from "@dollys-closet/ui";
+import { Button } from "@dollys-closet/ui";
+import { AdminNoticeBanner } from "@/components/ui/admin-notice-banner";
 
 interface Profile {
   displayName: string;

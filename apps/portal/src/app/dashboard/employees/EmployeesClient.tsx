@@ -4,13 +4,13 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import { Plus, Trash, RefreshCcw, X } from "lucide-react";
 import { createClient, Employee } from "@dollys-closet/core";
-import { 
-  Button, 
-  CustomPagination, 
-  AdminSearchInput,
+import {
+  Button,
+  CustomPagination,
   Skeleton,
-  AdminNoticeBanner
 } from "@dollys-closet/ui";
+import AdminSearchInput from "@/components/general-components/AdminSearchInput";
+import { AdminNoticeBanner } from "@/components/ui/admin-notice-banner";
 
 import AddEmployee from "@/components/dialogs/AddEmployee";
 import { EmployeeTable } from "@/components/tables/EmployeeTable";

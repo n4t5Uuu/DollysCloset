@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState, useCallback } from "react";
 import { useSearchParams, useRouter, usePathname } from "next/navigation";
 
 import FeatureCardCarousel from "../catalog/FeatureCardCarousel";
+import ProductCard from "../catalog/ProductCard";
 import CustomPagination from "../general-components/CustomPagination";
 import SearchBar from "../general-components/SearchBar";
 import CatalogSidebar from "../sidebar/CatalogSidebar";
@@ -821,11 +822,24 @@ export function CollectionsView() {
                                 </Empty>
                             </div>
                         ) : (
-                        <CustomPagination
-                            totalPages={totalPages}
-                            currentPage={safePage}
-                            onPageChange={handlePageChange}
-                        />
+                            <div className="space-y-10">
+                                <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-5 2xl:grid-cols-6 gap-x-2 sm:gap-x-4 gap-y-4 sm:gap-y-8">
+                                    {paginatedProducts.map((product) => (
+                                        <ProductCard
+                                            key={product.id}
+                                            product={toViewProduct(product)}
+                                            href={`/product/${product.id}`}
+                                            onClick={() => handleProductNavigation(product.id)}
+                                        />
+                                    ))}
+                                </div>
+
+                                <CustomPagination
+                                    totalPages={totalPages}
+                                    currentPage={safePage}
+                                    onPageChange={handlePageChange}
+                                />
+                            </div>
                         )}
                     </div>
                 </div>

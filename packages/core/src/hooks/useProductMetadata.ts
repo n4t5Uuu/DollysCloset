@@ -1,4 +1,4 @@
-import { Product } from "@/types/product.types";
+import type { Product } from "../types/product.types";
 import { useMemo } from "react";
 
 function hasDisplayValue(value: string | null | undefined) {

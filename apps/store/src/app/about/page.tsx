@@ -1,5 +1,4 @@
-import { createClient } from "@dollys-closet/core";
-import { getAboutDetails } from "@dollys-closet/core";
+import { createServerSupabase, getAboutDetails } from "@dollys-closet/core";
 import { AboutView } from "@dollys-closet/ui";
 import type { Metadata } from "next";
 
@@ -9,7 +8,7 @@ export const metadata: Metadata = {
 };
 
 export default async function AboutPage() {
-  const supabase = createClient();
+  const supabase = await createServerSupabase();
   const aboutDetails = await getAboutDetails(supabase);
 
   return <AboutView aboutDetails={aboutDetails} />;

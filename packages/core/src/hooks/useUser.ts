@@ -1,4 +1,5 @@
 import { useUserContext } from "../contexts/UserContext";
+import type { UserContextValue } from "../contexts/UserContext";
 
 /**
  * Custom hook to consume the centralized user authentication and role-based state.
@@ -12,6 +13,6 @@ import { useUserContext } from "../contexts/UserContext";
  * - loading: Boolean indicating if auth state is still being determined
  * - signOut: Helper function to securely sign out the user
  */ 
-export function useUser() {
+export function useUser(): UserContextValue {
     return useUserContext();
 }

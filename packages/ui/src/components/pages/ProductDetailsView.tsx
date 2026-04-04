@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useParams, useRouter, useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { type CSSProperties, type MouseEvent, useEffect, useMemo, useRef, useState } from "react";
 import {
   ArrowLeft,
@@ -13,13 +13,11 @@ import {
 } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 
-import { 
-  ProductCard, 
-  InfiniteSlider, 
-  Button, 
-  Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle, 
-  Skeleton 
-} from "@dollys-closet/ui";
+import ProductCard from "../catalog/ProductCard";
+import { InfiniteSlider } from "../motion-primitives/infinite-slider";
+import { Button } from "../ui/button";
+import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "../ui/empty";
+import { Skeleton } from "../ui/skeleton";
 import { ANNOUNCEMENT_SLUG, resolveProductPlaceholder } from "@dollys-closet/core";
 import { type CatalogApiProduct, type Product } from "@dollys-closet/core";
 
@@ -40,10 +38,6 @@ function toViewProduct(product: CatalogApiProduct): Product {
   };
 }
 
-function buildProductPath(productId: string, fromPath: string) {
-  return `/product/${productId}?from=${encodeURIComponent(fromPath)}`;
-}
-
 function getSafeInternalPath(candidatePath: string | null, fallbackPath: string) {
   if (!candidatePath || !candidatePath.startsWith("/") || candidatePath.startsWith("//")) {
     return fallbackPath;
@@ -53,7 +47,7 @@ function getSafeInternalPath(candidatePath: string | null, fallbackPath: string)
 }
 
 function formatPrice(price: number) {
-  return `₱${price.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  return `P${price.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
 function decodeHtmlEntities(value: string) {
@@ -74,14 +68,14 @@ const slideVariants = {
 const ZOOM_FACTOR = 2.5;
 const ZOOM_PANEL_SIZE = 320;
 
-export default function ProductDetailsClient({ 
+export function ProductDetailsView({
   productId,
   initialProduct,
-  initialCatalog
-}: { 
-  productId: string,
-  initialProduct?: CatalogApiProduct | null,
-  initialCatalog?: CatalogApiProduct[]
+  initialCatalog,
+}: {
+  productId: string;
+  initialProduct?: CatalogApiProduct | null;
+  initialCatalog?: CatalogApiProduct[];
 }) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -101,7 +95,7 @@ export default function ProductDetailsClient({
   const imageContainerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (initialProduct && initialCatalog) return; // Skip fetch if pre-loaded by server
+    if (initialProduct && initialCatalog) return;
 
     const fetchProductPageData = async () => {
       try {
@@ -195,7 +189,6 @@ export default function ProductDetailsClient({
     });
 
     const newestFallback = products.filter((item) => item.id !== product.id);
-
     const combined = [...sameCategory, ...sameRoot, ...newestFallback];
     const unique = combined.filter(
       (item, index, list) => list.findIndex((entry) => entry.id === item.id) === index
@@ -236,11 +229,11 @@ export default function ProductDetailsClient({
     return (
       <div className="min-h-screen bg-white">
         <div className="container mx-auto px-4 py-8">
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-12">
+          <div className="grid grid-cols-1 gap-12 lg:grid-cols-12">
             <div className="lg:col-span-7">
               <Skeleton className="aspect-4/5 w-full rounded-2xl" />
             </div>
-            <div className="lg:col-span-5 space-y-6">
+            <div className="space-y-6 lg:col-span-5">
               <Skeleton className="h-4 w-24" />
               <Skeleton className="h-10 w-3/4" />
               <Skeleton className="h-8 w-1/3" />
@@ -257,22 +250,22 @@ export default function ProductDetailsClient({
       <div className="min-h-[80vh] flex items-center justify-center bg-white px-4">
         <Empty className="max-w-md w-full">
           <EmptyMedia>
-            <PackageSearch className="w-16 h-16 text-gray-300" />
+            <PackageSearch className="h-16 w-16 text-gray-300" />
           </EmptyMedia>
           <EmptyHeader>
             <EmptyTitle className="text-2xl font-serif text-gray-900">
               Product Not Found
             </EmptyTitle>
             <EmptyDescription className="text-gray-500">
-              The item you're looking for might have been moved or is no longer available.
+              The item you&apos;re looking for might have been moved or is no longer available.
             </EmptyDescription>
           </EmptyHeader>
           <div className="mt-8">
-            <Button 
+            <Button
               onClick={() => router.push(fromPath)}
-              className="bg-gray-900 hover:bg-gray-800 text-white px-8 h-12 rounded-full font-medium transition-all"
+              className="h-12 rounded-full bg-gray-900 px-8 text-white transition-all hover:bg-gray-800"
             >
-              <ArrowLeft className="w-4 h-4 mr-2" />
+              <ArrowLeft className="mr-2 h-4 w-4" />
               Back to Catalog
             </Button>
           </div>
@@ -284,15 +277,15 @@ export default function ProductDetailsClient({
   return (
     <div className="min-h-screen bg-white selection:bg-gray-100">
       {announcementText && (
-        <div className="bg-gray-900 text-white py-2.5 px-4 text-center text-sm font-medium tracking-wide">
+        <div className="bg-gray-900 px-4 py-2.5 text-center text-sm font-medium tracking-wide text-white">
           {announcementText}
         </div>
       )}
 
-      <main className="container mx-auto px-4 md:px-6 lg:px-8 py-8 md:py-12">
-        <nav className="flex items-center space-x-2 text-sm text-gray-500 mb-8 md:mb-12 overflow-x-auto whitespace-nowrap pb-2">
-          <Link href={fromPath} className="hover:text-gray-900 transition-colors flex items-center">
-            <ArrowLeft className="w-4 h-4 mr-2" />
+      <main className="container mx-auto px-4 py-8 md:px-6 md:py-12 lg:px-8">
+        <nav className="mb-8 flex items-center space-x-2 overflow-x-auto whitespace-nowrap pb-2 text-sm text-gray-500 md:mb-12">
+          <Link href={fromPath} className="flex items-center transition-colors hover:text-gray-900">
+            <ArrowLeft className="mr-2 h-4 w-4" />
             Back
           </Link>
           <span className="text-gray-300">/</span>
@@ -304,12 +297,12 @@ export default function ProductDetailsClient({
           ))}
         </nav>
 
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-16">
-          <div className="lg:col-span-7 order-1">
-            <div className="relative group">
-              <div 
+        <div className="grid grid-cols-1 gap-12 lg:grid-cols-12 lg:gap-16">
+          <div className="order-1 lg:col-span-7">
+            <div className="group relative">
+              <div
                 ref={imageContainerRef}
-                className="relative aspect-4/5 rounded-3xl overflow-hidden bg-gray-50 border border-gray-100 cursor-zoom-in"
+                className="relative aspect-4/5 cursor-zoom-in overflow-hidden rounded-3xl border border-gray-100 bg-gray-50"
                 onMouseEnter={() => setIsZoomed(true)}
                 onMouseLeave={() => setIsZoomed(false)}
                 onMouseMove={handleMouseMove}
@@ -324,7 +317,7 @@ export default function ProductDetailsClient({
                     exit="exit"
                     transition={{
                       x: { type: "spring", stiffness: 300, damping: 30 },
-                      opacity: { duration: 0.2 }
+                      opacity: { duration: 0.2 },
                     }}
                     className="absolute inset-0"
                   >
@@ -340,8 +333,8 @@ export default function ProductDetailsClient({
                 </AnimatePresence>
 
                 {isZoomed && (
-                  <div 
-                    className="absolute pointer-events-none border-2 border-white/50 shadow-2xl rounded-2xl overflow-hidden hidden md:block"
+                  <div
+                    className="absolute hidden overflow-hidden rounded-2xl border-2 border-white/50 shadow-2xl md:block"
                     style={{
                       width: ZOOM_PANEL_SIZE,
                       height: ZOOM_PANEL_SIZE,
@@ -353,20 +346,26 @@ export default function ProductDetailsClient({
                     }}
                   />
                 )}
-                
+
                 {product.images.length > 1 && (
-                  <div className="absolute inset-x-4 top-1/2 -translate-y-1/2 flex justify-between pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity">
+                  <div className="pointer-events-none absolute inset-x-4 top-1/2 flex -translate-y-1/2 justify-between opacity-0 transition-opacity group-hover:opacity-100">
                     <button
-                      onClick={(e) => { e.stopPropagation(); paginate(-1); }}
-                      className="p-3 rounded-full bg-white/90 backdrop-blur-sm text-gray-900 pointer-events-auto hover:bg-white transition-all shadow-lg active:scale-95"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        paginate(-1);
+                      }}
+                      className="pointer-events-auto rounded-full bg-white/90 p-3 text-gray-900 shadow-lg transition-all hover:bg-white active:scale-95"
                     >
-                      <ChevronLeft className="w-6 h-6" />
+                      <ChevronLeft className="h-6 w-6" />
                     </button>
                     <button
-                      onClick={(e) => { e.stopPropagation(); paginate(1); }}
-                      className="p-3 rounded-full bg-white/90 backdrop-blur-sm text-gray-900 pointer-events-auto hover:bg-white transition-all shadow-lg active:scale-95"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        paginate(1);
+                      }}
+                      className="pointer-events-auto rounded-full bg-white/90 p-3 text-gray-900 shadow-lg transition-all hover:bg-white active:scale-95"
                     >
-                      <ChevronRight className="w-6 h-6" />
+                      <ChevronRight className="h-6 w-6" />
                     </button>
                   </div>
                 )}
@@ -375,13 +374,13 @@ export default function ProductDetailsClient({
               <div className="mt-6 flex space-x-3 overflow-x-auto pb-4 scrollbar-hide">
                 {product.images.map((img, idx) => (
                   <button
-                    key={img}
+                    key={`${img}-${idx}`}
                     onClick={() => {
                       setSlideDirection(idx > selectedImage ? 1 : -1);
                       setSelectedImage(idx);
                     }}
-                    className={`relative w-20 aspect-square rounded-xl overflow-hidden shrink-0 transition-all border-2 ${
-                      selectedImage === idx ? "border-gray-900 scale-105 shadow-md" : "border-transparent opacity-60 hover:opacity-100"
+                    className={`relative aspect-square w-20 shrink-0 overflow-hidden rounded-xl border-2 transition-all ${
+                      selectedImage === idx ? "scale-105 border-gray-900 shadow-md" : "border-transparent opacity-60 hover:opacity-100"
                     }`}
                   >
                     <Image
@@ -397,41 +396,41 @@ export default function ProductDetailsClient({
             </div>
           </div>
 
-          <div className="lg:col-span-5 order-2 flex flex-col">
+          <div className="order-2 flex flex-col lg:col-span-5">
             <div className="flex-1 space-y-8">
               <div className="space-y-4">
-                <span className="inline-block px-3 py-1 bg-gray-100 text-gray-600 text-xs font-bold tracking-widest uppercase rounded-full">
+                <span className="inline-block rounded-full bg-gray-100 px-3 py-1 text-xs font-bold uppercase tracking-widest text-gray-600">
                   {decodeHtmlEntities(product.categoryName)}
                 </span>
-                <h1 className="text-4xl md:text-5xl font-serif text-gray-900 leading-tight">
+                <h1 className="text-4xl leading-tight text-gray-900 md:text-5xl">
                   {decodeHtmlEntities(product.name)}
                 </h1>
                 <div className="flex items-baseline space-x-4">
                   <span className="text-3xl font-medium text-gray-900">{formatPrice(product.price)}</span>
                   {product.stock <= 5 && product.stock > 0 && (
-                    <span className="text-sm font-semibold text-rose-600 animate-pulse">
+                    <span className="animate-pulse text-sm font-semibold text-rose-600">
                       Only {product.stock} left!
                     </span>
                   )}
                 </div>
               </div>
 
-              <div className="space-y-6 pt-8 border-t border-gray-100">
+              <div className="space-y-6 border-t border-gray-100 pt-8">
                 <div className="grid grid-cols-2 gap-8">
                   <div className="space-y-1">
-                    <span className="text-xs text-gray-400 uppercase tracking-widest font-bold">Size</span>
+                    <span className="text-xs font-bold uppercase tracking-widest text-gray-400">Size</span>
                     <p className="text-lg font-medium text-gray-900">{product.size}</p>
                   </div>
                   <div className="space-y-1">
-                    <span className="text-xs text-gray-400 uppercase tracking-widest font-bold">Brand</span>
+                    <span className="text-xs font-bold uppercase tracking-widest text-gray-400">Brand</span>
                     <p className="text-lg font-medium text-gray-900">{product.brand}</p>
                   </div>
                   <div className="space-y-1">
-                    <span className="text-xs text-gray-400 uppercase tracking-widest font-bold">Condition</span>
-                    <p className="text-lg font-medium text-gray-900 capitalize">{product.condition}</p>
+                    <span className="text-xs font-bold uppercase tracking-widest text-gray-400">Condition</span>
+                    <p className="text-lg font-medium capitalize text-gray-900">{product.condition}</p>
                   </div>
                   <div className="space-y-1">
-                    <span className="text-xs text-gray-400 uppercase tracking-widest font-bold">Availability</span>
+                    <span className="text-xs font-bold uppercase tracking-widest text-gray-400">Availability</span>
                     <p className={`text-lg font-medium ${product.stock > 0 ? "text-emerald-600" : "text-rose-600"}`}>
                       {product.stock > 0 ? "In Stock" : "Out of Stock"}
                     </p>
@@ -439,17 +438,17 @@ export default function ProductDetailsClient({
                 </div>
 
                 <div className="space-y-3">
-                  <span className="text-xs text-gray-400 uppercase tracking-widest font-bold">Description</span>
-                  <div 
-                    className="text-gray-600 leading-relaxed text-lg"
+                  <span className="text-xs font-bold uppercase tracking-widest text-gray-400">Description</span>
+                  <div
+                    className="text-lg leading-relaxed text-gray-600"
                     dangerouslySetInnerHTML={{ __html: product.description }}
                   />
                 </div>
               </div>
 
-              <div className="pt-8 space-y-4">
-                <div className="flex items-start p-4 bg-gray-50 rounded-2xl space-x-3">
-                  <MapPin className="w-5 h-5 text-gray-400 shrink-0 mt-0.5" />
+              <div className="space-y-4 pt-8">
+                <div className="flex items-start space-x-3 rounded-2xl bg-gray-50 p-4">
+                  <MapPin className="mt-0.5 h-5 w-5 shrink-0 text-gray-400" />
                   <p className="text-sm text-gray-600">
                     Available for preview and pickup at our boutique. Items are meticulously curated and one-of-a-kind.
                   </p>
@@ -460,11 +459,11 @@ export default function ProductDetailsClient({
         </div>
 
         {relatedProducts.length > 0 && (
-          <section className="mt-24 md:mt-32 pt-16 border-t border-gray-100">
-            <div className="flex items-end justify-between mb-12">
+          <section className="mt-24 border-t border-gray-100 pt-16 md:mt-32">
+            <div className="mb-12 flex items-end justify-between">
               <div className="space-y-2">
-                <span className="text-sm font-bold text-gray-400 uppercase tracking-widest">More for you</span>
-                <h2 className="text-3xl md:text-4xl font-serif text-gray-900">Recommended Pieces</h2>
+                <span className="text-sm font-bold uppercase tracking-widest text-gray-400">More for you</span>
+                <h2 className="text-3xl text-gray-900 md:text-4xl">Recommended Pieces</h2>
               </div>
             </div>
 
@@ -481,4 +480,3 @@ export default function ProductDetailsClient({
     </div>
   );
 }
-

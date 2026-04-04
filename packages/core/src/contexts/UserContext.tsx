@@ -7,14 +7,14 @@ import { authHelper } from "../lib/auth/auth-helper";
 
 export type UserRole = "admin" | "employee" | null;
 
-interface UserContextType {
+export interface UserContextValue {
     user: User | null;
     userRole: UserRole;
     loading: boolean;
     signOut: () => Promise<void>;
 }
 
-const UserContext = createContext<UserContextType | undefined>(undefined);
+const UserContext = createContext<UserContextValue | undefined>(undefined);
 
 /**
  * UserProvider Component
@@ -121,7 +121,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
 /**
  * Internal hook used only for the context consumer.
  */
-export function useUserContext() {
+export function useUserContext(): UserContextValue {
     const context = useContext(UserContext);
     if (context === undefined) {
         throw new Error("useUserContext must be used within a UserProvider");

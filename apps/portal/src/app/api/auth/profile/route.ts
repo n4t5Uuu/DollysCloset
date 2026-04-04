@@ -3,6 +3,15 @@ import { createServerSupabase } from "@dollys-closet/core/lib/supabase/server";
 import { createAdminClient } from "@dollys-closet/core/lib/supabase/admin";
 import { employeeHelper } from "@/lib/employees/employee-helper";
 
+function normalizeRole(role: unknown): "admin" | "employee" | null {
+  if (typeof role !== "string") {
+    return null;
+  }
+
+  const normalizedRole = role.trim().toLowerCase();
+  return normalizedRole === "admin" || normalizedRole === "employee" ? normalizedRole : null;
+}
+
 export async function GET() {
   try {
     const supabase = await createServerSupabase();
@@ -17,6 +26,7 @@ export async function GET() {
 
     const supabaseAdmin = createAdminClient();
     const { data: userRow } = await employeeHelper.getUserById(user.id, supabaseAdmin);
+    const normalizedRole = normalizeRole(userRow?.role);
 
     const firstName = String(userRow?.first_name || "").trim();
     const lastName = String(userRow?.last_name || "").trim();
@@ -41,7 +51,7 @@ export async function GET() {
     return NextResponse.json({
       data: {
         userId: user.id,
-        role: userRow?.role || null,
+        role: normalizedRole,
         displayName,
         firstName: userRow?.first_name || "",
       },

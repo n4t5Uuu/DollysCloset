@@ -46,6 +46,60 @@ function normaliseOffset(index: number, activeIndex: number, total: number): num
 type LaunchOverride = { id: string; offset: number };
 type ExitClone = { id: string; startOffset: number; endOffset: number; active: boolean };
 
+function CardContent({ product, cardImageHeight, cardWidth }: { product: Product; cardImageHeight: number; cardWidth: number }) {
+    const { isSoldOut, eyebrow, categoryLabel, badges, formattedPrice } = useProductMetadata(product);
+
+    return (
+        <>
+            <div
+                className="w-full rounded-[1.5rem] bg-[#f7eef1] relative overflow-hidden shadow-md"
+                style={{ height: `${cardImageHeight}px` }}
+            >
+                <Image
+                    src={product.images[0] || resolveProductPlaceholder(product.category)}
+                    alt={product.name}
+                    fill
+                    sizes={`${cardWidth}px`}
+                    className={cn("object-cover", isSoldOut ? "grayscale-[0.3]" : "")}
+                    draggable={false}
+                />
+                <div className="pointer-events-none absolute inset-x-0 bottom-0 h-24 bg-linear-to-t from-black/25 via-black/0 to-transparent opacity-70" />
+
+                <div className="absolute left-3 top-3 flex max-w-[70%] flex-wrap gap-2">
+                    {badges.map((badge) => (
+                        <ProductBadge
+                            key={badge.label}
+                            label={badge.label}
+                            className={badge.className}
+                            mobileHidden={badge.mobileHidden}
+                        />
+                    ))}
+                </div>
+
+                <div className="absolute right-3 top-3 max-w-[55%] rounded-full bg-white/88 px-3 py-1.5 backdrop-blur-sm ring-1 ring-black/5">
+                    <p className="truncate font-montserrat text-[10px] font-semibold uppercase tracking-[0.16em] text-[#6f5058]">
+                        {categoryLabel}
+                    </p>
+                </div>
+            </div>
+            <div className="mt-3 flex flex-col items-center text-center gap-1 px-2">
+                <p className="font-oswald text-[11px] uppercase tracking-[0.28em] text-[#b47c88] truncate w-full" title={eyebrow}>
+                    {eyebrow}
+                </p>
+                <p className="font-playfair-display font-medium text-sm md:text-base text-[#121212] line-clamp-2 w-full break-all">
+                    {product.name}
+                </p>
+                <p className={cn(
+                    "font-oswald text-sm tracking-wide",
+                    isSoldOut ? "text-[#8b7580]" : "text-[#E7A3B0]"
+                )}>
+                    {formattedPrice}
+                </p>
+            </div>
+        </>
+    );
+}
+
 
 
 export default function FeatureCardCarousel({ products, onProductClick }: FeatureCardCarouselProps) {
@@ -192,65 +246,6 @@ export default function FeatureCardCarousel({ products, onProductClick }: Featur
     const cardImageHeight = Math.round(cardWidth * (4 / 3));
     const containerHeight = cardImageHeight + 104;
 
-    const renderCardContent = (product: Product) => {
-        const { 
-            isSoldOut, 
-            eyebrow, 
-            categoryLabel, 
-            badges, 
-            formattedPrice 
-        } = useProductMetadata(product);
-
-        return (
-            <>
-                <div
-                    className="w-full rounded-[1.5rem] bg-[#f7eef1] relative overflow-hidden shadow-md"
-                    style={{ height: `${cardImageHeight}px` }}
-                >
-                    <Image
-                        src={product.images[0] || resolveProductPlaceholder(product.category)}
-                        alt={product.name}
-                        fill
-                        sizes={`${cardWidth}px`}
-                        className={cn("object-cover", isSoldOut ? "grayscale-[0.3]" : "")}
-                        draggable={false}
-                    />
-                    <div className="pointer-events-none absolute inset-x-0 bottom-0 h-24 bg-linear-to-t from-black/25 via-black/0 to-transparent opacity-70" />
-
-                    <div className="absolute left-3 top-3 flex max-w-[70%] flex-wrap gap-2">
-                        {badges.map((badge) => (
-                            <ProductBadge 
-                                key={badge.label} 
-                                label={badge.label} 
-                                className={badge.className} 
-                                mobileHidden={badge.mobileHidden} 
-                            />
-                        ))}
-                    </div>
-
-                    <div className="absolute right-3 top-3 max-w-[55%] rounded-full bg-white/88 px-3 py-1.5 backdrop-blur-sm ring-1 ring-black/5">
-                        <p className="truncate font-montserrat text-[10px] font-semibold uppercase tracking-[0.16em] text-[#6f5058]">
-                            {categoryLabel}
-                        </p>
-                    </div>
-                </div>
-                <div className="mt-3 flex flex-col items-center text-center gap-1 px-2">
-                    <p className="font-oswald text-[11px] uppercase tracking-[0.28em] text-[#b47c88] truncate w-full" title={eyebrow}>
-                        {eyebrow}
-                    </p>
-                    <p className="font-playfair-display font-medium text-sm md:text-base text-[#121212] line-clamp-2 w-full break-all">
-                        {product.name}
-                    </p>
-                    <p className={cn(
-                        "font-oswald text-sm tracking-wide",
-                        isSoldOut ? "text-[#8b7580]" : "text-[#E7A3B0]"
-                    )}>
-                        {formattedPrice}
-                    </p>
-                </div>
-            </>
-        );
-    };
 
     return (
         <div className="w-full max-w-[1600px] mx-auto px-2 lg:px-4">
@@ -321,7 +316,7 @@ export default function FeatureCardCarousel({ products, onProductClick }: Featur
                                     else setActiveIndex(index);
                                 }}
                             >
-                                {renderCardContent(product)}
+                                <CardContent product={product} cardImageHeight={cardImageHeight} cardWidth={cardWidth} />
                             </div>
                         );
                     })}
@@ -351,7 +346,7 @@ export default function FeatureCardCarousel({ products, onProductClick }: Featur
                                     pointerEvents: "none",
                                 }}
                             >
-                                {renderCardContent(product)}
+                                <CardContent product={product} cardImageHeight={cardImageHeight} cardWidth={cardWidth} />
                             </div>
                         );
                     })}

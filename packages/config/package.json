@@ -2,6 +2,11 @@
   "name": "@dollys-closet/config",
   "version": "0.1.0",
   "private": true,
-  "main": "index.js",
+  "exports": {
+    "./tsconfig/nextjs": "./tsconfig/nextjs.json",
+    "./eslint/next": "./eslint/next.mjs",
+    "./postcss": "./postcss.config.mjs",
+    "./styles/globals.css": "./styles/globals.css"
+  },
   "license": "MIT"
 }

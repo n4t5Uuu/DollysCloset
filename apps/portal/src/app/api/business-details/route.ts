@@ -1,15 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createAdminClient } from "@dollys-closet/core/lib/supabase/admin";
 import {
-  ABOUT_SLUG,
-  ANNOUNCEMENT_SLUG,
-  CONTACT_SLUG,
-  buildAboutAggregate,
-  buildContactAggregate,
-  sanitizeAnnouncementBody,
-  businessDetailsHelper,
+  createAdminClient,
+  getPublicBusinessDetailsBySlug,
 } from "@dollys-closet/core";
-import { BusinessDetailsRow } from "@dollys-closet/core";
 
 /**
  * Securely extracts active generic business configuration contexts aligned universally toward UI presentations.
@@ -28,37 +21,12 @@ export async function GET(request: NextRequest) {
     }
 
     const supabaseAdmin = createAdminClient();
-    const tableResult = await businessDetailsHelper.resolveTableName(supabaseAdmin);
-    if (tableResult.error) {
-      return NextResponse.json({ error: tableResult.error.message }, { status: 500 });
+    const result = await getPublicBusinessDetailsBySlug(slug, supabaseAdmin);
+    if (result.error) {
+      return NextResponse.json({ error: result.error.message }, { status: 500 });
     }
 
-    const { data: rows, error: fetchError } = await businessDetailsHelper.findAllBySlug(tableResult.tableName, slug, supabaseAdmin);
-
-    if (fetchError) {
-      return NextResponse.json({ error: fetchError.message }, { status: 500 });
-    }
-
-    if (slug === CONTACT_SLUG) {
-      return NextResponse.json({ data: buildContactAggregate((rows as BusinessDetailsRow[]) || []) });
-    }
-
-    if (slug === ABOUT_SLUG) {
-      return NextResponse.json({ data: buildAboutAggregate((rows as BusinessDetailsRow[]) || []) });
-    }
-
-    const latestRow = (rows as BusinessDetailsRow[])[0] || null;
-
-    if (slug === ANNOUNCEMENT_SLUG && latestRow) {
-      return NextResponse.json({
-        data: {
-          ...latestRow,
-          body: sanitizeAnnouncementBody(latestRow.body),
-        },
-      });
-    }
-
-    return NextResponse.json({ data: latestRow });
+    return NextResponse.json({ data: result.data });
   } catch (error: unknown) {
     return NextResponse.json(
       { error: error instanceof Error ? error.message : "Failed to fetch business details" },

@@ -1,4 +1,4 @@
-import { FAQItem } from "@/types/ui.types";
+import type { FAQItem } from "../types/ui.types";
 
 /**
  * Static baseline mappings covering frequently asked questions internally routing responses over dynamic views globally.

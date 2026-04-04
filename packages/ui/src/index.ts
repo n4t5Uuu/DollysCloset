@@ -23,13 +23,18 @@ export * from "./components/ui/tabs";
 export * from "./components/ui/textarea";
 export * from "./components/ui/tooltip";
 
-export * from "./components/catalog/ProductCard";
+export { default as ProductCard } from "./components/catalog/ProductCard";
 export * from "./components/catalog/ProductBadge";
 export * from "./components/catalog/FeatureCardCarousel";
+export * from "./components/motion-primitives/in-view";
+export * from "./components/motion-primitives/infinite-slider";
+export * from "./components/motion-primitives/spotlight";
+export * from "./components/motion-primitives/text-effect";
 
 export * from "./components/pages/AboutView";
 export * from "./components/pages/ContactView";
 export * from "./components/pages/CollectionsView";
+export * from "./components/pages/ProductDetailsView";
 
 export { default as DynamicError } from "./components/general-components/DynamicError";
 export * from "./components/general-components/NavigationGuard";
@@ -42,6 +47,6 @@ export { default as Footer } from "./components/general-components/footer";
 export { default as Navbar } from "./components/general-components/navbar";
 export { default as AdminSearchInput } from "./components/general-components/AdminSearchInput";
 
-export * from "./components/sidebar/AdminSidebar";
-export * from "./components/sidebar/EmployeeSidebar";
-export * from "./components/sidebar/CatalogSidebar";
+export { default as AdminSidebar } from "./components/sidebar/AdminSidebar";
+export { default as EmployeeSidebar } from "./components/sidebar/EmployeeSidebar";
+export { default as CatalogSidebar } from "./components/sidebar/CatalogSidebar";

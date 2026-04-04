@@ -1,4 +1,4 @@
-import { createClient } from "@dollys-closet/core";
+import { createClient } from "../supabase/browser";
 
 export const productHelper = {
     /**
@@ -239,4 +239,3 @@ export const productHelper = {
         return { success: true, error: null };
     },
 };
-

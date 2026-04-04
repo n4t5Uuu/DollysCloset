@@ -1,5 +1,4 @@
-import { createAdminClient } from "@dollys-closet/core/lib/supabase/admin";
-import { getAboutDetails } from "@dollys-closet/core";
+import { createAdminClient, getAboutDetails } from "@dollys-closet/core";
 import { AboutView } from "@dollys-closet/ui";
 import type { Metadata } from "next";
 

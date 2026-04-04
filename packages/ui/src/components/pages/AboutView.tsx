@@ -144,8 +144,8 @@ export function AboutView({ aboutDetails }: AboutViewProps) {
             transition={{ duration: 0.3, ease: "easeInOut" }}
           >
             <div className="relative w-64 h-64 md:w-96 md:h-96">
-              <img
-                src="https://raw.githubusercontent.com/Alden-Olmedo/DollysCloset-AdminAndEmployee/main/packages/core/src/assets/images/logo/no-bg-logo.png"
+              <Image
+                src="/images/logo/no-bg-logo.png"
                 alt="Dolly's Closet Logo"
                 width={384}
                 height={384}
@@ -221,8 +221,8 @@ export function AboutView({ aboutDetails }: AboutViewProps) {
               transition={{ duration: 0.3, ease: "easeInOut" }}
             >
               <div className="w-16 h-16 mx-auto relative mb-0">
-                <img
-                  src="https://raw.githubusercontent.com/Alden-Olmedo/DollysCloset-AdminAndEmployee/main/packages/core/src/assets/images/logo/no-bg-logo.png"
+                <Image
+                  src="/images/logo/no-bg-logo.png"
                   alt="Dolly's Closet Logo"
                   width={64}
                   height={64}

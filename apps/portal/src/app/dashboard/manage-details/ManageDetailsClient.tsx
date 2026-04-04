@@ -17,9 +17,9 @@ import {
   CardHeader, 
   CardTitle,
   CustomPagination,
-  Skeleton,
-  AdminNoticeBanner
+  Skeleton
 } from "@dollys-closet/ui";
+import { AdminNoticeBanner } from "@/components/ui/admin-notice-banner";
 import { useUnsavedChanges } from "@dollys-closet/core";
 import {
   ANNOUNCEMENT_SLUG,

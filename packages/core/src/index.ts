@@ -9,12 +9,17 @@ export * from "./types/context.types";
 
 export * from "./lib/supabase/browser";
 export * from "./lib/supabase/admin";
+export * from "./lib/supabase/server";
 export * from "./lib/utils";
+export * from "./lib/catalog/product-helper";
+export * from "./lib/catalog/catalog-mappers";
+export * from "./lib/catalog/catalog-service";
 
 export * from "./lib/input-sanitization";
 export * from "./lib/business-details/business-details";
 export * from "./lib/business-details/business-details-helper";
 export * from "./lib/business-details/fetchers";
+export * from "./lib/business-details/public-details-service";
 export * from "./data/outfit-images";
 export * from "./data/faq";
 export * from "./lib/images/product-placeholder";

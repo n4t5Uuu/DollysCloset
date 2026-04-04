@@ -1,0 +1,4 @@
+@import "../../../../packages/config/styles/globals.css";
+@source "../**/*.{ts,tsx}";
+@source "../../../../packages/ui/src/**/*.{ts,tsx}";
+@source "../../../../packages/core/src/**/*.{ts,tsx}";

@@ -1,4 +1,4 @@
-import { InventoryProductImage } from "@/types/inventory.types";
+import type { InventoryProductImage } from "../../types/inventory.types";
 
 const DEFAULT_UPLOAD_TIMEOUT_MS = 45000;
 

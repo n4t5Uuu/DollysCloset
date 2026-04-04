@@ -18,7 +18,6 @@ import {
   SelectValue,
   Skeleton,
   CustomPagination,
-  AdminSearchInput,
   AlertDialog,
   AlertDialogAction,
   AlertDialogCancel,
@@ -28,8 +27,9 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
   AlertDialogTrigger,
-  AdminNoticeBanner
 } from "@dollys-closet/ui";
+import AdminSearchInput from "@/components/general-components/AdminSearchInput";
+import { AdminNoticeBanner } from "@/components/ui/admin-notice-banner";
 import CategoryCascadingFilter from "@/components/CategoryCascadingFilter";
 import AddProduct from "@/components/dialogs/AddProduct";
 import BulkImportModal from "@/components/dialogs/BulkImportModal";

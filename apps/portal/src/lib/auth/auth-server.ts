@@ -1,3 +1,4 @@
+import { cache } from "react";
 import { User } from "@supabase/supabase-js";
 import { NextResponse } from "next/server";
 import { authHelper } from "@dollys-closet/core";
@@ -160,7 +161,7 @@ export async function requireRequestAuth(
  * @returns An object containing the user and role if authenticated, 
  *          otherwise a redirect reason.
  */
-export async function getServerAuthState(): Promise<ServerAuthSuccess | ServerAuthFailure> {
+export const getServerAuthState = cache(async (): Promise<ServerAuthSuccess | ServerAuthFailure> => {
   const supabase = await createServerSupabase();
   const {
     data: { user },
@@ -179,4 +180,4 @@ export async function getServerAuthState(): Promise<ServerAuthSuccess | ServerAu
   const role = await getUserRole(user.id);
   console.log(`[auth-server] getServerAuthState: resolved role=${role}`);
   return { ok: true, user, role };
-}
+});

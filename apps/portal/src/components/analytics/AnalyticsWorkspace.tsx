@@ -9,9 +9,9 @@ import {
   SelectContent, 
   SelectItem, 
   SelectTrigger, 
-  SelectValue,
-  AdminNoticeBanner
+  SelectValue
 } from '@dollys-closet/ui';
+import { AdminNoticeBanner } from "@/components/ui/admin-notice-banner";
 import { AnalyticsDashboard } from './AnalyticsDashboard';
 import { ProductsDashboard } from './ProductsDashboard';
 

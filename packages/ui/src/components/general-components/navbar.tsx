@@ -2,7 +2,8 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence } from "motion/react";
+import Image from "next/image";
 import Link from "next/link";
 import { Menu, X } from "lucide-react";
 import UserProfileDropdown from "./LogoutButton";
@@ -10,9 +11,13 @@ import { SidebarTrigger } from "../ui/sidebar";
 import { usePathname } from "next/navigation";
 import { cn } from "@dollys-closet/core";
 
-const navLinks = ["Dashboard","Collection", "About", "Contact"];
+const DEFAULT_NAV_LINKS = ["Dashboard", "Collection", "About", "Contact"];
 
-export default function Navbar() {
+interface NavbarProps {
+    navLinks?: string[];
+}
+
+export default function Navbar({ navLinks = DEFAULT_NAV_LINKS }: NavbarProps) {
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const [isVisible, setIsVisible] = useState(true);
     const lastScrollY = useRef(0);
@@ -77,8 +82,8 @@ export default function Navbar() {
                     "absolute left-1/2 -translate-x-1/2 md:static md:translate-x-0"
                 )}>
                     <div className="shrink-0">
-                        <img
-                            src="https://raw.githubusercontent.com/Alden-Olmedo/DollysCloset-AdminAndEmployee/main/packages/core/src/assets/images/logo/no-bg-logo.png"
+                        <Image
+                            src="/images/logo/no-bg-logo.png"
                             alt="Dolly's Closet Logo"
                             width={50}
                             height={50}

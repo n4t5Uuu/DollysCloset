@@ -1,7 +1,6 @@
 import { BetaAnalyticsDataClient } from '@google-analytics/data';
-import { createAdminClient } from '@dollys-closet/core/lib/supabase/admin';
+import { createAdminClient, productHelper } from '@dollys-closet/core';
 import { NextResponse } from 'next/server';
-import { productHelper } from '@/lib/products/product-helper';
 import { activityHelper } from '@/lib/activity/activity-helper';
 import { requireRequestAuth } from '@/lib/auth/auth-server';
 

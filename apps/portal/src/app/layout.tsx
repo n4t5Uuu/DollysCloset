@@ -54,14 +54,14 @@ import {
   Great_Vibes
 } from "next/font/google"; 
 import "./globals.css";
-import { 
-  ConditionalFooter, 
+import {
+  ConditionalFooter,
   ConditionalNavbar,
-  NavigationGuard,
-  SessionGuard,
   SidebarProvider,
   Toaster
 } from "@dollys-closet/ui";
+import { NavigationGuard } from "@/components/general-components/NavigationGuard";
+import { SessionGuard } from "@/components/general-components/SessionGuard";
 import { ProductProvider } from "@/contexts/ProductContext";
 import { UserProvider, UnsavedChangesProvider } from "@dollys-closet/core";
 import { GoogleAnalyticsTracker } from "@/components/analytics/GoogleAnalyticsTracker";

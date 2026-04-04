@@ -1,5 +1,4 @@
-import { createClient } from "@dollys-closet/core";
-import { getContactDetails } from "@dollys-closet/core";
+import { createServerSupabase, getContactDetails } from "@dollys-closet/core";
 import { ContactView } from "@dollys-closet/ui";
 import type { Metadata } from "next";
 
@@ -9,7 +8,7 @@ export const metadata: Metadata = {
 };
 
 export default async function ContactPage() {
-  const supabase = createClient();
+  const supabase = await createServerSupabase();
   const { pageTitle, details } = await getContactDetails(supabase);
 
   return <ContactView pageTitle={pageTitle} initialDetails={details} />;

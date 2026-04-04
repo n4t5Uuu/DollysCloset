@@ -2,21 +2,20 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams, useRouter, usePathname } from "next/navigation";
-import { 
+import {
   Button,
-  Table, 
-  TableBody, 
-  TableCell, 
-  TableHead, 
-  TableHeader, 
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
   TableRow,
   CustomPagination,
-  AdminSearchInput,
   Skeleton,
-  Empty, 
-  EmptyDescription, 
-  EmptyHeader, 
-  EmptyMedia, 
+  Empty,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyMedia,
   EmptyTitle,
   AlertDialog,
   AlertDialogAction,
@@ -27,8 +26,9 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
   AlertDialogTrigger,
-  AdminNoticeBanner
 } from "@dollys-closet/ui";
+import AdminSearchInput from "@/components/general-components/AdminSearchInput";
+import { AdminNoticeBanner } from "@/components/ui/admin-notice-banner";
 import { Calendar, ChevronDown, ClipboardList, X, Eye, SlidersHorizontal, RefreshCcw, RefreshCw } from "lucide-react";
 
 interface ActivityLog {

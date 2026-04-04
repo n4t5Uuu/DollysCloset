@@ -49,10 +49,6 @@ export default function Home() {
           </div>
         </Link>
       </section>
-
-      <footer className="py-12 border-t border-gray-100 text-center text-gray-400 font-montserrat text-sm">
-        <p>&copy; 2026 Dolly&apos;s Closet. All rights reserved.</p>
-      </footer>
     </main>
   );
 }
