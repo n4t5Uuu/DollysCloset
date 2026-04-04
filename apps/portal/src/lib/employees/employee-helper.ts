@@ -1,5 +1,5 @@
 import { SupabaseClient } from "@supabase/supabase-js";
-import { browserSupabase } from "../supabase/browser";
+import { createClient } from "@dollys-closet/core";
 import { Employee } from "@/types/employee.types";
 
 interface EmployeeAccountPayload {
@@ -28,7 +28,7 @@ export const employeeHelper = {
     /**
      * Retrieves all users marked as "Employee" from the user table in the database.
      */
-    async fetchEmployees(supabase = browserSupabase) {
+    async fetchEmployees(supabase = createClient()) {
         const { data, error } = await supabase
             .from("tbl_users")
             .select("*")
@@ -45,7 +45,7 @@ export const employeeHelper = {
     /**
      * Retrieves all users without filtering.
      */
-    async getUsers(supabase = browserSupabase) {
+    async getUsers(supabase = createClient()) {
         const { data, error } = await supabase
             .from("tbl_users")
             .select("*")
@@ -62,7 +62,7 @@ export const employeeHelper = {
     /**
      * Retrieves a single user record by its ID.
      */
-    async getUserById(userId: string, supabase = browserSupabase) {
+    async getUserById(userId: string, supabase = createClient()) {
         const { data, error } = await supabase
             .from("tbl_users")
             .select("*")
@@ -76,6 +76,7 @@ export const employeeHelper = {
 
         return { data, error: null };
     },
+
 
     /**
      * Creates both Supabase auth user and metadata record inside tbl_users as an employee.

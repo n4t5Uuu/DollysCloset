@@ -8,7 +8,10 @@ export * from "./types/ui.types";
 export * from "./types/context.types";
 
 export * from "./lib/supabase/browser";
+export * from "./lib/supabase/admin";
+export * from "./lib/supabase/server";
 export * from "./lib/utils";
+
 export * from "./lib/input-sanitization";
 export * from "./lib/business-details/business-details";
 export * from "./lib/business-details/business-details-helper";

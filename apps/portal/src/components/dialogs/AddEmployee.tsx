@@ -1,26 +1,26 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { Loader2, X } from "lucide-react";
-import { browserSupabase } from "@dollys-closet/core";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import {
+import { 
+    createClient,
+    Employee,
+    sanitizeSingleLineInput,
+    sanitizeSingleLineText,
+    schemaExactLimits
+} from "@dollys-closet/core";
+import { 
+    Button,
+    Input,
     Card,
     CardContent,
     CardFooter,
     CardHeader,
     CardTitle,
-} from "@/components/ui/card";
-import { Employee } from "@/types/employee.types";
+    FormNotice
+} from "@dollys-closet/ui";
 import DiscardChangesDialog from "@/components/dialogs/DiscardChangesDialog";
 import { toast } from "sonner";
 import { AdminDialogHeader } from "./AdminDialogHeader";
 import { AdminDialogFooter } from "./AdminDialogFooter";
-import { FormNotice } from "@/components/ui/form-notice";
-import {
-    sanitizeSingleLineInput,
-    sanitizeSingleLineText,
-    schemaExactLimits,
-} from "@/lib/input-sanitization";
 
 interface AddEmployeeProps {
     isOpen: boolean;
@@ -154,7 +154,8 @@ export default function AddEmployee({ isOpen, onClose, employeeToEdit, onEmploye
                 return;
             }
 
-            const { data: { session } } = await browserSupabase.auth.getSession();
+            const supabase = createClient();
+            const { data: { session } } = await supabase.auth.getSession();
             if (!session) throw new Error('Not authenticated');
 
             const endpoint = employeeToEdit ? '/api/admin/employees' : '/api/admin/employees';

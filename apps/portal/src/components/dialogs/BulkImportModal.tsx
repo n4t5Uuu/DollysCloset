@@ -3,16 +3,16 @@
 import { useState, useRef, useCallback, useEffect } from "react";
 import { X, Upload, Download, AlertTriangle, CheckCircle2, Loader2, FileSpreadsheet } from "lucide-react";
 import * as XLSX from "xlsx";
-import { browserSupabase } from "@dollys-closet/core";
-import { Button } from "@/components/ui/button";
-import { toast } from "sonner";
-import {
+import { createClient } from "@dollys-closet/core";
+import { 
+  Button,
   Card,
   CardContent,
   CardFooter,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card";
+} from "@dollys-closet/ui";
+import { toast } from "sonner";
 
 interface BulkImportModalProps {
   isOpen: boolean;
@@ -252,7 +252,8 @@ export default function BulkImportModal({ isOpen, onClose, onImportComplete }: B
     setImporting(true);
     setImportProgress(0);
 
-    const { data: { session } } = await browserSupabase.auth.getSession();
+    const supabase = createClient();
+    const { data: { session } } = await supabase.auth.getSession();
     if (!session) {
       setParseError("Not authenticated. Please refresh and try again.");
       toast.error("You need to sign in again before importing.");

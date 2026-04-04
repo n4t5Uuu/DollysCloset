@@ -1,4 +1,4 @@
-import { admin } from '@dollys-closet/core/lib/supabase/admin';
+import { createAdminClient } from '@dollys-closet/core';
 import { activityHelper } from '@/lib/activity/activity-helper';
 import { requireRequestAuth } from '@/lib/auth/auth-server';
 import { NextRequest, NextResponse } from 'next/server'
@@ -35,8 +35,9 @@ export async function GET(request: NextRequest) {
 
     const scopedUserId = authResult.role === "employee" ? authResult.user.id : undefined;
 
+    const supabaseAdmin = createAdminClient();
     const [{ data, count, error }, { data: availableMonths, error: monthsError }] = await Promise.all([
-      activityHelper.fetchLogsPaginated(admin, {
+      activityHelper.fetchLogsPaginated(supabaseAdmin, {
         page,
         pageSize,
         search,
@@ -45,7 +46,7 @@ export async function GET(request: NextRequest) {
         actionTypes,
         userId: scopedUserId,
       }),
-      activityHelper.fetchAvailableLogMonths(admin, {
+      activityHelper.fetchAvailableLogMonths(supabaseAdmin, {
         userId: scopedUserId,
       }),
     ]);

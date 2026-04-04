@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
-import { browserSupabase } from "@dollys-closet/core";
+import { createClient } from "@dollys-closet/core";
 import { Eye, EyeOff, Loader2, CheckCircle2, ChevronRight, X, Check } from "lucide-react";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
@@ -18,7 +18,8 @@ export default function SetPasswordPage() {
 
     useEffect(() => {
         const checkSession = async () => {
-            const { data: { user }, error } = await browserSupabase.auth.getUser();
+            const supabase = createClient();
+            const { data: { user }, error } = await supabase.auth.getUser();
             if (error || !user) {
                 toast.error("Invalid or expired session. Please contact your admin.");
                 router.push("/");
@@ -57,7 +58,8 @@ export default function SetPasswordPage() {
         setLoading(true);
 
         try {
-            const { error: authError } = await browserSupabase.auth.updateUser({
+            const supabase = createClient();
+            const { error: authError } = await supabase.auth.updateUser({
                 password: password
             });
 
@@ -221,7 +223,7 @@ export default function SetPasswordPage() {
 function ValidationItem({ isMet, label }: { isMet: boolean; label: string }) {
     return (
         <div className="flex items-center gap-3">
-            <div className={`flex-shrink-0 w-5 h-5 rounded-full flex items-center justify-center transition-all duration-300 ${isMet ? 'bg-emerald-500 text-white' : 'bg-gray-200 text-gray-400'}`}>
+            <div className={`shrink-0 w-5 h-5 rounded-full flex items-center justify-center transition-all duration-300 ${isMet ? 'bg-emerald-500 text-white' : 'bg-gray-200 text-gray-400'}`}>
                 {isMet ? <Check size={12} strokeWidth={3} /> : <div className="w-1 h-1 rounded-full bg-current" />}
             </div>
             <span className={`text-[13px] transition-colors duration-300 ${isMet ? 'text-gray-900 font-medium' : 'text-gray-400'}`}>

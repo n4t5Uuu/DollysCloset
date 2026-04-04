@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
-import { browserSupabase } from "@dollys-closet/core";
+import { createClient } from "@dollys-closet/core";
 import { usePathname, useRouter } from "next/navigation";
 
 /**
@@ -37,10 +37,11 @@ export function SessionGuard() {
       console.warn("SessionGuard: New tab detected with potential ghost session. Clearing.");
       
       const clearSession = async () => {
+        const supabase = createClient();
         // Clear all session storage first
         sessionStorage.clear();
         // Force the browser to drop all auth cookies
-        await browserSupabase.auth.signOut();
+        await supabase.auth.signOut();
         // Redirect to login explicitly to trigger clean state
         router.replace("/?reason=session-expired");
       };
@@ -51,6 +52,7 @@ export function SessionGuard() {
       sessionStorage.setItem("dollys_closet_tab_active", "true");
     }
   }, [pathname, router]);
+
 
   return null;
 }

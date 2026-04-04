@@ -1,5 +1,4 @@
-import { browserSupabase } from "../supabase/browser";
-import { createServerSupabase } from "../supabase/server";
+import { createClient, createServerSupabase } from "@dollys-closet/core";
 import { LogActivityProps } from "@/types/logs.types";
 import {
     sanitizeSingleLineText,
@@ -51,7 +50,7 @@ export const activityHelper = {
     /**
      * Retrieves all activity logs ordered by creation date descending.
      */
-    async fetchLogs(supabase = browserSupabase) {
+    async fetchLogs(supabase = createClient()) {
         const { data, error } = await supabase
             .from("tbl_activity_log")
             .select("log_id, created_at, action_type, product_id, business_details, description, editor, user_id")
@@ -69,7 +68,7 @@ export const activityHelper = {
      * Retrieves a single page of activity logs with optional server-side filtering.
      * Uses .range() to bypass Supabase's 1000-row default cap.
      */
-    async fetchLogsPaginated(supabase = browserSupabase, {
+    async fetchLogsPaginated(supabase = createClient(), {
         page = 1,
         pageSize = 10,
         search = "",
@@ -179,7 +178,7 @@ export const activityHelper = {
      * Returns only months that actually contain activity logs.
      * Employees can be scoped to their own history via userId.
      */
-    async fetchAvailableLogMonths(supabase = browserSupabase, { userId }: { userId?: string } = {}) {
+    async fetchAvailableLogMonths(supabase = createClient(), { userId }: { userId?: string } = {}) {
         let query = supabase
             .from("tbl_activity_log")
             .select("created_at")
@@ -235,7 +234,7 @@ export const activityHelper = {
     /**
      * Clears all items in the activity log table.
      */
-    async clearLogs(supabase = browserSupabase) {
+    async clearLogs(supabase = createClient()) {
         const { error } = await supabase
             .from("tbl_activity_log")
             .delete()
@@ -252,7 +251,7 @@ export const activityHelper = {
     /**
      * Fetches activity logs matching a specific action type with optional date filtering.
      */
-    async fetchLogsByAction(actionType: string, since?: string, until?: string, supabase = browserSupabase) {
+    async fetchLogsByAction(actionType: string, since?: string, until?: string, supabase = createClient()) {
         let q = supabase
             .from("tbl_activity_log")
             .select("product_id, business_details, created_at")
@@ -296,3 +295,4 @@ export const activityHelper = {
         return true;
     },
 };
+

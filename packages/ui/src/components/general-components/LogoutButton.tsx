@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { LogOut, Loader2 } from "lucide-react";
-import { useUser, browserSupabase, authHelper, markManualLogoutIntent } from "@dollys-closet/core";
+import { useUser, createClient, authHelper, markManualLogoutIntent } from "@dollys-closet/core";
 
 interface LogoutButtonProps {
     variant?: "pill" | "link" | "sidebar";
@@ -26,7 +26,8 @@ export default function LogoutButton({ variant = "pill" }: LogoutButtonProps) {
         markManualLogoutIntent();
 
         try {
-            const { data: { session } } = await browserSupabase.auth.getSession();
+            const supabase = createClient();
+            const { data: { session } } = await supabase.auth.getSession();
             const accessToken = session?.access_token;
 
             // Log before signOut so the token is still valid when the audit request lands

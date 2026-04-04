@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { activityHelper } from "@/lib/activity/activity-helper";
-import { admin } from "@dollys-closet/core/lib/supabase/admin";
-import { createServerSupabase } from "@dollys-closet/core/lib/supabase/server";
+import { createAdminClient, createServerSupabase } from "@dollys-closet/core";
 
 const ALLOWED_ACTION_TYPES = ["login", "logout"] as const;
 type AllowedActionType = typeof ALLOWED_ACTION_TYPES[number];
@@ -23,7 +22,8 @@ export async function POST(request: NextRequest) {
 
     if (authHeader?.startsWith("Bearer ")) {
       const token = authHeader.replace("Bearer ", "").trim();
-      const { data, error } = await admin.auth.getUser(token);
+      const supabaseAdmin = createAdminClient();
+      const { data, error } = await supabaseAdmin.auth.getUser(token);
 
       if (error || !data.user) {
         return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -46,12 +46,13 @@ export async function POST(request: NextRequest) {
 
     const email = user.email || "unknown";
 
+    const supabaseAdmin = createAdminClient();
     const logged = await activityHelper.logActivity({
       actionType,
       description: `User ${email} ${actionType === "login" ? "logged in" : "logged out"}`,
       user_id: user.id,
       editor: email,
-      supabase: admin,
+      supabase: supabaseAdmin,
     });
 
     if (!logged) {

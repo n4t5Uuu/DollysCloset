@@ -2,39 +2,41 @@
 
 import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { Loader2, X, ChevronDown } from "lucide-react";
-import { browserSupabase } from "@dollys-closet/core";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { Checkbox } from "@/components/ui/checkbox";
-import ProductImageUpload from "@/components/product-image-upload";
-import ImageSelector from "@/components/image-selector";
-import CategoryCascadingSelect from "@/components/CategoryCascadingSelect";
-import { toast } from "sonner";
-import { AdminDialogHeader } from "./AdminDialogHeader";
-import { AdminDialogFooter } from "./AdminDialogFooter";
-import { FormNotice } from "@/components/ui/form-notice";
-
-const SIZE_OPTIONS = ["One Size", "Free Size", "XS", "S", "M", "L", "XL", "XXL"];
-const CONDITION_OPTIONS = ["New", "Like New", "Good", "Used", "Fair"];
-import {
-    Card,
-    CardContent,
-    CardFooter,
-    CardHeader,
-    CardTitle,
-} from "@/components/ui/card";
-import { InventoryProduct as Product, InventoryCategory as Category, InventoryProductImage as ProductImage } from "@/types/inventory.types";
-import DiscardChangesDialog from "@/components/dialogs/DiscardChangesDialog";
-import { uploadProductImageFile } from "@/lib/images/upload-product-image";
-import {
+import { 
+    createClient,
+    InventoryProduct as Product,
+    InventoryCategory as Category,
+    InventoryProductImage as ProductImage,
     sanitizeMultilineInput,
     sanitizeMultilineText,
     sanitizeSingleLineInput,
     sanitizeSingleLineText,
     schemaExactLimits,
     uiContentLimits,
-} from "@/lib/input-sanitization";
+    uploadProductImageFile
+} from "@dollys-closet/core";
+import { 
+    Button,
+    Input,
+    Textarea,
+    Checkbox,
+    Card,
+    CardContent,
+    CardFooter,
+    CardHeader,
+    CardTitle,
+    FormNotice
+} from "@dollys-closet/ui";
+import ProductImageUpload from "@/components/product-image-upload";
+import ImageSelector from "@/components/image-selector";
+import CategoryCascadingSelect from "@/components/CategoryCascadingSelect";
+import { toast } from "sonner";
+import { AdminDialogHeader } from "./AdminDialogHeader";
+import { AdminDialogFooter } from "./AdminDialogFooter";
+import DiscardChangesDialog from "@/components/dialogs/DiscardChangesDialog";
+
+const SIZE_OPTIONS = ["One Size", "Free Size", "XS", "S", "M", "L", "XL", "XXL"];
+const CONDITION_OPTIONS = ["New", "Like New", "Good", "Used", "Fair"];
 
 // Define interfaces locally to match the usage in the inventory page
 // Ideally these should be in a shared types file
@@ -364,7 +366,8 @@ export default function AddProduct({ isOpen, onClose, categories, productToEdit,
             if (!formData.product_name || !formData.category_id || !formData.product_price) {
                 throw new Error('Please fill in all required fields');
             }
-            const { data: { session } } = await browserSupabase.auth.getSession();
+            const supabase = createClient();
+            const { data: { session } } = await supabase.auth.getSession();
             if (!session) throw new Error('Not authenticated');
 
             const endpoint = productToEdit ? '/api/admin/products' : '/api/admin/products';

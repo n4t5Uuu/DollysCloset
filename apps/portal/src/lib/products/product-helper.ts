@@ -1,10 +1,10 @@
-import { browserSupabase } from "../supabase/browser";
+import { createClient } from "@dollys-closet/core";
 
 export const productHelper = {
     /**
      * Retrieves all product records from the database's `tbl_product` table.
      */
-    async getProducts(supabase = browserSupabase) {
+    async getProducts(supabase = createClient()) {
         const { data, error } = await supabase.from("tbl_product").select("*");
         if (error) {
             console.error("Error Fetching Products: ", error);
@@ -16,7 +16,7 @@ export const productHelper = {
     /**
      * Retrieves all product categories from `tbl_category`.
      */
-    async getCategories(supabase = browserSupabase) {
+    async getCategories(supabase = createClient()) {
         const { data, error } = await supabase.from("tbl_category").select("*");
         if (error) {
             console.error("Error Fetching Categories: ", error);
@@ -28,7 +28,7 @@ export const productHelper = {
     /**
      * Inserts a single product metadata item.
      */
-    async createProduct(payload: any, supabase = browserSupabase) {
+    async createProduct(payload: any, supabase = createClient()) {
         const { data, error } = await supabase.from("tbl_product").insert([payload]).select();
         if (error) {
             console.error("Error Creating Product: ", error);
@@ -40,7 +40,7 @@ export const productHelper = {
     /**
      * Updates an existing product's data in the database.
      */
-    async updateProduct(productId: number | string, payload: any, supabase = browserSupabase) {
+    async updateProduct(productId: number | string, payload: any, supabase = createClient()) {
         const { data, error } = await supabase.from("tbl_product").update(payload).eq("product_id", productId).select();
         if (error) {
             console.error("Error Updating Product: ", error);
@@ -52,7 +52,7 @@ export const productHelper = {
     /**
      * Deletes a single product by row identification.
      */
-    async deleteProduct(productId: number | string, supabase = browserSupabase) {
+    async deleteProduct(productId: number | string, supabase = createClient()) {
         const { error } = await supabase.from("tbl_product").delete().eq("product_id", productId);
         if (error) {
             console.error("Error Deleting Product: ", error);
@@ -64,7 +64,7 @@ export const productHelper = {
     /**
      * Retrieves a single product by ID.
      */
-    async getProductById(productId: number | string, supabase = browserSupabase) {
+    async getProductById(productId: number | string, supabase = createClient()) {
         const { data, error } = await supabase.from("tbl_product").select("*").eq("product_id", productId).maybeSingle();
         if (error) {
             console.error("Error Fetching Product by ID: ", error);
@@ -76,7 +76,7 @@ export const productHelper = {
     /**
      * Retrieves images assigned back forward to any singular product record.
      */
-    async getProductImages(productId: number | string, supabase = browserSupabase) {
+    async getProductImages(productId: number | string, supabase = createClient()) {
         const { data, error } = await supabase.from("tbl_product_image").select("*").eq("product_id", productId).order("display_order", { ascending: true });
         if (error) {
             console.error("Error Fetching Product Images: ", error);
@@ -88,7 +88,7 @@ export const productHelper = {
     /**
      * Retrieves a single product image by its ID.
      */
-    async getImageById(imageId: number | string, supabase = browserSupabase) {
+    async getImageById(imageId: number | string, supabase = createClient()) {
         const { data, error } = await supabase.from("tbl_product_image").select("*").eq("image_id", imageId).maybeSingle();
         if (error) {
             console.error("Error Fetching Image by ID: ", error);
@@ -100,7 +100,7 @@ export const productHelper = {
     /**
      * Retrieves images for a product excluding a specific image ID.
      */
-    async getRemainingImagesExcluding(productId: number | string, excludeImageId: number | string, supabase = browserSupabase) {
+    async getRemainingImagesExcluding(productId: number | string, excludeImageId: number | string, supabase = createClient()) {
         const { data, error } = await supabase.from("tbl_product_image").select("image_id, is_primary, display_order").eq("product_id", productId).neq("image_id", excludeImageId).order("display_order", { ascending: true });
         if (error) {
             console.error("Error Fetching Remaining Images: ", error);
@@ -112,7 +112,7 @@ export const productHelper = {
     /**
      * Retrieves products marked explicitly to show in public catalog views.
      */
-    async getProductsCatalog(supabase = browserSupabase) {
+    async getProductsCatalog(supabase = createClient()) {
         const { data, error } = await supabase.from("tbl_product").select("*").eq("show_in_catalog", true).order("created_at", { ascending: false, nullsFirst: false });
         if (error) {
             console.error("Error Fetching Catalog Products: ", error);
@@ -124,7 +124,7 @@ export const productHelper = {
     /**
      * Retrieves all product images for full catalog processing ordered by display order.
      */
-    async getProductImagesAll(supabase = browserSupabase) {
+    async getProductImagesAll(supabase = createClient()) {
         const { data, error } = await supabase.from("tbl_product_image").select("*").order("display_order", { ascending: true });
         if (error) {
             console.error("Error Fetching All Images: ", error);
@@ -136,7 +136,7 @@ export const productHelper = {
     /**
      * Retrieves images assigned to multiple products (Bulk).
      */
-    async getProductImagesBulk(productIds: number[], supabase = browserSupabase) {
+    async getProductImagesBulk(productIds: number[], supabase = createClient()) {
         const { data, error } = await supabase.from("tbl_product_image").select("image_id, image_url, product_id").in("product_id", productIds);
         if (error) {
             console.error("Error Fetching Bulk Images: ", error);
@@ -148,7 +148,7 @@ export const productHelper = {
     /**
      * Updates multiple products on matching criteria.
      */
-    async updateProductsBulk(productIds: number[], payload: any, supabase = browserSupabase) {
+    async updateProductsBulk(productIds: number[], payload: any, supabase = createClient()) {
         const { data, error } = await supabase.from("tbl_product").update(payload).in("product_id", productIds).select();
         if (error) {
             console.error("Error Updating Bulk Products: ", error);
@@ -160,7 +160,7 @@ export const productHelper = {
     /**
      * Deletes images assigned to multiple products (Bulk).
      */
-    async deleteProductImagesBulk(productIds: number[], supabase = browserSupabase) {
+    async deleteProductImagesBulk(productIds: number[], supabase = createClient()) {
         const { error } = await supabase.from("tbl_product_image").delete().in("product_id", productIds);
         if (error) {
             console.error("Error Deleting Bulk Product Images: ", error);
@@ -172,7 +172,7 @@ export const productHelper = {
     /**
      * Deletes multiple products by identification codes.
      */
-    async deleteProductsBulk(productIds: number[], supabase = browserSupabase) {
+    async deleteProductsBulk(productIds: number[], supabase = createClient()) {
         const { error } = await supabase.from("tbl_product").delete().in("product_id", productIds);
         if (error) {
             console.error("Error Deleting Bulk Products: ", error);
@@ -184,7 +184,7 @@ export const productHelper = {
     /**
      * Performs a batched update layout for multiple images concurrently.
      */
-    async batchUpdateProductImages(updates: { image_id: number | string; payload: any }[], supabase: any) {
+    async batchUpdateProductImages(updates: { image_id: number | string; payload: any }[], supabase = createClient()) {
         const promises = updates.map((u) => supabase.from("tbl_product_image").update(u.payload).eq("image_id", u.image_id));
         const results = await Promise.all(promises);
         const error = results.find((r) => r.error)?.error;
@@ -194,7 +194,7 @@ export const productHelper = {
     /**
      * Verifies that an image belongs to a specific product.
      */
-    async verifyProductImage(imageId: number | string, productId: number | string, supabase = browserSupabase) {
+    async verifyProductImage(imageId: number | string, productId: number | string, supabase = createClient()) {
         const { data, error } = await supabase.from("tbl_product_image").select("image_id").eq("image_id", imageId).eq("product_id", productId).maybeSingle();
         if (error) {
             console.error("Error Verifying Product Image: ", error);
@@ -206,7 +206,7 @@ export const productHelper = {
     /**
      * Deletes all images belonging to a specific product from database inventory.
      */
-    async deleteProductImageReferences(productId: number | string, supabase = browserSupabase) {
+    async deleteProductImageReferences(productId: number | string, supabase = createClient()) {
         const { error } = await supabase.from("tbl_product_image").delete().eq("product_id", productId);
         if (error) {
             console.error("Error Deleting Product Images rows: ", error);
@@ -218,7 +218,7 @@ export const productHelper = {
     /**
      * Inserts a single product image reference row into the database.
      */
-    async createProductImage(payload: any, supabase = browserSupabase) {
+    async createProductImage(payload: any, supabase = createClient()) {
         const { data, error } = await supabase.from("tbl_product_image").insert([payload]).select().maybeSingle();
         if (error) {
             console.error("Error Creating Product Image: ", error);
@@ -230,7 +230,7 @@ export const productHelper = {
     /**
      * Deletes a single product image reference from the database inventory.
      */
-    async deleteImageById(imageId: number | string, supabase = browserSupabase) {
+    async deleteImageById(imageId: number | string, supabase = createClient()) {
         const { error } = await supabase.from("tbl_product_image").delete().eq("image_id", imageId);
         if (error) {
             console.error("Error Deleting Image Reference: ", error);
@@ -239,3 +239,4 @@ export const productHelper = {
         return { success: true, error: null };
     },
 };
+

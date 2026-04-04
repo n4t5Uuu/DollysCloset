@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { browserSupabase, clearManualLogoutIntent, consumeManualLogoutIntent } from "@dollys-closet/core";
+import { createClient, clearManualLogoutIntent, consumeManualLogoutIntent } from "@dollys-closet/core";
 import { buildLoginPath } from "@/lib/auth/auth-routing";
 import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
@@ -13,12 +13,14 @@ export default function ClientAuthGuard({ children }: { children: React.ReactNod
         let isMounted = true;
         const nextPath = `${window.location.pathname}${window.location.search}`;
 
+        const supabase = createClient();
+
         // Listen for auth state changes reactively on the client side.
         // SIGNED_OUT can fire because the user explicitly logged out (handled by
         // LogoutButton) OR because another device logged into the same account and
         // revoked this session. The ClientAuthGuard only reaches this handler in
         // the latter case, so we use "signed-out-elsewhere".
-        const { data: { subscription } } = browserSupabase.auth.onAuthStateChange((event, session) => {
+        const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
             if (!isMounted) return;
 
             if (event === 'SIGNED_OUT' || (!session && event !== 'INITIAL_SESSION')) {
@@ -44,8 +46,8 @@ export default function ClientAuthGuard({ children }: { children: React.ReactNod
             // If there's a local session but the server rejects it, the session was
             // revoked remotely (another device logged in). If there's no local
             // session at all, the user simply isn't logged in.
-            const { data: { session: localSession } } = await browserSupabase.auth.getSession();
-            const { data: { user } } = await browserSupabase.auth.getUser();
+            const { data: { session: localSession } } = await supabase.auth.getSession();
+            const { data: { user } } = await supabase.auth.getUser();
 
             if (!isMounted) return;
 
@@ -84,6 +86,7 @@ export default function ClientAuthGuard({ children }: { children: React.ReactNod
             document.removeEventListener("visibilitychange", onVisibilityChange);
         };
     }, []);
+
 
     // Show a loading screen while checking auth securely on the client side
     // This prevents the page layout from "flashing" onto the screen

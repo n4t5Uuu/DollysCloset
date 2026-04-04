@@ -1,4 +1,4 @@
-import { browserSupabase } from "../supabase/browser";
+import { createClient } from "../supabase/browser";
 
 type AuthAuditAction = "login" | "logout";
 
@@ -46,7 +46,8 @@ export const authHelper = {
      * @returns An object containing either the session data upon success, or an error.
      */
     async signIn(email: string, password: string) {
-        const {data, error} = await browserSupabase.auth.signInWithPassword({
+        const supabase = createClient();
+        const {data, error} = await supabase.auth.signInWithPassword({
             email, 
             password
         })
@@ -65,7 +66,8 @@ export const authHelper = {
      * @returns An object containing the current user, if any, and an error if one occurred.
      */
     async getUser() {
-        const { data: { user }, error: userError } = await browserSupabase.auth.getUser();
+        const supabase = createClient();
+        const { data: { user }, error: userError } = await supabase.auth.getUser();
 
         if (userError) {
             console.warn("Error Getting User: ", userError)
@@ -76,7 +78,7 @@ export const authHelper = {
 
             if (shouldClear) {
                 // Clear the defective token automatically so the user isn't stuck
-                await browserSupabase.auth.signOut().catch(() => {});
+                await supabase.auth.signOut().catch(() => {});
                 clearBrowserAuthState();
             }
             return { user: null, error: userError };
@@ -93,12 +95,13 @@ export const authHelper = {
     /**
      * Retrieves the role associated with a specific user ID from the database.
      * @param user_id - The ID of the user whose role is being requested.
-     * @param supabase - The Supabase client to use (defaults to browserSupabase).
+     * @param supabase - The Supabase client to use (defaults to creating a new one).
      * @returns An object containing the user's role data or an error if the query fails.
      */
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    async getUserRole(user_id: string, supabase: any = browserSupabase) {
-        const { data, error } = await supabase.from("tbl_users")
+    async getUserRole(user_id: string, supabase?: any) {
+        const client = supabase ?? createClient();
+        const { data, error } = await client.from("tbl_users")
             .select("role")
             .eq("user_id", user_id)
             .maybeSingle();
@@ -116,7 +119,8 @@ export const authHelper = {
      * @returns An object indicating the success status of the sign-out operation and any associated error.
      */
     async signOut() {
-        const { error } = await browserSupabase.auth.signOut({ scope: "global" });
+        const supabase = createClient();
+        const { error } = await supabase.auth.signOut({ scope: "global" });
 
         if (error) {
             console.warn("Error Signing Out: ", error);
@@ -206,7 +210,8 @@ export const authHelper = {
      */
     async updatePassword(password: string) {
         try {
-            const { data, error } = await browserSupabase.auth.updateUser({
+            const supabase = createClient();
+            const { data, error } = await supabase.auth.updateUser({
                 password: password
             });
             if (error) {
@@ -220,3 +225,4 @@ export const authHelper = {
         }
     }
 }
+

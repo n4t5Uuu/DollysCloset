@@ -2,10 +2,10 @@
 
 import { useState } from "react";
 import { Upload, X, Star, GripVertical } from "lucide-react";
-import { compressImage } from "@/lib/images/image-compression";
-import { InventoryProductImage as ProductImage } from "@/types/inventory.types";
+import { compressImage } from "@dollys-closet/core";
+import { InventoryProductImage as ProductImage, createClient } from "@dollys-closet/core";
 import { toast } from "sonner";
-import { uploadProductImageFile } from "@/lib/images/upload-product-image";
+import { uploadProductImageFile } from "@dollys-closet/core";
 import {
   DndContext,
   closestCenter,
@@ -32,7 +32,7 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
+} from "@dollys-closet/ui";
 
 interface ProductImageUploadProps {
   productId: string | null;
@@ -262,8 +262,8 @@ export default function ProductImageUpload({
     setUploading(true);
 
     try {
-      const { browserSupabase } = await import("@dollys-closet/core");
-      const { data: { session } } = await browserSupabase.auth.getSession();
+      const supabase = createClient();
+      const { data: { session } } = await supabase.auth.getSession();
       
       if (!session) {
         throw new Error("Not authenticated");
@@ -338,8 +338,8 @@ export default function ProductImageUpload({
    */
   const deleteImage = async (imageId: string) => {
     try {
-      const { browserSupabase } = await import("@dollys-closet/core");
-      const { data: { session } } = await browserSupabase.auth.getSession();
+      const supabase = createClient();
+      const { data: { session } } = await supabase.auth.getSession();
       
       if (!session) {
         throw new Error("Not authenticated");
@@ -402,8 +402,8 @@ export default function ProductImageUpload({
 
     setReordering(true);
     try {
-      const { browserSupabase } = await import("@dollys-closet/core");
-      const { data: { session } } = await browserSupabase.auth.getSession();
+      const supabase = createClient();
+      const { data: { session } } = await supabase.auth.getSession();
 
       if (!session) throw new Error("Not authenticated");
 

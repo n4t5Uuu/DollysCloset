@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import { Plus, Trash, RefreshCcw, X } from "lucide-react";
-import { browserSupabase, Employee } from "@dollys-closet/core";
+import { createClient, Employee } from "@dollys-closet/core";
 import { 
   Button, 
   CustomPagination, 
@@ -60,7 +60,8 @@ export default function EmployeesClient() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    browserSupabase.auth.getUser().then(({ data: { user } }) => {
+    const supabase = createClient();
+    supabase.auth.getUser().then(({ data: { user } }) => {
       if (user) setCurrentUserId(user.id);
     });
   }, []);
@@ -215,7 +216,8 @@ export default function EmployeesClient() {
     setActionLoading(true);
     setError(null);
     try {
-      const { data: { session } } = await browserSupabase.auth.getSession();
+      const supabase = createClient();
+      const { data: { session } } = await supabase.auth.getSession();
       if (!session) throw new Error('Not authenticated');
       const response = await fetch('/api/admin/employees', {
         method: 'DELETE',
@@ -254,7 +256,8 @@ export default function EmployeesClient() {
     setError(null);
     try {
       const idsToDelete = Array.from(selectedRows);
-      const { data: { session } } = await browserSupabase.auth.getSession();
+      const supabase = createClient();
+      const { data: { session } } = await supabase.auth.getSession();
       if (!session) throw new Error('Not authenticated');
       const response = await fetch('/api/admin/employees/bulk-delete', {
         method: 'DELETE',

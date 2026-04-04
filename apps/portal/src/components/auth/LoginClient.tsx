@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { authHelper, browserSupabase } from "@dollys-closet/core";
+import { authHelper, createClient } from "@dollys-closet/core";
 import { getAuthReasonCopy, getSafeInternalPath } from "@/lib/auth/auth-routing";
 
 import { Eye, EyeOff } from "lucide-react";
@@ -87,7 +87,8 @@ export default function LoginClient() {
   }, []);
 
   useEffect(() => {
-    browserSupabase.auth.getUser().then(({ data: { user } }) => {
+    const supabase = createClient();
+    supabase.auth.getUser().then(({ data: { user } }) => {
       if (user) window.location.replace(nextPath);
     });
   }, [nextPath]);
@@ -151,7 +152,8 @@ export default function LoginClient() {
         return;
       }
 
-      const { data: browserData, error: browserAuthError } = await browserSupabase.auth.signInWithPassword({
+      const supabase = createClient();
+      const { data: browserData, error: browserAuthError } = await supabase.auth.signInWithPassword({
         email: trimmedEmail,
         password: trimmedPassword,
       });

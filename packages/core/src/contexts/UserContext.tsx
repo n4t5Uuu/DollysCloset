@@ -2,7 +2,7 @@
 
 import { createContext, useContext, useEffect, useState, ReactNode } from "react";
 import { User, Session } from "@supabase/supabase-js";
-import { browserSupabase } from "../lib/supabase/browser";
+import { createClient } from "../lib/supabase/browser";
 import { authHelper } from "../lib/auth/auth-helper";
 
 export type UserRole = "admin" | "employee" | null;
@@ -51,6 +51,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
 
     useEffect(() => {
         let isMounted = true;
+        const supabase = createClient();
 
         const applySession = async (session: Session | null) => {
             if (!isMounted) return;
@@ -69,7 +70,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
         async function bootstrapUser() {
             try {
                 // Quick check for existing session
-                const { data: { session } } = await browserSupabase.auth.getSession();
+                const { data: { session } } = await supabase.auth.getSession();
                 await applySession(session);
 
                 // Deep verify session against server
@@ -93,7 +94,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
         bootstrapUser();
 
         // Listen for auth state changes (login/logout)
-        const { data: { subscription } } = browserSupabase.auth.onAuthStateChange(async (_event, session) => {
+        const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
             await applySession(session);
         });
 
@@ -102,6 +103,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
             subscription.unsubscribe();
         };
     }, []);
+
 
     const signOut = async () => {
         await authHelper.signOut();

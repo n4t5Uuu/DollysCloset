@@ -3,11 +3,9 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Eye, EyeOff, CheckCircle2, AlertTriangle, RefreshCcw, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
-import { browserSupabase } from "@dollys-closet/core";
+import { createClient, useUnsavedChanges } from "@dollys-closet/core";
 import { changePasswordAction } from "./actions";
-import { Button } from "@/components/ui/button";
-import { AdminNoticeBanner } from "@/components/ui/admin-notice-banner";
-import { useUnsavedChanges } from "@dollys-closet/core";
+import { Button, AdminNoticeBanner } from "@dollys-closet/ui";
 
 interface Profile {
   displayName: string;
@@ -35,9 +33,10 @@ export default function SettingsPage() {
   useEffect(() => {
     async function loadProfile() {
       try {
+        const supabase = createClient();
         const [profileRes, { data: { user } }] = await Promise.all([
           fetch("/api/auth/profile"),
-          browserSupabase.auth.getUser(),
+          supabase.auth.getUser(),
         ]);
 
         if (!profileRes.ok) return;
@@ -75,9 +74,10 @@ export default function SettingsPage() {
       setRefreshingProfile(true);
       setProfileError(null);
 
+      const supabase = createClient();
       const [profileRes, { data: { user } }] = await Promise.all([
         fetch("/api/auth/profile", { cache: "no-store" }),
-        browserSupabase.auth.getUser(),
+        supabase.auth.getUser(),
       ]);
 
       if (!profileRes.ok) {
@@ -147,7 +147,8 @@ export default function SettingsPage() {
     setLoading(true);
 
     // Verify the current password before allowing the change
-    const { error: authError } = await browserSupabase.auth.signInWithPassword({
+    const supabase = createClient();
+    const { error: authError } = await supabase.auth.signInWithPassword({
       email: profile?.email ?? "",
       password: currentPassword,
     });

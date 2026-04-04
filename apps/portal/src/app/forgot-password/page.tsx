@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { authHelper, browserSupabase } from "@dollys-closet/core";
+import { authHelper, createClient } from "@dollys-closet/core";
 import { toast } from "sonner";
 import { ArrowLeft, Mail } from "lucide-react";
 
@@ -99,7 +99,8 @@ export default function ForgotPassword() {
 
       // Step 2: Trigger the actual reset email from the BROWSER.
       // This is crucial for @supabase/ssr to set the PKCE code_verifier cookie.
-      const { error } = await browserSupabase.auth.resetPasswordForEmail(trimmedEmail, {
+      const supabase = createClient();
+      const { error } = await supabase.auth.resetPasswordForEmail(trimmedEmail, {
         redirectTo,
       });
 

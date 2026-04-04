@@ -1,10 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
-import { admin } from "@dollys-closet/core/lib/supabase/admin";
+import { createAdminClient } from "@dollys-closet/core";
 import { authHelper } from "@dollys-closet/core";
-import { businessDetailsHelper } from "@/lib/business-details/business-details-helper";
-import { activityHelper } from "@/lib/activity/activity-helper";
-import { createServerSupabase } from "@dollys-closet/core/lib/supabase/server";
 import {
+  businessDetailsHelper,
   ANNOUNCEMENT_SLUG,
   ABOUT_SLUG,
   ABOUT_LABEL_BY_KEY,
@@ -17,19 +15,17 @@ import {
   resolveAboutKey,
   resolveContactKey,
   toText,
-} from "../../../../lib/business-details/business-details";
-import {
   sanitizeAboutDetailText,
   sanitizeAnnouncementText,
   sanitizeContactDetailText,
-} from "@/lib/input-sanitization";
-
-import {
   BusinessDetailsRow,
   AdminValidationResult,
   AboutFieldKey,
-  ContactFieldKey,
-} from "@/types/business-details.types";
+  ContactFieldKey
+} from "@dollys-closet/core";
+
+import { activityHelper } from "@/lib/activity/activity-helper";
+import { createServerSupabase } from "@dollys-closet/core/lib/supabase/server";
 
 function getRowIdColumn(row: BusinessDetailsRow): "business_details_id" | "business_deta" | null {
   if (row.business_details_id !== undefined && row.business_details_id !== null) return "business_details_id";
@@ -54,15 +50,18 @@ function getBusinessDetailId(row: BusinessDetailsRow | null | undefined): number
 }
 
 async function resolveTableName() {
-  return businessDetailsHelper.resolveTableName(admin);
+  const supabaseAdmin = createAdminClient();
+  return businessDetailsHelper.resolveTableName(supabaseAdmin);
 }
 
 async function findLatestBySlug(tableName: string, slug: string) {
-  return businessDetailsHelper.findLatestBySlug(tableName, slug, admin);
+  const supabaseAdmin = createAdminClient();
+  return businessDetailsHelper.findLatestBySlug(tableName, slug, supabaseAdmin);
 }
 
 async function findAllBySlug(tableName: string, slug: string) {
-  return businessDetailsHelper.findAllBySlug(tableName, slug, admin);
+  const supabaseAdmin = createAdminClient();
+  return businessDetailsHelper.findAllBySlug(tableName, slug, supabaseAdmin);
 }
 
 async function validateAdmin(request: NextRequest): Promise<AdminValidationResult> {
@@ -77,10 +76,11 @@ async function validateAdmin(request: NextRequest): Promise<AdminValidationResul
   const authHeader = request.headers.get("authorization");
   if ((!user || cookieAuthError) && authHeader) {
     const token = authHeader.replace("Bearer ", "");
+    const supabaseAdmin = createAdminClient();
     const {
       data: { user: tokenUser },
       error: authError,
-    } = await admin.auth.getUser(token);
+    } = await supabaseAdmin.auth.getUser(token);
 
     if (!authError && tokenUser) {
       user = tokenUser;
@@ -91,7 +91,8 @@ async function validateAdmin(request: NextRequest): Promise<AdminValidationResul
     return { ok: false, response: NextResponse.json({ error: "Unauthorized" }, { status: 401 }) };
   }
 
-  const { data: userData, error: roleError } = await authHelper.getUserRole(user.id, admin);
+  const supabaseAdmin = createAdminClient();
+  const { data: userData, error: roleError } = await authHelper.getUserRole(user.id, supabaseAdmin);
   const role = userData?.role;
   if (roleError || (role !== "admin" && role !== "employee")) {
     return { ok: false, response: NextResponse.json({ error: "Forbidden: Valid role required" }, { status: 403 }) };
@@ -183,6 +184,7 @@ export async function PUT(request: NextRequest) {
     if (!authResult.ok) return authResult.response;
     const { role } = authResult;
     const user = authResult.user;
+    const supabaseAdmin = createAdminClient();
 
     const { slug, title, body } = (await request.json()) as {
       slug?: string;
@@ -252,7 +254,7 @@ export async function PUT(request: NextRequest) {
           tableName,
           { slug, title: updateItem.label },
           { body: updateItem.value, updated_at: now },
-          admin
+          supabaseAdmin
         );
 
         if (updateResult.error) {
@@ -266,10 +268,10 @@ export async function PUT(request: NextRequest) {
         });
 
         if (!updateResult.data || updateResult.data.length === 0) {
-          const insertResult = await businessDetailsHelper.insertDetailGeneric(
+            const insertResult = await businessDetailsHelper.insertDetailGeneric(
             tableName,
             { slug, title: updateItem.label, body: updateItem.value, updated_at: now },
-            admin
+            supabaseAdmin
           );
 
           if (insertResult.error) {
@@ -298,7 +300,7 @@ export async function PUT(request: NextRequest) {
             : `Updated ${isContact ? "contact" : "about"} details: ${changedLabels.join(", ")}`,
         editor: user.email || String(user.user_metadata?.username || "Unknown"),
         user_id: user.id,
-        supabase: admin,
+        supabase: supabaseAdmin,
       });
 
       return NextResponse.json({ data: { slug, updated: updates } });
@@ -323,7 +325,7 @@ export async function PUT(request: NextRequest) {
         tableName,
         criteria,
         { title: title || "", body: serializedBody, updated_at: now },
-        admin
+        supabaseAdmin
       );
 
       if (executeUpdate.error) {
@@ -350,7 +352,7 @@ export async function PUT(request: NextRequest) {
               : `Updated ${slug} details: ${changedParts.join(", ")}`,
         editor: user.email || String(user.user_metadata?.username || "Unknown"),
         user_id: user.id,
-        supabase: admin,
+        supabase: supabaseAdmin,
       });
 
       const refreshed = await findLatestBySlug(tableName, slug);
@@ -373,7 +375,7 @@ export async function PUT(request: NextRequest) {
     const insertResult = await businessDetailsHelper.insertDetailGeneric(
       tableName,
       { slug, title: title || "", body: serializedBody, updated_at: now },
-      admin
+      supabaseAdmin
     );
 
     if (insertResult.error) {
@@ -395,7 +397,7 @@ export async function PUT(request: NextRequest) {
             : "Created contact details",
       editor: user.email || String(user.user_metadata?.username || "Unknown"),
       user_id: user.id,
-      supabase: admin,
+      supabase: supabaseAdmin,
     });
 
     if (slug === ANNOUNCEMENT_SLUG && insertedData) {

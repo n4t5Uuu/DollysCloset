@@ -4,10 +4,10 @@ import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import { Plus, Trash, X, Upload, SlidersHorizontal, RefreshCw } from "lucide-react";
 import { 
-  browserSupabase,
+  createClient,
   InventoryProduct as Product,
-  InventoryCategory as Category, 
-  InventoryProductImage as ProductImage 
+  InventoryProductImage as ProductImage,
+  InventoryCategory as Category
 } from "@dollys-closet/core";
 import {
   Button,
@@ -470,7 +470,8 @@ export default function InventoryManagement({ initialAvailabilityFilter }: Inven
     setError(null);
     setActionNotice(null);
     try {
-      const { data: { session } } = await browserSupabase.auth.getSession();
+      const supabase = createClient();
+      const { data: { session } } = await supabase.auth.getSession();
       if (!session) throw new Error('Not authenticated');
       
       const response = await fetch('/api/admin/products', {
@@ -505,7 +506,8 @@ export default function InventoryManagement({ initialAvailabilityFilter }: Inven
     setError(null);
     setActionNotice(null);
     try {
-      const { data: { session } } = await browserSupabase.auth.getSession();
+      const supabase = createClient();
+      const { data: { session } } = await supabase.auth.getSession();
       if (!session) throw new Error('Not authenticated');
       
       const response = await fetch('/api/admin/products/bulk-delete', {
