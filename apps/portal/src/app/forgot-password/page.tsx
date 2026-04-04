@@ -2,8 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { authHelper } from "@/lib/auth/auth-helper";
-import { browserSupabase } from "@/lib/supabase/browser";
+import { authHelper, browserSupabase } from "@dollys-closet/core";
 import { toast } from "sonner";
 import { ArrowLeft, Mail } from "lucide-react";
 

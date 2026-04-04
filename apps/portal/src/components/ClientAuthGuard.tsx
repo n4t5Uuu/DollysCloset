@@ -1,9 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { browserSupabase } from "@/lib/supabase/browser";
+import { browserSupabase, clearManualLogoutIntent, consumeManualLogoutIntent } from "@dollys-closet/core";
 import { buildLoginPath } from "@/lib/auth/auth-routing";
-import { clearManualLogoutIntent, consumeManualLogoutIntent } from "@/lib/auth/logout-intent";
 import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 

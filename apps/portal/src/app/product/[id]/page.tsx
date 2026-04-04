@@ -1,4 +1,4 @@
-import { admin } from "@/lib/supabase/admin";
+import { admin } from "@dollys-closet/core/lib/supabase/admin";
 import { type CatalogApiProduct } from "@/types/product.types";
 import ProductDetailsClient from "@/components/catalog/ProductDetailsClient";
 import { type Metadata, type ResolvingMetadata } from "next";

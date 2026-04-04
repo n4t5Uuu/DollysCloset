@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { activityHelper } from "@/lib/activity/activity-helper";
-import { admin } from "@/lib/supabase/admin";
-import { createServerSupabase } from "@/lib/supabase/server";
+import { admin } from "@dollys-closet/core/lib/supabase/admin";
+import { createServerSupabase } from "@dollys-closet/core/lib/supabase/server";
 
 const ALLOWED_ACTION_TYPES = ["login", "logout"] as const;
 type AllowedActionType = typeof ALLOWED_ACTION_TYPES[number];

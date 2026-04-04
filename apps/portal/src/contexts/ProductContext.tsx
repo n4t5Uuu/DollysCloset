@@ -2,17 +2,17 @@
 /* eslint-disable react-hooks/set-state-in-effect */
 
 import React, { createContext, useContext, useState, useEffect } from "react";
-import { Product } from "@/types/product.types";
+import { type Product } from "@dollys-closet/core";
 import { 
-  CatalogStatus, 
-  ActivityLog, 
-  FieldChange 
-} from "@/types/logs.types";
-import { useUser } from "@/hooks/useUser";
+  type CatalogStatus, 
+  type ActivityLog, 
+  type FieldChange 
+} from "@dollys-closet/core";
+import { useUser } from "@dollys-closet/core";
 
 const initialProducts: Product[] = [];
 
-import { ProductContextType } from "@/types/context.types";
+import { type ProductContextType } from "@dollys-closet/core";
 
 const ProductContext = createContext<ProductContextType | undefined>(undefined);
 

@@ -1,6 +1,6 @@
 "use server";
 
-import { createServerSupabase } from "@/lib/supabase/server";
+import { createServerSupabase } from "@dollys-closet/core/lib/supabase/server";
 
 export async function changePasswordAction(newPassword: string): Promise<{ error: string | null }> {
   const supabase = await createServerSupabase();

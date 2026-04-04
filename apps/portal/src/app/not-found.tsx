@@ -1,4 +1,4 @@
-import DynamicError from "@/components/general-components/DynamicError";
+import { DynamicError } from "@dollys-closet/ui";
 
 export default function NotFound() {
   return (

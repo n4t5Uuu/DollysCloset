@@ -1,7 +1,7 @@
 "use client";
 
 import { AlertTriangle, CheckCircle2, Info, RefreshCcw, X } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Button } from "./button";
 
 type Tone = "error" | "success" | "warning" | "info";
 

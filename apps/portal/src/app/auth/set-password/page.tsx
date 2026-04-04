@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
-import { browserSupabase } from "@/lib/supabase/browser";
+import { browserSupabase } from "@dollys-closet/core";
 import { Eye, EyeOff, Loader2, CheckCircle2, ChevronRight, X, Check } from "lucide-react";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";

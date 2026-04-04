@@ -1,14 +1,11 @@
 "use client"
 
-import { CardTitle } from "@/components/ui/card"
-import { cn } from "@/lib/utils"
+import { CardTitle } from "../ui/card"
+import { cn, type Product, resolveProductPlaceholder, useProductMetadata } from "@dollys-closet/core"
 
 import Image from "next/image"
-import { Product } from "@/types/product.types"
-import { resolveProductPlaceholder } from "@/lib/images/product-placeholder"
 import { useRef, useState } from "react"
 
-import { useProductMetadata } from "@/hooks/useProductMetadata";
 import { ProductBadge } from "./ProductBadge";
 
 interface ProductCardProps {

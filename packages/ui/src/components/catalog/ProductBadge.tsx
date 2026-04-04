@@ -1,4 +1,4 @@
-import { cn } from "@/lib/utils";
+import { cn } from "@dollys-closet/core";
 
 interface ProductBadgeProps {
     label: string;

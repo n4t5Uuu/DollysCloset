@@ -1,11 +1,8 @@
 "use client"
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Product } from "@/types/product.types";
+import { type Product, resolveProductPlaceholder, cn, useProductMetadata } from "@dollys-closet/core";
 import Image from "next/image";
 import { ChevronLeft, ChevronRight } from "lucide-react";
-import { resolveProductPlaceholder } from "@/lib/images/product-placeholder";
-import { cn } from "@/lib/utils";
-import { useProductMetadata } from "@/hooks/useProductMetadata";
 import { ProductBadge } from "./ProductBadge";
 
 interface FeatureCardCarouselProps {

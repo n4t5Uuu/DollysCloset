@@ -1,8 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { authHelper } from "@/lib/auth/auth-helper";
-import { browserSupabase } from "@/lib/supabase/browser";
+import { authHelper, browserSupabase } from "@dollys-closet/core";
 import { getAuthReasonCopy, getSafeInternalPath } from "@/lib/auth/auth-routing";
 
 import { Eye, EyeOff } from "lucide-react";

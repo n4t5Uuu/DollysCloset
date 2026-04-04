@@ -1,4 +1,4 @@
-import { admin } from '@/lib/supabase/admin';
+import { admin } from '@dollys-closet/core/lib/supabase/admin';
 import { activityHelper } from '@/lib/activity/activity-helper';
 import { requireRequestAuth } from '@/lib/auth/auth-server';
 import { NextRequest, NextResponse } from 'next/server'

@@ -54,14 +54,17 @@ import {
   Great_Vibes
 } from "next/font/google"; 
 import "./globals.css";
-import {ConditionalFooter, ConditionalNavbar } from "@/components/general-components/ConditionalFooterAndHeader";
+import { 
+  ConditionalFooter, 
+  ConditionalNavbar,
+  NavigationGuard,
+  SessionGuard,
+  SidebarProvider,
+  Toaster
+} from "@dollys-closet/ui";
 import { ProductProvider } from "@/contexts/ProductContext";
-import { SidebarProvider, Toaster } from "@dollys-closet/ui";
-import { UserProvider } from "@/contexts/UserContext";
+import { UserProvider, UnsavedChangesProvider } from "@dollys-closet/core";
 import { GoogleAnalyticsTracker } from "@/components/analytics/GoogleAnalyticsTracker";
-import { UnsavedChangesProvider } from "@/contexts/UnsavedChangesContext";
-import { NavigationGuard } from "@/components/general-components/NavigationGuard";
-import { SessionGuard } from "@/components/general-components/SessionGuard";
 
 const oswald = Oswald({
   subsets: ["latin"],

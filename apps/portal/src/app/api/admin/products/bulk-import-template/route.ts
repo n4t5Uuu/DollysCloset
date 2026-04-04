@@ -5,7 +5,7 @@ import { strFromU8, strToU8, unzipSync, zipSync } from "fflate";
 
 import { requireRequestAuth } from "@/lib/auth/auth-server";
 import { productHelper } from "@/lib/products/product-helper";
-import { admin } from "@/lib/supabase/admin";
+import { admin } from "@dollys-closet/core/lib/supabase/admin";
 
 interface CategoryRecord {
   category_id: number | string;

@@ -262,7 +262,7 @@ export default function ProductImageUpload({
     setUploading(true);
 
     try {
-      const { browserSupabase } = await import("@/lib/supabase/browser");
+      const { browserSupabase } = await import("@dollys-closet/core");
       const { data: { session } } = await browserSupabase.auth.getSession();
       
       if (!session) {
@@ -338,7 +338,7 @@ export default function ProductImageUpload({
    */
   const deleteImage = async (imageId: string) => {
     try {
-      const { browserSupabase } = await import("@/lib/supabase/browser");
+      const { browserSupabase } = await import("@dollys-closet/core");
       const { data: { session } } = await browserSupabase.auth.getSession();
       
       if (!session) {
@@ -402,7 +402,7 @@ export default function ProductImageUpload({
 
     setReordering(true);
     try {
-      const { browserSupabase } = await import("@/lib/supabase/browser");
+      const { browserSupabase } = await import("@dollys-closet/core");
       const { data: { session } } = await browserSupabase.auth.getSession();
 
       if (!session) throw new Error("Not authenticated");

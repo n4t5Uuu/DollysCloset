@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { productHelper } from '@/lib/products/product-helper';
 import { requireRequestAuth } from '@/lib/auth/auth-server';
-import { admin } from '@/lib/supabase/admin';
+import { admin } from '@dollys-closet/core/lib/supabase/admin';
 
 /**
  * Retrieves the complete list of available product categories.

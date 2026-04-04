@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { employeeHelper } from "@/lib/employees/employee-helper";
 import { activityHelper } from "@/lib/activity/activity-helper";
-import { admin } from "@/lib/supabase/admin";
+import { admin } from "@dollys-closet/core/lib/supabase/admin";
 import { requireRequestAuth } from "@/lib/auth/auth-server";
 
 const MAX_BULK_DELETE_EMPLOYEES = 100;

@@ -26,3 +26,18 @@ export * from "./components/ui/tooltip";
 export * from "./components/catalog/ProductCard";
 export * from "./components/catalog/ProductBadge";
 export * from "./components/catalog/FeatureCardCarousel";
+
+export * from "./components/pages/AboutView";
+export * from "./components/pages/ContactView";
+export * from "./components/pages/CollectionsView";
+
+export { default as DynamicError } from "./components/general-components/DynamicError";
+export * from "./components/general-components/NavigationGuard";
+export * from "./components/general-components/ConditionalFooterAndHeader";
+export * from "./components/general-components/SearchBar";
+export { default as CustomPagination } from "./components/general-components/CustomPagination";
+export { default as LogoutButton } from "./components/general-components/LogoutButton";
+export * from "./components/general-components/SessionGuard";
+export { default as Footer } from "./components/general-components/footer";
+export { default as Navbar } from "./components/general-components/navbar";
+export { default as AdminSearchInput } from "./components/general-components/AdminSearchInput";

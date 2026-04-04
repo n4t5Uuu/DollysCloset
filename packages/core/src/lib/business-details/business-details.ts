@@ -6,22 +6,14 @@ import {
   BusinessDetailsRowLike,
   ContactFieldConfig,
   AboutFieldConfig,
-} from "@/types/business-details.types";
+} from "../../types/business-details.types";
 import {
   aboutFieldLimits,
   contactFieldLimits,
   sanitizeAboutDetailsPayload,
   sanitizeAnnouncementText,
   sanitizeContactDetailsPayload,
-} from "@/lib/input-sanitization";
-
-export type {
-  ContactFieldKey,
-  ContactDetailsPayload,
-  AboutFieldKey,
-  AboutDetailsPayload,
-  BusinessDetailsRowLike
-};
+} from "../input-sanitization";
 
 export const CONTACT_SLUG = "contact";
 export const ABOUT_SLUG = "about";

@@ -1,5 +1,5 @@
 import { Suspense } from "react";
-import Catalog from "@/app/catalog"
+import { CollectionsView } from "@dollys-closet/ui";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
@@ -10,7 +10,7 @@ export const metadata: Metadata = {
 export default function CollectionPage() {
     return (
         <Suspense>
-            <Catalog />
+            <CollectionsView />
         </Suspense>
     );
 }

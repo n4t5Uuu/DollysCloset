@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { Loader2, X } from "lucide-react";
-import { browserSupabase } from "@/lib/supabase/browser";
+import { browserSupabase } from "@dollys-closet/core";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {

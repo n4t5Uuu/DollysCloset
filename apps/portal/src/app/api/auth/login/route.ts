@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createServerSupabase } from "@/lib/supabase/server";
-import { admin } from "@/lib/supabase/admin";
+import { createServerSupabase } from "@dollys-closet/core/lib/supabase/server";
+import { admin } from "@dollys-closet/core/lib/supabase/admin";
 
 // Simple in-memory sliding-window rate limiter
 // Note: resets on serverless cold starts — provides best-effort protection.

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { productHelper } from "@/lib/products/product-helper";
 import { activityHelper } from "@/lib/activity/activity-helper";
-import { admin } from "@/lib/supabase/admin";
+import { admin } from "@dollys-closet/core/lib/supabase/admin";
 import { requireRequestAuth } from "@/lib/auth/auth-server";
 import {
   sanitizeMultilineText,

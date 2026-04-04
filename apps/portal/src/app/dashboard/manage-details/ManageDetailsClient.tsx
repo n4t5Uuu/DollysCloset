@@ -8,15 +8,19 @@ import {
   Phone,
   BookOpen,
 } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import CustomPagination from "@/components/general-components/CustomPagination";
-import { toast } from "sonner";
-import { Skeleton } from "@/components/ui/skeleton";
-import { AdminNoticeBanner } from "@/components/ui/admin-notice-banner";
-import { useUnsavedChanges } from "@/contexts/UnsavedChangesContext";
+import { 
+  Button,
+  Input,
+  Textarea,
+  Card, 
+  CardContent, 
+  CardHeader, 
+  CardTitle,
+  CustomPagination,
+  Skeleton,
+  AdminNoticeBanner
+} from "@dollys-closet/ui";
+import { useUnsavedChanges } from "@dollys-closet/core";
 import {
   ANNOUNCEMENT_SLUG,
   ANNOUNCEMENT_TITLE,
@@ -34,8 +38,6 @@ import {
   defaultContactDetails,
   parseAboutBody,
   parseContactBody,
-} from "@/lib/business-details/business-details";
-import {
   sanitizeAboutDetailInput,
   sanitizeAboutDetailsPayload,
   sanitizeAboutDetailText,
@@ -45,7 +47,8 @@ import {
   sanitizeContactDetailsPayload,
   sanitizeContactDetailText,
   uiContentLimits,
-} from "@/lib/input-sanitization";
+} from "@dollys-closet/core";
+import { toast } from "sonner";
 
 /**
  * ManageDetailsClient.tsx

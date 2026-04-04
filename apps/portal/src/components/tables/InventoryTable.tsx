@@ -1,10 +1,17 @@
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Button } from "@/components/ui/button";
-import { Eye, Pencil, Trash2, PackageSearch } from "lucide-react";
-import { InventoryProduct as Product } from "@/types/inventory.types";
-import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty";
-import {
+import { 
+    Table, 
+    TableBody, 
+    TableCell, 
+    TableHead, 
+    TableHeader, 
+    TableRow,
+    Checkbox,
+    Button,
+    Empty, 
+    EmptyDescription, 
+    EmptyHeader, 
+    EmptyMedia, 
+    EmptyTitle,
     AlertDialog,
     AlertDialogAction,
     AlertDialogCancel,
@@ -14,7 +21,9 @@ import {
     AlertDialogHeader,
     AlertDialogTitle,
     AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
+} from "@dollys-closet/ui";
+import { Eye, Pencil, Trash2, PackageSearch } from "lucide-react";
+import { InventoryProduct as Product } from "@dollys-closet/core";
 
 interface InventoryTableProps {
     currentProducts: Product[];

@@ -3,11 +3,11 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Eye, EyeOff, CheckCircle2, AlertTriangle, RefreshCcw, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
-import { browserSupabase } from "@/lib/supabase/browser";
+import { browserSupabase } from "@dollys-closet/core";
 import { changePasswordAction } from "./actions";
 import { Button } from "@/components/ui/button";
 import { AdminNoticeBanner } from "@/components/ui/admin-notice-banner";
-import { useUnsavedChanges } from "@/contexts/UnsavedChangesContext";
+import { useUnsavedChanges } from "@dollys-closet/core";
 
 interface Profile {
   displayName: string;

@@ -22,7 +22,8 @@
     "paths": {
       "@/*": ["./*"],
       "@dollys-closet/ui": ["../../packages/ui/src"],
-      "@dollys-closet/core": ["../../packages/core/src"]
+      "@dollys-closet/core": ["../../packages/core/src"],
+      "@dollys-closet/core/*": ["../../packages/core/src/*"]
     }
   },
   "include": [

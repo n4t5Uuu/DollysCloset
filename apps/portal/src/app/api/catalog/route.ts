@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { admin } from "@/lib/supabase/admin";
+import { admin } from "@dollys-closet/core/lib/supabase/admin";
 import { productHelper } from "@/lib/products/product-helper";
 import { InventoryCategory, InventoryProduct, InventoryProductImage } from "@/types/inventory.types";
 import { resolveProductPlaceholder } from "@/lib/images/product-placeholder";

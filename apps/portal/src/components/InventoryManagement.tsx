@@ -3,27 +3,22 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import { Plus, Trash, X, Upload, SlidersHorizontal, RefreshCw } from "lucide-react";
-import { browserSupabase } from "@/lib/supabase/browser";
-import { Button } from "@/components/ui/button";
+import { 
+  browserSupabase,
+  InventoryProduct as Product,
+  InventoryCategory as Category, 
+  InventoryProductImage as ProductImage 
+} from "@dollys-closet/core";
 import {
+  Button,
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
-import CategoryCascadingFilter from "@/components/CategoryCascadingFilter";
-import { Skeleton } from "@/components/ui/skeleton";
-
-import AddProduct from "@/components/dialogs/AddProduct";
-import BulkImportModal from "@/components/dialogs/BulkImportModal";
-import { InventoryTable } from "@/components/tables/InventoryTable";
-import { InventoryProduct as Product, InventoryCategory as Category, InventoryProductImage as ProductImage } from "@/types/inventory.types";
-import CustomPagination from "@/components/general-components/CustomPagination";
-import AdminSearchInput from "@/components/general-components/AdminSearchInput";
-import ViewProductDialog from "@/components/dialogs/ViewProductDialog";
-import { toast } from "sonner";
-import {
+  Skeleton,
+  CustomPagination,
+  AdminSearchInput,
   AlertDialog,
   AlertDialogAction,
   AlertDialogCancel,
@@ -33,8 +28,14 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
   AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
-import { AdminNoticeBanner } from "@/components/ui/admin-notice-banner";
+  AdminNoticeBanner
+} from "@dollys-closet/ui";
+import CategoryCascadingFilter from "@/components/CategoryCascadingFilter";
+import AddProduct from "@/components/dialogs/AddProduct";
+import BulkImportModal from "@/components/dialogs/BulkImportModal";
+import { InventoryTable } from "@/components/tables/InventoryTable";
+import ViewProductDialog from "@/components/dialogs/ViewProductDialog";
+import { toast } from "sonner";
 
 interface InventoryManagementProps {
   initialAvailabilityFilter?: string;
@@ -698,7 +699,7 @@ export default function InventoryManagement({ initialAvailabilityFilter }: Inven
         <CategoryCascadingFilter
           categories={categories}
           value={categoryFilter}
-          onValueChange={setCategoryFilter}
+          onValueChange={(value: string) => setCategoryFilter(value)}
         />
 
         <Select value={dateSort} onValueChange={(value) => setDateSort(value as "newest" | "oldest")}>

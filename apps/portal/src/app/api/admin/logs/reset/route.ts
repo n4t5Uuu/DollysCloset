@@ -1,7 +1,7 @@
-import { admin } from "@/lib/supabase/admin";
-import { authHelper } from "@/lib/auth/auth-helper";
+import { admin } from "@dollys-closet/core/lib/supabase/admin";
+import { authHelper } from "@dollys-closet/core";
 import { activityHelper } from "@/lib/activity/activity-helper";
-import { createServerSupabase } from "@/lib/supabase/server";
+import { createServerSupabase } from "@dollys-closet/core/lib/supabase/server";
 import { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 

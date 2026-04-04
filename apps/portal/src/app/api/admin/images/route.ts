@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { admin } from "@/lib/supabase/admin";
+import { admin } from "@dollys-closet/core/lib/supabase/admin";
 import { productHelper } from "@/lib/products/product-helper";
 import { activityHelper } from "@/lib/activity/activity-helper";
 import { requireRequestAuth } from "@/lib/auth/auth-server";

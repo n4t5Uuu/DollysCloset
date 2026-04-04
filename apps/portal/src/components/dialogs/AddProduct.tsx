@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { Loader2, X, ChevronDown } from "lucide-react";
-import { browserSupabase } from "@/lib/supabase/browser";
+import { browserSupabase } from "@dollys-closet/core";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";

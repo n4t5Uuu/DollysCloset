@@ -3,7 +3,7 @@
 import { useState, useRef, useCallback, useEffect } from "react";
 import { X, Upload, Download, AlertTriangle, CheckCircle2, Loader2, FileSpreadsheet } from "lucide-react";
 import * as XLSX from "xlsx";
-import { browserSupabase } from "@/lib/supabase/browser";
+import { browserSupabase } from "@dollys-closet/core";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import {

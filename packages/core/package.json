@@ -2,8 +2,16 @@
   "name": "@dollys-closet/core",
   "version": "0.1.0",
   "private": true,
+  "scripts": {
+    "build": "tsc"
+  },
   "main": "./src/index.ts",
   "types": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts",
+    "./lib/supabase/server": "./src/lib/supabase/server.ts",
+    "./lib/supabase/admin": "./src/lib/supabase/admin.ts"
+  },
   "dependencies": {
     "@supabase/supabase-js": "^2.39.0",
     "react": "^19.0.0"

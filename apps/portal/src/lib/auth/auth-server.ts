@@ -1,9 +1,9 @@
 import { User } from "@supabase/supabase-js";
 import { NextResponse } from "next/server";
-import { authHelper } from "@/lib/auth/auth-helper";
+import { authHelper } from "@dollys-closet/core";
 import { AuthRedirectReason } from "@/lib/auth/auth-routing";
-import { createServerSupabase } from "@/lib/supabase/server";
-import { admin } from "@/lib/supabase/admin";
+import { createServerSupabase } from "@dollys-closet/core/lib/supabase/server";
+import { admin } from "@dollys-closet/core/lib/supabase/admin";
 
 /**
  * Represents the two primary administrative roles supported by the application.

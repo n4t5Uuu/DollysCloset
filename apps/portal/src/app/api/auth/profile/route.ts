@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
-import { createServerSupabase } from "@/lib/supabase/server";
-import { admin } from "@/lib/supabase/admin";
+import { createServerSupabase } from "@dollys-closet/core/lib/supabase/server";
+import { admin } from "@dollys-closet/core/lib/supabase/admin";
 import { employeeHelper } from "@/lib/employees/employee-helper";
 
 export async function GET() {

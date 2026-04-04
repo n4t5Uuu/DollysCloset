@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 
-import { admin } from "@/lib/supabase/admin";
+import { admin } from "@dollys-closet/core/lib/supabase/admin";
 import { productHelper } from "@/lib/products/product-helper";
 import { resolveProductPlaceholder } from "@/lib/images/product-placeholder";
 import { normalizeImageUrl } from "@/lib/images/normalize-image-url";

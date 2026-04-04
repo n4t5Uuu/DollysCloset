@@ -3,20 +3,21 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import { Plus, Trash, RefreshCcw, X } from "lucide-react";
-import { browserSupabase } from "@/lib/supabase/browser";
-import { Button } from "@/components/ui/button";
+import { browserSupabase, Employee } from "@dollys-closet/core";
+import { 
+  Button, 
+  CustomPagination, 
+  AdminSearchInput,
+  Skeleton,
+  AdminNoticeBanner
+} from "@dollys-closet/ui";
+
 import AddEmployee from "@/components/dialogs/AddEmployee";
 import { EmployeeTable } from "@/components/tables/EmployeeTable";
-import { Employee } from "@/types/employee.types";
-import CustomPagination from "@/components/general-components/CustomPagination";
-import AdminSearchInput from "@/components/general-components/AdminSearchInput";
-
 import ViewEmployeeDialog from "@/components/dialogs/ViewEmployeeDialog";
 import DeleteEmployeeDialog from "@/components/dialogs/DeleteEmployeeDialog";
 import BulkDeleteEmployeeDialog from "@/components/dialogs/BulkDeleteEmployeeDialog";
 import { toast } from "sonner";
-import { Skeleton } from "@/components/ui/skeleton";
-import { AdminNoticeBanner } from "@/components/ui/admin-notice-banner";
 
 type ActionNotice = {
   type: "success" | "warning" | "info";

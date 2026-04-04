@@ -2,14 +2,22 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams, useRouter, usePathname } from "next/navigation";
-import { Button } from "@/components/ui/button";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Calendar, ChevronDown, ClipboardList, X, Eye, SlidersHorizontal, RefreshCcw } from "lucide-react";
-import CustomPagination from "@/components/general-components/CustomPagination";
-import AdminSearchInput from "@/components/general-components/AdminSearchInput";
-import { Skeleton } from "@/components/ui/skeleton";
-import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty";
-import {
+import { 
+  Button,
+  Table, 
+  TableBody, 
+  TableCell, 
+  TableHead, 
+  TableHeader, 
+  TableRow,
+  CustomPagination,
+  AdminSearchInput,
+  Skeleton,
+  Empty, 
+  EmptyDescription, 
+  EmptyHeader, 
+  EmptyMedia, 
+  EmptyTitle,
   AlertDialog,
   AlertDialogAction,
   AlertDialogCancel,
@@ -19,8 +27,9 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
   AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
-import { AdminNoticeBanner } from "@/components/ui/admin-notice-banner";
+  AdminNoticeBanner
+} from "@dollys-closet/ui";
+import { Calendar, ChevronDown, ClipboardList, X, Eye, SlidersHorizontal, RefreshCcw, RefreshCw } from "lucide-react";
 
 interface ActivityLog {
   log_id: number;
