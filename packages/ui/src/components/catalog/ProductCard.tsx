@@ -98,7 +98,7 @@ export default function ProductCard({ product, href, onClick }: ProductCardProps
         >
             <article
                 className={cn(
-                    "flex h-full flex-col rounded-[1rem] bg-white p-1.5 shadow-[0_8px_24px_rgba(18,18,18,0.10),0_2px_8px_rgba(231,163,176,0.10)] transition-all duration-300",
+                    "flex h-full flex-col rounded-[1rem] bg-white p-1.5 shadow-[0_8px_24px_rgba(18,18,18,0.10),0_2px_8px_rgba(231,163,176,0.10)] transition-all duration-300 overflow-hidden",
                     "group-hover:-translate-y-1 group-hover:shadow-[0_20px_48px_rgba(18,18,18,0.15),0_4px_16px_rgba(231,163,176,0.15)]"
                 )}
             >
@@ -180,7 +180,7 @@ export default function ProductCard({ product, href, onClick }: ProductCardProps
                             {metadataChips.map((chip) => (
                                 <span
                                     key={chip}
-                                    className="rounded-full bg-[#f8f3f4] px-2 py-0.5 font-montserrat text-[9px] sm:text-[10px] font-medium uppercase tracking-[0.12em] text-[#6a5a5f]"
+                                    className="rounded-full bg-[#f8f3f4] px-2 py-0.5 font-montserrat text-[9px] sm:text-[10px] font-medium uppercase tracking-[0.12em] text-[#6a5a5f] break-words max-w-full"
                                 >
                                     {chip}
                                 </span>
