@@ -121,11 +121,14 @@ export default function Footer() {
 
                     <div className={`${headerContentSpace} items-center md:items-start`}>
                         <h2 className={headerStyle}>Address</h2>
-                        <div 
-                            className={addressStyle}
+                        <a 
+                            href="https://www.google.com/maps/search/?api=1&query=02%20Admiral%2C%20Talon%20Tres%2C%20Las%20Pi%C3%B1as%20City"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className={`${addressStyle} hover:text-[#E7A3B0] transition-colors duration-300`}
                         >
                             {contactDetails.address}
-                        </div>
+                        </a>
                     </div>
                 </div>
             </div>
