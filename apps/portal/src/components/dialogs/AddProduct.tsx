@@ -47,6 +47,7 @@ interface AddProductProps {
     categories: Category[];
     productToEdit?: Product | null;
     onProductSaved: () => void | Promise<void>;
+    existingProducts?: Product[];
 }
 
 interface SessionWithAccessToken {
@@ -85,7 +86,7 @@ const normalizeCategoryId = (value: unknown) => {
  * - Form Guard: Intercepts close attempts if unsaved changes are detected.
  * - Real-time Validation: Disables save if required fields (Name, Category, Price) are missing.
  */
-export default function AddProduct({ isOpen, onClose, categories, productToEdit, onProductSaved }: AddProductProps) {
+export default function AddProduct({ isOpen, onClose, categories, productToEdit, onProductSaved, existingProducts = [] }: AddProductProps) {
     const [actionLoading, setActionLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [stagedFiles, setStagedFiles] = useState<File[]>([]);
@@ -227,6 +228,7 @@ export default function AddProduct({ isOpen, onClose, categories, productToEdit,
     useEffect(() => {
         if (isOpen) {
             if (productToEdit) {
+                setError(null);
                 setFormData({
                     product_name: sanitizeSingleLineInput(productToEdit.product_name, schemaExactLimits.productName),
                     category_id: normalizeCategoryId(productToEdit.category_id),
@@ -396,6 +398,24 @@ export default function AddProduct({ isOpen, onClose, categories, productToEdit,
 
             if (Number.isNaN(parsedStock) || parsedStock < 0) {
                 throw new Error('Invalid stock. Please enter 0 or a positive number.');
+            }
+
+            const duplicateProduct = existingProducts.find((candidate) => {
+                if (productToEdit && candidate.product_id === productToEdit.product_id) return false;
+                return (
+                    sanitizeSingleLineText(candidate.product_name, schemaExactLimits.productName).toLowerCase() === normalizedProductName.toLowerCase() &&
+                    normalizeCategoryId(candidate.category_id) === String(parsedCategoryId) &&
+                    Number(candidate.product_price) === parsedPrice &&
+                    (sanitizeSingleLineText(candidate.product_brand || "", schemaExactLimits.productBrand) || "Dolly's Closet").toLowerCase() === normalizedBrand.toLowerCase() &&
+                    sanitizeMultilineText(candidate.product_description || "", PRODUCT_DESCRIPTION_LIMIT) === normalizedDescription &&
+                    Number(candidate.product_stock) === parsedStock &&
+                    (sanitizeSingleLineText(candidate.product_condition || "New", schemaExactLimits.productCondition) || "New").toLowerCase() === normalizedCondition.toLowerCase() &&
+                    (sanitizeSingleLineText(candidate.size_label || "One Size", schemaExactLimits.productSizeLabel) || "One Size").toLowerCase() === normalizedSizeLabel.toLowerCase()
+                );
+            });
+
+            if (duplicateProduct) {
+                throw new Error('A product with these exact details already exists. Update the existing product or change at least one field before saving.');
             }
 
             const response = await fetch(endpoint, {

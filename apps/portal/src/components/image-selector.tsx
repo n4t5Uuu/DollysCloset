@@ -27,7 +27,10 @@ const ALLOWED_IMAGE_TYPES = new Set([
   "image/avif",
 ]);
 
+const MAX_IMAGE_FILE_SIZE = 5 * 1024 * 1024;
+
 const isImageFile = (file: File) => ALLOWED_IMAGE_TYPES.has(file.type);
+const isWithinSizeLimit = (file: File) => file.size <= MAX_IMAGE_FILE_SIZE;
 
 export default function ImageSelector({
   stagedFiles,
@@ -67,11 +70,22 @@ export default function ImageSelector({
       return;
     }
 
-    const files = Array.from(e.dataTransfer.files)
-      .filter((file) => isImageFile(file))
-      .slice(0, remainingSlots);
+    const droppedFiles = Array.from(e.dataTransfer.files);
+    const imageFiles = droppedFiles.filter(isImageFile);
+    const oversizedFiles = imageFiles.filter((file) => !isWithinSizeLimit(file));
+    const sizedFiles = imageFiles.filter(isWithinSizeLimit);
+    const files = sizedFiles.slice(0, remainingSlots);
 
-    if (e.dataTransfer.files.length > files.length) {
+    if (oversizedFiles.length > 0) {
+      setAlertConfig({
+        isOpen: true,
+        title: "Image Too Large",
+        description: `${oversizedFiles.length} image(s) exceed the 5 MB limit and were not added. Please upload images up to 5 MB each.`,
+      });
+      return;
+    }
+
+    if (droppedFiles.length > files.length) {
       setAlertConfig({
         isOpen: true,
         title: "Some Images Skipped",
@@ -106,7 +120,9 @@ export default function ImageSelector({
   const handleFileInput = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFiles = Array.from(e.target.files || []);
     const imageFiles = selectedFiles.filter(isImageFile);
-    const limitedImageFiles = imageFiles.slice(0, remainingSlots);
+    const oversizedFiles = imageFiles.filter((file) => !isWithinSizeLimit(file));
+    const sizedImageFiles = imageFiles.filter(isWithinSizeLimit);
+    const limitedImageFiles = sizedImageFiles.slice(0, remainingSlots);
 
     if (selectedFiles.length > 0 && imageFiles.length === 0) {
       setAlertConfig({
@@ -122,6 +138,16 @@ export default function ImageSelector({
         title: "Files Skipped",
         description: "Some files were skipped because only image files are allowed.",
       });
+    }
+
+    if (oversizedFiles.length > 0) {
+      setAlertConfig({
+        isOpen: true,
+        title: "Image Too Large",
+        description: `${oversizedFiles.length} image(s) exceed the 5 MB limit and were not added. Please upload images up to 5 MB each.`,
+      });
+      e.target.value = "";
+      return;
     }
 
     if (imageFiles.length > limitedImageFiles.length) {

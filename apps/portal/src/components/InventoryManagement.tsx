@@ -854,6 +854,7 @@ export default function InventoryManagement({ initialAvailabilityFilter }: Inven
         onClose={closeModal}
         categories={categories}
         productToEdit={editingProduct}
+        existingProducts={products}
         onProductSaved={async () => {
           closeModal();
           const refreshed = await fetchProducts(false);

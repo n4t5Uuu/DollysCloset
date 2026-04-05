@@ -56,13 +56,20 @@ export default function AddEmployee({ isOpen, onClose, employeeToEdit, onEmploye
     }, [employeeToEdit, formData.password.length, trimmedEmail, trimmedFirstName, trimmedLastName]);
 
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    const nameRegex = /^[A-Za-z]+$/;
     const hasInvalidEmail = trimmedEmail !== "" && !emailRegex.test(trimmedEmail);
+    const hasInvalidFirstName = trimmedFirstName !== "" && !nameRegex.test(trimmedFirstName);
+    const hasInvalidLastName = trimmedLastName !== "" && !nameRegex.test(trimmedLastName);
     const hasInvalidPassword = formData.password.length > 0 && formData.password.length < 6;
-    const isSubmitBlocked = actionLoading || missingRequiredFields.length > 0 || hasInvalidEmail || hasInvalidPassword;
+    const isSubmitBlocked = actionLoading || missingRequiredFields.length > 0 || hasInvalidEmail || hasInvalidFirstName || hasInvalidLastName || hasInvalidPassword;
     const formStatusMessage = missingRequiredFields.length > 0
         ? `Add ${missingRequiredFields.join(", ")} to continue.`
         : hasInvalidEmail
             ? "Enter a valid email address before saving."
+            : hasInvalidFirstName
+                ? "First name can only contain letters (A-Z)."
+            : hasInvalidLastName
+                ? "Last name can only contain letters (A-Z)."
             : hasInvalidPassword
                 ? employeeToEdit
                     ? "Use at least 6 characters if you are resetting the password."
@@ -150,6 +157,18 @@ export default function AddEmployee({ isOpen, onClose, employeeToEdit, onEmploye
 
             if (!emailRegex.test(normalizedUsername)) {
                 setError('Please enter a valid email address.');
+                setActionLoading(false);
+                return;
+            }
+
+            if (!nameRegex.test(normalizedFirstName)) {
+                setError('First name can only contain letters (A-Z).');
+                setActionLoading(false);
+                return;
+            }
+
+            if (!nameRegex.test(normalizedLastName)) {
+                setError('Last name can only contain letters (A-Z).');
                 setActionLoading(false);
                 return;
             }
@@ -258,11 +277,16 @@ export default function AddEmployee({ isOpen, onClose, employeeToEdit, onEmploye
                                     maxLength={schemaExactLimits.userFirstName}
                                     required
                                     disabled={actionLoading}
+                                    aria-invalid={hasInvalidFirstName}
                                     className="border-gray-300 text-gray-900 bg-white placeholder:text-gray-400"
                                 />
-                                <p className="text-right text-xs text-gray-500">
-                                    {renderLengthMeta(formData.first_name, schemaExactLimits.userFirstName)}
-                                </p>
+                                {hasInvalidFirstName ? (
+                                    <p className="text-xs text-red-600">Letters only (A–Z). No numbers or symbols.</p>
+                                ) : (
+                                    <p className="text-right text-xs text-gray-500">
+                                        {renderLengthMeta(formData.first_name, schemaExactLimits.userFirstName)}
+                                    </p>
+                                )}
                             </div>
 
                             <div className="space-y-2">
@@ -275,11 +299,16 @@ export default function AddEmployee({ isOpen, onClose, employeeToEdit, onEmploye
                                     maxLength={schemaExactLimits.userLastName}
                                     required
                                     disabled={actionLoading}
+                                    aria-invalid={hasInvalidLastName}
                                     className="border-gray-300 text-gray-900 bg-white placeholder:text-gray-400"
                                 />
-                                <p className="text-right text-xs text-gray-500">
-                                    {renderLengthMeta(formData.last_name, schemaExactLimits.userLastName)}
-                                </p>
+                                {hasInvalidLastName ? (
+                                    <p className="text-xs text-red-600">Letters only (A–Z). No numbers or symbols.</p>
+                                ) : (
+                                    <p className="text-right text-xs text-gray-500">
+                                        {renderLengthMeta(formData.last_name, schemaExactLimits.userLastName)}
+                                    </p>
+                                )}
                             </div>
                         </div>
 
