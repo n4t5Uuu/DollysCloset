@@ -56,7 +56,7 @@ export default function AddEmployee({ isOpen, onClose, employeeToEdit, onEmploye
     }, [employeeToEdit, formData.password.length, trimmedEmail, trimmedFirstName, trimmedLastName]);
 
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    const nameRegex = /^[A-Za-z]+$/;
+    const nameRegex = /^[\p{L}][\p{L}-]*[\p{L}]$|^[\p{L}]+$/u;
     const hasInvalidEmail = trimmedEmail !== "" && !emailRegex.test(trimmedEmail);
     const hasInvalidFirstName = trimmedFirstName !== "" && !nameRegex.test(trimmedFirstName);
     const hasInvalidLastName = trimmedLastName !== "" && !nameRegex.test(trimmedLastName);
@@ -67,9 +67,9 @@ export default function AddEmployee({ isOpen, onClose, employeeToEdit, onEmploye
         : hasInvalidEmail
             ? "Enter a valid email address before saving."
             : hasInvalidFirstName
-                ? "First name can only contain letters (A-Z)."
+                ? "First name can only contain letters and hyphens."
             : hasInvalidLastName
-                ? "Last name can only contain letters (A-Z)."
+                ? "Last name can only contain letters and hyphens."
             : hasInvalidPassword
                 ? employeeToEdit
                     ? "Use at least 6 characters if you are resetting the password."
@@ -162,13 +162,13 @@ export default function AddEmployee({ isOpen, onClose, employeeToEdit, onEmploye
             }
 
             if (!nameRegex.test(normalizedFirstName)) {
-                setError('First name can only contain letters (A-Z).');
+                setError('First name can only contain letters and hyphens.');
                 setActionLoading(false);
                 return;
             }
 
             if (!nameRegex.test(normalizedLastName)) {
-                setError('Last name can only contain letters (A-Z).');
+                setError('Last name can only contain letters and hyphens.');
                 setActionLoading(false);
                 return;
             }
@@ -281,7 +281,7 @@ export default function AddEmployee({ isOpen, onClose, employeeToEdit, onEmploye
                                     className="border-gray-300 text-gray-900 bg-white placeholder:text-gray-400"
                                 />
                                 {hasInvalidFirstName ? (
-                                    <p className="text-xs text-red-600">Letters only (A–Z). No numbers or symbols.</p>
+                                    <p className="text-xs text-red-600">Letters and hyphens only. No numbers or other symbols.</p>
                                 ) : (
                                     <p className="text-right text-xs text-gray-500">
                                         {renderLengthMeta(formData.first_name, schemaExactLimits.userFirstName)}
@@ -303,7 +303,7 @@ export default function AddEmployee({ isOpen, onClose, employeeToEdit, onEmploye
                                     className="border-gray-300 text-gray-900 bg-white placeholder:text-gray-400"
                                 />
                                 {hasInvalidLastName ? (
-                                    <p className="text-xs text-red-600">Letters only (A–Z). No numbers or symbols.</p>
+                                    <p className="text-xs text-red-600">Letters and hyphens only. No numbers or other symbols.</p>
                                 ) : (
                                     <p className="text-right text-xs text-gray-500">
                                         {renderLengthMeta(formData.last_name, schemaExactLimits.userLastName)}
