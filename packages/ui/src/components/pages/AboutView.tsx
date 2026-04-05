@@ -209,7 +209,7 @@ export function AboutView({ aboutDetails }: AboutViewProps) {
         </div>
       </section>
 
-      <section className="w-full py-20 px-6 md:px-20 bg-white shadow-inner">
+      <section id="faq" className="w-full py-20 px-6 md:px-20 bg-white shadow-inner">
         <div className="w-full mx-auto space-y-6">
           <div className="text-center space-y-4">
             <InView

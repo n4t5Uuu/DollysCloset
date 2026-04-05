@@ -6,8 +6,8 @@
     "packages/*"
   ],
   "scripts": {
-    "dev": "turbo dev",
-    "build": "turbo build",
+    "dev": "dotenv -e .env.local -- turbo dev",
+    "build": "dotenv -e .env.local -- turbo build",
     "lint": "turbo lint",
     "format": "prettier --write \"**/*.{ts,tsx,md}\""
   },

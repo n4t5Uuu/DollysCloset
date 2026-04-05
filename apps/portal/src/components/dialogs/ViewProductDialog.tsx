@@ -114,41 +114,41 @@ export default function ViewProductDialog({
           </div>
           <div>
             <p className="text-sm font-medium text-gray-500">Product Name</p>
-            <p className="text-lg font-semibold">{product.product_name}</p>
+            <p className="text-lg font-semibold break-words">{product.product_name}</p>
           </div>
           <div className="grid grid-cols-2 gap-4">
-            <div>
+            <div className="min-w-0">
               <p className="text-sm font-medium text-gray-500">Category</p>
-              <p className="font-medium">{getCategoryName(product.category_id)}</p>
+              <p className="font-medium break-words">{getCategoryName(product.category_id)}</p>
             </div>
-            <div>
+            <div className="min-w-0">
               <p className="text-sm font-medium text-gray-500">Brand</p>
-              <p className="font-medium">{product.product_brand}</p>
+              <p className="font-medium break-words">{product.product_brand}</p>
             </div>
-            <div>
+            <div className="min-w-0">
               <p className="text-sm font-medium text-gray-500">Price</p>
-              <p className="font-medium">₱{product.product_price.toFixed(2)}</p>
+              <p className="font-medium break-words">₱{product.product_price.toFixed(2)}</p>
             </div>
-            <div>
+            <div className="min-w-0">
               <p className="text-sm font-medium text-gray-500">Stock</p>
-              <p className="font-medium">{product.product_stock}</p>
+              <p className="font-medium break-words">{product.product_stock}</p>
             </div>
-            <div>
+            <div className="min-w-0">
               <p className="text-sm font-medium text-gray-500">Condition</p>
-              <p className="font-medium">{product.product_condition}</p>
+              <p className="font-medium break-words">{product.product_condition}</p>
             </div>
-            <div>
+            <div className="min-w-0">
               <p className="text-sm font-medium text-gray-500">Size</p>
-              <p className="font-medium">{product.size_label}</p>
+              <p className="font-medium break-words">{product.size_label}</p>
             </div>
-            <div>
+            <div className="min-w-0">
               <p className="text-sm font-medium text-gray-500">Visibility</p>
-              <p className="font-medium">{product.show_in_catalog ? "Listed" : "Hidden"}</p>
+              <p className="font-medium break-words">{product.show_in_catalog ? "Listed" : "Hidden"}</p>
             </div>
           </div>
           <div>
             <p className="text-sm font-medium text-gray-500">Description</p>
-            <p className="text-sm text-gray-700 whitespace-pre-wrap [overflow-wrap:anywhere]">{product.product_description || "No description"}</p>
+            <p className="text-sm text-gray-700 whitespace-pre-wrap break-words">{product.product_description || "No description"}</p>
           </div>
         </CardContent>
         <CardFooter className="border-t flex justify-end gap-3 p-6 bg-gray-50">

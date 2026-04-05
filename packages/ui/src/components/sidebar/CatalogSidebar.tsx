@@ -62,6 +62,8 @@ export default function CatalogSidebar({
     const [treeRenderKey, setTreeRenderKey] = useState(0);
     const [draftMinPrice, setDraftMinPrice] = useState(selectedMinPrice);
     const [draftMaxPrice, setDraftMaxPrice] = useState(selectedMaxPrice);
+    const [minPriceInput, setMinPriceInput] = useState(selectedMinPrice.toString());
+    const [maxPriceInput, setMaxPriceInput] = useState(selectedMaxPrice.toString());
 
     const handleFilterChange = (filter: string) => {
         onFilterChange(filter);
@@ -76,6 +78,8 @@ export default function CatalogSidebar({
     useEffect(() => {
         setDraftMinPrice(selectedMinPrice);
         setDraftMaxPrice(selectedMaxPrice);
+        setMinPriceInput(selectedMinPrice.toString());
+        setMaxPriceInput(selectedMaxPrice.toString());
     }, [selectedMaxPrice, selectedMinPrice]);
 
     const categoryById = new Map(
@@ -147,6 +151,7 @@ export default function CatalogSidebar({
         const clampedValue = clampPrice(nextValue);
         const nextMinPrice = Math.min(clampedValue, draftMaxPrice);
         setDraftMinPrice(nextMinPrice);
+        setMinPriceInput(nextMinPrice.toString());
         onPriceRangeChange(nextMinPrice, draftMaxPrice);
     };
 
@@ -154,40 +159,54 @@ export default function CatalogSidebar({
         const clampedValue = clampPrice(nextValue);
         const nextMaxPrice = Math.max(clampedValue, draftMinPrice);
         setDraftMaxPrice(nextMaxPrice);
+        setMaxPriceInput(nextMaxPrice.toString());
         onPriceRangeChange(draftMinPrice, nextMaxPrice);
     };
 
     const handleMinInputChange = (value: string) => {
-        const parsedValue = Number(value);
-        if (value === "") {
-            setDraftMinPrice(minAvailablePrice);
-            onPriceRangeChange(minAvailablePrice, draftMaxPrice);
-            return;
-        }
-
-        const clampedValue = clampPrice(parsedValue);
-        const nextMinPrice = Math.min(clampedValue, draftMaxPrice);
-        setDraftMinPrice(nextMinPrice);
-        onPriceRangeChange(nextMinPrice, draftMaxPrice);
+        setMinPriceInput(value);
     };
 
     const handleMaxInputChange = (value: string) => {
-        const parsedValue = Number(value);
-        if (value === "") {
-            setDraftMaxPrice(maxAvailablePrice);
-            onPriceRangeChange(draftMinPrice, maxAvailablePrice);
-            return;
-        }
+        setMaxPriceInput(value);
+    };
 
-        const clampedValue = clampPrice(parsedValue);
-        const nextMaxPrice = Math.max(clampedValue, draftMinPrice);
-        setDraftMaxPrice(nextMaxPrice);
-        onPriceRangeChange(draftMinPrice, nextMaxPrice);
+    const handleMinConfirm = () => {
+        let value = parseInt(minPriceInput, 10);
+        if (isNaN(value)) value = minAvailablePrice;
+        
+        const clampedValue = Math.min(maxAvailablePrice, Math.max(minAvailablePrice, value));
+        const finalMinPrice = Math.min(clampedValue, draftMaxPrice);
+        
+        setDraftMinPrice(finalMinPrice);
+        setMinPriceInput(finalMinPrice.toString());
+        onPriceRangeChange(finalMinPrice, draftMaxPrice);
+    };
+
+    const handleMaxConfirm = () => {
+        let value = parseInt(maxPriceInput, 10);
+        if (isNaN(value)) value = maxAvailablePrice;
+        
+        const clampedValue = Math.min(maxAvailablePrice, Math.max(minAvailablePrice, value));
+        const finalMaxPrice = Math.max(clampedValue, draftMinPrice);
+        
+        setDraftMaxPrice(finalMaxPrice);
+        setMaxPriceInput(finalMaxPrice.toString());
+        onPriceRangeChange(draftMinPrice, finalMaxPrice);
+    };
+
+    const handleInputKeyDown = (e: React.KeyboardEvent<HTMLInputElement>, type: 'min' | 'max') => {
+        if (e.key === 'Enter') {
+            if (type === 'min') handleMinConfirm();
+            else handleMaxConfirm();
+        }
     };
 
     const resetPriceRange = () => {
         setDraftMinPrice(minAvailablePrice);
         setDraftMaxPrice(maxAvailablePrice);
+        setMinPriceInput(minAvailablePrice.toString());
+        setMaxPriceInput(maxAvailablePrice.toString());
         onClearPrice();
     };
 
@@ -529,9 +548,10 @@ export default function CatalogSidebar({
                                             <input
                                                 type="number"
                                                 min={minAvailablePrice}
-                                                max={draftMaxPrice}
-                                                value={draftMinPrice}
-                                                onChange={(event) => handleMinInputChange(event.target.value)}
+                                                value={minPriceInput}
+                                                onChange={(e) => handleMinInputChange(e.target.value)}
+                                                onBlur={handleMinConfirm}
+                                                onKeyDown={(e) => handleInputKeyDown(e, 'min')}
                                                 className="h-11 w-full rounded-xl border border-[#E7A3B0]/20 bg-white px-3 font-montserrat text-sm text-[#3f2d31] focus:outline-none focus:ring-2 focus:ring-[#E7A3B0]/25"
                                             />
                                         </label>
@@ -541,10 +561,11 @@ export default function CatalogSidebar({
                                             </span>
                                             <input
                                                 type="number"
-                                                min={draftMinPrice}
                                                 max={maxAvailablePrice}
-                                                value={draftMaxPrice}
-                                                onChange={(event) => handleMaxInputChange(event.target.value)}
+                                                value={maxPriceInput}
+                                                onChange={(e) => handleMaxInputChange(e.target.value)}
+                                                onBlur={handleMaxConfirm}
+                                                onKeyDown={(e) => handleInputKeyDown(e, 'max')}
                                                 className="h-11 w-full rounded-xl border border-[#E7A3B0]/20 bg-white px-3 font-montserrat text-sm text-[#3f2d31] focus:outline-none focus:ring-2 focus:ring-[#E7A3B0]/25"
                                             />
                                         </label>

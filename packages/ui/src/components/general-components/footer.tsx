@@ -91,7 +91,7 @@ export default function Footer() {
                 <div className={`${headerContentSpace} items-center md:items-start`}>
                     <h2 className={headerStyle}>Support</h2>
                     <Link href="/contact" className={linkStyle}>Contact Us</Link>
-                    <Link href="/about" className={linkStyle}>FAQ</Link>
+                    <Link href="/about#faq" className={linkStyle}>FAQ</Link>
                 </div>
 
                 <div className="space-y-8 flex flex-col items-center md:items-start">

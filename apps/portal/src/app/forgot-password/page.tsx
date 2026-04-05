@@ -82,6 +82,8 @@ export default function ForgotPassword() {
     try {
       const origin = typeof window !== "undefined" ? window.location.origin : "";
       const redirectTo = `${origin}/api/auth/callback?next=/reset-password`;
+      
+      console.log("Auth Redirect URL:", redirectTo);
 
       // Step 1: Validate account existence via our custom API
       const response = await fetch("/api/auth/forgot-password", {

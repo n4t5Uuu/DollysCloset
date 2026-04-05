@@ -436,13 +436,13 @@ export function ProductDetailsView({
             </div>
           </div>
 
-          <div className="order-2 flex flex-col lg:col-span-5">
+          <div className="order-2 flex flex-col lg:col-span-12 xl:col-span-5 min-w-0 px-2 lg:px-0">
             <div className="flex-1 space-y-8">
               <div className="space-y-4">
                 <span className="inline-block rounded-full bg-gray-100 px-3 py-1 text-xs font-bold uppercase tracking-widest text-gray-600">
                   {decodeHtmlEntities(product.categoryName)}
                 </span>
-                <h1 className="text-4xl leading-tight text-gray-900 md:text-5xl">
+                <h1 className="text-4xl leading-tight text-gray-900 md:text-5xl break-words">
                   {decodeHtmlEntities(product.name)}
                 </h1>
                 <div className="flex items-baseline space-x-4">
@@ -457,20 +457,20 @@ export function ProductDetailsView({
 
                <div className="space-y-6">
                  <div className="space-y-8 rounded-3xl border border-gray-200 p-8 shadow-sm">
-                   <div className="grid grid-cols-2 gap-8">
+                   <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                      <div className="space-y-1 min-w-0">
                        <span className="text-xs font-bold uppercase tracking-widest text-gray-400">Size</span>
-                       <p className="text-lg font-medium text-gray-900 wrap-break-word overflow-hidden">{product.size}</p>
+                       <p className="text-lg font-medium text-gray-900 break-words overflow-hidden">{product.size}</p>
                      </div>
                      <div className="space-y-1 min-w-0">
                        <span className="text-xs font-bold uppercase tracking-widest text-gray-400">Brand</span>
-                       <p className="text-lg font-medium text-gray-900 wrap-break-word overflow-hidden">{product.brand}</p>
+                       <p className="text-lg font-medium text-gray-900 break-words overflow-hidden">{product.brand}</p>
                      </div>
                      <div className="space-y-1 min-w-0">
                        <span className="text-xs font-bold uppercase tracking-widest text-gray-400">Condition</span>
-                       <p className="text-lg font-medium capitalize text-gray-900 wrap-break-word overflow-hidden">{product.condition}</p>
+                       <p className="text-lg font-medium capitalize text-gray-900 break-words overflow-hidden">{product.condition}</p>
                      </div>
-                     <div className="space-y-1">
+                     <div className="space-y-1 min-w-0">
                        <span className="text-xs font-bold uppercase tracking-widest text-gray-400">Availability</span>
                        <p className={`text-lg font-medium ${product.stock > 0 ? "text-emerald-600" : "text-rose-600"}`}>
                          {product.stock > 0 ? "In Stock" : "Out of Stock"}
@@ -481,7 +481,7 @@ export function ProductDetailsView({
                    <div className="space-y-3 border-t border-gray-100 pt-6">
                      <span className="text-xs font-bold uppercase tracking-widest text-gray-400">Description</span>
                      <div
-                       className="text-lg leading-relaxed text-gray-600 wrap-break-word overflow-hidden"
+                       className="text-lg leading-relaxed text-gray-600 break-words overflow-hidden"
                        dangerouslySetInnerHTML={{ __html: product.description }}
                      />
                    </div>
