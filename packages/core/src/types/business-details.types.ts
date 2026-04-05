@@ -8,6 +8,8 @@ export type ContactFieldKey =
 | "viberLink"
 | "contactNumberDisplay"
 | "contactNumberLink"
+| "contactEmail"
+| "mapEmbedUrl"
 | "address"
 | "weekdaysHours"
 | "weekendHours";

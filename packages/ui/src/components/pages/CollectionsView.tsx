@@ -561,8 +561,8 @@ export function CollectionsView() {
             {/* For the Announcements */}
             {announcementText && (
                 <div className="w-full py-3 bg-[#E7A3B0] flex items-center justify-center">
-                    <InfiniteSlider className="w-full h-full">
-                        {Array.from({ length: 20 }).map((_, i) => (
+                    <InfiniteSlider className="w-full h-full" gap={48}>
+                        {Array.from({ length: 100 }).map((_, i) => (
                             <h2 key={i} className="font-oswald font-medium text-[10px] md:text-sm tracking-[0.2em] text-[#121212] uppercase whitespace-nowrap">
                                 {announcementText}
                             </h2>

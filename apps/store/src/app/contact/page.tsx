@@ -1,6 +1,8 @@
-import { createServerSupabase, getContactDetails } from "@dollys-closet/core";
+import { createAdminClient, getContactDetails } from "@dollys-closet/core";
 import { ContactView } from "@dollys-closet/ui";
 import type { Metadata } from "next";
+
+export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
   title: "Get In Touch | Dolly's Closet",
@@ -8,7 +10,7 @@ export const metadata: Metadata = {
 };
 
 export default async function ContactPage() {
-  const supabase = await createServerSupabase();
+  const supabase = createAdminClient();
   const { pageTitle, details } = await getContactDetails(supabase);
 
   return <ContactView pageTitle={pageTitle} initialDetails={details} />;

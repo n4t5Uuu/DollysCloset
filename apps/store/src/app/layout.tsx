@@ -32,6 +32,9 @@ export const metadata: Metadata = {
     title: "Dolly's Closet",
     description: "Curated boutique collection from Dolly's Closet.",
   },
+  icons: {
+    icon: "/images/logo/no-bg-logo.png",
+  },
 };
 
 const oswald = Oswald({
@@ -67,7 +70,7 @@ export default function RootLayout({
       >
         <UserProvider>
           <div className="flex min-h-screen w-full flex-col">
-            <Navbar navLinks={["Collection", "About", "Contact"]} />
+            <Navbar navLinks={["Collection", "About", "Contact"]} showLogout={false} />
             {children}
             <Footer />
             <Toaster duration={3000} />

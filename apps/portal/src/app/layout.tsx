@@ -45,6 +45,9 @@ export const metadata: Metadata = {
     index: false,
     follow: false,
   },
+  icons: {
+    icon: "/images/logo/no-bg-logo.png",
+  },
 };
 
 import { 

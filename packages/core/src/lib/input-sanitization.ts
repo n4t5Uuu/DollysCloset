@@ -54,6 +54,8 @@ export const contactFieldLimits: Record<
   viberLink: { maxLength: uiContentLimits.publicLink.maxLength, multiline: false },
   contactNumberDisplay: { maxLength: uiContentLimits.publicLabel.maxLength, multiline: false },
   contactNumberLink: { maxLength: uiContentLimits.publicLabel.maxLength, multiline: false },
+  contactEmail: { maxLength: uiContentLimits.email.maxLength, multiline: false },
+  mapEmbedUrl: { maxLength: uiContentLimits.publicLink.maxLength, multiline: true },
   address: {
     maxLength: uiContentLimits.contactAddress.maxLength,
     multiline: true,
@@ -263,6 +265,8 @@ export function sanitizeContactDetailsPayload(
     viberLink: sanitizeContactDetailText("viberLink", payload?.viberLink),
     contactNumberDisplay: sanitizeContactDetailText("contactNumberDisplay", payload?.contactNumberDisplay),
     contactNumberLink: sanitizeContactDetailText("contactNumberLink", payload?.contactNumberLink),
+    contactEmail: sanitizeContactDetailText("contactEmail", payload?.contactEmail),
+    mapEmbedUrl: sanitizeContactDetailText("mapEmbedUrl", payload?.mapEmbedUrl),
     address: sanitizeContactDetailText("address", payload?.address),
     weekdaysHours: sanitizeContactDetailText("weekdaysHours", payload?.weekdaysHours),
     weekendHours: sanitizeContactDetailText("weekendHours", payload?.weekendHours),

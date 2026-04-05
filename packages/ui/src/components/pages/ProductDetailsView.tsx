@@ -9,6 +9,7 @@ import {
   ChevronLeft,
   ChevronRight,
   MapPin,
+  MapPinned,
   PackageSearch,
 } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
@@ -18,8 +19,14 @@ import { InfiniteSlider } from "../motion-primitives/infinite-slider";
 import { Button } from "../ui/button";
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "../ui/empty";
 import { Skeleton } from "../ui/skeleton";
-import { ANNOUNCEMENT_SLUG, resolveProductPlaceholder } from "@dollys-closet/core";
-import { type CatalogApiProduct, type Product } from "@dollys-closet/core";
+import { 
+  ANNOUNCEMENT_SLUG, 
+  resolveProductPlaceholder, 
+  cn,
+  getContactDetails,
+  createClient
+} from "@dollys-closet/core";
+import { type CatalogApiProduct, type Product, type ContactDetailsPayload } from "@dollys-closet/core";
 
 function toViewProduct(product: CatalogApiProduct): Product {
   return {
@@ -80,6 +87,28 @@ export function ProductDetailsView({
   const router = useRouter();
   const searchParams = useSearchParams();
   const fromPath = useMemo(() => getSafeInternalPath(searchParams.get("from"), "/collection"), [searchParams]);
+  const [storeAddress, setStoreAddress] = useState<string>("");
+
+  useEffect(() => {
+    async function fetchStoreDetails() {
+      try {
+        const supabase = createClient();
+        const { details } = await getContactDetails(supabase);
+        if (details?.address) {
+          setStoreAddress(details.address);
+        }
+      } catch (error) {
+        console.error("Error fetching store details:", error);
+      }
+    }
+    fetchStoreDetails();
+  }, []);
+
+  const handleVisitStore = () => {
+    if (!storeAddress) return;
+    const encodedAddress = encodeURIComponent(storeAddress);
+    window.open(`https://www.google.com/maps/search/?api=1&query=${encodedAddress}`, "_blank");
+  };
 
   const [announcementText, setAnnouncementText] = useState<string | null>(null);
   const [product, setProduct] = useState<CatalogApiProduct | null>(initialProduct || null);
@@ -282,7 +311,7 @@ export function ProductDetailsView({
         </div>
       )}
 
-      <main className="container mx-auto px-4 py-8 md:px-6 md:py-12 lg:px-8">
+      <main className="container mx-auto px-4 pt-4 pb-8 md:px-6 md:pt-6 md:pb-12 lg:px-8">
         <nav className="mb-8 flex items-center space-x-2 overflow-x-auto whitespace-nowrap pb-2 text-sm text-gray-500 md:mb-12">
           <Link href={fromPath} className="flex items-center transition-colors hover:text-gray-900">
             <ArrowLeft className="mr-2 h-4 w-4" />
@@ -298,7 +327,7 @@ export function ProductDetailsView({
         </nav>
 
         <div className="grid grid-cols-1 gap-12 lg:grid-cols-12 lg:gap-16">
-          <div className="order-1 lg:col-span-7">
+          <div className="order-1 lg:col-span-6">
             <div className="group relative">
               <div
                 ref={imageContainerRef}
@@ -371,28 +400,39 @@ export function ProductDetailsView({
                 )}
               </div>
 
-              <div className="mt-6 flex space-x-3 overflow-x-auto pb-4 scrollbar-hide">
-                {product.images.map((img, idx) => (
-                  <button
-                    key={`${img}-${idx}`}
-                    onClick={() => {
-                      setSlideDirection(idx > selectedImage ? 1 : -1);
-                      setSelectedImage(idx);
-                    }}
-                    className={`relative aspect-square w-20 shrink-0 overflow-hidden rounded-xl border-2 transition-all ${
-                      selectedImage === idx ? "scale-105 border-gray-900 shadow-md" : "border-transparent opacity-60 hover:opacity-100"
-                    }`}
-                  >
-                    <Image
-                      src={img}
-                      alt={`${product.name} view ${idx + 1}`}
-                      fill
-                      className="object-cover"
-                      sizes="80px"
-                    />
-                  </button>
-                ))}
-              </div>
+               <div className="mt-8 flex space-x-6 overflow-x-auto p-4 scrollbar-hide">
+                 {product.images.map((img, idx) => (
+                   <button
+                     key={`${img}-${idx}`}
+                     onClick={() => {
+                       setSlideDirection(idx > selectedImage ? 1 : -1);
+                       setSelectedImage(idx);
+                     }}
+                     className={`group relative aspect-square w-28 shrink-0 transition-all duration-300 ${
+                       selectedImage === idx 
+                         ? "scale-110 z-10" 
+                         : "opacity-60 hover:opacity-100 hover:scale-105"
+                     }`}
+                   >
+                     <div className={cn(
+                       "absolute inset-0 rounded-2xl transition-all duration-300",
+                       selectedImage === idx 
+                         ? "ring-2 ring-gray-900 ring-offset-4 shadow-lg" 
+                         : "ring-1 ring-gray-200"
+                     )} />
+                     
+                     <div className="absolute inset-0 overflow-hidden rounded-2xl">
+                       <Image
+                         src={img}
+                         alt={`${product.name} view ${idx + 1}`}
+                         fill
+                         className="object-cover"
+                         sizes="112px"
+                       />
+                     </div>
+                   </button>
+                 ))}
+               </div>
             </div>
           </div>
 
@@ -415,45 +455,54 @@ export function ProductDetailsView({
                 </div>
               </div>
 
-              <div className="space-y-6 border-t border-gray-100 pt-8">
-                <div className="grid grid-cols-2 gap-8">
-                  <div className="space-y-1">
-                    <span className="text-xs font-bold uppercase tracking-widest text-gray-400">Size</span>
-                    <p className="text-lg font-medium text-gray-900">{product.size}</p>
-                  </div>
-                  <div className="space-y-1">
-                    <span className="text-xs font-bold uppercase tracking-widest text-gray-400">Brand</span>
-                    <p className="text-lg font-medium text-gray-900">{product.brand}</p>
-                  </div>
-                  <div className="space-y-1">
-                    <span className="text-xs font-bold uppercase tracking-widest text-gray-400">Condition</span>
-                    <p className="text-lg font-medium capitalize text-gray-900">{product.condition}</p>
-                  </div>
-                  <div className="space-y-1">
-                    <span className="text-xs font-bold uppercase tracking-widest text-gray-400">Availability</span>
-                    <p className={`text-lg font-medium ${product.stock > 0 ? "text-emerald-600" : "text-rose-600"}`}>
-                      {product.stock > 0 ? "In Stock" : "Out of Stock"}
-                    </p>
-                  </div>
-                </div>
-
-                <div className="space-y-3">
-                  <span className="text-xs font-bold uppercase tracking-widest text-gray-400">Description</span>
-                  <div
-                    className="text-lg leading-relaxed text-gray-600"
-                    dangerouslySetInnerHTML={{ __html: product.description }}
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-4 pt-8">
-                <div className="flex items-start space-x-3 rounded-2xl bg-gray-50 p-4">
-                  <MapPin className="mt-0.5 h-5 w-5 shrink-0 text-gray-400" />
-                  <p className="text-sm text-gray-600">
-                    Available for preview and pickup at our boutique. Items are meticulously curated and one-of-a-kind.
-                  </p>
-                </div>
-              </div>
+               <div className="space-y-6">
+                 <div className="space-y-8 rounded-3xl border border-gray-200 p-8 shadow-sm">
+                   <div className="grid grid-cols-2 gap-8">
+                     <div className="space-y-1 min-w-0">
+                       <span className="text-xs font-bold uppercase tracking-widest text-gray-400">Size</span>
+                       <p className="text-lg font-medium text-gray-900 wrap-break-word overflow-hidden">{product.size}</p>
+                     </div>
+                     <div className="space-y-1 min-w-0">
+                       <span className="text-xs font-bold uppercase tracking-widest text-gray-400">Brand</span>
+                       <p className="text-lg font-medium text-gray-900 wrap-break-word overflow-hidden">{product.brand}</p>
+                     </div>
+                     <div className="space-y-1 min-w-0">
+                       <span className="text-xs font-bold uppercase tracking-widest text-gray-400">Condition</span>
+                       <p className="text-lg font-medium capitalize text-gray-900 wrap-break-word overflow-hidden">{product.condition}</p>
+                     </div>
+                     <div className="space-y-1">
+                       <span className="text-xs font-bold uppercase tracking-widest text-gray-400">Availability</span>
+                       <p className={`text-lg font-medium ${product.stock > 0 ? "text-emerald-600" : "text-rose-600"}`}>
+                         {product.stock > 0 ? "In Stock" : "Out of Stock"}
+                       </p>
+                     </div>
+                   </div>
+    
+                   <div className="space-y-3 border-t border-gray-100 pt-6">
+                     <span className="text-xs font-bold uppercase tracking-widest text-gray-400">Description</span>
+                     <div
+                       className="text-lg leading-relaxed text-gray-600 wrap-break-word overflow-hidden"
+                       dangerouslySetInnerHTML={{ __html: product.description }}
+                     />
+                   </div>
+                 </div>
+ 
+                 <div className="flex items-start space-x-3 rounded-2xl bg-gray-100 p-4 transition-colors">
+                   <MapPin className="mt-0.5 h-5 w-5 shrink-0 text-gray-500" />
+                   <p className="text-sm text-gray-700">
+                     Available for preview and pickup at our boutique. Items are meticulously curated and one-of-a-kind.
+                   </p>
+                 </div>
+ 
+                 <Button 
+                   onClick={handleVisitStore}
+                   disabled={!storeAddress}
+                   className="w-full bg-gray-900 py-6 text-base font-medium text-white hover:bg-gray-800 rounded-2xl flex items-center justify-center space-x-3 transition-all active:scale-[0.98]"
+                 >
+                   <MapPinned className="h-5 w-5" />
+                   <span className="font-oswald uppercase tracking-wider">Visit our physical store</span>
+                 </Button>
+               </div>
             </div>
           </div>
         </div>
@@ -467,13 +516,11 @@ export function ProductDetailsView({
               </div>
             </div>
 
-            <InfiniteSlider speed={30} gap={24} speedOnHover={50}>
-              {relatedProducts.map((item) => (
-                <div key={item.id} className="w-[280px] md:w-[320px]">
-                  <ProductCard product={toViewProduct(item)} />
-                </div>
-              ))}
-            </InfiniteSlider>
+            <div className="grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-4">
+               {relatedProducts.map((item) => (
+                 <ProductCard key={item.id} product={toViewProduct(item)} />
+               ))}
+             </div>
           </section>
         )}
       </main>

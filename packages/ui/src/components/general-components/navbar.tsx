@@ -15,9 +15,10 @@ const DEFAULT_NAV_LINKS = ["Dashboard", "Collection", "About", "Contact"];
 
 interface NavbarProps {
     navLinks?: string[];
+    showLogout?: boolean;
 }
 
-export default function Navbar({ navLinks = DEFAULT_NAV_LINKS }: NavbarProps) {
+export default function Navbar({ navLinks = DEFAULT_NAV_LINKS, showLogout = true }: NavbarProps) {
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const [isVisible, setIsVisible] = useState(true);
     const lastScrollY = useRef(0);
@@ -77,7 +78,7 @@ export default function Navbar({ navLinks = DEFAULT_NAV_LINKS }: NavbarProps) {
                 </div>
 
                 {/* Center Section (Mobile) / Left Section (Desktop): Logo */}
-                <Link href="/collection" className={cn(
+                <Link href="/" className={cn(
                     "flex items-center gap-2 md:gap-3 transition-all duration-300 shrink-0 md:flex-1",
                     "absolute left-1/2 -translate-x-1/2 md:static md:translate-x-0"
                 )}>
@@ -125,7 +126,7 @@ export default function Navbar({ navLinks = DEFAULT_NAV_LINKS }: NavbarProps) {
 
                 {/* Right Section: Hamburger / User Dropdown */}
                 <div className="flex-1 flex items-center justify-end gap-4 shrink-0">
-                    {!isDashboard && (
+                    {!isDashboard && showLogout && (
                         <div className="hidden md:block">
                             <UserProfileDropdown />
                         </div>
@@ -169,7 +170,7 @@ export default function Navbar({ navLinks = DEFAULT_NAV_LINKS }: NavbarProps) {
                                         </Link>
                                     );
                                 })}
-                                {!isDashboard && (
+                                {!isDashboard && showLogout && (
                                     <div className="w-full pt-2">
                                         <UserProfileDropdown variant="link" />
                                     </div>

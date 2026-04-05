@@ -286,12 +286,12 @@ export function ContactView({ pageTitle, initialDetails }: ContactViewProps) {
               </button>
             </div>
 
-            <iframe
-              title="Dolly's Closet Store Location - Expanded"
-              src={STORE_OSM_EMBED_URL}
-              className="w-full h-[65vh]"
-              loading="lazy"
-            />
+             <iframe
+               title="Dolly's Closet Store Location - Expanded"
+               src={details.mapEmbedUrl || STORE_OSM_EMBED_URL}
+               className="w-full h-[65vh]"
+               loading="lazy"
+             />
           </div>
         </div>
       )}
@@ -466,12 +466,12 @@ export function ContactView({ pageTitle, initialDetails }: ContactViewProps) {
                         <Maximize2 className="w-3.5 h-3.5" />
                         View Larger Map
                       </button>
-                      <iframe
-                        title="Dolly's Closet Store Location"
-                        src={STORE_OSM_EMBED_URL}
-                        className="w-full h-52"
-                        loading="lazy"
-                      />
+                       <iframe
+                         title="Dolly's Closet Store Location"
+                         src={details.mapEmbedUrl || STORE_OSM_EMBED_URL}
+                         className="w-full h-52"
+                         loading="lazy"
+                       />
                     </div>
 
                     {/* Store Hours */}
@@ -525,9 +525,9 @@ export function ContactView({ pageTitle, initialDetails }: ContactViewProps) {
                   <p className="font-montserrat text-sm text-gray-600 mt-1">
                     We will get back to you within 24 hours
                   </p>
-                  <p className="font-montserrat text-xs text-gray-500 mt-1">
-                    Direct email: dollysclosetwebsite@gmail.com
-                  </p>
+                   <p className="font-montserrat text-xs text-gray-500 mt-1">
+                     Direct email: {details.contactEmail}
+                   </p>
                 </div>
               </div>
 

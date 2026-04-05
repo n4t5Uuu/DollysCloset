@@ -137,6 +137,14 @@ export default function ProductCard({ product, href, onClick }: ProductCardProps
                         </div>
                     )}
 
+                    {/* Hover Overlay */}
+                    <div className="absolute inset-0 bg-black/40 opacity-0 transition-all duration-300 group-hover:opacity-100 flex items-center justify-center backdrop-blur-[2px]">
+                        <span className="font-playfair-display text-white text-lg md:text-xl font-medium tracking-wide translate-y-4 transition-transform duration-300 group-hover:translate-y-0 relative">
+                            View Details
+                            <span className="absolute -bottom-1 left-0 w-0 h-[1.5px] bg-white transition-all duration-500 group-hover:w-full" />
+                        </span>
+                    </div>
+
                     <div className="pointer-events-none absolute inset-x-0 bottom-0 h-24 bg-linear-to-t from-black/25 via-black/0 to-transparent opacity-70" />
 
                     <div className="absolute inset-x-3 top-3 flex max-w-[calc(100%-1.5rem)] flex-wrap gap-2">

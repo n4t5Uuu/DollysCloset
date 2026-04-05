@@ -4,6 +4,8 @@ import {
   getPublicBusinessDetailsBySlug,
 } from "@dollys-closet/core";
 
+export const dynamic = "force-dynamic";
+
 export async function GET(request: NextRequest) {
   try {
     const admin = createAdminClient();

@@ -4,6 +4,8 @@ import {
   getPublicBusinessDetailsBySlug,
 } from "@dollys-closet/core";
 
+export const dynamic = "force-dynamic";
+
 /**
  * Securely extracts active generic business configuration contexts aligned universally toward UI presentations.
  * Resolves targeted queries via provided URL queries checking against known mapped UI configurations (Contact/About formats).
