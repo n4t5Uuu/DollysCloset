@@ -3,7 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { type CSSProperties, type MouseEvent, useEffect, useMemo, useRef, useState } from "react";
+import { type CSSProperties, type MouseEvent, useEffect, useMemo, useRef, useState, useCallback } from "react";
 import {
   ArrowLeft,
   ChevronLeft,
@@ -246,6 +246,11 @@ export function ProductDetailsView({
       top: 0,
     });
   };
+
+  const handleProductNavigation = useCallback((targetId: string) => {
+    const fromPath = window.location.pathname + window.location.search;
+    router.push(`/product/${targetId}?from=${encodeURIComponent(fromPath)}`);
+  }, [router]);
 
   const paginate = (newDirection: number) => {
     if (!product) return;
@@ -518,7 +523,12 @@ export function ProductDetailsView({
 
             <div className="grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-4">
                {relatedProducts.map((item) => (
-                 <ProductCard key={item.id} product={toViewProduct(item)} />
+                 <ProductCard 
+                   key={item.id} 
+                   product={toViewProduct(item)} 
+                   href={`/product/${item.id}`}
+                   onClick={() => handleProductNavigation(item.id)}
+                 />
                ))}
              </div>
           </section>
