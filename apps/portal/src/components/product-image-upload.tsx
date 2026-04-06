@@ -515,6 +515,7 @@ export default function ProductImageUpload({
 
       {/* Image Grid */}
       {sortedImages.length > 0 && (
+        <div className="overflow-hidden">
         <DndContext
           sensors={sensors}
           collisionDetection={closestCenter}
@@ -537,6 +538,7 @@ export default function ProductImageUpload({
             </div>
           </SortableContext>
         </DndContext>
+        </div>
       )}
 
       {images.length === 0 && (

@@ -235,7 +235,7 @@ export default function ImageSelector({
       )}
 
       {stagedFiles.length > 0 && (
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 overflow-hidden">
           {stagedFiles.map((file, index) => (
             <div
               key={`${file.name}-${index}`}
