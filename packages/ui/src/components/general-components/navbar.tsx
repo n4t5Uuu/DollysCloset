@@ -25,7 +25,8 @@ export default function Navbar({ navLinks = DEFAULT_NAV_LINKS, showLogout = true
     const scrollDelta = useRef(0);
     const THRESHOLD = 80;
     const pathname = usePathname();
-    const isDashboard = pathname.startsWith("/dashboard");
+    const hasDashboardLink = navLinks.some((link) => link.toLowerCase() === "dashboard");
+    const isDashboard = hasDashboardLink && pathname.startsWith("/dashboard");
 
     useEffect(() => {
         const handleScroll = () => {
