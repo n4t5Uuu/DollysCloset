@@ -873,6 +873,7 @@ export default function InventoryManagement({ initialAvailabilityFilter }: Inven
       <BulkImportModal
         isOpen={showBulkImport}
         onClose={() => setShowBulkImport(false)}
+        existingProducts={products}
         onImportComplete={async () => {
           const refreshed = await fetchProducts(false);
           setActionNotice({

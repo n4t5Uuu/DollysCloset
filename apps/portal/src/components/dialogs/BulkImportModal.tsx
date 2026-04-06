@@ -3,7 +3,7 @@
 import { useState, useRef, useCallback, useEffect } from "react";
 import { X, Upload, Download, AlertTriangle, CheckCircle2, Loader2, FileSpreadsheet } from "lucide-react";
 import * as XLSX from "xlsx";
-import { createClient } from "@dollys-closet/core";
+import { createClient, InventoryProduct as Product } from "@dollys-closet/core";
 import { 
   Button,
   Card,
@@ -18,6 +18,7 @@ interface BulkImportModalProps {
   isOpen: boolean;
   onClose: () => void;
   onImportComplete: () => void;
+  existingProducts?: Product[];
 }
 
 interface ParsedRow {
@@ -75,7 +76,46 @@ function sanitizeDecimalInput(value: string): string {
   return /^\d+(\.\d+)?$/.test(trimmed) ? trimmed : "0";
 }
 
-function validateRows(rows: ParsedRow[]): ValidatedRow[] {
+function buildProductFingerprint(
+  name: string,
+  categoryId: string,
+  price: string,
+  brand: string,
+  stock: string,
+  condition: string,
+  sizeLabel: string,
+  description: string,
+): string {
+  return [
+    name.trim().toLowerCase(),
+    categoryId.trim(),
+    price.trim(),
+    (brand.trim() || "Dolly's Closet").toLowerCase(),
+    stock.trim() || "0",
+    (condition.trim() || "New").toLowerCase(),
+    (sizeLabel.trim() || "One Size").toLowerCase(),
+    description.trim().toLowerCase(),
+  ].join("|");
+}
+
+function validateRows(rows: ParsedRow[], existingProducts: Product[] = []): ValidatedRow[] {
+  const existingFingerprints = new Set(
+    existingProducts.map((p) =>
+      buildProductFingerprint(
+        p.product_name,
+        String(p.category_id),
+        String(p.product_price),
+        p.product_brand || "",
+        String(p.product_stock),
+        p.product_condition || "",
+        p.size_label || "",
+        p.product_description || "",
+      )
+    )
+  );
+
+  const seenInBatch = new Set<string>();
+
   return rows.map((row, index) => {
     const errors: string[] = [];
     const warnings: string[] = [];
@@ -118,6 +158,27 @@ function validateRows(rows: ParsedRow[]): ValidatedRow[] {
       errors.push("product_stock must be 0 or greater - this row will be skipped");
     }
 
+    if (row.product_name?.trim()) {
+      const fingerprint = buildProductFingerprint(
+        row.product_name,
+        normalizedRow.category_id,
+        normalizedRow.product_price,
+        row.product_brand ?? "",
+        normalizedRow.product_stock || "0",
+        row.product_condition ?? "",
+        row.size_label ?? "",
+        row.product_description ?? "",
+      );
+
+      if (existingFingerprints.has(fingerprint)) {
+        errors.push("a product with these exact details already exists in your inventory - this row will be skipped");
+      } else if (seenInBatch.has(fingerprint)) {
+        errors.push("duplicate of another row in this file - this row will be skipped");
+      } else {
+        seenInBatch.add(fingerprint);
+      }
+    }
+
     return { raw: row, normalized: normalizedRow, index, errors, warnings, isValid: errors.length === 0 };
   });
 }
@@ -143,7 +204,7 @@ function parseRawRows(data: Record<string, string>[]): ParsedRow[] {
 
 type Step = "upload" | "preview" | "results";
 
-export default function BulkImportModal({ isOpen, onClose, onImportComplete }: BulkImportModalProps) {
+export default function BulkImportModal({ isOpen, onClose, onImportComplete, existingProducts = [] }: BulkImportModalProps) {
   const [step, setStep] = useState<Step>("upload");
   const [isDragging, setIsDragging] = useState(false);
   const [fileName, setFileName] = useState<string | null>(null);
@@ -218,7 +279,7 @@ export default function BulkImportModal({ isOpen, onClose, onImportComplete }: B
             toast.error("The uploaded file has no importable product rows.");
             return;
           }
-          setValidatedRows(validateRows(rows));
+          setValidatedRows(validateRows(rows, existingProducts));
           setStep("preview");
         } catch {
           setParseError("Failed to parse Excel file. Make sure it is a valid .xlsx file.");
@@ -230,7 +291,7 @@ export default function BulkImportModal({ isOpen, onClose, onImportComplete }: B
       setParseError("Unsupported file type. Please upload a .xlsx file.");
       toast.error("Unsupported file type. Please upload a .xlsx file.");
     }
-  }, []);
+  }, [existingProducts]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
