@@ -218,11 +218,13 @@ export default function LoginClient() {
           </p>
         )}
 
-        <form onSubmit={handleSubmit} className="space-y-6">
+        <form onSubmit={handleSubmit} method="POST" className="space-y-6">
           <div className="relative group">
             <input 
               type="email" 
               id="email"
+              name="email"
+              autoComplete="email"
               placeholder=" " 
               className="peer w-full px-5 py-[18px] rounded-xl border border-[#E5E5E5] bg-transparent text-[#1A1A1A] focus:outline-none transition-all duration-300 focus:border-[#E7A3B0] focus:ring-1 focus:ring-[#E7A3B0] [&:-webkit-autofill]:shadow-[inset_0_0_0_1000px_white] [&:-webkit-autofill]:[-webkit-text-fill-color:#1A1A1A]"
               value={email}
@@ -245,6 +247,8 @@ export default function LoginClient() {
             <input 
               type={showPassword ? "text" : "password"}
               id="password"
+              name="password"
+              autoComplete="current-password"
               placeholder=" "
               className="peer w-full px-5 py-[18px] rounded-xl border border-[#E5E5E5] bg-transparent text-[#1A1A1A] focus:outline-none transition-all duration-300 pr-12 focus:border-[#E7A3B0] focus:ring-1 focus:ring-[#E7A3B0] [&:-webkit-autofill]:shadow-[inset_0_0_0_1000px_white] [&:-webkit-autofill]:[-webkit-text-fill-color:#1A1A1A]"
               value={password}

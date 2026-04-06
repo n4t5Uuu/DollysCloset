@@ -19,9 +19,9 @@ import { InfiniteSlider } from "../motion-primitives/infinite-slider";
 import { Button } from "../ui/button";
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "../ui/empty";
 import { Skeleton } from "../ui/skeleton";
-import { 
-  ANNOUNCEMENT_SLUG, 
-  resolveProductPlaceholder, 
+import {
+  ANNOUNCEMENT_SLUG,
+  resolveProductPlaceholder,
   cn,
   getContactDetails,
   createClient
@@ -72,8 +72,8 @@ const slideVariants = {
   exit: (direction: number) => ({ x: direction > 0 ? "-100%" : "100%", opacity: 0 }),
 };
 
-const ZOOM_FACTOR = 2.5;
-const ZOOM_PANEL_SIZE = 320;
+const ZOOM_FACTOR = 4.0;
+const ZOOM_PANEL_SIZE = 300;
 
 export function ProductDetailsView({
   productId,
@@ -118,9 +118,11 @@ export function ProductDetailsView({
   const [selectedImage, setSelectedImage] = useState(0);
   const [slideDirection, setSlideDirection] = useState(1);
   const [isZoomed, setIsZoomed] = useState(false);
-  const [lensPos, setLensPos] = useState({ x: 0, y: 0 });
-  const [zoomPanelStyle, setZoomPanelStyle] = useState<CSSProperties>({});
-  const [bgPos, setBgPos] = useState({ x: 0, y: 0 });
+  const [zoomState, setZoomState] = useState({
+    bgPos: { x: 0, y: 0 },
+    bgSize: { width: 0, height: 0 },
+    panelStyle: {} as CSSProperties,
+  });
   const imageContainerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -233,17 +235,27 @@ export function ProductDetailsView({
   const handleMouseMove = (e: MouseEvent<HTMLDivElement>) => {
     if (!imageContainerRef.current || !isZoomed) return;
 
-    const { left, top, width, height } = imageContainerRef.current.getBoundingClientRect();
-    const x = ((e.clientX - left) / width) * 100;
-    const y = ((e.clientY - top) / height) * 100;
+    const rect = imageContainerRef.current.getBoundingClientRect();
+    const relX = e.clientX - rect.left;
+    const relY = e.clientY - rect.top;
 
-    setBgPos({ x, y });
-    setLensPos({ x: e.clientX - left, y: e.clientY - top });
+    const isMobile = window.innerWidth < 768;
+    const panelX = relX - ZOOM_PANEL_SIZE / 2;
+    const panelY = relY - ZOOM_PANEL_SIZE * (isMobile ? 1.1 : 0.5);
 
-    const panelX = e.clientX - left > width / 2 ? -ZOOM_PANEL_SIZE - 20 : width + 20;
-    setZoomPanelStyle({
-      left: panelX,
-      top: 0,
+    setZoomState({
+      bgSize: {
+        width: rect.width * ZOOM_FACTOR,
+        height: rect.height * ZOOM_FACTOR
+      },
+      bgPos: {
+        x: (ZOOM_PANEL_SIZE / 2) - (relX * ZOOM_FACTOR),
+        y: (ZOOM_PANEL_SIZE / 2) - (relY * ZOOM_FACTOR)
+      },
+      panelStyle: {
+        left: panelX,
+        top: panelY,
+      }
     });
   };
 
@@ -366,23 +378,13 @@ export function ProductDetailsView({
                   </motion.div>
                 </AnimatePresence>
 
-                {isZoomed && (
-                  <div
-                    className="absolute hidden overflow-hidden rounded-2xl border-2 border-white/50 shadow-2xl md:block"
-                    style={{
-                      width: ZOOM_PANEL_SIZE,
-                      height: ZOOM_PANEL_SIZE,
-                      ...zoomPanelStyle,
-                      backgroundImage: `url(${currentImageSrc})`,
-                      backgroundPosition: `${bgPos.x}% ${bgPos.y}%`,
-                      backgroundSize: `${ZOOM_FACTOR * 100}%`,
-                      zIndex: 50,
-                    }}
-                  />
-                )}
-
                 {product.images.length > 1 && (
-                  <div className="pointer-events-none absolute inset-x-4 top-1/2 flex -translate-y-1/2 justify-between opacity-0 transition-opacity group-hover:opacity-100">
+                  <div 
+                    onMouseEnter={() => setIsZoomed(false)}
+                    onMouseLeave={() => setIsZoomed(true)}
+                    onMouseMove={(e) => e.stopPropagation()}
+                    className="pointer-events-none absolute inset-x-4 top-1/2 flex -translate-y-1/2 justify-between opacity-0 transition-opacity group-hover:opacity-100"
+                  >
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
@@ -405,39 +407,74 @@ export function ProductDetailsView({
                 )}
               </div>
 
-               <div className="mt-8 flex space-x-6 overflow-x-auto p-4 scrollbar-hide">
-                 {product.images.map((img, idx) => (
-                   <button
-                     key={`${img}-${idx}`}
-                     onClick={() => {
-                       setSlideDirection(idx > selectedImage ? 1 : -1);
-                       setSelectedImage(idx);
-                     }}
-                     className={`group relative aspect-square w-28 shrink-0 transition-all duration-300 ${
-                       selectedImage === idx 
-                         ? "scale-110 z-10" 
-                         : "opacity-60 hover:opacity-100 hover:scale-105"
-                     }`}
-                   >
-                     <div className={cn(
-                       "absolute inset-0 rounded-2xl transition-all duration-300",
-                       selectedImage === idx 
-                         ? "ring-2 ring-gray-900 ring-offset-4 shadow-lg" 
-                         : "ring-1 ring-gray-200"
-                     )} />
-                     
-                     <div className="absolute inset-0 overflow-hidden rounded-2xl">
-                       <Image
-                         src={img}
-                         alt={`${product.name} view ${idx + 1}`}
-                         fill
-                         className="object-cover"
-                         sizes="112px"
-                       />
-                     </div>
-                   </button>
-                 ))}
-               </div>
+              <AnimatePresence>
+                {isZoomed && (
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.5 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.5 }}
+                    transition={{ type: "spring", damping: 25, stiffness: 300 }}
+                    className="pointer-events-none absolute rounded-3xl border-4 border-white shadow-2xl z-50 ring-1 ring-black/10 overflow-hidden bg-gray-50"
+                    style={{
+                      width: ZOOM_PANEL_SIZE,
+                      height: ZOOM_PANEL_SIZE,
+                      ...zoomState.panelStyle,
+                    }}
+                  >
+                    <div 
+                      className="absolute inset-0"
+                      style={{
+                        width: zoomState.bgSize.width,
+                        height: zoomState.bgSize.height,
+                        transform: `translate(${zoomState.bgPos.x}px, ${zoomState.bgPos.y}px)`,
+                      }}
+                    >
+                      <img
+                        src={currentImageSrc}
+                        alt="Zoomed view"
+                        className="h-full w-full object-cover"
+                        style={{ maxWidth: 'none' }}
+                      />
+                    </div>
+                    {/* Subtle inner depth highlights */}
+                    <div className="absolute inset-0 rounded-2xl shadow-[inset_0_0_40px_rgba(0,0,0,0.1)]" />
+                    <div className="absolute inset-0 rounded-2xl bg-linear-to-tr from-white/10 to-transparent" />
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
+              <div className="mt-8 flex space-x-6 overflow-x-auto p-4 scrollbar-hide">
+                {product.images.map((img, idx) => (
+                  <button
+                    key={`${img}-${idx}`}
+                    onClick={() => {
+                      setSlideDirection(idx > selectedImage ? 1 : -1);
+                      setSelectedImage(idx);
+                    }}
+                    className={`group relative aspect-square w-28 shrink-0 transition-all duration-300 ${selectedImage === idx
+                        ? "scale-110 z-10"
+                        : "opacity-60 hover:opacity-100 hover:scale-105"
+                      }`}
+                  >
+                    <div className={cn(
+                      "absolute inset-0 rounded-2xl transition-all duration-300",
+                      selectedImage === idx
+                        ? "ring-2 ring-gray-900 ring-offset-4 shadow-lg"
+                        : "ring-1 ring-gray-200"
+                    )} />
+
+                    <div className="absolute inset-0 overflow-hidden rounded-2xl">
+                      <Image
+                        src={img}
+                        alt={`${product.name} view ${idx + 1}`}
+                        fill
+                        className="object-cover"
+                        sizes="112px"
+                      />
+                    </div>
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
 
@@ -460,54 +497,54 @@ export function ProductDetailsView({
                 </div>
               </div>
 
-               <div className="space-y-6">
-                 <div className="space-y-8 rounded-3xl border border-gray-200 p-8 shadow-sm">
-                   <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                     <div className="space-y-1 min-w-0">
-                       <span className="text-xs font-bold uppercase tracking-widest text-gray-400">Size</span>
-                       <p className="text-lg font-medium text-gray-900 break-words overflow-hidden">{product.size}</p>
-                     </div>
-                     <div className="space-y-1 min-w-0">
-                       <span className="text-xs font-bold uppercase tracking-widest text-gray-400">Brand</span>
-                       <p className="text-lg font-medium text-gray-900 break-words overflow-hidden">{product.brand}</p>
-                     </div>
-                     <div className="space-y-1 min-w-0">
-                       <span className="text-xs font-bold uppercase tracking-widest text-gray-400">Condition</span>
-                       <p className="text-lg font-medium capitalize text-gray-900 break-words overflow-hidden">{product.condition}</p>
-                     </div>
-                     <div className="space-y-1 min-w-0">
-                       <span className="text-xs font-bold uppercase tracking-widest text-gray-400">Availability</span>
-                       <p className={`text-lg font-medium ${product.stock > 0 ? "text-emerald-600" : "text-rose-600"}`}>
-                         {product.stock > 0 ? "In Stock" : "Out of Stock"}
-                       </p>
-                     </div>
-                   </div>
-    
-                   <div className="space-y-3 border-t border-gray-100 pt-6">
-                     <span className="text-xs font-bold uppercase tracking-widest text-gray-400">Description</span>
-                     <div
-                       className="text-lg leading-relaxed text-gray-600 break-words overflow-hidden"
-                       dangerouslySetInnerHTML={{ __html: product.description }}
-                     />
-                   </div>
-                 </div>
- 
-                 <div className="flex items-start space-x-3 rounded-2xl bg-gray-100 p-4 transition-colors">
-                   <MapPin className="mt-0.5 h-5 w-5 shrink-0 text-gray-500" />
-                   <p className="text-sm text-gray-700">
-                     Available for preview and pickup at our boutique. Items are meticulously curated and one-of-a-kind.
-                   </p>
-                 </div>
- 
-                 <Button 
-                   onClick={handleVisitStore}
-                   disabled={!storeAddress}
-                   className="w-full bg-gray-900 py-6 text-base font-medium text-white hover:bg-gray-800 rounded-2xl flex items-center justify-center space-x-3 transition-all active:scale-[0.98]"
-                 >
-                   <MapPinned className="h-5 w-5" />
-                   <span className="font-oswald uppercase tracking-wider">Visit our physical store</span>
-                 </Button>
-               </div>
+              <div className="space-y-6">
+                <div className="space-y-8 rounded-3xl border border-gray-200 p-8 shadow-sm">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    <div className="space-y-1 min-w-0">
+                      <span className="text-xs font-bold uppercase tracking-widest text-gray-400">Size</span>
+                      <p className="text-lg font-medium text-gray-900 break-words overflow-hidden">{product.size}</p>
+                    </div>
+                    <div className="space-y-1 min-w-0">
+                      <span className="text-xs font-bold uppercase tracking-widest text-gray-400">Brand</span>
+                      <p className="text-lg font-medium text-gray-900 break-words overflow-hidden">{product.brand}</p>
+                    </div>
+                    <div className="space-y-1 min-w-0">
+                      <span className="text-xs font-bold uppercase tracking-widest text-gray-400">Condition</span>
+                      <p className="text-lg font-medium capitalize text-gray-900 break-words overflow-hidden">{product.condition}</p>
+                    </div>
+                    <div className="space-y-1 min-w-0">
+                      <span className="text-xs font-bold uppercase tracking-widest text-gray-400">Availability</span>
+                      <p className={`text-lg font-medium ${product.stock > 0 ? "text-emerald-600" : "text-rose-600"}`}>
+                        {product.stock > 0 ? "In Stock" : "Out of Stock"}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="space-y-3 border-t border-gray-100 pt-6">
+                    <span className="text-xs font-bold uppercase tracking-widest text-gray-400">Description</span>
+                    <div
+                      className="text-lg leading-relaxed text-gray-600 break-words overflow-hidden"
+                      dangerouslySetInnerHTML={{ __html: product.description }}
+                    />
+                  </div>
+                </div>
+
+                <div className="flex items-start space-x-3 rounded-2xl bg-gray-100 p-4 transition-colors">
+                  <MapPin className="mt-0.5 h-5 w-5 shrink-0 text-gray-500" />
+                  <p className="text-sm text-gray-700">
+                    Available for preview and pickup at our boutique. Items are meticulously curated and one-of-a-kind.
+                  </p>
+                </div>
+
+                <Button
+                  onClick={handleVisitStore}
+                  disabled={!storeAddress}
+                  className="w-full bg-gray-900 py-6 text-base font-medium text-white hover:bg-gray-800 rounded-2xl flex items-center justify-center space-x-3 transition-all active:scale-[0.98]"
+                >
+                  <MapPinned className="h-5 w-5" />
+                  <span className="font-oswald uppercase tracking-wider">Visit our physical store</span>
+                </Button>
+              </div>
             </div>
           </div>
         </div>
@@ -522,15 +559,15 @@ export function ProductDetailsView({
             </div>
 
             <div className="grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-4">
-               {relatedProducts.map((item) => (
-                 <ProductCard 
-                   key={item.id} 
-                   product={toViewProduct(item)} 
-                   href={`/product/${item.id}`}
-                   onClick={() => handleProductNavigation(item.id)}
-                 />
-               ))}
-             </div>
+              {relatedProducts.map((item) => (
+                <ProductCard
+                  key={item.id}
+                  product={toViewProduct(item)}
+                  href={`/product/${item.id}`}
+                  onClick={() => handleProductNavigation(item.id)}
+                />
+              ))}
+            </div>
           </section>
         )}
       </main>
