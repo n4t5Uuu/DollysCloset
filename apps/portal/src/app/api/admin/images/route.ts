@@ -14,6 +14,14 @@ const ALLOWED_IMAGE_MIME_TYPES = new Set([
 const ALLOWED_IMAGE_EXTENSIONS = new Set(["jpg", "jpeg", "png", "webp", "gif", "avif"]);
 const MAX_IMAGE_FILE_SIZE_BYTES = 5 * 1024 * 1024;
 
+/**
+ * Sanitizes a filename for storage by replacing characters that are not 
+ * alphanumeric, dots, or dashes with underscores.
+ */
+function sanitizeFileName(name: string): string {
+  return name.replace(/[^a-z0-9.-]/gi, "_");
+}
+
 function isImageUpload(file: File) {
   const normalizedMimeType = (file.type || "").toLowerCase();
   if (normalizedMimeType && ALLOWED_IMAGE_MIME_TYPES.has(normalizedMimeType)) {
@@ -137,7 +145,8 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Maximum 5 images per product" }, { status: 400 });
     }
 
-    const fileName = `${productId}/${Date.now()}-${file.name}`;
+    const sanitizedName = sanitizeFileName(file.name);
+    const fileName = `${productId}/${Date.now()}-${sanitizedName}`;
     const fileBuffer = Buffer.from(await file.arrayBuffer());
 
     const { error: uploadError } = await supabaseAdmin.storage

@@ -104,7 +104,7 @@ export default function AddProduct({ isOpen, onClose, categories, productToEdit,
         product_brand: "",
         product_description: "",
         product_stock: "1",
-        product_condition: "New",
+        product_condition: "",
         size_label: "",
         show_in_catalog: true,
         image_id: "",
@@ -196,14 +196,15 @@ export default function AddProduct({ isOpen, onClose, categories, productToEdit,
     const hasInvalidStock = trimmedStock !== "" && (!Number.isInteger(parsedStockPreview) || parsedStockPreview < 0);
     const isSaveBlocked = actionLoading || missingRequiredFields.length > 0 || hasInvalidPrice || hasInvalidStock;
     const filteredSizeOptions = useMemo(() => {
-        const normalizedInput = formData.size_label.trim().toLowerCase();
+        const normalizedInput = (formData.size_label || "").trim().toLowerCase();
         if (!normalizedInput) return SIZE_OPTIONS;
         return SIZE_OPTIONS.filter((size) => size.toLowerCase().includes(normalizedInput));
     }, [formData.size_label]);
+
     const filteredConditionOptions = useMemo(() => {
-        const normalizedInput = formData.product_condition.trim().toLowerCase();
+        const normalizedInput = (formData.product_condition || "").trim().toLowerCase();
         if (!normalizedInput) return CONDITION_OPTIONS;
-        return CONDITION_OPTIONS.filter((condition) => condition.toLowerCase().includes(normalizedInput));
+        return CONDITION_OPTIONS.filter((cond) => cond.toLowerCase().includes(normalizedInput));
     }, [formData.product_condition]);
     const formStatusMessage = missingRequiredFields.length > 0
         ? `Add ${missingRequiredFields.join(", ")} to continue.`
@@ -246,8 +247,8 @@ export default function AddProduct({ isOpen, onClose, categories, productToEdit,
                     product_brand: sanitizeSingleLineInput(productToEdit.product_brand, schemaExactLimits.productBrand),
                     product_description: sanitizeMultilineInput(productToEdit.product_description, PRODUCT_DESCRIPTION_LIMIT),
                     product_stock: productToEdit.product_stock.toString(),
-                    product_condition: sanitizeSingleLineInput(productToEdit.product_condition || "New", schemaExactLimits.productCondition),
-                    size_label: sanitizeSingleLineInput(productToEdit.size_label || "One Size", schemaExactLimits.productSizeLabel),
+                    product_condition: sanitizeSingleLineInput(productToEdit.product_condition || "", schemaExactLimits.productCondition),
+                    size_label: sanitizeSingleLineInput(productToEdit.size_label || "", schemaExactLimits.productSizeLabel),
                     show_in_catalog: productToEdit.show_in_catalog,
                     image_id: productToEdit.image_id || "",
                 });
@@ -388,8 +389,8 @@ export default function AddProduct({ isOpen, onClose, categories, productToEdit,
             const normalizedProductName = sanitizeSingleLineText(formData.product_name, schemaExactLimits.productName);
             const normalizedBrand = sanitizeSingleLineText(formData.product_brand, schemaExactLimits.productBrand) || "Dolly's Closet";
             const normalizedDescription = sanitizeMultilineText(formData.product_description, PRODUCT_DESCRIPTION_LIMIT);
-            const normalizedCondition = sanitizeSingleLineText(formData.product_condition, schemaExactLimits.productCondition) || "New";
-            const normalizedSizeLabel = sanitizeSingleLineText(formData.size_label, schemaExactLimits.productSizeLabel) || "One Size";
+            const normalizedCondition = sanitizeSingleLineText(formData.product_condition, schemaExactLimits.productCondition) || "";
+            const normalizedSizeLabel = sanitizeSingleLineText(formData.size_label, schemaExactLimits.productSizeLabel) || "";
 
             if (Number.isNaN(parsedCategoryId)) {
                 throw new Error('Invalid category. Please select a category.');
@@ -671,10 +672,7 @@ export default function AddProduct({ isOpen, onClose, categories, productToEdit,
                                         <input
                                             value={formData.product_condition}
                                             onChange={(e) => {
-                                                setFormData({
-                                                    ...formData,
-                                                    product_condition: sanitizeSingleLineInput(e.target.value, schemaExactLimits.productCondition),
-                                                });
+                                                setFormData({ ...formData, product_condition: sanitizeSingleLineInput(e.target.value, schemaExactLimits.productCondition) });
                                                 setConditionDropdownOpen(true);
                                             }}
                                             onFocus={() => setConditionDropdownOpen(true)}
