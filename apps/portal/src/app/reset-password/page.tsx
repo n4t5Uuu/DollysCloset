@@ -3,13 +3,26 @@
 import { useState } from "react";
 import { updatePasswordAction } from "./actions";
 import { toast } from "sonner";
-import { Eye, EyeOff, ArrowLeft } from "lucide-react";
+import { Eye, EyeOff, ArrowLeft, Check, X } from "lucide-react";
+import { useMemo } from "react";
 
 export default function ResetPassword() {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  
+  // Real-time validation logic
+  const validations = useMemo(() => ({
+    length: password.length >= 8,
+    uppercase: /[A-Z]/.test(password),
+    lowercase: /[a-z]/.test(password),
+    number: /[0-9]/.test(password),
+    special: /[^A-Za-z0-9]/.test(password),
+  }), [password]);
+
+  const isAllValid = Object.values(validations).every(v => v);
+  const isMatching = password === confirmPassword && confirmPassword !== "";
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -27,8 +40,8 @@ export default function ResetPassword() {
       return;
     }
 
-    if (password.length < 6) {
-      toast.error("Password must be at least 6 characters.");
+    if (!isAllValid) {
+      toast.error("Please meet all password requirements.");
       setLoading(false);
       return;
     }
@@ -94,6 +107,18 @@ export default function ResetPassword() {
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-6">
+          {/* Requirements Tracker */}
+          <div className="bg-gray-50 rounded-2xl p-5 border border-gray-100 space-y-3">
+            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Security Requirements</p>
+            <div className="grid grid-cols-1 gap-2">
+              <ValidationItem isMet={validations.length} label="At least 8 characters long" />
+              <ValidationItem isMet={validations.uppercase} label="Contains an uppercase letter" />
+              <ValidationItem isMet={validations.lowercase} label="Contains a lowercase letter" />
+              <ValidationItem isMet={validations.number} label="Includes at least one number" />
+              <ValidationItem isMet={validations.special} label="Includes a special character" />
+            </div>
+          </div>
+
           {/* New Password */}
           <div className="relative group">
             <input
@@ -148,17 +173,35 @@ export default function ResetPassword() {
             >
               Confirm Password
             </label>
+            {isMatching && (
+              <div className="absolute right-5 top-1/2 -translate-y-1/2 text-emerald-500">
+                <Check size={18} />
+              </div>
+            )}
           </div>
 
           <button
             type="submit"
-            disabled={loading}
-            className="w-full bg-linear-to-r from-[#E7A3B0] to-[#E2899A] text-white font-bold py-[18px] rounded-xl hover:from-[#E2899A] hover:to-[#DE7588] transition-all duration-300 mt-10 text-[15px] tracking-widest uppercase shadow-[0_8px_20px_-6px_rgba(231,163,176,0.6)] hover:shadow-[0_12px_24px_-6px_rgba(231,163,176,0.8)] hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.98]"
+            disabled={loading || !isAllValid || !isMatching}
+            className="w-full bg-linear-to-r from-[#E7A3B0] to-[#E2899A] text-white font-bold py-[18px] rounded-xl hover:from-[#E2899A] hover:to-[#DE7588] transition-all duration-300 mt-10 text-[15px] tracking-widest uppercase shadow-[0_8px_20px_-6px_rgba(231,163,176,0.6)] hover:shadow-[0_12px_24px_-6px_rgba(231,163,176,0.8)] hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:translate-y-0"
           >
             {loading ? "Updating..." : "Update Password"}
           </button>
         </form>
       </div>
+    </div>
+  );
+}
+
+function ValidationItem({ isMet, label }: { isMet: boolean; label: string }) {
+  return (
+    <div className="flex items-center gap-2.5">
+      <div className={`shrink-0 w-4 h-4 rounded-full flex items-center justify-center transition-all duration-300 ${isMet ? 'bg-emerald-500 text-white' : 'bg-gray-200 text-gray-400'}`}>
+        {isMet ? <Check size={10} strokeWidth={3} /> : <div className="w-1 h-1 rounded-full bg-current" />}
+      </div>
+      <span className={`text-[12px] transition-colors duration-300 ${isMet ? 'text-gray-900 font-medium' : 'text-gray-500'}`}>
+        {label}
+      </span>
     </div>
   );
 }

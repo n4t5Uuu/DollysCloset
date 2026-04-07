@@ -26,7 +26,7 @@ export default function ViewEmployeeDialog({ employee, onClose }: ViewEmployeeDi
         <div className="grid grid-cols-2 gap-4">
           <div className="bg-gray-50 rounded-xl p-4">
             <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">First Name</p>
-            <p className="font-semibold text-gray-900">{employee.first_name}</p>
+            <p className="font-semibold text-gray-900">{employee.first_name?.split(" ")[0] ?? ""}</p>
           </div>
           <div className="bg-gray-50 rounded-xl p-4">
             <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Last Name</p>

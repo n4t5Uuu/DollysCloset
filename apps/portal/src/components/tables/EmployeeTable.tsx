@@ -96,7 +96,7 @@ export function EmployeeTable({
                             onClick={() => onRowActivate?.(employee)}
                             className="max-w-full text-left font-medium text-sm text-gray-900 transition-colors hover:text-[#b96d7d]"
                           >
-                            <span className="block truncate">{employee.first_name} {employee.last_name}</span>
+                            <span className="block truncate">{employee.first_name?.split(" ")[0] ?? ""} {employee.last_name}</span>
                           </button>
                           <button
                             type="button"

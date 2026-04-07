@@ -242,7 +242,7 @@ export default function Dashboard({ role }: DashboardProps) {
         <div className="space-y-6">
             <div>
                 <p className="text-xs uppercase tracking-[0.2em] text-gray-400">{label}</p>
-                <h1 className="text-3xl font-bold text-[#121212] mt-1">Good day, {firstName || fallbackName}</h1>
+                <h1 className="text-3xl font-bold text-[#121212] mt-1">Good day, {firstName?.split(" ")[0] || fallbackName}</h1>
                 <p className="text-gray-500 mt-1">Here's what needs your attention today.</p>
             </div>
 

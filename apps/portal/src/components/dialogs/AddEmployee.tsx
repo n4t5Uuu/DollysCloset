@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
-import { Loader2, X } from "lucide-react";
+import { Loader2, X, Check, Eye, EyeOff } from "lucide-react";
 import { 
     createClient,
     Employee,
@@ -41,6 +41,19 @@ export default function AddEmployee({ isOpen, onClose, employeeToEdit, onEmploye
         password: "",
     });
     const [showDiscardConfirm, setShowDiscardConfirm] = useState(false);
+    const [showPassword, setShowPassword] = useState(false);
+
+    // Real-time password validation logic
+    const passwordValidations = useMemo(() => ({
+        length: formData.password.length >= 8,
+        uppercase: /[A-Z]/.test(formData.password),
+        lowercase: /[a-z]/.test(formData.password),
+        number: /[0-9]/.test(formData.password),
+        special: /[^A-Za-z0-9]/.test(formData.password),
+    }), [formData.password]);
+
+    const isPasswordValid = Object.values(passwordValidations).every(v => v);
+    const hasPasswordInput = formData.password.length > 0;
     const trimmedEmail = formData.username.trim();
     const trimmedFirstName = formData.first_name.trim();
     const trimmedLastName = formData.last_name.trim();
@@ -50,30 +63,28 @@ export default function AddEmployee({ isOpen, onClose, employeeToEdit, onEmploye
         if (!trimmedEmail) missingFields.push("email address");
         if (!trimmedFirstName) missingFields.push("first name");
         if (!trimmedLastName) missingFields.push("last name");
-        if (!employeeToEdit && formData.password.length < 6) missingFields.push("password");
+        if (!employeeToEdit && !isPasswordValid) missingFields.push("strong password");
 
         return missingFields;
-    }, [employeeToEdit, formData.password.length, trimmedEmail, trimmedFirstName, trimmedLastName]);
+    }, [employeeToEdit, isPasswordValid, trimmedEmail, trimmedFirstName, trimmedLastName]);
 
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    const nameRegex = /^[\p{L}][\p{L}-]*[\p{L}]$|^[\p{L}]+$/u;
+    const nameRegex = /^[\p{L}][\p{L}\s-]*[\p{L}]$|^[\p{L}]+$/u;
     const hasInvalidEmail = trimmedEmail !== "" && !emailRegex.test(trimmedEmail);
     const hasInvalidFirstName = trimmedFirstName !== "" && !nameRegex.test(trimmedFirstName);
     const hasInvalidLastName = trimmedLastName !== "" && !nameRegex.test(trimmedLastName);
-    const hasInvalidPassword = formData.password.length > 0 && formData.password.length < 6;
+    const hasInvalidPassword = hasPasswordInput && !isPasswordValid;
     const isSubmitBlocked = actionLoading || missingRequiredFields.length > 0 || hasInvalidEmail || hasInvalidFirstName || hasInvalidLastName || hasInvalidPassword;
     const formStatusMessage = missingRequiredFields.length > 0
         ? `Add ${missingRequiredFields.join(", ")} to continue.`
         : hasInvalidEmail
             ? "Enter a valid email address before saving."
             : hasInvalidFirstName
-                ? "First name can only contain letters and hyphens."
+                ? "First name can only contain letters, spaces, and hyphens."
             : hasInvalidLastName
-                ? "Last name can only contain letters and hyphens."
+                ? "Last name can only contain letters, spaces, and hyphens."
             : hasInvalidPassword
-                ? employeeToEdit
-                    ? "Use at least 6 characters if you are resetting the password."
-                    : "Password must be at least 6 characters long."
+                ? "This password choice is too weak."
                 : employeeToEdit
                     ? "Review your updates, then save when you're ready."
                     : "Required fields are complete. You can add this employee now.";
@@ -162,13 +173,13 @@ export default function AddEmployee({ isOpen, onClose, employeeToEdit, onEmploye
             }
 
             if (!nameRegex.test(normalizedFirstName)) {
-                setError('First name can only contain letters and hyphens.');
+                setError('First name can only contain letters, spaces, and hyphens.');
                 setActionLoading(false);
                 return;
             }
 
             if (!nameRegex.test(normalizedLastName)) {
-                setError('Last name can only contain letters and hyphens.');
+                setError('Last name can only contain letters, spaces, and hyphens.');
                 setActionLoading(false);
                 return;
             }
@@ -240,7 +251,7 @@ export default function AddEmployee({ isOpen, onClose, employeeToEdit, onEmploye
                 <form onSubmit={handleSaveEmployee}>
                     <CardContent className="space-y-5 pt-2 px-6 pb-6 overflow-y-auto">
                         <FormNotice>
-                            Fields marked with <span className="text-red-500">*</span> are required. Passwords must be at least 6 characters long.
+                            Fields marked with <span className="text-red-500">*</span> are required. Use a secure, non-personal password.
                         </FormNotice>
                         {error && (
                             <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">
@@ -254,16 +265,23 @@ export default function AddEmployee({ isOpen, onClose, employeeToEdit, onEmploye
                                 type="email"
                                 value={formData.username}
                                 onChange={(e) => setFormData({ ...formData, username: sanitizeSingleLineInput(e.target.value, schemaExactLimits.userUsername) })}
-                                placeholder="Enter email address"
+                                placeholder="e.g. name@gmail.com"
                                 maxLength={schemaExactLimits.userUsername}
                                 required
                                 disabled={actionLoading}
-                                aria-invalid={hasInvalidEmail || !trimmedEmail}
+                                aria-invalid={hasInvalidEmail}
                                 className="border-gray-300 text-gray-900 bg-white placeholder:text-gray-400"
                             />
-                            <p className="text-right text-xs text-gray-500">
-                                {renderLengthMeta(formData.username, schemaExactLimits.userUsername)}
-                            </p>
+                            <div className="flex justify-between items-start gap-2">
+                                {hasInvalidEmail ? (
+                                    <p className="text-xs text-red-600">Email should be in a valid format (e.g., name@gmail.com).</p>
+                                ) : (
+                                    <div />
+                                )}
+                                <p className="text-right text-xs text-gray-500 shrink-0">
+                                    {renderLengthMeta(formData.username, schemaExactLimits.userUsername)}
+                                </p>
+                            </div>
                         </div>
 
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -281,7 +299,7 @@ export default function AddEmployee({ isOpen, onClose, employeeToEdit, onEmploye
                                     className="border-gray-300 text-gray-900 bg-white placeholder:text-gray-400"
                                 />
                                 {hasInvalidFirstName ? (
-                                    <p className="text-xs text-red-600">Letters and hyphens only. No numbers or other symbols.</p>
+                                    <p className="text-xs text-red-600">Letters, spaces, and hyphens only. No numbers or other symbols.</p>
                                 ) : (
                                     <p className="text-right text-xs text-gray-500">
                                         {renderLengthMeta(formData.first_name, schemaExactLimits.userFirstName)}
@@ -303,7 +321,7 @@ export default function AddEmployee({ isOpen, onClose, employeeToEdit, onEmploye
                                     className="border-gray-300 text-gray-900 bg-white placeholder:text-gray-400"
                                 />
                                 {hasInvalidLastName ? (
-                                    <p className="text-xs text-red-600">Letters and hyphens only. No numbers or other symbols.</p>
+                                    <p className="text-xs text-red-600">Letters, spaces, and hyphens only. No numbers or other symbols.</p>
                                 ) : (
                                     <p className="text-right text-xs text-gray-500">
                                         {renderLengthMeta(formData.last_name, schemaExactLimits.userLastName)}
@@ -313,21 +331,39 @@ export default function AddEmployee({ isOpen, onClose, employeeToEdit, onEmploye
                         </div>
 
                         <div className="space-y-2">
+                            <div className="bg-gray-50/80 rounded-xl p-4 border border-gray-100 mb-4 space-y-2.5">
+                                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1.5">Security Complexity</p>
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-2">
+                                    <AdminValidationItem isMet={passwordValidations.length} label="8+ chars" />
+                                    <AdminValidationItem isMet={passwordValidations.uppercase} label="Uppercase" />
+                                    <AdminValidationItem isMet={passwordValidations.lowercase} label="Lowercase" />
+                                    <AdminValidationItem isMet={passwordValidations.number} label="Number" />
+                                    <AdminValidationItem isMet={passwordValidations.special} label="Symbol" />
+                                </div>
+                            </div>
+
                             <label className="block text-sm font-medium text-gray-700">
                                 {employeeToEdit ? "New Password (optional)" : <>Password <span className="text-red-500">*</span></>}
                             </label>
-                            <Input
-                                type="password"
-                                value={formData.password}
-                                onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                                placeholder={employeeToEdit ? "Leave blank to keep current" : "Enter password"}
-                                required={!employeeToEdit}
-                                minLength={6}
-                                disabled={actionLoading}
-                                aria-invalid={hasInvalidPassword}
-                                className="border-gray-300 text-gray-900 bg-white placeholder:text-gray-400"
-                            />
-                            <p className="text-xs text-gray-500">Minimum 6 characters {employeeToEdit && "if changing"}</p>
+                            <div className="relative group">
+                                <Input
+                                    type={showPassword ? "text" : "password"}
+                                    value={formData.password}
+                                    onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                                    placeholder={employeeToEdit ? "Leave blank to keep current" : "Enter password"}
+                                    required={!employeeToEdit}
+                                    disabled={actionLoading}
+                                    aria-invalid={hasInvalidPassword}
+                                    className="pr-10 border-gray-300 text-gray-900 bg-white placeholder:text-gray-400 focus:border-[#E7A3B0] focus:ring-[#E7A3B0]"
+                                />
+                                <button
+                                    type="button"
+                                    onClick={() => setShowPassword(!showPassword)}
+                                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-[#E7A3B0] transition-colors focus:outline-none"
+                                >
+                                    {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                                </button>
+                            </div>
                         </div>
                     </CardContent>
 
@@ -346,6 +382,19 @@ export default function AddEmployee({ isOpen, onClose, employeeToEdit, onEmploye
                 onOpenChange={setShowDiscardConfirm}
                 onDiscard={onClose}
             />
+        </div>
+    );
+}
+
+function AdminValidationItem({ isMet, label }: { isMet: boolean; label: string }) {
+    return (
+        <div className="flex items-center gap-2">
+            <div className={`shrink-0 w-4 h-4 rounded-full flex items-center justify-center transition-all duration-300 ${isMet ? 'bg-emerald-500 text-white' : 'bg-gray-200 text-gray-400'}`}>
+                {isMet ? <Check size={10} strokeWidth={3} /> : <div className="w-1 h-1 rounded-full bg-current" />}
+            </div>
+            <span className={`text-[11px] transition-colors duration-300 ${isMet ? 'text-gray-900 font-medium' : 'text-gray-400'}`}>
+                {label}
+            </span>
         </div>
     );
 }

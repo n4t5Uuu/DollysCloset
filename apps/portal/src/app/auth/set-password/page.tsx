@@ -127,6 +127,18 @@ export default function SetPasswordPage() {
                 </div>
 
                 <form onSubmit={handleSubmit} className="space-y-5">
+                    {/* Requirements Tracker */}
+                    <div className="bg-gray-50/50 rounded-2xl p-5 border border-gray-100 space-y-3">
+                        <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-1">Requirements</p>
+                        <div className="grid grid-cols-1 gap-2">
+                            <ValidationItem isMet={validations.length} label="At least 8 characters long" />
+                            <ValidationItem isMet={validations.uppercase} label="Contains an uppercase letter" />
+                            <ValidationItem isMet={validations.lowercase} label="Contains a lowercase letter" />
+                            <ValidationItem isMet={validations.number} label="Includes at least one number" />
+                            <ValidationItem isMet={validations.special} label="Includes a special character" />
+                        </div>
+                    </div>
+
                     {/* Password Input */}
                     <div className="relative group">
                         <input 
@@ -156,18 +168,6 @@ export default function SetPasswordPage() {
                         >
                             {showPassword ? <EyeOff size={18} strokeWidth={1.5} /> : <Eye size={18} strokeWidth={1.5} />}
                         </button>
-                    </div>
-
-                    {/* Requirements Tracker */}
-                    <div className="bg-gray-50/50 rounded-2xl p-5 border border-gray-100 space-y-3">
-                        <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-1">Requirements</p>
-                        <div className="grid grid-cols-1 gap-2">
-                            <ValidationItem isMet={validations.length} label="At least 8 characters long" />
-                            <ValidationItem isMet={validations.uppercase} label="Contains an uppercase letter" />
-                            <ValidationItem isMet={validations.lowercase} label="Contains a lowercase letter" />
-                            <ValidationItem isMet={validations.number} label="Includes at least one number" />
-                            <ValidationItem isMet={validations.special} label="Includes a special character" />
-                        </div>
                     </div>
 
                     {/* Confirm Password Input */}

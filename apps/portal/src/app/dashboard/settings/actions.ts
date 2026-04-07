@@ -2,12 +2,24 @@
 
 import { createServerSupabase } from "@dollys-closet/core/lib/supabase/server";
 
-export async function changePasswordAction(newPassword: string): Promise<{ error: string | null }> {
+export async function changePasswordAction(currentPassword: string, newPassword: string): Promise<{ error: string | null }> {
   const supabase = await createServerSupabase();
 
   const { data: { user }, error: userError } = await supabase.auth.getUser();
   if (userError || !user) {
     return { error: "Session expired. Please log in again." };
+  }
+
+  // Verify the current password on the server before allowing the update.
+  // This avoids client-side auth lock issues where the session might be "stolen" by parallel requests.
+  const { error: verifyError } = await supabase.auth.signInWithPassword({
+    email: user.email!,
+    password: currentPassword,
+  });
+
+  if (verifyError) {
+    console.error("Verification error:", verifyError.message);
+    return { error: "Current password is incorrect." };
   }
 
   const { error } = await supabase.auth.updateUser({ password: newPassword });

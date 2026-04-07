@@ -102,27 +102,32 @@ export default function SettingsPage() {
 
   const passwordChecks = useMemo(
     () => [
+// Note: Current password entry is tracked separately from the visual checklist
       {
-        label: "Current password is entered",
-        passed: currentPassword.length > 0,
+        label: "At least 8 characters long",
+        passed: newPassword.length >= 8,
       },
       {
-        label: "New password is at least 6 characters",
-        passed: newPassword.length >= 6,
+        label: "Contains an uppercase & lowercase letter",
+        passed: /[A-Z]/.test(newPassword) && /[a-z]/.test(newPassword),
       },
       {
-        label: "New password is different from the current password",
+        label: "Includes a number & special character",
+        passed: /[0-9]/.test(newPassword) && /[^A-Za-z0-9]/.test(newPassword),
+      },
+      {
+        label: "Different from current password",
         passed: newPassword.length > 0 && newPassword !== currentPassword,
       },
       {
-        label: "Confirmation matches the new password",
+        label: "New passwords match",
         passed: confirmPassword.length > 0 && newPassword === confirmPassword,
       },
     ],
     [confirmPassword, currentPassword, newPassword]
   );
 
-  const isFormReady = passwordChecks.every((check) => check.passed);
+  const isFormReady = currentPassword.length > 0 && passwordChecks.every((check) => check.passed);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -147,21 +152,7 @@ export default function SettingsPage() {
 
     setLoading(true);
 
-    // Verify the current password before allowing the change
-    const supabase = createClient();
-    const { error: authError } = await supabase.auth.signInWithPassword({
-      email: profile?.email ?? "",
-      password: currentPassword,
-    });
-
-    if (authError) {
-      setFormError("Current password is incorrect.");
-      toast.error("Current password is incorrect.");
-      setLoading(false);
-      return;
-    }
-
-    const { error } = await changePasswordAction(newPassword);
+    const { error } = await changePasswordAction(currentPassword, newPassword);
 
     if (error) {
       setFormError(error);
@@ -242,7 +233,7 @@ export default function SettingsPage() {
             </div>
             <div>
               <div className="flex items-center gap-2 flex-wrap">
-                <p className="font-semibold text-[#1A1A1A]">{profile?.displayName}</p>
+                <p className="font-semibold text-[#1A1A1A]">{profile?.displayName?.split(" ")[0]}</p>
                 <span className="text-xs font-medium px-2.5 py-0.5 rounded-full bg-[#FFF0F3] text-[#E7A3B0]">
                   {roleBadgeLabel}
                 </span>
@@ -308,20 +299,16 @@ export default function SettingsPage() {
         )}
 
         <div className="mb-6 rounded-xl border border-gray-100 bg-gray-50 px-4 py-4">
-          <p className="text-xs font-semibold uppercase tracking-widest text-[#828282] mb-3">
-            Password Checklist
+          <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-[#828282] mb-4">
+            Validation Checklist
           </p>
-          <div className="space-y-2">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-3">
             {passwordChecks.map((check) => (
-              <div key={check.label} className="flex items-center gap-2 text-sm">
-                <span
-                  className={`inline-flex h-5 w-5 items-center justify-center rounded-full text-[11px] font-bold ${
-                    check.passed ? "bg-green-100 text-green-700" : "bg-gray-200 text-gray-500"
-                  }`}
-                >
-                  {check.passed ? "✓" : "•"}
-                </span>
-                <span className={check.passed ? "text-[#1A1A1A]" : "text-[#666]"}>
+              <div key={check.label} className="flex items-center gap-3">
+                <div className={`shrink-0 w-5 h-5 rounded-full flex items-center justify-center transition-all duration-300 ${check.passed ? 'bg-emerald-500 text-white shadow-[0_2px_8px_rgba(16,185,129,0.3)]' : 'bg-gray-200 text-gray-400'}`}>
+                  {check.passed ? <span className="text-[10px]">✓</span> : <div className="w-1 h-1 rounded-full bg-current" />}
+                </div>
+                <span className={`text-[13px] transition-colors duration-300 ${check.passed ? 'text-gray-900 font-medium' : 'text-gray-400'}`}>
                   {check.label}
                 </span>
               </div>
