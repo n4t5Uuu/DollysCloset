@@ -78,7 +78,16 @@ export async function POST(request: NextRequest) {
     }
 
     const parsedStock = parseInt(product_stock) || 0;
-    let finalShowInCatalog = show_in_catalog !== false;
+    const requestedShowInCatalog = show_in_catalog !== false;
+
+    if (parsedStock === 0 && requestedShowInCatalog) {
+      return NextResponse.json(
+        { error: "You can't show an out-of-stock product." },
+        { status: 400 }
+      );
+    }
+
+    let finalShowInCatalog = requestedShowInCatalog;
 
     if (parsedStock === 0) {
       finalShowInCatalog = false;
@@ -153,7 +162,16 @@ export async function PUT(request: NextRequest) {
     const { data: currentProduct } = await productHelper.getProductById(product_id, supabaseAdmin);
 
     const parsedStock = parseInt(product_stock) || 0;
-    let finalShowInCatalog = show_in_catalog !== false;
+    const requestedShowInCatalog = show_in_catalog !== false;
+
+    if (parsedStock === 0 && requestedShowInCatalog) {
+      return NextResponse.json(
+        { error: "You can't show an out-of-stock product." },
+        { status: 400 }
+      );
+    }
+
+    let finalShowInCatalog = requestedShowInCatalog;
 
     if (parsedStock === 0) {
       finalShowInCatalog = false;

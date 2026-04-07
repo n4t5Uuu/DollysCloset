@@ -107,7 +107,7 @@ function getDailyTrafficTitle(selectedMonth?: string) {
 
 function getSummaryScopeLabel(selectedMonth?: string) {
   if (!selectedMonth || selectedMonth === 'all') {
-    return 'Last 30 days';
+    return 'All time';
   }
 
   const now = new Date();
