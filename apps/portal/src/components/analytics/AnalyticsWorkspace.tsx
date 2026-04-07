@@ -115,7 +115,7 @@ export function AnalyticsWorkspace() {
   return (
     <div className="space-y-6">
       <div className="rounded-2xl border border-[#E7A3B0]/20 bg-[#fff9fb] p-5 shadow-sm">
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+        <div className="flex flex-col gap-4 md:flex-row md:items-start lg:items-center lg:justify-between">
           <div className="space-y-1">
             <p className="text-sm font-semibold text-[#8a6b73]">Analytics overview</p>
             <p className="text-sm text-[#8a6b73]">
@@ -125,7 +125,7 @@ export function AnalyticsWorkspace() {
               Current scope: <span className="font-medium text-[#8a6b73]">{selectedMonthLabel}</span>
             </p>
           </div>
-          <div className="flex items-center gap-2 flex-wrap">
+          <div className="flex items-center gap-2 shrink-0 sm:flex-nowrap flex-wrap md:self-auto self-end">
             <Button
               type="button"
               variant="outline"
