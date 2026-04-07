@@ -665,16 +665,16 @@ export default function ActivityLogsClient() {
         </div>
       ) : (
         <div className="bg-white rounded-lg border overflow-x-auto">
-          <Table className="w-full table-fixed">
+          <Table className="w-full min-w-[1100px]">
             <TableHeader className="border-b bg-gray-50">
               <TableRow>
                 <TableHead className="p-4 font-bold w-[110px]">Log ID</TableHead>
-                <TableHead className="p-4 font-bold">Date & Time</TableHead>
-                <TableHead className="p-4 font-bold">Action</TableHead>
+                <TableHead className="p-4 font-bold w-[180px]">Date & Time</TableHead>
+                <TableHead className="p-4 font-bold w-[150px]">Action</TableHead>
                 <TableHead className="p-4 font-bold text-center w-[140px]">Linked ID</TableHead>
-                <TableHead className="p-4 font-bold">User</TableHead>
-                <TableHead className="p-4 font-bold w-[30%]">Description</TableHead>
-                <TableHead className="p-4 font-bold">Editor</TableHead>
+                <TableHead className="p-4 font-bold w-[120px]">User</TableHead>
+                <TableHead className="p-4 font-bold w-[300px]">Description</TableHead>
+                <TableHead className="p-4 font-bold w-[120px]">Editor</TableHead>
                 <TableHead className="p-4 font-bold text-center w-[100px]">Actions</TableHead>
               </TableRow>
             </TableHeader>
@@ -690,7 +690,7 @@ export default function ActivityLogsClient() {
                       <div className="line-clamp-2 break-all">{log.log_id}</div>
                     </TableCell>
                     <TableCell className="p-4 text-sm text-gray-700">
-                      <div className="line-clamp-2 break-words [overflow-wrap:anywhere]">{new Date(log.created_at).toLocaleString()}</div>
+                      <div className="line-clamp-2 wrap-anywhere">{new Date(log.created_at).toLocaleString()}</div>
                     </TableCell>
                     <TableCell className="p-4">
                       <div className="line-clamp-2">
@@ -717,7 +717,7 @@ export default function ActivityLogsClient() {
                       </div>
                     </TableCell>
                     <TableCell className="p-4 text-sm text-gray-600 max-w-0 overflow-hidden">
-                      <div className="line-clamp-2 break-words [overflow-wrap:anywhere]">{log.description || "-"}</div>
+                      <div className="line-clamp-2 wrap-anywhere">{log.description || "-"}</div>
                     </TableCell>
                     <TableCell className="p-4 text-sm text-gray-600">
                       <div className="line-clamp-2 break-all">
@@ -824,14 +824,14 @@ export default function ActivityLogsClient() {
                 </div>
                 <div className="bg-gray-50 rounded-xl p-4">
                   <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">User</p>
-                  <p className="text-sm font-semibold text-gray-900 break-words [overflow-wrap:anywhere]">
+                  <p className="text-sm font-semibold text-gray-900 wrap-anywhere">
                     {employeeManagementActions.has(viewLog.action_type) ? (viewLog.user_key || (viewLog.user_id ?? "-")) : "-"}
                   </p>
                 </div>
               </div>
               <div className="bg-gray-50 rounded-xl p-4">
                 <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Description</p>
-                <p className="text-sm text-gray-700 whitespace-pre-wrap break-words [overflow-wrap:anywhere]">{viewLog.description || "-"}</p>
+                <p className="text-sm text-gray-700 whitespace-pre-wrap wrap-anywhere">{viewLog.description || "-"}</p>
               </div>
               <div className="bg-gray-50 rounded-xl p-4">
                 <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Editor</p>
