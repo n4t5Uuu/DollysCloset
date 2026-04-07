@@ -127,12 +127,37 @@ export async function GET(request: NextRequest) {
       }),
     ]);
 
-    const dailyData = dailyResponse[0].rows?.map(row => ({
+    const rawDailyData = dailyResponse[0].rows?.map(row => ({
       date: row.dimensionValues?.[0]?.value ?? '',
       users: Number(row.metricValues?.[0]?.value ?? 0),
       sessions: Number(row.metricValues?.[1]?.value ?? 0),
       pageViews: Number(row.metricValues?.[2]?.value ?? 0),
     })) ?? [];
+
+    // GA4 omits days with zero traffic entirely, so we fill in the full date range
+    // to ensure the chart always shows the complete 30-day (or month) window.
+    const rawMap = new Map(rawDailyData.map(d => [d.date, d]));
+
+    const dailyData: typeof rawDailyData = [];
+
+    if (monthParam) {
+      // Fill all days of the selected month
+      const [year, month] = monthParam.split('-').map(Number);
+      const daysInMonth = new Date(year, month, 0).getDate();
+      for (let day = 1; day <= daysInMonth; day++) {
+        const dateStr = `${year}${String(month).padStart(2, '0')}${String(day).padStart(2, '0')}`;
+        dailyData.push(rawMap.get(dateStr) ?? { date: dateStr, users: 0, sessions: 0, pageViews: 0 });
+      }
+    } else {
+      // Fill all 30 days (today inclusive)
+      const todayUtc = new Date();
+      for (let i = 29; i >= 0; i--) {
+        const d = new Date(todayUtc);
+        d.setDate(todayUtc.getDate() - i);
+        const dateStr = `${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, '0')}${String(d.getDate()).padStart(2, '0')}`;
+        dailyData.push(rawMap.get(dateStr) ?? { date: dateStr, users: 0, sessions: 0, pageViews: 0 });
+      }
+    }
 
     const INTERNAL_PREFIXES = ['/admin', '/employee', '/dashboard', '/unauthorized', '/forbidden'];
     const isInternal = (path: string) => INTERNAL_PREFIXES.some(p => path.startsWith(p));
