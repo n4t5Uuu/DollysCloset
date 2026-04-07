@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { authHelper, createClient } from "@dollys-closet/core";
 import { getAuthReasonCopy, getSafeInternalPath } from "@/lib/auth/auth-routing";
 
@@ -24,6 +24,10 @@ export default function LoginClient() {
   const [callbackError, setCallbackError] = useState(false);
   const [loginReason, setLoginReason] = useState<string | null>(null);
   const [nextPath, setNextPath] = useState("/dashboard");
+  // Ref set synchronously when auth error/reason params are detected, BEFORE URL cleanup.
+  // Used by the auto-redirect effect so it can guard against the params even after they
+  // are stripped from the URL by window.history.replaceState.
+  const hasAuthErrorRef = useRef(false);
 
   useEffect(() => {
     const storedValue = window.localStorage.getItem(LOGIN_COOLDOWN_STORAGE_KEY);
@@ -65,6 +69,12 @@ export default function LoginClient() {
       const reasonParam = params.get("reason");
       const nextParam = params.get("next");
 
+      // Set ref synchronously BEFORE URL cleanup so the redirect effect
+      // can still detect the error after replaceState strips the params.
+      if (errorParam || reasonParam) {
+        hasAuthErrorRef.current = true;
+      }
+
       setCallbackError(errorParam === "auth_callback_failed");
       setLoginReason(reasonParam);
       setNextPath(getSafeInternalPath(nextParam, "/dashboard"));
@@ -87,6 +97,11 @@ export default function LoginClient() {
   }, []);
 
   useEffect(() => {
+    // Do NOT auto-redirect to dashboard if there was an auth error or reason in the URL.
+    // hasAuthErrorRef is set synchronously by the URL params effect BEFORE it cleans the
+    // URL, so this guard works even after window.history.replaceState strips the params.
+    if (hasAuthErrorRef.current) return;
+
     const supabase = createClient();
     supabase.auth.getUser().then(({ data: { user } }) => {
       if (user) window.location.replace(nextPath);
