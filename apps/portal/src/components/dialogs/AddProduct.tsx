@@ -416,17 +416,12 @@ export default function AddProduct({ isOpen, onClose, categories, productToEdit,
                 return (
                     sanitizeSingleLineText(candidate.product_name, schemaExactLimits.productName).toLowerCase() === normalizedProductName.toLowerCase() &&
                     normalizeCategoryId(candidate.category_id) === String(parsedCategoryId) &&
-                    Number(candidate.product_price) === parsedPrice &&
-                    (sanitizeSingleLineText(candidate.product_brand || "", schemaExactLimits.productBrand) || "Dolly's Closet").toLowerCase() === normalizedBrand.toLowerCase() &&
-                    sanitizeMultilineText(candidate.product_description || "", PRODUCT_DESCRIPTION_LIMIT) === normalizedDescription &&
-                    Number(candidate.product_stock) === parsedStock &&
-                    (sanitizeSingleLineText(candidate.product_condition || "New", schemaExactLimits.productCondition) || "New").toLowerCase() === normalizedCondition.toLowerCase() &&
-                    (sanitizeSingleLineText(candidate.size_label || "One Size", schemaExactLimits.productSizeLabel) || "One Size").toLowerCase() === normalizedSizeLabel.toLowerCase()
+                    Number(candidate.product_price) === parsedPrice
                 );
             });
 
             if (duplicateProduct) {
-                throw new Error('A product with these exact details already exists. Update the existing product or change at least one field before saving.');
+                throw new Error('A product with the same name, category, and price already exists. Change at least one of these fields before saving.');
             }
 
             const response = await fetch(endpoint, {
@@ -594,7 +589,12 @@ export default function AddProduct({ isOpen, onClose, categories, productToEdit,
                                     onChange={(e) => {
                                         const val = e.target.value;
                                         if (val === "" || Number(val) >= 0) {
-                                            setFormData({ ...formData, product_stock: val });
+                                            const isZeroStock = val === "0" || val === "";
+                                            setFormData({
+                                                ...formData,
+                                                product_stock: val,
+                                                show_in_catalog: isZeroStock ? false : formData.show_in_catalog,
+                                            });
                                         }
                                     }}
                                     onKeyDown={(e) => {

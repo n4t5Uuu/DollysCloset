@@ -145,6 +145,11 @@ function validateRows(rows: ParsedRow[], existingProducts: Product[] = []): Vali
       errors.push("product_stock must be 0 or greater - this row will be skipped");
     }
 
+    if (stock === 0 && normalizeBoolean(normalizedRow.show_in_catalog)) {
+      normalizedRow.show_in_catalog = "false";
+      warnings.push("stock is 0, visibility will be set to hidden automatically.");
+    }
+
     if (row.product_name?.trim()) {
       const fingerprint = buildProductFingerprint(
         row.product_name,
@@ -320,7 +325,7 @@ export default function BulkImportModal({ isOpen, onClose, onImportComplete, exi
           size_label: (row.raw.size_label.trim() || "One Size").slice(0, MAX_META_LENGTH),
           product_condition: (row.raw.product_condition.trim() || "New").slice(0, MAX_META_LENGTH),
           product_description: row.raw.product_description.trim(),
-          show_in_catalog: normalizeBoolean(row.raw.show_in_catalog),
+          show_in_catalog: normalizeBoolean(normalized.show_in_catalog),
           image_id: null,
         };
 
