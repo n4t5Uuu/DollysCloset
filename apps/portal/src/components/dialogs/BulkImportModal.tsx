@@ -80,21 +80,13 @@ function buildProductFingerprint(
   name: string,
   categoryId: string,
   price: string,
-  brand: string,
-  stock: string,
-  condition: string,
-  sizeLabel: string,
-  description: string,
 ): string {
+  const normalizedPrice = String(Number(price.trim()));
+
   return [
     name.trim().toLowerCase(),
     categoryId.trim(),
-    price.trim(),
-    (brand.trim() || "Dolly's Closet").toLowerCase(),
-    stock.trim() || "0",
-    (condition.trim() || "New").toLowerCase(),
-    (sizeLabel.trim() || "One Size").toLowerCase(),
-    description.trim().toLowerCase(),
+    normalizedPrice,
   ].join("|");
 }
 
@@ -105,11 +97,6 @@ function validateRows(rows: ParsedRow[], existingProducts: Product[] = []): Vali
         p.product_name,
         String(p.category_id),
         String(p.product_price),
-        p.product_brand || "",
-        String(p.product_stock),
-        p.product_condition || "",
-        p.size_label || "",
-        p.product_description || "",
       )
     )
   );
@@ -163,11 +150,6 @@ function validateRows(rows: ParsedRow[], existingProducts: Product[] = []): Vali
         row.product_name,
         normalizedRow.category_id,
         normalizedRow.product_price,
-        row.product_brand ?? "",
-        normalizedRow.product_stock || "0",
-        row.product_condition ?? "",
-        row.size_label ?? "",
-        row.product_description ?? "",
       );
 
       if (existingFingerprints.has(fingerprint)) {
