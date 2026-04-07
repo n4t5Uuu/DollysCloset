@@ -277,8 +277,8 @@ export function ProductsDashboard({ selectedMonth }: { selectedMonth?: string })
 
         {/* Most edited */}
         <div style={card} className="p-6">
-          <div className="flex items-start justify-between gap-2 mb-1">
-            <h2 className="text-base font-semibold" style={{ color: '#111827' }}>Most Edited Products</h2>
+          <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 mb-2">
+            <h2 className="text-base font-semibold shrink-0" style={{ color: '#111827' }}>Most Edited Products</h2>
             {hasSelectedMonth ? (
               <div
                 className="shrink-0 rounded-full px-3 py-1 text-xs font-medium"
