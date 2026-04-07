@@ -256,15 +256,17 @@ export default function CatalogSidebar({
                     style={{ paddingLeft: `${8 + depth * 14}px` }}
                     title={getCategoryPath(Number(category.category_id))}
                 >
-                    <span className="flex items-center justify-between gap-3">
-                        <span className="flex min-w-0 items-center gap-2">
+                    <span className="flex w-full min-w-0 items-start justify-between gap-3">
+                        <span className="flex min-w-0 flex-1 items-start gap-2">
                             <span
                                 className={cn(
                                     "h-1.5 w-1.5 shrink-0 rounded-full",
                                     activeFilter === filterValue ? "bg-[#E7A3B0]" : "bg-gray-300 group-hover:bg-[#E7A3B0]"
                                 )}
                             />
-                            <span className="line-clamp-2 leading-snug text-left">{category.category_name}</span>
+                            <span className="min-w-0 flex-1 break-words leading-snug text-left">
+                                {category.category_name}
+                            </span>
                         </span>
                         <span
                             className={cn(
@@ -290,9 +292,14 @@ export default function CatalogSidebar({
                     )}
                     style={{ paddingLeft: `${8 + depth * 14}px` }}
                 >
-                    <span className="flex min-w-0 items-center gap-2">
-                        <span className="h-2 w-2 rounded-sm border border-gray-300" />
-                        <span className="truncate">{category.category_name}</span>
+                    <span className="flex min-w-0 flex-1 items-start gap-2">
+                        <span
+                            className={cn(
+                                "mt-1 h-1.5 w-1.5 shrink-0 rounded-full",
+                                activeFilter === filterValue ? "bg-[#E7A3B0]" : "bg-gray-300"
+                            )}
+                        />
+                        <span className="min-w-0 break-words leading-snug">{category.category_name}</span>
                     </span>
                 </AccordionTrigger>
 
@@ -342,7 +349,12 @@ export default function CatalogSidebar({
                     )}
                 >
                     <span className="flex min-w-0 items-center gap-2">
-                        <span className="h-2 w-2 rounded-sm border border-gray-300" />
+                        <span
+                            className={cn(
+                                "h-1.5 w-1.5 shrink-0 rounded-full",
+                                activeFilter === rootFilterValue ? "bg-[#E7A3B0]" : "bg-gray-300"
+                            )}
+                        />
                         <span className="truncate">{group.label}</span>
                     </span>
                     <span

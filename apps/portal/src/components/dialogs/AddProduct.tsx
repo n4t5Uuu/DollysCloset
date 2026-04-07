@@ -195,6 +195,11 @@ export default function AddProduct({ isOpen, onClose, categories, productToEdit,
     const hasInvalidPrice = trimmedPrice !== "" && (!Number.isFinite(parsedPricePreview) || (parsedPricePreview ?? 0) < 0);
     const hasInvalidStock = trimmedStock !== "" && (!Number.isInteger(parsedStockPreview) || parsedStockPreview < 0);
     const isSaveBlocked = actionLoading || missingRequiredFields.length > 0 || hasInvalidPrice || hasInvalidStock;
+    const filteredSizeOptions = useMemo(() => {
+        const normalizedInput = formData.size_label.trim().toLowerCase();
+        if (!normalizedInput) return SIZE_OPTIONS;
+        return SIZE_OPTIONS.filter((size) => size.toLowerCase().includes(normalizedInput));
+    }, [formData.size_label]);
     const formStatusMessage = missingRequiredFields.length > 0
         ? `Add ${missingRequiredFields.join(", ")} to continue.`
         : hasInvalidPrice
@@ -607,10 +612,17 @@ export default function AddProduct({ isOpen, onClose, categories, productToEdit,
                                     <div className="flex h-9 w-full rounded-md bg-white" style={{ border: '1px solid #101722' }}> 
                                         <input
                                             value={formData.size_label}
-                                            readOnly
-                                            onClick={() => setSizeDropdownOpen((prev) => !prev)}
+                                            onChange={(e) => {
+                                                setFormData({
+                                                    ...formData,
+                                                    size_label: sanitizeSingleLineInput(e.target.value, schemaExactLimits.productSizeLabel),
+                                                });
+                                                setSizeDropdownOpen(true);
+                                            }}
+                                            onFocus={() => setSizeDropdownOpen(true)}
                                             placeholder="e.g., M, L, One Size"
-                                            className="flex-1 min-w-0 rounded-l-md px-3 text-sm text-gray-900 bg-transparent placeholder:text-gray-400 outline-none cursor-pointer"
+                                            maxLength={schemaExactLimits.productSizeLabel}
+                                            className="flex-1 min-w-0 rounded-l-md px-3 text-sm text-gray-900 bg-transparent placeholder:text-gray-400 outline-none"
                                         />
                                         <button
                                             type="button"
@@ -623,7 +635,7 @@ export default function AddProduct({ isOpen, onClose, categories, productToEdit,
                                     </div>
                                     {sizeDropdownOpen && (
                                         <div className="absolute z-20 w-full mt-1 bg-white border border-gray-200 rounded-md shadow-lg overflow-hidden">
-                                            {SIZE_OPTIONS.map((size) => (
+                                            {filteredSizeOptions.length > 0 ? filteredSizeOptions.map((size) => (
                                                 <button
                                                     key={size}
                                                     type="button"
@@ -636,7 +648,9 @@ export default function AddProduct({ isOpen, onClose, categories, productToEdit,
                                                 >
                                                     {size}
                                                 </button>
-                                            ))}
+                                            )) : (
+                                                <p className="px-3 py-2 text-sm text-gray-500">No matching presets</p>
+                                            )}
                                         </div>
                                     )}
                                 </div>
