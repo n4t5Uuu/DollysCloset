@@ -200,6 +200,11 @@ export default function AddProduct({ isOpen, onClose, categories, productToEdit,
         if (!normalizedInput) return SIZE_OPTIONS;
         return SIZE_OPTIONS.filter((size) => size.toLowerCase().includes(normalizedInput));
     }, [formData.size_label]);
+    const filteredConditionOptions = useMemo(() => {
+        const normalizedInput = formData.product_condition.trim().toLowerCase();
+        if (!normalizedInput) return CONDITION_OPTIONS;
+        return CONDITION_OPTIONS.filter((condition) => condition.toLowerCase().includes(normalizedInput));
+    }, [formData.product_condition]);
     const formStatusMessage = missingRequiredFields.length > 0
         ? `Add ${missingRequiredFields.join(", ")} to continue.`
         : hasInvalidPrice
@@ -665,10 +670,17 @@ export default function AddProduct({ isOpen, onClose, categories, productToEdit,
                                     <div className="flex h-9 w-full rounded-md bg-white" style={{ border: '1px solid #101722' }}>
                                         <input
                                             value={formData.product_condition}
-                                            readOnly
-                                            onClick={() => setConditionDropdownOpen((prev) => !prev)}
+                                            onChange={(e) => {
+                                                setFormData({
+                                                    ...formData,
+                                                    product_condition: sanitizeSingleLineInput(e.target.value, schemaExactLimits.productCondition),
+                                                });
+                                                setConditionDropdownOpen(true);
+                                            }}
+                                            onFocus={() => setConditionDropdownOpen(true)}
                                             placeholder="e.g., New, Good, Used"
-                                            className="flex-1 min-w-0 rounded-l-md px-3 text-sm text-gray-900 bg-transparent placeholder:text-gray-400 outline-none cursor-pointer"
+                                            maxLength={schemaExactLimits.productCondition}
+                                            className="flex-1 min-w-0 rounded-l-md px-3 text-sm text-gray-900 bg-transparent placeholder:text-gray-400 outline-none"
                                         />
                                         <button
                                             type="button"
@@ -681,7 +693,7 @@ export default function AddProduct({ isOpen, onClose, categories, productToEdit,
                                     </div>
                                     {conditionDropdownOpen && (
                                         <div className="absolute z-20 w-full mt-1 bg-white border border-gray-200 rounded-md shadow-lg overflow-hidden">
-                                            {CONDITION_OPTIONS.map((cond) => (
+                                            {filteredConditionOptions.length > 0 ? filteredConditionOptions.map((cond) => (
                                                 <button
                                                     key={cond}
                                                     type="button"
@@ -694,7 +706,9 @@ export default function AddProduct({ isOpen, onClose, categories, productToEdit,
                                                 >
                                                     {cond}
                                                 </button>
-                                            ))}
+                                            )) : (
+                                                <p className="px-3 py-2 text-sm text-gray-500">No matching presets</p>
+                                            )}
                                         </div>
                                     )}
                                 </div>
