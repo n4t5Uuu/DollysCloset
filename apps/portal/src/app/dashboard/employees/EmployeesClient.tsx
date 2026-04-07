@@ -100,10 +100,19 @@ export default function EmployeesClient() {
     () =>
       employees.filter((emp) => {
         const query = searchTerm.toLowerCase();
+        const userId = (emp.user_id ?? "").toLowerCase();
         const username = (emp.username ?? "").toLowerCase();
         const firstName = (emp.first_name ?? "").toLowerCase();
         const lastName = (emp.last_name ?? "").toLowerCase();
-        return username.includes(query) || firstName.includes(query) || lastName.includes(query);
+        const fullName = `${firstName} ${lastName}`.trim();
+
+        return (
+          userId.includes(query) ||
+          username.includes(query) ||
+          firstName.includes(query) ||
+          lastName.includes(query) ||
+          fullName.includes(query)
+        );
       }),
     [employees, searchTerm]
   );
@@ -398,8 +407,8 @@ export default function EmployeesClient() {
               ref={searchInputRef}
               value={searchTerm}
               onChange={setSearchTerm}
-              placeholder="Search by name or email..."
-              ariaLabel="Search employees by name or email"
+              placeholder="Search by user ID, username, and full name"
+              ariaLabel="Search employees by user ID, username, and full name"
               className="min-w-[240px]"
               clearLabel="Clear employee search"
             />

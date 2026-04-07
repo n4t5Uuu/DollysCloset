@@ -114,7 +114,6 @@ const employeeManagementActions = new Set([
 
 const actionTypeGroups: Record<string, { label: string; actions: string[] }> = {
   products:   { label: "Products",   actions: ["create_product", "edit_product", "delete_product"] },
-  categories: { label: "Categories", actions: ["create_category", "edit_category", "delete_category"] },
   employees:  { label: "Employees",  actions: ["create_employee", "edit_employee", "delete_employee"] },
   images:     { label: "Images",     actions: ["upload_image", "set_primary_image", "delete_image", "reorder_images"] },
   content:    { label: "Content",    actions: ["edit_contact_details", "edit_about_details", "edit_announcement"] },
