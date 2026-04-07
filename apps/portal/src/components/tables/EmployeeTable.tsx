@@ -211,7 +211,8 @@ export function EmployeeTable({
                         <button
                           type="button"
                           onClick={() => openViewModal(employee)}
-                          className="font-medium text-left text-gray-900 transition-colors hover:text-[#b96d7d] break-words [overflow-wrap:anywhere] block max-w-[120px] md:max-w-[200px]"
+                          className="font-medium text-left text-gray-900 transition-colors hover:text-[#b96d7d] block max-w-[120px] md:max-w-[200px] lg:max-w-[250px] truncate"
+                          title={employee.username}
                         >
                           {employee.username}
                         </button>
@@ -220,7 +221,8 @@ export function EmployeeTable({
                         <button
                           type="button"
                           onClick={() => onRowActivate?.(employee)}
-                          className="text-left transition-colors hover:text-[#b96d7d] break-words [overflow-wrap:anywhere] block max-w-[100px] md:max-w-[150px]"
+                          className="text-left transition-colors hover:text-[#b96d7d] block max-w-[80px] md:max-w-[120px] lg:max-w-[150px] truncate"
+                          title={employee.first_name}
                         >
                           {employee.first_name}
                         </button>
@@ -229,7 +231,8 @@ export function EmployeeTable({
                         <button
                           type="button"
                           onClick={() => onRowActivate?.(employee)}
-                          className="text-left transition-colors hover:text-[#b96d7d] break-words [overflow-wrap:anywhere] block max-w-[100px] md:max-w-[150px]"
+                          className="text-left transition-colors hover:text-[#b96d7d] block max-w-[80px] md:max-w-[120px] lg:max-w-[150px] truncate"
+                          title={employee.last_name}
                         >
                           {employee.last_name}
                         </button>
