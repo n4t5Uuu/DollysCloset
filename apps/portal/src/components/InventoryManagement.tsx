@@ -611,7 +611,7 @@ export default function InventoryManagement({ initialAvailabilityFilter }: Inven
           ref={searchInputRef}
           value={searchQuery}
           onChange={setSearchQuery}
-          placeholder="Search products..."
+          placeholder="search products or product id"
           ariaLabel="Search inventory products"
           className="min-w-[240px]"
           clearLabel="Clear inventory search"

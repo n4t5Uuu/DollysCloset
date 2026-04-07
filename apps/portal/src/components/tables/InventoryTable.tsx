@@ -197,7 +197,7 @@ export function InventoryTable({
                                     onCheckedChange={toggleSelectAll}
                                 />
                             </TableHead>
-                            <TableHead className="p-4 text-left font-bold w-[110px]">Product ID</TableHead>
+                            <TableHead className="p-4 text-left font-bold w-[110px]">ID</TableHead>
                             <TableHead className="p-4 text-left font-bold">Product Name</TableHead>
                             <TableHead className="p-4 text-left font-bold">Category</TableHead>
                             <TableHead className="p-4 text-center font-bold">Stock</TableHead>

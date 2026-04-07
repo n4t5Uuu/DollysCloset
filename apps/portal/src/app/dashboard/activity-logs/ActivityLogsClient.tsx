@@ -506,7 +506,7 @@ export default function ActivityLogsClient() {
             onChange={setSearchQuery}
             onDebouncedChange={setDebouncedSearch}
             debounceMs={400}
-            placeholder="Search by log ID, product ID, user UUID or key, action, description, or editor..."
+            placeholder="Search by log ID, Linked ID, user key, editor"
             ariaLabel="Search activity logs"
             className="min-w-[240px]"
             clearLabel="Clear activity log search"
@@ -665,13 +665,13 @@ export default function ActivityLogsClient() {
         </div>
       ) : (
         <div className="bg-white rounded-lg border overflow-x-auto">
-          <Table className="w-full">
+          <Table className="w-full table-fixed">
             <TableHeader className="border-b bg-gray-50">
               <TableRow>
                 <TableHead className="p-4 font-bold w-[110px]">Log ID</TableHead>
                 <TableHead className="p-4 font-bold">Date & Time</TableHead>
                 <TableHead className="p-4 font-bold">Action</TableHead>
-                <TableHead className="p-4 font-bold">Linked ID</TableHead>
+                <TableHead className="p-4 font-bold text-center w-[140px]">Linked ID</TableHead>
                 <TableHead className="p-4 font-bold">User</TableHead>
                 <TableHead className="p-4 font-bold w-[30%]">Description</TableHead>
                 <TableHead className="p-4 font-bold">Editor</TableHead>
@@ -699,7 +699,7 @@ export default function ActivityLogsClient() {
                         </span>
                       </div>
                     </TableCell>
-                    <TableCell className="p-4 text-sm text-gray-900">
+                    <TableCell className="p-4 text-sm text-gray-900 align-middle">
                       <div className="flex flex-col items-center gap-0.5 text-center leading-tight">
                         <span className="line-clamp-2 break-all font-medium text-gray-900">
                           {log.product_id ?? log.business_details ?? "-"}
