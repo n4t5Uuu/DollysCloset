@@ -1,8 +1,7 @@
 import { useEffect } from "react";
 /* eslint-disable @next/next/no-img-element */
 import { InventoryProduct as Product, InventoryProductImage as ProductImage } from "@dollys-closet/core";
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@dollys-closet/ui";
-import { Button } from "@dollys-closet/ui";
+import { Card, CardContent, CardHeader, CardTitle } from "@dollys-closet/ui";
 import { X } from "lucide-react";
 
 interface ViewProductDialogProps {
@@ -151,9 +150,6 @@ export default function ViewProductDialog({
             <p className="text-sm text-gray-700 whitespace-pre-wrap break-words">{product.product_description || "No description"}</p>
           </div>
         </CardContent>
-        <CardFooter className="border-t flex justify-end gap-3 p-6 bg-gray-50">
-          <Button variant="outline" onClick={onClose}>Close</Button>
-        </CardFooter>
       </Card>
     </div>
   );
