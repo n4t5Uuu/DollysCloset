@@ -124,11 +124,19 @@ export const activityHelper = {
                     orClauses.push(`user_id.eq.${safeSearch}`);
                 }
 
-                const { data: matchingUsers, error: matchingUsersError } = await supabase
+                let matchingUsersQuery = supabase
                     .from("tbl_users")
-                    .select("user_id")
-                    .ilike("user_key", `%${safeSearch}%`)
-                    .limit(25);
+                    .select("user_id");
+
+                if (/^\d+$/.test(safeSearch)) {
+                    // user_key is an integer column — use strict .eq() with a parsed number.
+                    // Mixing .ilike() on an integer column causes a PostgREST type error.
+                    matchingUsersQuery = matchingUsersQuery.eq("user_key", parseInt(safeSearch, 10));
+                } else {
+                    matchingUsersQuery = matchingUsersQuery.ilike("user_key", `%${safeSearch}%`);
+                }
+
+                const { data: matchingUsers, error: matchingUsersError } = await matchingUsersQuery.limit(25);
 
                 if (matchingUsersError) {
                     console.error("Error fetching matching user keys:", matchingUsersError);
