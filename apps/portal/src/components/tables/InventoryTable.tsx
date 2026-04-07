@@ -197,6 +197,7 @@ export function InventoryTable({
                                     onCheckedChange={toggleSelectAll}
                                 />
                             </TableHead>
+                            <TableHead className="p-4 text-left font-bold w-[110px]">Product ID</TableHead>
                             <TableHead className="p-4 text-left font-bold">Product Name</TableHead>
                             <TableHead className="p-4 text-left font-bold">Category</TableHead>
                             <TableHead className="p-4 text-center font-bold">Stock</TableHead>
@@ -219,6 +220,9 @@ export function InventoryTable({
                                             checked={selectedProducts.has(product.product_id)}
                                             onCheckedChange={() => toggleSelectProduct(product.product_id)}
                                         />
+                                    </TableCell>
+                                    <TableCell className="p-4 text-sm font-medium text-gray-900">
+                                        <div className="break-all">{product.product_id}</div>
                                     </TableCell>
                                     <TableCell className="p-4">
                                         <button
@@ -279,7 +283,7 @@ export function InventoryTable({
                             ))
                         ) : (
                             <TableRow>
-                                <TableCell colSpan={7} className="p-0 border-none">
+                                <TableCell colSpan={8} className="p-0 border-none">
                                     {emptyState}
                                 </TableCell>
                             </TableRow>

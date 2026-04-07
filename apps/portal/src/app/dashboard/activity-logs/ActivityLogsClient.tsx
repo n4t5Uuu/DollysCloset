@@ -56,6 +56,12 @@ type ActionNotice = {
   message: string;
 };
 
+function getLinkedEntityLabel(log: ActivityLog) {
+  if (log.product_id !== null && log.product_id !== undefined) return "Product";
+  if (log.business_details !== null && log.business_details !== undefined) return "Business Details";
+  return "";
+}
+
 const actionLabels: Record<string, string> = {
   create_product: "Created Product",
   edit_product: "Edited Product",
@@ -662,6 +668,7 @@ export default function ActivityLogsClient() {
           <Table className="w-full">
             <TableHeader className="border-b bg-gray-50">
               <TableRow>
+                <TableHead className="p-4 font-bold w-[110px]">Log ID</TableHead>
                 <TableHead className="p-4 font-bold">Date & Time</TableHead>
                 <TableHead className="p-4 font-bold">Action</TableHead>
                 <TableHead className="p-4 font-bold">Linked ID</TableHead>
@@ -679,6 +686,9 @@ export default function ActivityLogsClient() {
                     className="border-b hover:bg-gray-50"
                     onDoubleClick={() => setViewLog(log)}
                   >
+                    <TableCell className="p-4 text-sm font-medium text-gray-900">
+                      <div className="line-clamp-2 break-all">{log.log_id}</div>
+                    </TableCell>
                     <TableCell className="p-4 text-sm text-gray-700">
                       <div className="line-clamp-2 break-words [overflow-wrap:anywhere]">{new Date(log.created_at).toLocaleString()}</div>
                     </TableCell>
@@ -690,7 +700,16 @@ export default function ActivityLogsClient() {
                       </div>
                     </TableCell>
                     <TableCell className="p-4 text-sm text-gray-900">
-                      <div className="line-clamp-2 break-all">{log.product_id ?? log.business_details ?? "-"}</div>
+                      <div className="flex flex-col items-center gap-0.5 text-center leading-tight">
+                        <span className="line-clamp-2 break-all font-medium text-gray-900">
+                          {log.product_id ?? log.business_details ?? "-"}
+                        </span>
+                        {(log.product_id !== null || log.business_details !== null) && (
+                          <span className="text-[11px] uppercase tracking-wide text-gray-500">
+                            {getLinkedEntityLabel(log)}
+                          </span>
+                        )}
+                      </div>
                     </TableCell>
                     <TableCell className="p-4 text-sm text-gray-900">
                       <div className="line-clamp-2 break-all">
@@ -723,7 +742,7 @@ export default function ActivityLogsClient() {
                 ))
               ) : (
                 <TableRow>
-                  <TableCell colSpan={7} className="p-0 border-none">
+                  <TableCell colSpan={8} className="p-0 border-none">
                     <Empty className="border-none rounded-none py-12">
                       <EmptyHeader>
                         <EmptyMedia variant="icon">
@@ -794,7 +813,14 @@ export default function ActivityLogsClient() {
                 </div>
                 <div className="bg-gray-50 rounded-xl p-4">
                   <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Linked ID</p>
-                  <p className="text-sm font-semibold text-gray-900">{viewLog.product_id ?? viewLog.business_details ?? "-"}</p>
+                  <div className="flex flex-col items-center gap-0.5 text-center leading-tight">
+                    <p className="text-sm font-semibold text-gray-900">{viewLog.product_id ?? viewLog.business_details ?? "-"}</p>
+                    {(viewLog.product_id !== null || viewLog.business_details !== null) && (
+                      <p className="text-[11px] uppercase tracking-wide text-gray-500">
+                        {getLinkedEntityLabel(viewLog)}
+                      </p>
+                    )}
+                  </div>
                 </div>
                 <div className="bg-gray-50 rounded-xl p-4">
                   <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">User</p>
