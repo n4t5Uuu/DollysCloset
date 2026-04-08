@@ -1,8 +1,25 @@
 "use client";
 
 import { useState } from "react";
-import { Upload, X, Loader2 } from "lucide-react";
+import { Upload, X, Loader2, GripVertical } from "lucide-react";
 import { compressImage } from "@dollys-closet/core";
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  rectSortingStrategy,
+  useSortable,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -17,6 +34,79 @@ interface ImageSelectorProps {
   stagedFiles: File[];
   onFilesAdd: (files: File[]) => void;
   onFileRemove: (index: number) => void;
+  onReorder: (files: File[]) => void;
+}
+
+function SortableStagedImageItem({
+  file,
+  index,
+  onRemove,
+}: {
+  file: File;
+  index: number;
+  onRemove: (index: number) => void;
+}) {
+  const fileId = `${file.name}-${file.size}-${file.lastModified}`;
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: fileId });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    zIndex: isDragging ? 50 : undefined,
+    opacity: isDragging ? 0.7 : 1,
+  };
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      className={`relative group border border-black rounded-lg overflow-hidden bg-gray-100 ${
+        isDragging ? "ring-2 ring-pink-400 shadow-lg" : ""
+      }`}
+    >
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src={URL.createObjectURL(file)}
+        alt={`Staged image ${index + 1}`}
+        className="w-full h-32 object-cover"
+      />
+
+      <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition" />
+
+      {/* Drag Handle */}
+      <button
+        type="button"
+        {...attributes}
+        {...listeners}
+        title="Drag to reorder"
+        className="absolute bottom-2 left-2 p-1.5 bg-white/90 hover:bg-white text-gray-600 rounded shadow-sm cursor-grab active:cursor-grabbing opacity-0 group-hover:opacity-100 transition-opacity"
+      >
+        <GripVertical className="w-4 h-4" />
+      </button>
+
+      <div className="absolute top-2 right-2 flex items-center justify-center">
+        <button
+          type="button"
+          onClick={() => onRemove(index)}
+          className="p-2 bg-red-500 hover:bg-red-600 text-white rounded cursor-pointer opacity-90 group-hover:opacity-100 shadow-sm transition-opacity"
+          title="Remove image"
+        >
+          <X className="w-4 h-4" />
+        </button>
+      </div>
+
+      <div className="absolute bottom-2 right-2 bg-gray-800 text-white px-2 py-1 rounded text-xs font-semibold">
+        #{index + 1}
+      </div>
+    </div>
+  );
 }
 
 const ALLOWED_IMAGE_TYPES = new Set([
@@ -36,9 +126,31 @@ export default function ImageSelector({
   stagedFiles,
   onFilesAdd,
   onFileRemove,
+  onReorder,
 }: ImageSelectorProps) {
   const [isCompressing, setIsCompressing] = useState(false);
   const [statusMessage, setStatusMessage] = useState<{ tone: "success" | "warning"; text: string } | null>(null);
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
+  );
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+
+    const oldIndex = stagedFiles.findIndex(
+      (file) => `${file.name}-${file.size}-${file.lastModified}` === active.id
+    );
+    const newIndex = stagedFiles.findIndex(
+      (file) => `${file.name}-${file.size}-${file.lastModified}` === over.id
+    );
+
+    if (oldIndex !== -1 && newIndex !== -1) {
+      onReorder(arrayMove(stagedFiles, oldIndex, newIndex));
+    }
+  };
   const [alertConfig, setAlertConfig] = useState<{
     isOpen: boolean;
     title: string;
@@ -235,36 +347,27 @@ export default function ImageSelector({
       )}
 
       {stagedFiles.length > 0 && (
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 overflow-hidden">
-          {stagedFiles.map((file, index) => (
-            <div
-              key={`${file.name}-${index}`}
-              className="relative group border border-black rounded-lg overflow-hidden bg-gray-100"
-            >
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={URL.createObjectURL(file)}
-                alt={`Staged image ${index + 1}`}
-                className="w-full h-32 object-cover"
-              />
-
-              <div className="absolute inset-0 bg-black/0 group-hover:bg-black/50 transition flex items-center justify-center">
-                <button
-                  type="button"
-                  onClick={() => onFileRemove(index)}
-                  className="hidden group-hover:flex p-2 bg-red-500 hover:bg-red-600 text-white rounded cursor-pointer"
-                  title="Remove image"
-                >
-                  <X className="w-4 h-4" />
-                </button>
-              </div>
-
-              <div className="absolute bottom-2 right-2 bg-gray-800 text-white px-2 py-1 rounded text-xs font-semibold">
-                #{index + 1}
-              </div>
+        <DndContext
+          sensors={sensors}
+          collisionDetection={closestCenter}
+          onDragEnd={handleDragEnd}
+        >
+          <SortableContext
+            items={stagedFiles.map((file) => `${file.name}-${file.size}-${file.lastModified}`)}
+            strategy={rectSortingStrategy}
+          >
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 overflow-hidden">
+              {stagedFiles.map((file, index) => (
+                <SortableStagedImageItem
+                  key={`${file.name}-${file.size}-${file.lastModified}`}
+                  file={file}
+                  index={index}
+                  onRemove={onFileRemove}
+                />
+              ))}
             </div>
-          ))}
-        </div>
+          </SortableContext>
+        </DndContext>
       )}
 
       {stagedFiles.length === 0 && (

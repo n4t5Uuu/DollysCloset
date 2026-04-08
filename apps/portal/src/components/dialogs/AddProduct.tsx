@@ -722,6 +722,7 @@ export default function AddProduct({ isOpen, onClose, categories, productToEdit,
                                     stagedFiles={stagedFiles}
                                     onFilesAdd={addStagedFiles}
                                     onFileRemove={removeStagedFile}
+                                    onReorder={setStagedFiles}
                                 />
                                 <p className="text-xs text-gray-500">
                                     You can add up to 5 images. The first uploaded image becomes the primary one.
