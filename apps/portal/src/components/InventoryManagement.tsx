@@ -460,6 +460,7 @@ export default function InventoryManagement({ initialAvailabilityFilter }: Inven
       }
     } catch (err) {
       console.error("Error fetching view images:", err);
+      toast.error("Failed to load product images.");
       setViewImages([]);
       setSelectedViewImage(null);
     }

@@ -1,3 +1,4 @@
+import DOMPurify from "isomorphic-dompurify";
 import type {
   AboutDetailsPayload,
   AboutFieldKey,
@@ -202,6 +203,28 @@ export function sanitizeMultilineText(value: unknown, maxLength = 4000) {
     .trim();
 
   return text.slice(0, maxLength);
+}
+
+/**
+ * Sanitizes HTML content for safe rendering via dangerouslySetInnerHTML.
+ * Removes scripts, dangerous attributes (onmessage, etc), and potentially harmful tags.
+ * Allows basic formatting tags (p, b, i, em, strong, br, ul, ol, li).
+ * 
+ * @param html String containing potential HTML to be sanitized.
+ * @returns A safe, sanitized HTML string.
+ */
+export function sanitizeHtml(html: string): string {
+  if (!html) return "";
+  
+  return DOMPurify.sanitize(html, {
+    ALLOWED_TAGS: [
+      "p", "br", "b", "i", "em", "strong", "span", "div",
+      "ul", "ol", "li", "a", "h1", "h2", "h3", "h4", "h5", "h6",
+      "table", "thead", "tbody", "tr", "th", "td", "blockquote", "code", "pre"
+    ],
+    ALLOWED_ATTR: ["href", "target", "rel", "class", "style"],
+    USE_PROFILES: { html: true },
+  });
 }
 
 export function sanitizeEmailInput(value: unknown) {

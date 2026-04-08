@@ -249,7 +249,8 @@ export function CollectionsView() {
                 if (typeof rawAnnouncement === "string" && rawAnnouncement.trim()) {
                     setAnnouncementText(rawAnnouncement.trim());
                 }
-            } catch {
+            } catch (err) {
+                console.error("Failed to fetch announcement:", err);
             }
         };
 

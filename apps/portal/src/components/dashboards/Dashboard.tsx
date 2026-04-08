@@ -32,6 +32,8 @@ const actionLabels: Record<string, string> = {
 
 const lowStockThreshold = 10;
 
+import { toast } from "sonner";
+
 function formatDateTime(value: string) {
     const dateValue = new Date(value);
     if (Number.isNaN(dateValue.getTime())) return "Unknown";
@@ -134,8 +136,12 @@ export default function Dashboard({ role }: DashboardProps) {
             const categoriesJson = await categoriesRes.json();
             setCategories(categoriesJson.data ?? []);
             setEditingProduct(product);
-        } catch { /* silently fail */ }
-        finally { setLoadingProductId(null); }
+        } catch (err: unknown) {
+            console.error("Error preparing product for edit:", err);
+            toast.error(err instanceof Error ? err.message : "Failed to load product details. Please try again.");
+        } finally {
+            setLoadingProductId(null);
+        }
     }, [products]);
 
     useEffect(() => {

@@ -24,7 +24,8 @@ import {
   resolveProductPlaceholder,
   cn,
   getContactDetails,
-  createClient
+  createClient,
+  sanitizeHtml
 } from "@dollys-closet/core";
 import { type CatalogApiProduct, type Product, type ContactDetailsPayload } from "@dollys-closet/core";
 
@@ -178,7 +179,8 @@ export function ProductDetailsView({
         if (typeof rawAnnouncement === "string" && rawAnnouncement.trim()) {
           setAnnouncementText(rawAnnouncement.trim());
         }
-      } catch {
+      } catch (err) {
+        console.error("Failed to fetch announcement:", err);
       }
     };
 
@@ -524,7 +526,7 @@ export function ProductDetailsView({
                     <span className="text-xs font-bold uppercase tracking-widest text-gray-400">Description</span>
                     <div
                       className="text-lg leading-relaxed text-gray-600 break-words overflow-hidden"
-                      dangerouslySetInnerHTML={{ __html: product.description }}
+                      dangerouslySetInnerHTML={{ __html: sanitizeHtml(product.description) }}
                     />
                   </div>
                 </div>
