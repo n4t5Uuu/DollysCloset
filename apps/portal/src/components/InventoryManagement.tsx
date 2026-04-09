@@ -47,6 +47,7 @@ const availabilityLabels: Record<string, string> = {
   "low-stock": "Low stock",
   "out-of-stock": "Out of stock",
   "stock-alerts": "Stock alerts",
+  "discounted": "Discounted",
   "no-image": "No image",
 };
 
@@ -99,6 +100,9 @@ export default function InventoryManagement({ initialAvailabilityFilter }: Inven
   const [viewProduct, setViewProduct] = useState<Product | null>(null);
   const [viewImages, setViewImages] = useState<ProductImage[]>([]);
   const [selectedViewImage, setSelectedViewImage] = useState<string | null>(null);
+  const [batchDiscountPercent, setBatchDiscountPercent] = useState("10");
+  const [batchDiscountEndDate, setBatchDiscountEndDate] = useState("");
+  const [showBatchSaleModal, setShowBatchSaleModal] = useState(false);
 
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [showBulkImport, setShowBulkImport] = useState(false);
@@ -189,6 +193,12 @@ export default function InventoryManagement({ initialAvailabilityFilter }: Inven
     router.replace(pathname);
   }, [searchQuery, visibilityFilter, availabilityFilter, categoryFilter, dateSort, router, pathname]);
 
+  useEffect(() => {
+    if (selectedProducts.size === 0) {
+      setShowBatchSaleModal(false);
+    }
+  }, [selectedProducts.size]);
+
   const categoryById = useMemo(
     () => new Map(categories.map((category) => [Number(category.category_id), category])),
     [categories]
@@ -261,6 +271,7 @@ export default function InventoryManagement({ initialAvailabilityFilter }: Inven
         const normalizedQuery = searchQuery.trim().toLowerCase();
         const categoryPath = buildCategoryPath(product.category_id).toLowerCase();
         const matchesSearch = normalizedQuery === ""
+          || product.product_id.toString().includes(normalizedQuery)
           || product.product_name.toLowerCase().includes(normalizedQuery)
           || product.product_brand.toLowerCase().includes(normalizedQuery)
           || (product.product_description || "").toLowerCase().includes(normalizedQuery)
@@ -271,6 +282,7 @@ export default function InventoryManagement({ initialAvailabilityFilter }: Inven
           (availabilityFilter === "low-stock" && product.product_stock > 0 && product.product_stock < lowStockThreshold) ||
           (availabilityFilter === "out-of-stock" && product.product_stock === 0) ||
           (availabilityFilter === "stock-alerts" && product.product_stock < lowStockThreshold) ||
+          (availabilityFilter === "discounted" && Number(product.discount_percent || 0) > 0 && (!product.discount_expires_at || new Date(product.discount_expires_at).getTime() > Date.now())) ||
           (availabilityFilter === "no-image" && !product.image_id);
         const matchesVisibility = visibilityFilter === "all" ||
           (visibilityFilter === "published" && product.show_in_catalog) ||
@@ -535,6 +547,67 @@ export default function InventoryManagement({ initialAvailabilityFilter }: Inven
     }
   };
 
+  const handleBulkDiscount = async (discountPercent: number, expiresAt?: string) => {
+    if (selectedProducts.size === 0) {
+      setError("No products selected");
+      return false;
+    }
+
+    if (!Number.isInteger(discountPercent) || discountPercent < 1 || discountPercent > 100) {
+      setError("Discount must be a whole number between 1 and 100.");
+      return false;
+    }
+
+    if (!expiresAt) {
+      setError("Please set an end date/time for the sale.");
+      return false;
+    }
+
+    setActionLoading(true);
+    setError(null);
+    setActionNotice(null);
+    try {
+      const supabase = createClient();
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error('Not authenticated');
+
+      const response = await fetch('/api/admin/products/bulk-discount', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`
+        },
+        body: JSON.stringify({
+          product_ids: Array.from(selectedProducts),
+          discount_percent: discountPercent,
+          ...(expiresAt && { discount_expires_at: expiresAt }),
+        })
+      });
+
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || 'Failed to apply bulk discount');
+
+      const refreshed = await fetchProducts(false);
+      const discountLabel = discountPercent === 0 ? "removed" : `set to ${discountPercent}%`;
+
+      setActionNotice({
+        tone: refreshed ? "success" : "warning",
+        message: refreshed
+          ? `Discount ${discountLabel} for ${selectedProducts.size} selected product(s).`
+          : "Discount updated, but the inventory list did not refresh immediately.",
+      });
+      toast.success(`Applied ${discountPercent}% discount to selected products.`);
+      return true;
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to apply bulk discount';
+      setError(errorMessage);
+      toast.error(errorMessage);
+      return false;
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -665,6 +738,7 @@ export default function InventoryManagement({ initialAvailabilityFilter }: Inven
                     ["low-stock", "Low Stock"],
                     ["out-of-stock", "Out of Stock"],
                     ["stock-alerts", "Stock Alerts"],
+                    ["discounted", "Discounted"],
                     ["no-image", "No Image"],
                   ].map(([v, l]) => (
                     <button
@@ -772,6 +846,16 @@ export default function InventoryManagement({ initialAvailabilityFilter }: Inven
             </div>
           )}
           {selectedProducts.size > 0 && (
+            <Button
+              type="button"
+              className="bg-[#ff6a7f] hover:bg-[#f0546b] text-white"
+              disabled={actionLoading}
+              onClick={() => setShowBatchSaleModal(true)}
+            >
+              Add Sale
+            </Button>
+          )}
+          {selectedProducts.size > 0 && (
             <AlertDialog>
               <AlertDialogTrigger asChild>
                 <Button
@@ -825,6 +909,69 @@ export default function InventoryManagement({ initialAvailabilityFilter }: Inven
           emptyTitle={inventoryEmptyTitle}
           emptyDescription={inventoryEmptyDescription}
         />
+      )}
+
+      {showBatchSaleModal && selectedProducts.size > 0 && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={() => !actionLoading && setShowBatchSaleModal(false)}>
+          <div className="w-full max-w-md rounded-xl border border-[#f0d3da] bg-white p-5 shadow-xl" onClick={(event) => event.stopPropagation()}>
+            <h3 className="text-lg font-semibold text-[#121212]">Add Sale</h3>
+            <p className="mt-1 text-sm text-gray-600">Apply a discount and set when the sale ends for {selectedProducts.size} selected product(s).</p>
+
+            <div className="mt-4 space-y-3">
+              <div>
+                <label className="mb-1 block text-xs font-semibold uppercase tracking-[0.16em] text-[#8f5f69]">Discount (%)</label>
+                <input
+                  type="number"
+                  min={1}
+                  max={100}
+                  step={1}
+                  value={batchDiscountPercent}
+                  onChange={(event) => setBatchDiscountPercent(event.target.value)}
+                  className="h-9 w-full rounded-md border border-[#e8c5cd] px-3 text-sm text-gray-700"
+                  aria-label="Batch discount percent"
+                />
+              </div>
+
+              <div>
+                <label className="mb-1 block text-xs font-semibold uppercase tracking-[0.16em] text-[#8f5f69]">Til (sale ends)</label>
+                <input
+                  type="datetime-local"
+                  value={batchDiscountEndDate}
+                  onChange={(event) => setBatchDiscountEndDate(event.target.value)}
+                  className="h-9 w-full rounded-md border border-[#e8c5cd] px-3 text-sm text-gray-700"
+                  aria-label="Sale end date and time"
+                />
+              </div>
+            </div>
+
+            <div className="mt-5 flex justify-end gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                className="border-[#e8c5cd] text-[#9c5866]"
+                disabled={actionLoading}
+                onClick={() => setShowBatchSaleModal(false)}
+              >
+                Cancel
+              </Button>
+              <Button
+                type="button"
+                className="bg-[#ff6a7f] hover:bg-[#f0546b] text-white"
+                disabled={actionLoading}
+                onClick={async () => {
+                  const parsed = Number.parseInt(batchDiscountPercent, 10);
+                  const expiresAt = batchDiscountEndDate ? new Date(batchDiscountEndDate).toISOString() : undefined;
+                  const success = await handleBulkDiscount(parsed, expiresAt);
+                  if (success) {
+                    setShowBatchSaleModal(false);
+                  }
+                }}
+              >
+                Add Sale
+              </Button>
+            </div>
+          </div>
+        </div>
       )}
 
       <div className="flex flex-col gap-4 mt-2">

@@ -36,6 +36,9 @@ function toViewProduct(product: CatalogApiProduct): Product {
         category: product.categoryPath,
         type: product.categoryName,
         price: product.price,
+        discountPercent: product.discountPercent,
+        discountedPrice: product.discountedPrice,
+        discountExpiresAt: product.discountExpiresAt,
         brand: product.brand,
         size: product.size,
         condition: product.condition,
@@ -387,6 +390,12 @@ export function CollectionsView() {
 
         if (activeFilter === "new") {
             list = list.filter((product) => product.isNewArrival);
+        } else if (activeFilter === "discounted") {
+            list = list.filter((product) => {
+                if (Number(product.discountPercent || 0) <= 0) return false;
+                if (!product.discountExpiresAt) return true;
+                return new Date(product.discountExpiresAt).getTime() > Date.now();
+            });
         } else if (activeFilter.startsWith("root-")) {
             const normalizedRootName = activeFilter.replace("root-", "");
             const rootCategoryIds = rootCategoryIdsByName.get(normalizedRootName) || [];
@@ -441,6 +450,10 @@ export function CollectionsView() {
     const featuredViewProducts = featuredProducts.map(toViewProduct);
     const isBrowsingFiltered = activeFilter !== "all" || searchQuery.trim() !== "" || sortBy !== "newest" || hasActivePriceFilter;
     const newArrivalCount = useMemo(() => products.filter((product) => product.isNewArrival).length, [products]);
+    const discountedCount = useMemo(
+        () => products.filter((product) => Number(product.discountPercent || 0) > 0 && (!product.discountExpiresAt || new Date(product.discountExpiresAt).getTime() > Date.now())).length,
+        [products]
+    );
 
     const categoryProductCounts = useMemo(() => {
         const counts: Record<number, number> = {};
@@ -478,6 +491,7 @@ export function CollectionsView() {
     const activeFilterLabel = useMemo(() => {
         if (activeFilter === "all") return null;
         if (activeFilter === "new") return "New Arrivals";
+        if (activeFilter === "discounted") return "On Sale";
 
         if (activeFilter.startsWith("root-")) {
             const rootKey = activeFilter.replace("root-", "");
@@ -527,7 +541,7 @@ export function CollectionsView() {
             ? { key: "search", label: `Search: "${searchQuery.trim()}"`, onRemove: clearSearch }
             : null,
         activeFilter !== "all" && activeFilterLabel
-            ? { key: "filter", label: activeFilter === "new" ? `Filter: ${activeFilterLabel}` : `Category: ${activeFilterLabel}`, onRemove: clearFilter }
+            ? { key: "filter", label: (activeFilter === "new" || activeFilter === "discounted") ? `Filter: ${activeFilterLabel}` : `Category: ${activeFilterLabel}`, onRemove: clearFilter }
             : null,
         sortBy !== "newest"
             ? { key: "sort", label: `Sort: ${activeSortLabel}`, onRemove: clearSort }
@@ -640,6 +654,7 @@ export function CollectionsView() {
                                                 sortBy={sortBy}
                                                 allCount={products.length}
                                                 newCount={newArrivalCount}
+                                                discountedCount={discountedCount}
                                                 categoryCounts={categoryProductCounts}
                                                 rootGroupCounts={rootGroupProductCounts}
                                                 minAvailablePrice={priceBounds.min}
@@ -721,6 +736,7 @@ export function CollectionsView() {
                                     sortBy={sortBy}
                                     allCount={products.length}
                                     newCount={newArrivalCount}
+                                    discountedCount={discountedCount}
                                     categoryCounts={categoryProductCounts}
                                     rootGroupCounts={rootGroupProductCounts}
                                     minAvailablePrice={priceBounds.min}

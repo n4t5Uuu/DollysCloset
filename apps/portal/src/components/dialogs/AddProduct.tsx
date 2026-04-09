@@ -74,6 +74,21 @@ const normalizeCategoryId = (value: unknown) => {
     return raw;
 };
 
+const toDateTimeLocalValue = (value: string | null | undefined) => {
+    if (!value) return "";
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return "";
+
+    const pad = (num: number) => String(num).padStart(2, "0");
+    const year = date.getFullYear();
+    const month = pad(date.getMonth() + 1);
+    const day = pad(date.getDate());
+    const hours = pad(date.getHours());
+    const minutes = pad(date.getMinutes());
+
+    return `${year}-${month}-${day}T${hours}:${minutes}`;
+};
+
 /**
  * AddProduct Modal Component
  * 
@@ -95,12 +110,15 @@ export default function AddProduct({ isOpen, onClose, categories, productToEdit,
     const sizeDropdownRef = useRef<HTMLDivElement>(null);
     const [conditionDropdownOpen, setConditionDropdownOpen] = useState(false);
     const conditionDropdownRef = useRef<HTMLDivElement>(null);
+    const [applyDiscount, setApplyDiscount] = useState(false);
 
     const [showDiscardConfirm, setShowDiscardConfirm] = useState(false);
     const [formData, setFormData] = useState({
         product_name: "",
         category_id: "",
         product_price: "",
+        discount_percent: "",
+        discount_expires_at: "",
         product_brand: "",
         product_description: "",
         product_stock: "1",
@@ -144,6 +162,8 @@ export default function AddProduct({ isOpen, onClose, categories, productToEdit,
                 formData.product_name !== productToEdit.product_name ||
                 formData.category_id !== normalizeCategoryId(productToEdit.category_id) ||
                 formData.product_price !== productToEdit.product_price.toString() ||
+                formData.discount_percent !== (productToEdit.discount_percent ? String(productToEdit.discount_percent) : "") ||
+                formData.discount_expires_at !== toDateTimeLocalValue(productToEdit.discount_expires_at) ||
                 formData.product_brand !== normalizeString(productToEdit.product_brand) ||
                 formData.product_description !== normalizeString(productToEdit.product_description) ||
                 formData.product_stock !== productToEdit.product_stock.toString() ||
@@ -157,6 +177,8 @@ export default function AddProduct({ isOpen, onClose, categories, productToEdit,
             formData.product_name !== "" ||
             formData.category_id !== "" ||
             formData.product_price !== "" ||
+            formData.discount_percent !== "" ||
+            formData.discount_expires_at !== "" ||
             formData.product_brand !== "" ||
             formData.product_description !== "" ||
             formData.product_stock !== "1" ||
@@ -178,8 +200,11 @@ export default function AddProduct({ isOpen, onClose, categories, productToEdit,
     const trimmedProductName = formData.product_name.trim();
     const trimmedCategoryId = formData.category_id.trim();
     const trimmedPrice = formData.product_price.trim();
+    const trimmedDiscount = formData.discount_percent.trim();
+    const trimmedDiscountExpiresAt = formData.discount_expires_at.trim();
     const trimmedStock = formData.product_stock.trim();
     const parsedPricePreview = trimmedPrice === "" ? null : Number.parseFloat(trimmedPrice);
+    const parsedDiscountPreview = trimmedDiscount === "" ? 0 : Number.parseInt(trimmedDiscount, 10);
     const parsedStockPreview = trimmedStock === "" ? 0 : Number.parseInt(trimmedStock, 10);
 
     const missingRequiredFields = useMemo(() => {
@@ -193,8 +218,14 @@ export default function AddProduct({ isOpen, onClose, categories, productToEdit,
     }, [trimmedCategoryId, trimmedPrice, trimmedProductName]);
 
     const hasInvalidPrice = trimmedPrice !== "" && (!Number.isFinite(parsedPricePreview) || (parsedPricePreview ?? 0) < 0);
+    const hasInvalidDiscount = applyDiscount && (trimmedDiscount === "" || !Number.isInteger(parsedDiscountPreview) || parsedDiscountPreview < 1 || parsedDiscountPreview > 100);
+    const hasInvalidDiscountEndsAt = applyDiscount && (
+        trimmedDiscountExpiresAt === "" ||
+        Number.isNaN(new Date(trimmedDiscountExpiresAt).getTime()) ||
+        new Date(trimmedDiscountExpiresAt).getTime() <= Date.now()
+    );
     const hasInvalidStock = trimmedStock !== "" && (!Number.isInteger(parsedStockPreview) || parsedStockPreview < 0);
-    const isSaveBlocked = actionLoading || missingRequiredFields.length > 0 || hasInvalidPrice || hasInvalidStock;
+    const isSaveBlocked = actionLoading || missingRequiredFields.length > 0 || hasInvalidPrice || hasInvalidDiscount || hasInvalidDiscountEndsAt || hasInvalidStock;
     const filteredSizeOptions = useMemo(() => {
         const normalizedInput = (formData.size_label || "").trim().toLowerCase();
         if (!normalizedInput) return SIZE_OPTIONS;
@@ -210,6 +241,10 @@ export default function AddProduct({ isOpen, onClose, categories, productToEdit,
         ? `Add ${missingRequiredFields.join(", ")} to continue.`
         : hasInvalidPrice
             ? "Enter a valid price of 0 or higher."
+            : hasInvalidDiscount
+                ? "Discount must be a whole number from 1 to 100."
+            : hasInvalidDiscountEndsAt
+                ? "Set a valid future date/time for when the sale ends."
             : hasInvalidStock
                 ? "Stock must be a whole number of 0 or higher."
                 : productToEdit
@@ -240,10 +275,14 @@ export default function AddProduct({ isOpen, onClose, categories, productToEdit,
         if (isOpen) {
             if (productToEdit) {
                 setError(null);
+                const hasExistingDiscount = Number(productToEdit.discount_percent || 0) > 0;
+                setApplyDiscount(hasExistingDiscount);
                 setFormData({
                     product_name: sanitizeSingleLineInput(productToEdit.product_name, schemaExactLimits.productName),
                     category_id: normalizeCategoryId(productToEdit.category_id),
                     product_price: productToEdit.product_price.toString(),
+                    discount_percent: productToEdit.discount_percent ? String(productToEdit.discount_percent) : "",
+                    discount_expires_at: toDateTimeLocalValue(productToEdit.discount_expires_at),
                     product_brand: sanitizeSingleLineInput(productToEdit.product_brand, schemaExactLimits.productBrand),
                     product_description: sanitizeMultilineInput(productToEdit.product_description, PRODUCT_DESCRIPTION_LIMIT),
                     product_stock: productToEdit.product_stock.toString(),
@@ -283,10 +322,13 @@ export default function AddProduct({ isOpen, onClose, categories, productToEdit,
     }, [productImages, productToEdit]);
 
     const resetForm = () => {
+        setApplyDiscount(false);
         setFormData({
             product_name: "",
             category_id: "",
             product_price: "",
+            discount_percent: "",
+            discount_expires_at: "",
             product_brand: "",
             product_description: "",
             product_stock: "1",
@@ -401,10 +443,24 @@ export default function AddProduct({ isOpen, onClose, categories, productToEdit,
             }
 
             const parsedPrice = Number.parseFloat(formData.product_price);
+            const parsedDiscount = applyDiscount
+                ? Number.parseInt(formData.discount_percent, 10)
+                : 0;
+            const parsedDiscountExpiresAt = applyDiscount && formData.discount_expires_at
+                ? new Date(formData.discount_expires_at)
+                : null;
             const parsedStock = Number.parseInt(formData.product_stock || "0", 10);
 
             if (Number.isNaN(parsedPrice) || parsedPrice < 0) {
                 throw new Error('Invalid price. Please enter a valid amount.');
+            }
+
+            if (applyDiscount && (Number.isNaN(parsedDiscount) || parsedDiscount < 1 || parsedDiscount > 100)) {
+                throw new Error('Invalid discount. Enter a whole number from 1 to 100.');
+            }
+
+            if (applyDiscount && (!parsedDiscountExpiresAt || Number.isNaN(parsedDiscountExpiresAt.getTime()) || parsedDiscountExpiresAt.getTime() <= Date.now())) {
+                throw new Error('Set a valid future date/time for when the sale ends.');
             }
 
             if (Number.isNaN(parsedStock) || parsedStock < 0) {
@@ -435,6 +491,8 @@ export default function AddProduct({ isOpen, onClose, categories, productToEdit,
                     product_name: normalizedProductName,
                     category_id: parsedCategoryId,
                     product_price: parsedPrice,
+                    discount_percent: parsedDiscount,
+                    discount_expires_at: parsedDiscountExpiresAt ? parsedDiscountExpiresAt.toISOString() : null,
                     product_brand: normalizedBrand,
                     product_description: normalizedDescription,
                     product_stock: parsedStock,
@@ -609,6 +667,75 @@ export default function AddProduct({ isOpen, onClose, categories, productToEdit,
                                     Use <span className="font-medium">0</span> for sold out items.
                                 </p>
                             </div>
+                        </div>
+
+                        <div className="rounded-lg border border-[#f0d3da] bg-[#fffafb] p-4">
+                            <div className="flex items-center gap-3">
+                                <Checkbox
+                                    id="apply-discount"
+                                    checked={applyDiscount}
+                                    onCheckedChange={(checked) => {
+                                        const enabled = checked === true;
+                                        setApplyDiscount(enabled);
+                                        if (!enabled) {
+                                            setFormData({
+                                                ...formData,
+                                                discount_percent: "",
+                                                discount_expires_at: "",
+                                            });
+                                        }
+                                    }}
+                                />
+                                <label htmlFor="apply-discount" className="text-sm font-medium text-gray-700">
+                                    Apply discount
+                                </label>
+                            </div>
+
+                            {applyDiscount && (
+                                <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-2">Discount (%)</label>
+                                        <Input
+                                            type="number"
+                                            min="1"
+                                            max="100"
+                                            step="1"
+                                            placeholder="1-100"
+                                            value={formData.discount_percent}
+                                            onChange={(e) => {
+                                                const val = e.target.value;
+                                                if (val === "") {
+                                                    setFormData({ ...formData, discount_percent: "" });
+                                                    return;
+                                                }
+
+                                                const numericVal = Number(val);
+                                                if (Number.isInteger(numericVal) && numericVal >= 1 && numericVal <= 100) {
+                                                    setFormData({ ...formData, discount_percent: val });
+                                                }
+                                            }}
+                                            onKeyDown={(e) => {
+                                                if (['-', '+', 'e', 'E', '.'].includes(e.key)) {
+                                                    e.preventDefault();
+                                                }
+                                            }}
+                                            aria-invalid={hasInvalidDiscount}
+                                            className="border-gray-300 text-gray-900 bg-white placeholder:text-gray-400"
+                                        />
+                                    </div>
+
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-2">Til (sale ends)</label>
+                                        <Input
+                                            type="datetime-local"
+                                            value={formData.discount_expires_at}
+                                            onChange={(e) => setFormData({ ...formData, discount_expires_at: e.target.value })}
+                                            aria-invalid={hasInvalidDiscountEndsAt}
+                                            className="border-gray-300 text-gray-900 bg-white"
+                                        />
+                                    </div>
+                                </div>
+                            )}
                         </div>
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

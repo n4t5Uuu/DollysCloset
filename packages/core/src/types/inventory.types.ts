@@ -6,11 +6,13 @@ export interface InventoryProduct {
     product_name: string;
     category_id: number;
     product_price: number;
+    discount_percent?: number;
     product_brand: string;
     product_description: string;
     product_stock: number;
     product_condition: string;
     size_label: string;
+    discount_expires_at?: string;
     show_in_catalog: boolean;
     image_id: string | null;
     created_at: string;

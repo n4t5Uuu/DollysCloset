@@ -59,6 +59,8 @@ export async function POST(request: NextRequest) {
       product_name,
       category_id,
       product_price,
+      discount_percent,
+      discount_expires_at,
       product_brand,
       product_description,
       product_stock,
@@ -72,9 +74,35 @@ export async function POST(request: NextRequest) {
     const normalizedDescription = sanitizeMultilineText(product_description, uiContentLimits.productDescription.maxLength);
     const normalizedCondition = sanitizeSingleLineText(product_condition || "New", schemaExactLimits.productCondition) || "New";
     const normalizedSizeLabel = sanitizeSingleLineText(size_label || "One Size", schemaExactLimits.productSizeLabel) || "One Size";
+    const parsedDiscountPercent = Math.round(Number(discount_percent ?? 0));
+    let normalizedDiscountExpiresAt: string | null = null;
+
+    if (discount_expires_at) {
+      const parsedDate = new Date(discount_expires_at);
+      if (Number.isNaN(parsedDate.getTime())) {
+        return NextResponse.json({ error: 'Invalid discount expiration date.' }, { status: 400 });
+      }
+      normalizedDiscountExpiresAt = parsedDate.toISOString();
+    }
 
     if (!normalizedProductName || !category_id || product_price === undefined) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
+    }
+
+    if (!Number.isFinite(parsedDiscountPercent) || parsedDiscountPercent < 0 || parsedDiscountPercent > 100) {
+      return NextResponse.json({ error: 'Discount must be between 0 and 100.' }, { status: 400 });
+    }
+
+    if (parsedDiscountPercent > 0 && !normalizedDiscountExpiresAt) {
+      return NextResponse.json({ error: 'Sale end date is required when discount is applied.' }, { status: 400 });
+    }
+
+    if (normalizedDiscountExpiresAt && new Date(normalizedDiscountExpiresAt).getTime() <= Date.now()) {
+      return NextResponse.json({ error: 'Sale end date must be in the future.' }, { status: 400 });
+    }
+
+    if (parsedDiscountPercent === 0) {
+      normalizedDiscountExpiresAt = null;
     }
 
     const parsedStock = parseInt(product_stock) || 0;
@@ -98,6 +126,8 @@ export async function POST(request: NextRequest) {
       product_name: normalizedProductName,
       category_id,
       product_price: parseFloat(product_price),
+      discount_percent: parsedDiscountPercent,
+      discount_expires_at: normalizedDiscountExpiresAt,
       product_brand: normalizedBrand,
       product_description: normalizedDescription,
       product_stock: parsedStock,
@@ -147,15 +177,41 @@ export async function PUT(request: NextRequest) {
     const { user } = authResult;
     const editor = user.email || user.user_metadata?.username || 'Unknown';
 
-    const { product_id, product_name, category_id, product_price, product_brand, product_description, product_stock, product_condition, size_label, show_in_catalog, image_id } = await request.json();
+    const { product_id, product_name, category_id, product_price, discount_percent, discount_expires_at, product_brand, product_description, product_stock, product_condition, size_label, show_in_catalog, image_id } = await request.json();
     const normalizedProductName = sanitizeSingleLineText(product_name, schemaExactLimits.productName);
     const normalizedBrand = sanitizeSingleLineText(product_brand, schemaExactLimits.productBrand) || "Dolly's Closet";
     const normalizedDescription = sanitizeMultilineText(product_description, uiContentLimits.productDescription.maxLength);
     const normalizedCondition = sanitizeSingleLineText(product_condition || 'New', schemaExactLimits.productCondition) || 'New';
     const normalizedSizeLabel = sanitizeSingleLineText(size_label || 'One Size', schemaExactLimits.productSizeLabel) || 'One Size';
+    const parsedDiscountPercent = Math.round(Number(discount_percent ?? 0));
+    let normalizedDiscountExpiresAt: string | null = null;
+
+    if (discount_expires_at) {
+      const parsedDate = new Date(discount_expires_at);
+      if (Number.isNaN(parsedDate.getTime())) {
+        return NextResponse.json({ error: 'Invalid discount expiration date.' }, { status: 400 });
+      }
+      normalizedDiscountExpiresAt = parsedDate.toISOString();
+    }
 
     if (!product_id || !normalizedProductName || !category_id || product_price === undefined) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
+    }
+
+    if (!Number.isFinite(parsedDiscountPercent) || parsedDiscountPercent < 0 || parsedDiscountPercent > 100) {
+      return NextResponse.json({ error: 'Discount must be between 0 and 100.' }, { status: 400 });
+    }
+
+    if (parsedDiscountPercent > 0 && !normalizedDiscountExpiresAt) {
+      return NextResponse.json({ error: 'Sale end date is required when discount is applied.' }, { status: 400 });
+    }
+
+    if (normalizedDiscountExpiresAt && new Date(normalizedDiscountExpiresAt).getTime() <= Date.now()) {
+      return NextResponse.json({ error: 'Sale end date must be in the future.' }, { status: 400 });
+    }
+
+    if (parsedDiscountPercent === 0) {
+      normalizedDiscountExpiresAt = null;
     }
 
     const supabaseAdmin = createAdminClient();
@@ -182,6 +238,8 @@ export async function PUT(request: NextRequest) {
       if (currentProduct.product_name !== product_name) changes.push(`name: ${currentProduct.product_name} → ${product_name}`);
       if (currentProduct.category_id !== category_id) changes.push(`category: ${currentProduct.category_id} → ${category_id}`);
       if (currentProduct.product_price !== parseFloat(product_price)) changes.push(`price: ${currentProduct.product_price} → ${product_price}`);
+      if (Number(currentProduct.discount_percent || 0) !== parsedDiscountPercent) changes.push(`discount: ${Number(currentProduct.discount_percent || 0)}% → ${parsedDiscountPercent}%`);
+      if (String(currentProduct.discount_expires_at || '') !== String(normalizedDiscountExpiresAt || '')) changes.push(`sale end updated`);
       if (currentProduct.product_brand !== (product_brand || 'Dolly\'s Closet')) changes.push(`brand: ${currentProduct.product_brand} → ${product_brand || 'Dolly\'s Closet'}`);
       if (currentProduct.product_description !== (product_description || '')) changes.push(`description updated`);
       if (currentProduct.product_stock !== parsedStock) changes.push(`stock: ${currentProduct.product_stock} → ${parsedStock}`);
@@ -212,6 +270,8 @@ export async function PUT(request: NextRequest) {
       product_name: normalizedProductName,
       category_id,
       product_price: parseFloat(product_price),
+      discount_percent: parsedDiscountPercent,
+      discount_expires_at: normalizedDiscountExpiresAt,
       product_brand: normalizedBrand,
       product_description: normalizedDescription,
       product_stock: parsedStock,

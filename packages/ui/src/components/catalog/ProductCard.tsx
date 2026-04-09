@@ -33,11 +33,16 @@ export default function ProductCard({ product, href, onClick }: ProductCardProps
     // Get centralized metadata
     const { 
         isSoldOut, 
+        isOnSale,
         eyebrow, 
         categoryLabel, 
         badges, 
         metadataChips, 
-        formattedPrice 
+        formattedPrice,
+        formattedDiscountedPrice,
+        discountPercent,
+        saleCountdown,
+        saleEndDate,
     } = useProductMetadata(product || {} as Product);
 
     if (!product) {
@@ -191,14 +196,41 @@ export default function ProductCard({ product, href, onClick }: ProductCardProps
                     <div className="mt-auto border-t border-[#E7A3B0]/12 pt-2">
                         <div>
                             <p className="font-oswald text-[10px] uppercase tracking-[0.28em] text-[#c0929d]">
-                                {isSoldOut ? "Last Price" : "Price"}
+                                {isSoldOut ? "Last Price" : isOnSale ? "Sale Price" : "Price"}
                             </p>
-                            <p className={cn(
-                                "font-oswald text-xl tracking-[0.04em]",
-                                isSoldOut ? "text-[#8b7580]" : "text-[#E7A3B0]"
-                            )}>
-                                {formattedPrice}
-                            </p>
+                            {isOnSale ? (
+                                <div className="space-y-1">
+                                    <p className="font-montserrat text-[11px] text-[#9c8690] line-through">
+                                        {formattedPrice}
+                                    </p>
+                                    <p className={cn(
+                                        "font-oswald text-xl tracking-[0.04em] bg-linear-to-r from-[#ff4d6d] via-[#ff7a59] to-[#ffb347] bg-clip-text text-transparent",
+                                        isSoldOut && "text-[#8b7580] bg-none"
+                                    )}>
+                                        {isSoldOut ? formattedPrice : formattedDiscountedPrice}
+                                    </p>
+                                    <p className="font-oswald text-[10px] uppercase tracking-[0.2em] text-[#ff4d6d]">
+                                        Save {discountPercent}%
+                                    </p>
+                                    {saleCountdown && (
+                                        <p className="font-oswald text-[9px] uppercase tracking-[0.15em] text-[#ff7a59]">
+                                            {saleCountdown}
+                                        </p>
+                                    )}
+                                    {saleEndDate && (
+                                        <p className="font-montserrat text-[10px] text-[#9c8690]">
+                                            Ends: {saleEndDate}
+                                        </p>
+                                    )}
+                                </div>
+                            ) : (
+                                <p className={cn(
+                                    "font-oswald text-xl tracking-[0.04em]",
+                                    isSoldOut ? "text-[#8b7580]" : "text-[#E7A3B0]"
+                                )}>
+                                    {formattedPrice}
+                                </p>
+                            )}
                         </div>
                     </div>
                 </div>

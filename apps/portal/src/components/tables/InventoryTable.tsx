@@ -54,6 +54,11 @@ export function InventoryTable({
     emptyTitle = "No products found",
     emptyDescription = "We couldn't find any products in your inventory matching these filters.",
 }: InventoryTableProps) {
+    const getDiscountedPrice = (price: number, discountPercent?: number) => {
+        const normalizedDiscount = Math.min(100, Math.max(0, Number(discountPercent || 0)));
+        return price * (1 - normalizedDiscount / 100);
+    };
+
     const getMobileCategory = (fullPath: string) => {
         const parts = fullPath.split(" > ");
         const leaf = parts[parts.length - 1];
@@ -155,7 +160,14 @@ export function InventoryTable({
                                             {product.product_stock < 10 ? `Low: ${product.product_stock}` : product.product_stock}
                                         </span>
                                         <span>&middot;</span>
-                                        <span className="font-medium text-gray-700">PHP {product.product_price.toFixed(2)}</span>
+                                        {Number(product.discount_percent || 0) > 0 ? (
+                                            <span className="font-medium text-gray-700">
+                                                <span className="line-through text-gray-400">PHP {product.product_price.toFixed(2)}</span>{" "}
+                                                <span className="text-[#ff4d6d]">PHP {getDiscountedPrice(product.product_price, product.discount_percent).toFixed(2)}</span>
+                                            </span>
+                                        ) : (
+                                            <span className="font-medium text-gray-700">PHP {product.product_price.toFixed(2)}</span>
+                                        )}
                                     </div>
                                 </div>
                                 <div className="flex items-center gap-1.5 shrink-0">
@@ -245,7 +257,21 @@ export function InventoryTable({
                                         )}
                                     </TableCell>
                                     <TableCell className="p-4 text-right font-medium">
-                                        PHP {product.product_price.toFixed(2)}
+                                        {Number(product.discount_percent || 0) > 0 ? (
+                                            <div className="space-y-1">
+                                                <div className="text-xs text-gray-400 line-through">
+                                                    PHP {product.product_price.toFixed(2)}
+                                                </div>
+                                                <div className="text-[#ff4d6d] font-semibold">
+                                                    PHP {getDiscountedPrice(product.product_price, product.discount_percent).toFixed(2)}
+                                                </div>
+                                                <div className="text-[10px] uppercase tracking-wide text-[#ff4d6d]">
+                                                    -{product.discount_percent}%
+                                                </div>
+                                            </div>
+                                        ) : (
+                                            <>PHP {product.product_price.toFixed(2)}</>
+                                        )}
                                     </TableCell>
                                     <TableCell className="p-4 text-center">
                                         <span className={`px-3 py-1 rounded text-sm font-medium ${

@@ -2,9 +2,36 @@ import { createClient } from "../supabase/browser";
 
 export const productHelper = {
     /**
+     * Best-effort cleanup that ends expired sales by resetting discount fields.
+     */
+    async clearExpiredDiscounts(supabase = createClient()) {
+        const nowIso = new Date().toISOString();
+        const { data: expiredRows, error: fetchError } = await supabase
+            .from("tbl_product")
+            .select("product_id")
+            .gt("discount_percent", 0)
+            .not("discount_expires_at", "is", null)
+            .lte("discount_expires_at", nowIso);
+
+        if (fetchError) {
+            // Keep this non-blocking so product listing still works.
+            return;
+        }
+
+        const expiredIds = (expiredRows || []).map((row) => Number(row.product_id)).filter((id) => !Number.isNaN(id));
+        if (expiredIds.length === 0) return;
+
+        await supabase
+            .from("tbl_product")
+            .update({ discount_percent: 0, discount_expires_at: null })
+            .in("product_id", expiredIds);
+    },
+
+    /**
      * Retrieves all product records from the database's `tbl_product` table.
      */
     async getProducts(supabase = createClient()) {
+        await this.clearExpiredDiscounts(supabase);
         const { data, error } = await supabase.from("tbl_product").select("*");
         if (error) {
             console.error("Error Fetching Products: ", error);
@@ -113,6 +140,7 @@ export const productHelper = {
      * Retrieves products marked explicitly to show in public catalog views.
      */
     async getProductsCatalog(supabase = createClient()) {
+        await this.clearExpiredDiscounts(supabase);
         const { data, error } = await supabase.from("tbl_product").select("*").eq("show_in_catalog", true).order("created_at", { ascending: false, nullsFirst: false });
         if (error) {
             console.error("Error Fetching Catalog Products: ", error);

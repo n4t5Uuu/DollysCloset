@@ -46,6 +46,17 @@ export function mapCatalogProduct(
     : null;
 
   const categoryPath = buildCategoryPath(Number(product.category_id), categoryMap);
+  const basePrice = Number(product.product_price || 0);
+  const normalizedDiscountPercent = Math.min(100, Math.max(0, Number(product.discount_percent || 0)));
+  const discountedPrice = Number(
+    (basePrice * (1 - normalizedDiscountPercent / 100)).toFixed(2)
+  );
+
+  // Check if discount is still valid (not expired)
+  const discountExpiresAt = product.discount_expires_at ? product.discount_expires_at : null;
+  const isDiscountExpired = discountExpiresAt ? new Date(discountExpiresAt) < new Date() : false;
+  const isOnSale = normalizedDiscountPercent > 0 && !isDiscountExpired;
+
   const imagesWithFallback = orderedImages.length > 0
     ? orderedImages
     : fallbackPrimary
@@ -58,13 +69,17 @@ export function mapCatalogProduct(
     categoryId: Number(product.category_id),
     categoryName: relatedCategory?.category_name || "Uncategorized",
     categoryPath,
-    price: Number(product.product_price || 0),
+    price: basePrice,
+    discountPercent: normalizedDiscountPercent,
+    discountedPrice,
     brand: product.product_brand || "Dolly's Closet",
     size: product.size_label || "One Size",
     condition: product.product_condition || "N/A",
     description: product.product_description || "",
     stock: Number(product.product_stock || 0),
     isNewArrival: Boolean(product.created_at && (Date.now() - new Date(product.created_at).getTime()) / (1000 * 60 * 60 * 24) <= 7),
+    discountExpiresAt,
+    isOnSale,
     images: imagesWithFallback,
     createdAt: product.created_at || new Date(0).toISOString(),
   };

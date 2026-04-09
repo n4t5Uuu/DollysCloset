@@ -7,12 +7,15 @@ export interface Product {
     category: string;
     type: string;
     price: number;
+    discountPercent?: number;
+    discountedPrice?: number;
     brand: string;
     size: string;
     condition: string;
     description: string;
     stock: number;
     isNewArrival: boolean;
+    discountExpiresAt?: string | null;
     images: string[];
 }
 
@@ -29,6 +32,10 @@ export type CatalogApiProduct = {
     categoryName: string;
     categoryPath: string;
     price: number;
+    discountPercent: number;
+    discountedPrice: number;
+    discountExpiresAt: string | null;
+    isOnSale: boolean;
     brand: string;
     size: string;
     condition: string;
