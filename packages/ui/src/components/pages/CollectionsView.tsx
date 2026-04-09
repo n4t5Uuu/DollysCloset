@@ -43,6 +43,9 @@ function toViewProduct(product: CatalogApiProduct): Product {
         stock: product.stock,
         isNewArrival: product.isNewArrival,
         images: product.images,
+        discount: product.discount,
+        discountedPrice: product.discountedPrice,
+        isOnSale: product.isOnSale,
     };
 }
 
@@ -387,6 +390,8 @@ export function CollectionsView() {
 
         if (activeFilter === "new") {
             list = list.filter((product) => product.isNewArrival);
+        } else if (activeFilter === "on-sale") {
+            list = list.filter((product) => product.isOnSale);
         } else if (activeFilter.startsWith("root-")) {
             const normalizedRootName = activeFilter.replace("root-", "");
             const rootCategoryIds = rootCategoryIdsByName.get(normalizedRootName) || [];
@@ -441,6 +446,7 @@ export function CollectionsView() {
     const featuredViewProducts = featuredProducts.map(toViewProduct);
     const isBrowsingFiltered = activeFilter !== "all" || searchQuery.trim() !== "" || sortBy !== "newest" || hasActivePriceFilter;
     const newArrivalCount = useMemo(() => products.filter((product) => product.isNewArrival).length, [products]);
+    const saleCount = useMemo(() => products.filter((product) => product.isOnSale).length, [products]);
 
     const categoryProductCounts = useMemo(() => {
         const counts: Record<number, number> = {};
@@ -478,6 +484,7 @@ export function CollectionsView() {
     const activeFilterLabel = useMemo(() => {
         if (activeFilter === "all") return null;
         if (activeFilter === "new") return "New Arrivals";
+        if (activeFilter === "on-sale") return "On Sale";
 
         if (activeFilter.startsWith("root-")) {
             const rootKey = activeFilter.replace("root-", "");
@@ -527,7 +534,7 @@ export function CollectionsView() {
             ? { key: "search", label: `Search: "${searchQuery.trim()}"`, onRemove: clearSearch }
             : null,
         activeFilter !== "all" && activeFilterLabel
-            ? { key: "filter", label: activeFilter === "new" ? `Filter: ${activeFilterLabel}` : `Category: ${activeFilterLabel}`, onRemove: clearFilter }
+            ? { key: "filter", label: activeFilter === "new" || activeFilter === "on-sale" ? `Filter: ${activeFilterLabel}` : `Category: ${activeFilterLabel}`, onRemove: clearFilter }
             : null,
         sortBy !== "newest"
             ? { key: "sort", label: `Sort: ${activeSortLabel}`, onRemove: clearSort }
@@ -640,6 +647,7 @@ export function CollectionsView() {
                                                 sortBy={sortBy}
                                                 allCount={products.length}
                                                 newCount={newArrivalCount}
+                                                saleCount={saleCount}
                                                 categoryCounts={categoryProductCounts}
                                                 rootGroupCounts={rootGroupProductCounts}
                                                 minAvailablePrice={priceBounds.min}
@@ -721,6 +729,7 @@ export function CollectionsView() {
                                     sortBy={sortBy}
                                     allCount={products.length}
                                     newCount={newArrivalCount}
+                                    saleCount={saleCount}
                                     categoryCounts={categoryProductCounts}
                                     rootGroupCounts={rootGroupProductCounts}
                                     minAvailablePrice={priceBounds.min}

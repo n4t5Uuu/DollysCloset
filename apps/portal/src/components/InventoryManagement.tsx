@@ -1,16 +1,19 @@
-"use client";
+﻿"use client";
 
 import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { useSearchParams, useRouter, usePathname } from "next/navigation";
-import { Plus, Archive, RotateCcw, X, Upload, SlidersHorizontal, RefreshCw } from "lucide-react";
+import { Plus, Archive, RotateCcw, X, Upload, SlidersHorizontal, RefreshCw, BadgePercent, Trash2 } from "lucide-react";
 import { 
   createClient,
   InventoryProduct as Product,
   InventoryProductImage as ProductImage,
-  InventoryCategory as Category
+  InventoryCategory as Category,
+  ProductDiscount,
 } from "@dollys-closet/core";
 import {
   Button,
+  Checkbox,
+  Input,
   Select,
   SelectContent,
   SelectItem,
@@ -43,6 +46,10 @@ interface InventoryManagementProps {
 
 type InventoryScope = "active" | "archived";
 
+type InventoryDiscount = ProductDiscount & {
+  productCount?: number;
+};
+
 const availabilityLabels: Record<string, string> = {
   "all": "All stock",
   "in-stock": "In stock",
@@ -61,6 +68,8 @@ const visibilityLabels: Record<string, string> = {
 const sortLabels: Record<string, string> = {
   "newest": "Newest first",
   "oldest": "Oldest first",
+  "updated": "Recently updated",
+  "least-updated": "Least updated",
   "az": "Name A to Z",
   "za": "Name Z to A",
 };
@@ -92,8 +101,9 @@ export default function InventoryManagement({ initialAvailabilityFilter }: Inven
   const [searchQuery, setSearchQuery] = useState("");
   const [visibilityFilter, setVisibilityFilter] = useState("all");
   const [availabilityFilter, setAvailabilityFilter] = useState(initialAvailabilityFilter ?? "all");
+  const [saleFilter, setSaleFilter] = useState<"all" | "on-sale">("all");
   const [categoryFilter, setCategoryFilter] = useState("all");
-  const [dateSort, setDateSort] = useState<"newest" | "oldest" | "az" | "za">("newest");
+  const [dateSort, setDateSort] = useState<"newest" | "oldest" | "updated" | "least-updated" | "az" | "za">("newest");
   const [selectedProducts, setSelectedProducts] = useState<Set<string>>(new Set());
   const [showFilters, setShowFilters] = useState(false);
   const filtersRef = useRef<HTMLDivElement>(null);
@@ -105,6 +115,16 @@ export default function InventoryManagement({ initialAvailabilityFilter }: Inven
 
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [showBulkImport, setShowBulkImport] = useState(false);
+  const [discounts, setDiscounts] = useState<InventoryDiscount[]>([]);
+  const [discountLoading, setDiscountLoading] = useState(false);
+  const [showDiscountModal, setShowDiscountModal] = useState(false);
+  const [discountForm, setDiscountForm] = useState({
+    discount_name: "",
+    discount_type: "percent" as "percent" | "flat" | "fixed_price",
+    discount_value: "",
+    ends_at: "",
+    is_active: true,
+  });
 
   const itemsPerPage = 10;
   const lowStockThreshold = 10;
@@ -144,17 +164,33 @@ export default function InventoryManagement({ initialAvailabilityFilter }: Inven
     }
   }, []);
 
+  const fetchDiscounts = useCallback(async () => {
+    try {
+      setDiscountLoading(true);
+      const response = await fetch('/api/admin/discounts', { cache: 'no-store' });
+      if (!response.ok) throw new Error('Failed to fetch discounts');
+
+      const result = await response.json();
+      setDiscounts(result.data || []);
+    } catch (err: unknown) {
+      console.error('Error fetching discounts:', err);
+      setDiscounts([]);
+    } finally {
+      setDiscountLoading(false);
+    }
+  }, []);
+
   useEffect(() => {
     const initializeInventory = async () => {
       setLoading(true);
       try {
-        await Promise.all([fetchProducts(false), fetchCategories()]);
+        await Promise.all([fetchProducts(false), fetchCategories(), fetchDiscounts()]);
       } finally {
         setLoading(false);
       }
     };
     initializeInventory();
-  }, [fetchProducts, fetchCategories]);
+  }, [fetchProducts, fetchCategories, fetchDiscounts]);
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
@@ -190,7 +226,7 @@ export default function InventoryManagement({ initialAvailabilityFilter }: Inven
 
   useEffect(() => {
     router.replace(pathname);
-  }, [searchQuery, visibilityFilter, availabilityFilter, categoryFilter, dateSort, router, pathname]);
+  }, [searchQuery, visibilityFilter, availabilityFilter, saleFilter, categoryFilter, dateSort, router, pathname]);
 
   useEffect(() => {
     setSelectedProducts(new Set());
@@ -200,6 +236,7 @@ export default function InventoryManagement({ initialAvailabilityFilter }: Inven
     setEditingProduct(null);
     setShowAddModal(false);
     setShowBulkImport(false);
+    setShowDiscountModal(false);
   }, [inventoryScope]);
 
   const categoryById = useMemo(
@@ -286,22 +323,27 @@ export default function InventoryManagement({ initialAvailabilityFilter }: Inven
           (availabilityFilter === "out-of-stock" && product.product_stock === 0) ||
           (availabilityFilter === "stock-alerts" && product.product_stock < lowStockThreshold) ||
           (availabilityFilter === "no-image" && !product.image_id);
+        const matchesSale = saleFilter === "all" || Boolean(product.isOnSale);
         const matchesVisibility = visibilityFilter === "all" ||
           (visibilityFilter === "published" && product.show_in_catalog) ||
           (visibilityFilter === "unpublished" && !product.show_in_catalog);
-        return matchesSearch && matchesCategory && matchesAvailability && matchesVisibility;
+        return matchesSearch && matchesCategory && matchesAvailability && matchesSale && matchesVisibility;
       })
       .sort((firstProduct, secondProduct) => {
-        const firstDateValue = new Date(firstProduct.created_at || 0).getTime();
-        const secondDateValue = new Date(secondProduct.created_at || 0).getTime();
+        const firstCreatedValue = new Date(firstProduct.created_at || 0).getTime();
+        const secondCreatedValue = new Date(secondProduct.created_at || 0).getTime();
+        const firstUpdatedValue = new Date((firstProduct.updated_at || firstProduct.time_updated || firstProduct.created_at || 0) as string).getTime();
+        const secondUpdatedValue = new Date((secondProduct.updated_at || secondProduct.time_updated || secondProduct.created_at || 0) as string).getTime();
         
-        if (dateSort === "oldest") return firstDateValue - secondDateValue;
-        if (dateSort === "newest") return secondDateValue - firstDateValue;
+        if (dateSort === "oldest") return firstCreatedValue - secondCreatedValue;
+        if (dateSort === "newest") return secondCreatedValue - firstCreatedValue;
+        if (dateSort === "updated") return secondUpdatedValue - firstUpdatedValue;
+        if (dateSort === "least-updated") return firstUpdatedValue - secondUpdatedValue;
         if (dateSort === "az") return firstProduct.product_name.localeCompare(secondProduct.product_name);
         if (dateSort === "za") return secondProduct.product_name.localeCompare(firstProduct.product_name);
         return 0;
       });
-  }, [products, searchQuery, filteredCategoryIds, availabilityFilter, visibilityFilter, dateSort, lowStockThreshold, buildCategoryPath]);
+  }, [products, searchQuery, filteredCategoryIds, availabilityFilter, saleFilter, visibilityFilter, dateSort, lowStockThreshold, buildCategoryPath]);
 
   const totalPages = Math.max(1, Math.ceil(filteredProducts.length / itemsPerPage));
   const safePage = Math.min(currentPage, totalPages);
@@ -337,6 +379,9 @@ export default function InventoryManagement({ initialAvailabilityFilter }: Inven
       availabilityFilter !== "all"
         ? { key: "availability", label: `Availability: ${availabilityLabels[availabilityFilter] ?? availabilityFilter}`, onRemove: () => setAvailabilityFilter("all") }
         : null,
+      saleFilter !== "all"
+        ? { key: "sale", label: "Sale: On Sale", onRemove: () => setSaleFilter("all") }
+        : null,
       categoryFilter !== "all" && selectedCategoryLabel
         ? { key: "category", label: `Category: ${selectedCategoryLabel}`, onRemove: () => setCategoryFilter("all") }
         : null,
@@ -344,7 +389,7 @@ export default function InventoryManagement({ initialAvailabilityFilter }: Inven
         ? { key: "sort", label: `Sort: ${sortLabels[dateSort] ?? dateSort}`, onRemove: () => setDateSort("newest") }
         : null,
     ].filter((chip): chip is { key: string; label: string; onRemove: () => void } => Boolean(chip));
-  }, [availabilityFilter, categoryFilter, dateSort, searchQuery, selectedCategoryLabel, visibilityFilter]);
+  }, [availabilityFilter, categoryFilter, dateSort, saleFilter, searchQuery, selectedCategoryLabel, visibilityFilter]);
 
   const quickFilterCards = useMemo(() => {
     const totalCount = products.length;
@@ -352,6 +397,7 @@ export default function InventoryManagement({ initialAvailabilityFilter }: Inven
     const hiddenCount = totalCount - publishedCount;
     const stockAlertCount = products.filter((product) => product.product_stock < lowStockThreshold).length;
     const noImageCount = products.filter((product) => !product.image_id).length;
+    const saleCount = products.filter((product) => Boolean(product.isOnSale)).length;
 
     return [
       {
@@ -404,8 +450,19 @@ export default function InventoryManagement({ initialAvailabilityFilter }: Inven
           setVisibilityFilter("all");
         },
       },
+      {
+        key: "sale",
+        label: "On Sale",
+        count: saleCount,
+        active: saleFilter === "on-sale",
+        onClick: () => {
+          setSaleFilter("on-sale");
+          setAvailabilityFilter("all");
+          setVisibilityFilter("all");
+        },
+      },
     ];
-  }, [availabilityFilter, lowStockThreshold, products, visibilityFilter]);
+  }, [availabilityFilter, lowStockThreshold, products, saleFilter, visibilityFilter]);
 
   const outOfStockActiveCount = useMemo(() => {
     if (inventoryScope !== "active") return 0;
@@ -427,6 +484,7 @@ export default function InventoryManagement({ initialAvailabilityFilter }: Inven
     setSearchQuery("");
     setVisibilityFilter("all");
     setAvailabilityFilter("all");
+    setSaleFilter("all");
     setCategoryFilter("all");
     setDateSort("newest");
   };
@@ -598,6 +656,143 @@ export default function InventoryManagement({ initialAvailabilityFilter }: Inven
     }
   };
 
+  const formatDiscountSummary = useCallback((discount: ProductDiscount) => {
+    if (discount.discount_type === "percent") {
+      return `${discount.discount_value}% off`;
+    }
+
+    if (discount.discount_type === "fixed_price") {
+      return `Final price ₱${Number(discount.discount_value).toFixed(2)}`;
+    }
+
+    return `₱${Number(discount.discount_value).toFixed(2)} off`;
+  }, []);
+
+  const handleCreateDiscount = async () => {
+    const discountName = discountForm.discount_name.trim();
+    const discountValue = Number.parseFloat(discountForm.discount_value);
+
+    if (!discountName || !Number.isFinite(discountValue) || discountValue < 0) {
+      toast.error('Enter a valid discount name and value.');
+      return;
+    }
+
+    if (discountForm.discount_type === 'percent' && discountValue > 100) {
+      toast.error('Percentage discounts cannot exceed 100.');
+      return;
+    }
+
+    setActionLoading(true);
+    try {
+      const supabase = createClient();
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error('Not authenticated');
+
+      const response = await fetch('/api/admin/discounts', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({
+          discount_name: discountName,
+          discount_type: discountForm.discount_type,
+          discount_value: discountValue,
+          ends_at: discountForm.ends_at || null,
+          is_active: discountForm.is_active,
+        }),
+      });
+
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error || 'Failed to create discount');
+
+      setDiscountForm({
+        discount_name: "",
+        discount_type: "percent",
+        discount_value: "",
+        ends_at: "",
+        is_active: true,
+      });
+      await fetchDiscounts();
+      setShowDiscountModal(false);
+      toast.success('Discount code created successfully.');
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : 'Failed to create discount');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleApplyDiscount = async (discountId: string) => {
+    if (selectedProducts.size === 0) {
+      toast.error('Select at least one product first.');
+      return;
+    }
+
+    setActionLoading(true);
+    try {
+      const supabase = createClient();
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error('Not authenticated');
+
+      const response = await fetch('/api/admin/discounts/apply', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({
+          discount_id: discountId,
+          product_ids: Array.from(selectedProducts),
+        }),
+      });
+
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error || 'Failed to apply discount');
+
+      await Promise.all([fetchProducts(false), fetchDiscounts()]);
+      setSelectedProducts(new Set());
+      toast.success('Discount applied to selected products.');
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : 'Failed to apply discount');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleDeleteDiscount = async (discountId: string, discountName: string) => {
+    const shouldDelete = window.confirm(`Delete discount code "${discountName}"? This will remove it from all products.`);
+    if (!shouldDelete) {
+      return;
+    }
+
+    setActionLoading(true);
+    try {
+      const supabase = createClient();
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error('Not authenticated');
+
+      const response = await fetch('/api/admin/discounts', {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({ discount_id: discountId }),
+      });
+
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error || 'Failed to delete discount');
+
+      await Promise.all([fetchProducts(false), fetchDiscounts()]);
+      toast.success('Discount code deleted successfully.');
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : 'Failed to delete discount');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -653,6 +848,13 @@ export default function InventoryManagement({ initialAvailabilityFilter }: Inven
               >
                 <Upload size={16} />
                 Import
+              </button>
+              <button
+                onClick={() => setShowDiscountModal(true)}
+                className="flex items-center gap-2 px-4 py-2 bg-white border border-[#E7A3B0]/30 text-[#b96d7d] rounded-lg text-sm font-medium transition-all duration-300 shadow-sm hover:shadow-md hover:border-[#E7A3B0] hover:bg-[#fff5f7] hover:scale-105 cursor-pointer"
+              >
+                <BadgePercent size={16} />
+                Add Discount Code
               </button>
               <button
                 onClick={openAddModal}
@@ -790,12 +992,31 @@ export default function InventoryManagement({ initialAvailabilityFilter }: Inven
                   ))}
                 </div>
               </div>
+              <div>
+                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Discounts</p>
+                <div className="flex gap-1.5 flex-wrap">
+                  {[["all", "All"], ["on-sale", "On Sale"]].map(([value, label]) => (
+                    <button
+                      key={value}
+                      onClick={() => setSaleFilter(value as "all" | "on-sale")}
+                      className={`px-3 py-1.5 text-xs rounded-full border transition-all duration-200 hover:scale-105 active:scale-95 cursor-pointer ${
+                        saleFilter === value
+                          ? "bg-[#E7A3B0] text-white border-[#E7A3B0] shadow-sm"
+                          : "border-gray-200 text-gray-600 hover:border-[#E7A3B0] hover:bg-[#fff5f7] hover:text-[#E7A3B0] hover:shadow-sm"
+                      }`}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+              </div>
               {/* Clear all */}
-              {(visibilityFilter !== "all" || availabilityFilter !== "all" || categoryFilter !== "all") && (
+              {(visibilityFilter !== "all" || availabilityFilter !== "all" || saleFilter !== "all" || categoryFilter !== "all") && (
                 <button
                   onClick={() => {
                     setVisibilityFilter("all");
                     setAvailabilityFilter("all");
+                    setSaleFilter("all");
                     setCategoryFilter("all");
                   }}
                   className="w-full text-xs text-gray-500 py-1.5 hover:bg-[#fff5f7] hover:border-[#E7A3B0] hover:text-[#E7A3B0] rounded-md transition-all duration-200 hover:scale-[1.02] active:scale-95 cursor-pointer border border-gray-200"
@@ -807,20 +1028,22 @@ export default function InventoryManagement({ initialAvailabilityFilter }: Inven
           )}
         </div>
 
-        {/* Category filter — inline beside the Filters button */}
+        {/* Category filter - inline beside the Filters button */}
         <CategoryCascadingFilter
           categories={categories}
           value={categoryFilter}
           onValueChange={(value: string) => setCategoryFilter(value)}
         />
 
-        <Select value={dateSort} onValueChange={(value) => setDateSort(value as "newest" | "oldest")}>
+        <Select value={dateSort} onValueChange={(value) => setDateSort(value as "newest" | "oldest" | "updated" | "least-updated" | "az" | "za") }>
           <SelectTrigger className="w-[140px] h-9 text-xs text-gray-900 bg-white">
             <SelectValue placeholder="Sort Date" />
           </SelectTrigger>
           <SelectContent className="bg-white border-gray-200 text-black">
             <SelectItem value="newest" className="cursor-pointer focus:bg-[#fff5f7] focus:text-[#E7A3B0]">Newest</SelectItem>
             <SelectItem value="oldest" className="cursor-pointer focus:bg-[#fff5f7] focus:text-[#E7A3B0]">Oldest</SelectItem>
+            <SelectItem value="updated" className="cursor-pointer focus:bg-[#fff5f7] focus:text-[#E7A3B0]">Recently updated</SelectItem>
+            <SelectItem value="least-updated" className="cursor-pointer focus:bg-[#fff5f7] focus:text-[#E7A3B0]">Least updated</SelectItem>
             <SelectItem value="az" className="cursor-pointer focus:bg-[#fff5f7] focus:text-[#E7A3B0]">Name: A to Z</SelectItem>
             <SelectItem value="za" className="cursor-pointer focus:bg-[#fff5f7] focus:text-[#E7A3B0]">Name: Z to A</SelectItem>
           </SelectContent>
@@ -872,6 +1095,18 @@ export default function InventoryManagement({ initialAvailabilityFilter }: Inven
             <span className="rounded-md bg-[#fff0f3] px-2.5 py-1 text-xs font-semibold text-[#b96d7d]">
               {selectedProducts.size} selected
             </span>
+          )}
+          {selectedProducts.size > 0 && inventoryScope === "active" && (
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => setShowDiscountModal(true)}
+              className="h-8 border-[#E7A3B0]/35 text-[#b96d7d] hover:bg-[#fff5f7] hover:text-[#b96d7d]"
+            >
+              <BadgePercent className="mr-1.5 h-3.5 w-3.5" />
+              Batch Add Discount
+            </Button>
           )}
           {selectedProducts.size > 0 && (
             <Button
@@ -959,6 +1194,191 @@ export default function InventoryManagement({ initialAvailabilityFilter }: Inven
         />
       </div>
 
+      {showDiscountModal && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-4"
+          onClick={() => setShowDiscountModal(false)}
+        >
+          <div
+            className="w-full max-w-4xl max-h-[90vh] overflow-hidden rounded-3xl border border-[#E7A3B0]/20 bg-white shadow-[0_24px_80px_rgba(17,24,39,0.28)]"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="flex items-start justify-between gap-4 border-b border-[#E7A3B0]/15 bg-[#fffafc] px-6 py-5">
+              <div>
+                <div className="flex items-center gap-2 text-2xl font-semibold text-gray-900">
+                  <BadgePercent className="h-5 w-5 text-[#E7A3B0]" />
+                  Sales Codes
+                </div>
+                <p className="mt-1 text-sm text-gray-600">
+                  Create discount codes, set their end date, and apply them to selected products.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowDiscountModal(false)}
+                className="inline-flex h-9 w-9 items-center justify-center rounded-full text-gray-400 hover:bg-white hover:text-gray-700"
+                aria-label="Close discount modal"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            <div className="grid max-h-[calc(90vh-5.5rem)] gap-6 overflow-y-auto p-6 lg:grid-cols-[1.05fr_0.95fr]">
+              <div className="rounded-2xl border border-[#E7A3B0]/15 bg-[#fffafc] p-5 shadow-sm">
+                <div className="space-y-4">
+                  <div>
+                    <label className="mb-2 block text-sm font-medium text-gray-700">Discount Name</label>
+                    <Input
+                      value={discountForm.discount_name}
+                      onChange={(event) => setDiscountForm((prev) => ({ ...prev, discount_name: event.target.value }))}
+                      placeholder="Back to School Sale"
+                      className="border-gray-300 bg-white text-gray-900"
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                    <div>
+                      <label className="mb-2 block text-sm font-medium text-gray-700">Discount Type</label>
+                      <Select
+                        value={discountForm.discount_type}
+                        onValueChange={(value) => setDiscountForm((prev) => ({ ...prev, discount_type: value as "percent" | "flat" | "fixed_price" }))}
+                      >
+                        <SelectTrigger className="border-gray-300 bg-white text-gray-900">
+                          <SelectValue placeholder="Select type" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="percent">Percentage</SelectItem>
+                          <SelectItem value="flat">Flat amount</SelectItem>
+                          <SelectItem value="fixed_price">Set final price</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div>
+                      <label className="mb-2 block text-sm font-medium text-gray-700">
+                        {discountForm.discount_type === "percent"
+                          ? "Percent Off"
+                          : discountForm.discount_type === "fixed_price"
+                            ? "Final Price"
+                            : "Flat Amount"}
+                      </label>
+                      <Input
+                        type="number"
+                        min="0"
+                        step={discountForm.discount_type === "percent" ? "1" : "0.01"}
+                        value={discountForm.discount_value}
+                        onChange={(event) => setDiscountForm((prev) => ({ ...prev, discount_value: event.target.value }))}
+                        placeholder={discountForm.discount_type === "percent"
+                          ? "30"
+                          : discountForm.discount_type === "fixed_price"
+                            ? "99.00"
+                            : "250.00"}
+                        className="border-gray-300 bg-white text-gray-900"
+                      />
+                      {discountForm.discount_type === "fixed_price" && (
+                        <p className="mt-1 text-xs text-gray-500">This sets each selected product to the same final price.</p>
+                      )}
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="mb-2 block text-sm font-medium text-gray-700">Ends At</label>
+                    <Input
+                      type="datetime-local"
+                      value={discountForm.ends_at}
+                      onChange={(event) => setDiscountForm((prev) => ({ ...prev, ends_at: event.target.value }))}
+                      className="border-gray-300 bg-white text-gray-900"
+                    />
+                  </div>
+
+                  <label className="flex items-center gap-3 rounded-xl border border-[#E7A3B0]/15 bg-white px-4 py-3 text-sm text-gray-700">
+                    <Checkbox
+                      checked={discountForm.is_active}
+                      onCheckedChange={(checked) => setDiscountForm((prev) => ({ ...prev, is_active: Boolean(checked) }))}
+                    />
+                    <span>Make this code active immediately</span>
+                  </label>
+
+                  <Button
+                    type="button"
+                    onClick={handleCreateDiscount}
+                    disabled={actionLoading}
+                    className="w-full bg-[#E7A3B0] text-white hover:bg-[#d891a0]"
+                  >
+                    {actionLoading ? "Saving..." : "Create Discount Code"}
+                  </Button>
+                </div>
+              </div>
+
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-sm font-semibold uppercase tracking-[0.18em] text-gray-500">Existing Codes</h3>
+                  <span className="rounded-full bg-[#fff0f5] px-3 py-1 text-xs font-semibold text-[#b96d7d]">
+                    {discounts.length}
+                  </span>
+                </div>
+
+                {discountLoading ? (
+                  <div className="rounded-2xl border border-dashed border-gray-200 bg-white px-4 py-8 text-center text-sm text-gray-500">
+                    Loading discount codes...
+                  </div>
+                ) : discounts.length === 0 ? (
+                  <div className="rounded-2xl border border-dashed border-gray-200 bg-white px-4 py-8 text-center text-sm text-gray-500">
+                    No discount codes yet. Create one above to start a sale.
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {discounts.map((discount) => {
+                      const isExpired = Boolean(discount.ends_at && new Date(discount.ends_at).getTime() <= Date.now());
+                      return (
+                        <div key={discount.id} className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
+                          <div className="flex items-start justify-between gap-3">
+                            <div className="min-w-0 space-y-1">
+                              <p className="truncate text-base font-semibold text-gray-900">{discount.discount_name}</p>
+                              <p className="text-sm text-gray-600">
+                                {formatDiscountSummary(discount)}
+                                {discount.ends_at ? ` • Ends ${new Date(discount.ends_at).toLocaleString()}` : " • No end date"}
+                              </p>
+                              <p className={`text-xs font-medium ${isExpired ? "text-rose-600" : discount.is_active ? "text-emerald-600" : "text-gray-500"}`}>
+                                {isExpired ? "Expired" : discount.is_active ? "Active" : "Inactive"}
+                                {typeof discount.productCount === "number" ? ` • ${discount.productCount} product(s)` : ""}
+                              </p>
+                            </div>
+
+                            <div className="flex shrink-0 gap-2">
+                              <Button
+                                type="button"
+                                size="sm"
+                                onClick={() => void handleApplyDiscount(String(discount.id))}
+                                disabled={actionLoading || selectedProducts.size === 0}
+                                className="bg-[#121212] text-white hover:bg-[#2a2a2a]"
+                              >
+                                Apply to selected
+                              </Button>
+                              <Button
+                                type="button"
+                                size="sm"
+                                variant="outline"
+                                onClick={() => void handleDeleteDiscount(String(discount.id), discount.discount_name)}
+                                disabled={actionLoading}
+                                className="border-rose-200 text-rose-600 hover:border-rose-300 hover:bg-rose-50 hover:text-rose-700"
+                                aria-label={`Delete discount code ${discount.discount_name}`}
+                              >
+                                <Trash2 className="h-3.5 w-3.5" />
+                              </Button>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {viewProduct && (
         <ViewProductDialog
           product={viewProduct}
@@ -980,6 +1400,7 @@ export default function InventoryManagement({ initialAvailabilityFilter }: Inven
         categories={categories}
         productToEdit={editingProduct}
         existingProducts={products}
+        discounts={discounts}
         onProductSaved={async () => {
           closeModal();
           const refreshed = await fetchProducts(false);

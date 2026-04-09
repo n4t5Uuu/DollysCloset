@@ -79,6 +79,22 @@ export function InventoryTable({
         });
     };
 
+    const formatRecentlyUpdatedDate = (product: Product) => {
+        const rawValue = product.updated_at || product.time_updated || product.created_at;
+        if (!rawValue) return "-";
+
+        const updatedDate = new Date(rawValue);
+        if (Number.isNaN(updatedDate.getTime())) return "-";
+
+        return updatedDate.toLocaleString("en-US", {
+            month: "short",
+            day: "numeric",
+            year: "numeric",
+            hour: "numeric",
+            minute: "2-digit",
+        });
+    };
+
     const activateRow = (product: Product) => {
         if (onRowActivate) {
             onRowActivate(product);
@@ -242,6 +258,7 @@ export function InventoryTable({
                             {mode === "archived" && (
                                 <TableHead className="p-4 text-center font-bold">Archived On</TableHead>
                             )}
+                            <TableHead className="p-4 text-center font-bold">Recently Updated</TableHead>
                             <TableHead className="p-4 text-center font-bold w-[200px]">Actions</TableHead>
                         </TableRow>
                     </TableHeader>
@@ -289,7 +306,14 @@ export function InventoryTable({
                                         )}
                                     </TableCell>
                                     <TableCell className="p-4 text-right font-medium">
-                                        PHP {product.product_price.toFixed(2)}
+                                        {product.discountedPrice !== null && product.discountedPrice !== undefined ? (
+                                            <div className="flex flex-col items-end gap-0.5">
+                                                <span className="text-xs text-gray-400 line-through">PHP {product.product_price.toFixed(2)}</span>
+                                                <span className="font-semibold text-[#b96d7d]">PHP {product.discountedPrice.toFixed(2)}</span>
+                                            </div>
+                                        ) : (
+                                            <>PHP {product.product_price.toFixed(2)}</>
+                                        )}
                                     </TableCell>
                                     <TableCell className="p-4 text-center">
                                         <span className={`px-3 py-1 rounded text-sm font-medium ${
@@ -310,6 +334,9 @@ export function InventoryTable({
                                             )}
                                         </TableCell>
                                     )}
+                                    <TableCell className="p-4 text-center text-sm text-gray-600">
+                                        {formatRecentlyUpdatedDate(product)}
+                                    </TableCell>
                                     <TableCell className="p-4">
                                         <div className="flex gap-2 justify-center flex-wrap">
                                             <Button
@@ -341,7 +368,7 @@ export function InventoryTable({
                             ))
                         ) : (
                             <TableRow>
-                                <TableCell colSpan={mode === "archived" ? 9 : 8} className="p-0 border-none">
+                                <TableCell colSpan={mode === "archived" ? 10 : 9} className="p-0 border-none">
                                     {emptyState}
                                 </TableCell>
                             </TableRow>

@@ -4,7 +4,7 @@ import { CardTitle } from "../ui/card"
 import { cn, type Product, resolveProductPlaceholder, useProductMetadata } from "@dollys-closet/core"
 
 import Image from "next/image"
-import { useRef, useState } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
 
 import { ProductBadge } from "./ProductBadge";
 
@@ -29,16 +29,49 @@ export default function ProductCard({ product, href, onClick }: ProductCardProps
     const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
     const animTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const rafRef = useRef<number | null>(null);
+    const [now, setNow] = useState(Date.now());
 
     // Get centralized metadata
     const { 
         isSoldOut, 
+        hasDiscount,
         eyebrow, 
         categoryLabel, 
         badges, 
         metadataChips, 
-        formattedPrice 
+        formattedPrice,
+        formattedOriginalPrice,
+        formattedSalePrice,
+        discountLabel,
     } = useProductMetadata(product || {} as Product);
+
+    useEffect(() => {
+        if (!product?.discount?.ends_at || !hasDiscount) {
+            return;
+        }
+
+        const timer = setInterval(() => setNow(Date.now()), 1000);
+        return () => clearInterval(timer);
+    }, [hasDiscount, product?.discount?.ends_at]);
+
+    const countdownLabel = useMemo(() => {
+        if (!product?.discount?.ends_at || !hasDiscount) return null;
+
+        const endTime = new Date(product.discount.ends_at).getTime();
+        if (!Number.isFinite(endTime)) return null;
+
+        const delta = endTime - now;
+        if (delta <= 0) return "Sale ended";
+
+        const totalSeconds = Math.floor(delta / 1000);
+        const days = Math.floor(totalSeconds / 86400);
+        const hours = Math.floor((totalSeconds % 86400) / 3600);
+        const minutes = Math.floor((totalSeconds % 3600) / 60);
+
+        if (days > 0) return `Ends in ${days}d ${hours}h`;
+        if (hours > 0) return `Ends in ${hours}h ${minutes}m`;
+        return `Ends in ${Math.max(1, minutes)}m`;
+    }, [hasDiscount, now, product?.discount?.ends_at]);
 
     if (!product) {
         return (
@@ -98,11 +131,12 @@ export default function ProductCard({ product, href, onClick }: ProductCardProps
         >
             <article
                 className={cn(
-                    "flex h-full flex-col rounded-[1rem] bg-white p-1.5 shadow-[0_8px_24px_rgba(18,18,18,0.10),0_2px_8px_rgba(231,163,176,0.10)] transition-all duration-300 overflow-hidden",
-                    "group-hover:-translate-y-1 group-hover:shadow-[0_20px_48px_rgba(18,18,18,0.15),0_4px_16px_rgba(231,163,176,0.15)]"
+                    "flex h-full flex-col overflow-hidden rounded-[1.4rem] border border-[#f1e1e6] bg-linear-to-b from-white via-[#fffdfd] to-[#fff7f9] p-2 shadow-[0_10px_28px_rgba(18,18,18,0.08),0_2px_8px_rgba(231,163,176,0.10)] transition-all duration-300",
+                    "group-hover:-translate-y-1 group-hover:border-[#e7a3b0]/70 group-hover:shadow-[0_24px_54px_rgba(18,18,18,0.14),0_8px_20px_rgba(231,163,176,0.16)]"
                 )}
             >
-                <div className="relative aspect-3/4 overflow-hidden rounded-[0.8rem] bg-[#f7eef1]">
+                <div className="relative aspect-3/4 overflow-hidden rounded-[1.05rem] border border-white/70 bg-[#f7eef1] shadow-inner">
+                    <div className="pointer-events-none absolute inset-0 bg-linear-to-t from-black/12 via-transparent to-white/10 opacity-90" />
                     <div
                         className={cn(
                             "absolute inset-0",
@@ -138,14 +172,14 @@ export default function ProductCard({ product, href, onClick }: ProductCardProps
                     )}
 
                     {/* Hover Overlay */}
-                    <div className="absolute inset-0 bg-black/40 opacity-0 transition-all duration-300 group-hover:opacity-100 flex items-center justify-center backdrop-blur-[2px]">
-                        <span className="font-playfair-display text-white text-lg md:text-xl font-medium tracking-wide translate-y-4 transition-transform duration-300 group-hover:translate-y-0 relative">
+                    <div className="absolute inset-0 flex items-end justify-center bg-linear-to-t from-black/55 via-black/10 to-transparent opacity-0 transition-all duration-300 group-hover:opacity-100 backdrop-blur-[1px]">
+                        <span className="mb-4 inline-flex items-center gap-2 rounded-full bg-white/90 px-4 py-2 font-montserrat text-[11px] font-semibold uppercase tracking-[0.22em] text-[#121212] shadow-lg transition-transform duration-300 group-hover:-translate-y-1">
                             View Details
-                            <span className="absolute -bottom-1 left-0 w-0 h-[1.5px] bg-white transition-all duration-500 group-hover:w-full" />
+                            <span className="h-1.5 w-1.5 rounded-full bg-[#E7A3B0]" />
                         </span>
                     </div>
 
-                    <div className="pointer-events-none absolute inset-x-0 bottom-0 h-24 bg-linear-to-t from-black/25 via-black/0 to-transparent opacity-70" />
+                    <div className="pointer-events-none absolute inset-x-0 bottom-0 h-24 bg-linear-to-t from-black/20 via-black/0 to-transparent opacity-80" />
 
                     <div className="absolute inset-x-3 top-3 flex max-w-[calc(100%-1.5rem)] flex-wrap gap-2">
                         {badges.map((badge) => (
@@ -159,16 +193,16 @@ export default function ProductCard({ product, href, onClick }: ProductCardProps
                     </div>
                 </div>
 
-                <div className="flex flex-1 flex-col gap-2 px-2 pb-1.5 pt-3">
-                    <div className="min-w-0">
-                        <p className="hidden sm:block font-montserrat text-[10px] font-semibold uppercase tracking-[0.16em] text-[#6f5058] truncate">
+                <div className="flex flex-1 flex-col gap-2 px-2 pt-3 pb-1.5">
+                    <div className="min-w-0 space-y-0.5">
+                        <p className="hidden sm:block font-montserrat text-[10px] font-semibold uppercase tracking-[0.16em] text-[#8b7580] truncate">
                             {categoryLabel}
                         </p>
-                        <p className="font-oswald text-[11px] uppercase tracking-[0.28em] text-[#b47c88] truncate" title={eyebrow}>
+                        <p className="font-oswald text-[11px] uppercase tracking-[0.24em] text-[#c0929d] truncate" title={eyebrow}>
                             {eyebrow}
                         </p>
                         <CardTitle 
-                            className="mt-1 font-playfair-display text-sm sm:text-base leading-snug text-[#121212] line-clamp-3 break-all"
+                            className="mt-1 font-playfair-display text-sm sm:text-base leading-snug text-[#121212] line-clamp-3 break-words"
                             title={product.name}
                         >
                             {product.name}
@@ -180,7 +214,7 @@ export default function ProductCard({ product, href, onClick }: ProductCardProps
                             {metadataChips.map((chip) => (
                                 <span
                                     key={chip}
-                                    className="rounded-full bg-[#f8f3f4] px-2 py-0.5 font-montserrat text-[9px] sm:text-[10px] font-medium uppercase tracking-[0.12em] text-[#6a5a5f] truncate max-w-full"
+                                    className="max-w-full truncate rounded-full border border-[#efdde1] bg-[#fff9fb] px-2.5 py-0.5 font-montserrat text-[9px] sm:text-[10px] font-medium uppercase tracking-[0.10em] text-[#725c62]"
                                 >
                                     {chip}
                                 </span>
@@ -190,15 +224,36 @@ export default function ProductCard({ product, href, onClick }: ProductCardProps
 
                     <div className="mt-auto border-t border-[#E7A3B0]/12 pt-2">
                         <div>
-                            <p className="font-oswald text-[10px] uppercase tracking-[0.28em] text-[#c0929d]">
+                            <p className="font-oswald text-[10px] uppercase tracking-[0.24em] text-[#c0929d]">
                                 {isSoldOut ? "Last Price" : "Price"}
                             </p>
-                            <p className={cn(
-                                "font-oswald text-xl tracking-[0.04em]",
-                                isSoldOut ? "text-[#8b7580]" : "text-[#E7A3B0]"
-                            )}>
-                                {formattedPrice}
-                            </p>
+                            {hasDiscount && !isSoldOut && formattedSalePrice ? (
+                                <div className="space-y-1 rounded-[0.9rem] border border-[#f0d9df] bg-[#fff9fb] px-3 py-2">
+                                    {product.discount?.discount_name && (
+                                        <p className="font-montserrat text-[10px] font-semibold uppercase tracking-[0.16em] text-[#a76f7c]">
+                                            {product.discount.discount_name}
+                                        </p>
+                                    )}
+                                    <p className="font-oswald text-sm tracking-[0.18em] text-[#8b7580] line-through">
+                                        {formattedOriginalPrice}
+                                    </p>
+                                    <p className="font-oswald text-xl tracking-[0.04em] text-[#c95f7b]">
+                                        {formattedSalePrice}
+                                    </p>
+                                    {countdownLabel && (
+                                        <p className="font-montserrat text-[10px] font-medium uppercase tracking-[0.14em] text-[#a76f7c]">
+                                            {discountLabel} • {countdownLabel}
+                                        </p>
+                                    )}
+                                </div>
+                            ) : (
+                                <p className={cn(
+                                    "font-oswald text-xl tracking-[0.04em]",
+                                    isSoldOut ? "text-[#8b7580]" : "text-[#E7A3B0]"
+                                )}>
+                                    {formattedPrice}
+                                </p>
+                            )}
                         </div>
                     </div>
                 </div>

@@ -126,7 +126,23 @@ export default function ViewProductDialog({
             </div>
             <div className="min-w-0">
               <p className="text-sm font-medium text-gray-500">Price</p>
-              <p className="font-medium truncate">₱{product.product_price.toFixed(2)}</p>
+              {product.discountedPrice !== null && product.discountedPrice !== undefined ? (
+                <div className="space-y-1">
+                  <p className="font-medium truncate line-through text-gray-400">₱{product.product_price.toFixed(2)}</p>
+                  <p className="font-semibold truncate text-[#b96d7d]">₱{product.discountedPrice.toFixed(2)}</p>
+                  {product.discount && (
+                    <p className="text-xs text-gray-500">
+                      {product.discount.discount_name} • {product.discount.discount_type === "percent"
+                        ? `${product.discount.discount_value}% off`
+                        : product.discount.discount_type === "fixed_price"
+                          ? `Final price ₱${product.discount.discount_value.toFixed(2)}`
+                          : `₱${product.discount.discount_value.toFixed(2)} off`}
+                    </p>
+                  )}
+                </div>
+              ) : (
+                <p className="font-medium truncate">₱{product.product_price.toFixed(2)}</p>
+              )}
             </div>
             <div className="min-w-0">
               <p className="text-sm font-medium text-gray-500">Stock</p>
@@ -144,6 +160,15 @@ export default function ViewProductDialog({
               <p className="text-sm font-medium text-gray-500">Visibility</p>
               <p className="font-medium truncate">{product.show_in_catalog ? "Listed" : "Hidden"}</p>
             </div>
+            {product.discount && (
+              <div className="min-w-0 col-span-2">
+                <p className="text-sm font-medium text-gray-500">Sale Code</p>
+                <p className="font-medium break-words [overflow-wrap:anywhere]">{product.discount.discount_name}</p>
+                {product.discount.ends_at && (
+                  <p className="text-xs text-gray-500">Ends {new Date(product.discount.ends_at).toLocaleString()}</p>
+                )}
+              </div>
+            )}
           </div>
           <div className="w-full min-w-0">
             <p className="text-sm font-medium text-gray-500">Description</p>

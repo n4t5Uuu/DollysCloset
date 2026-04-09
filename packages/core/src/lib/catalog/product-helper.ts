@@ -1,4 +1,5 @@
 import { createClient } from "../supabase/browser";
+import { discountHelper } from "./discount-helper";
 
 type ProductQueryScope = "active" | "archived" | "all";
 
@@ -24,7 +25,29 @@ export const productHelper = {
             console.error("Error Fetching Products: ", error);
             return { data: null, error };
         }
-        return { data: data || [], error: null };
+
+        const products = (data || []) as Array<Record<string, unknown>>;
+        const discountMap = await discountHelper.getProductDiscountMap(
+            products.map((product) => String(product.product_id)),
+            supabase
+        );
+
+        const enrichedProducts = products.map((product) => {
+            const productDiscount = discountMap.get(String(product.product_id)) || null;
+            const price = Number(product.product_price || 0);
+            const discountedPrice = productDiscount
+                ? discountHelper.calculateDiscountedPrice(price, productDiscount)
+                : null;
+
+            return {
+                ...product,
+                discount: productDiscount,
+                discountedPrice,
+                isOnSale: Boolean(productDiscount && discountedPrice !== null && discountedPrice < price),
+            };
+        });
+
+        return { data: enrichedProducts, error: null };
     },
 
     /**
@@ -86,7 +109,27 @@ export const productHelper = {
             console.error("Error Fetching Product by ID: ", error);
             return { data: null, error };
         }
-        return { data, error: null };
+
+        if (!data) {
+            return { data: null, error: null };
+        }
+
+        const discountMap = await discountHelper.getProductDiscountMap([productId], supabase);
+        const productDiscount = discountMap.get(String(productId)) || null;
+        const price = Number(data.product_price || 0);
+        const discountedPrice = productDiscount
+            ? discountHelper.calculateDiscountedPrice(price, productDiscount)
+            : null;
+
+        return {
+            data: {
+                ...data,
+                discount: productDiscount,
+                discountedPrice,
+                isOnSale: Boolean(productDiscount && discountedPrice !== null && discountedPrice < price),
+            },
+            error: null,
+        };
     },
 
     /**
@@ -134,7 +177,29 @@ export const productHelper = {
             console.error("Error Fetching Catalog Products: ", error);
             return { data: null, error };
         }
-        return { data: data || [], error: null };
+
+        const products = (data || []) as Array<Record<string, unknown>>;
+        const discountMap = await discountHelper.getProductDiscountMap(
+            products.map((product) => String(product.product_id)),
+            supabase
+        );
+
+        const enrichedProducts = products.map((product) => {
+            const productDiscount = discountMap.get(String(product.product_id)) || null;
+            const price = Number(product.product_price || 0);
+            const discountedPrice = productDiscount
+                ? discountHelper.calculateDiscountedPrice(price, productDiscount)
+                : null;
+
+            return {
+                ...product,
+                discount: productDiscount,
+                discountedPrice,
+                isOnSale: Boolean(productDiscount && discountedPrice !== null && discountedPrice < price),
+            };
+        });
+
+        return { data: enrichedProducts, error: null };
     },
 
     /**

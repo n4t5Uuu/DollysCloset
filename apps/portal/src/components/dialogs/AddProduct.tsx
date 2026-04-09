@@ -1,12 +1,14 @@
 "use client";
 
 import { useState, useEffect, useMemo, useRef, useCallback } from "react";
-import { Loader2, X, ChevronDown } from "lucide-react";
+import { ChevronDown } from "lucide-react";
 import { 
     createClient,
     InventoryProduct as Product,
     InventoryCategory as Category,
     InventoryProductImage as ProductImage,
+    ProductDiscount,
+    discountHelper,
     sanitizeMultilineInput,
     sanitizeMultilineText,
     sanitizeSingleLineInput,
@@ -16,16 +18,17 @@ import {
     uploadProductImageFile
 } from "@dollys-closet/core";
 import { 
-    Button,
     Input,
     Textarea,
     Checkbox,
     Card,
     CardContent,
-    CardFooter,
-    CardHeader,
-    CardTitle,
-    FormNotice
+    FormNotice,
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
 } from "@dollys-closet/ui";
 import ProductImageUpload from "@/components/product-image-upload";
 import ImageSelector from "@/components/image-selector";
@@ -48,6 +51,7 @@ interface AddProductProps {
     productToEdit?: Product | null;
     onProductSaved: () => void | Promise<void>;
     existingProducts?: Product[];
+    discounts?: ProductDiscount[];
 }
 
 interface SessionWithAccessToken {
@@ -86,7 +90,7 @@ const normalizeCategoryId = (value: unknown) => {
  * - Form Guard: Intercepts close attempts if unsaved changes are detected.
  * - Real-time Validation: Disables save if required fields (Name, Category, Price) are missing.
  */
-export default function AddProduct({ isOpen, onClose, categories, productToEdit, onProductSaved, existingProducts = [] }: AddProductProps) {
+export default function AddProduct({ isOpen, onClose, categories, productToEdit, onProductSaved, existingProducts = [], discounts = [] }: AddProductProps) {
     const [actionLoading, setActionLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [stagedFiles, setStagedFiles] = useState<File[]>([]);
@@ -95,6 +99,8 @@ export default function AddProduct({ isOpen, onClose, categories, productToEdit,
     const sizeDropdownRef = useRef<HTMLDivElement>(null);
     const [conditionDropdownOpen, setConditionDropdownOpen] = useState(false);
     const conditionDropdownRef = useRef<HTMLDivElement>(null);
+    const [discountEnabled, setDiscountEnabled] = useState(false);
+    const [selectedDiscountId, setSelectedDiscountId] = useState("");
 
     const [showDiscardConfirm, setShowDiscardConfirm] = useState(false);
     const [formData, setFormData] = useState({
@@ -109,6 +115,11 @@ export default function AddProduct({ isOpen, onClose, categories, productToEdit,
         show_in_catalog: true,
         image_id: "",
     });
+
+    const selectedDiscount = useMemo(
+        () => discounts.find((discount) => String(discount.id) === selectedDiscountId) || null,
+        [discounts, selectedDiscountId]
+    );
 
     useEffect(() => {
         if (!sizeDropdownOpen) return;
@@ -150,6 +161,8 @@ export default function AddProduct({ isOpen, onClose, categories, productToEdit,
                 formData.product_condition !== sanitizeSingleLineInput(productToEdit.product_condition || "New", schemaExactLimits.productCondition) ||
                 formData.size_label !== sanitizeSingleLineInput(productToEdit.size_label || "One Size", schemaExactLimits.productSizeLabel) ||
                 formData.show_in_catalog !== productToEdit.show_in_catalog ||
+                discountEnabled !== Boolean(productToEdit.discount) ||
+                selectedDiscountId !== String(productToEdit.discount?.id || "") ||
                 stagedFiles.length > 0
             );
         }
@@ -163,9 +176,11 @@ export default function AddProduct({ isOpen, onClose, categories, productToEdit,
             formData.product_condition !== "New" ||
             formData.size_label !== "" ||
             formData.show_in_catalog !== true ||
+            discountEnabled !== false ||
+            selectedDiscountId !== "" ||
             stagedFiles.length > 0
         );
-    }, [formData, productToEdit, stagedFiles.length]);
+    }, [discountEnabled, formData, productToEdit, selectedDiscountId, stagedFiles.length]);
 
     const handleClose = useCallback(() => {
         if (hasUnsavedChanges()) {
@@ -181,6 +196,13 @@ export default function AddProduct({ isOpen, onClose, categories, productToEdit,
     const trimmedStock = formData.product_stock.trim();
     const parsedPricePreview = trimmedPrice === "" ? null : Number.parseFloat(trimmedPrice);
     const parsedStockPreview = trimmedStock === "" ? 0 : Number.parseInt(trimmedStock, 10);
+    const previewDiscountedPrice = useMemo(() => {
+        if (!selectedDiscount || !trimmedPrice) return null;
+        const basePrice = Number.parseFloat(trimmedPrice);
+        if (!Number.isFinite(basePrice)) return null;
+
+        return discountHelper.calculateDiscountedPrice(basePrice, selectedDiscount);
+    }, [selectedDiscount, trimmedPrice]);
 
     const missingRequiredFields = useMemo(() => {
         const missingFields: string[] = [];
@@ -252,9 +274,13 @@ export default function AddProduct({ isOpen, onClose, categories, productToEdit,
                     show_in_catalog: productToEdit.show_in_catalog,
                     image_id: productToEdit.image_id || "",
                 });
+                setDiscountEnabled(Boolean(productToEdit.discount));
+                setSelectedDiscountId(String(productToEdit.discount?.id || ""));
                 fetchProductImages(productToEdit.product_id);
             } else {
                 resetForm();
+                setDiscountEnabled(false);
+                setSelectedDiscountId("");
             }
         }
     }, [isOpen, productToEdit]);
@@ -295,6 +321,8 @@ export default function AddProduct({ isOpen, onClose, categories, productToEdit,
             show_in_catalog: true,
             image_id: "",
         });
+        setDiscountEnabled(false);
+        setSelectedDiscountId("");
         setStagedFiles([]);
         setProductImages([]);
         setError(null);
@@ -442,6 +470,7 @@ export default function AddProduct({ isOpen, onClose, categories, productToEdit,
                     size_label: normalizedSizeLabel,
                     show_in_catalog: formData.show_in_catalog,
                     image_id: formData.image_id || null,
+                    discount_id: discountEnabled ? selectedDiscountId || null : null,
                 })
             });
 
@@ -562,6 +591,66 @@ export default function AddProduct({ isOpen, onClose, categories, productToEdit,
                                     Enter the selling price in Philippine pesos.
                                 </p>
                             </div>
+                        </div>
+
+                        <div className="rounded-xl border border-[#E7A3B0]/15 bg-[#fffafc] p-4 space-y-4">
+                            <div className="flex items-start gap-3">
+                                <Checkbox
+                                    checked={discountEnabled}
+                                    onCheckedChange={(checked) => {
+                                        const nextEnabled = Boolean(checked);
+                                        setDiscountEnabled(nextEnabled);
+                                        if (!nextEnabled) {
+                                            setSelectedDiscountId("");
+                                        }
+                                    }}
+                                />
+                                <div className="space-y-1">
+                                    <p className="text-sm font-semibold text-gray-900">Apply discount code</p>
+                                    <p className="text-xs text-gray-500">
+                                        Pick an active sale code to attach to this product.
+                                    </p>
+                                </div>
+                            </div>
+
+                            {discountEnabled && (
+                                <div className="space-y-3 pl-7">
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-2">Discount Code</label>
+                                        <Select value={selectedDiscountId} onValueChange={setSelectedDiscountId}>
+                                            <SelectTrigger className="border-gray-300 bg-white text-gray-900">
+                                                <SelectValue placeholder={discounts.length > 0 ? "Select a discount" : "No discounts created yet"} />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                {discounts.map((discount) => (
+                                                    <SelectItem key={discount.id} value={String(discount.id)}>
+                                                        {discount.discount_name}
+                                                    </SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+
+                                    {selectedDiscount && (
+                                        <div className="rounded-lg border border-[#E7A3B0]/15 bg-white px-3 py-2 text-sm text-gray-700">
+                                            <p className="font-semibold text-gray-900">{selectedDiscount.discount_name}</p>
+                                            <p className="text-xs text-gray-500">
+                                                {selectedDiscount.discount_type === "percent"
+                                                    ? `${selectedDiscount.discount_value}% off`
+                                                    : selectedDiscount.discount_type === "fixed_price"
+                                                        ? `Final price ₱${selectedDiscount.discount_value.toFixed(2)}`
+                                                        : `₱${selectedDiscount.discount_value.toFixed(2)} off`}
+                                                {selectedDiscount.ends_at ? ` • Ends ${new Date(selectedDiscount.ends_at).toLocaleString()}` : ""}
+                                            </p>
+                                            {previewDiscountedPrice !== null && (
+                                                <p className="mt-1 text-xs font-medium text-[#b96d7d]">
+                                                    Sale preview: ₱{previewDiscountedPrice.toFixed(2)}
+                                                </p>
+                                            )}
+                                        </div>
+                                    )}
+                                </div>
+                            )}
                         </div>
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
