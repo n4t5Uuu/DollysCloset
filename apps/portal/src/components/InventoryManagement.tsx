@@ -68,10 +68,10 @@ const visibilityLabels: Record<string, string> = {
 const sortLabels: Record<string, string> = {
   "newest": "Newest first",
   "oldest": "Oldest first",
-  "updated": "Recently updated",
-  "least-updated": "Least updated",
-  "az": "Name A to Z",
-  "za": "Name Z to A",
+  "updated": "Last updated (newest)",
+  "least-updated": "Last updated (oldest)",
+  "az": "Name: A\u2013Z",
+  "za": "Name: Z\u2013A",
 };
 
 export default function InventoryManagement({ initialAvailabilityFilter }: InventoryManagementProps) {
@@ -237,6 +237,7 @@ export default function InventoryManagement({ initialAvailabilityFilter }: Inven
     setShowAddModal(false);
     setShowBulkImport(false);
     setShowDiscountModal(false);
+    setProducts([]);
   }, [inventoryScope]);
 
   const categoryById = useMemo(
@@ -404,50 +405,55 @@ export default function InventoryManagement({ initialAvailabilityFilter }: Inven
         key: "all",
         label: "All Products",
         count: totalCount,
-        active: availabilityFilter === "all" && visibilityFilter === "all",
+        active: availabilityFilter === "all" && visibilityFilter === "all" && saleFilter !== "on-sale",
         onClick: () => {
           setAvailabilityFilter("all");
           setVisibilityFilter("all");
+          setSaleFilter("all");
         },
       },
       {
         key: "published",
         label: "Published",
         count: publishedCount,
-        active: visibilityFilter === "published",
+        active: visibilityFilter === "published" && saleFilter !== "on-sale",
         onClick: () => {
           setVisibilityFilter("published");
           setAvailabilityFilter("all");
+          setSaleFilter("all");
         },
       },
       {
         key: "hidden",
         label: "Hidden",
         count: hiddenCount,
-        active: visibilityFilter === "unpublished",
+        active: visibilityFilter === "unpublished" && saleFilter !== "on-sale",
         onClick: () => {
           setVisibilityFilter("unpublished");
           setAvailabilityFilter("all");
+          setSaleFilter("all");
         },
       },
       {
         key: "alerts",
         label: "Stock Alerts",
         count: stockAlertCount,
-        active: availabilityFilter === "stock-alerts",
+        active: availabilityFilter === "stock-alerts" && saleFilter !== "on-sale",
         onClick: () => {
           setAvailabilityFilter("stock-alerts");
           setVisibilityFilter("all");
+          setSaleFilter("all");
         },
       },
       {
         key: "no-image",
         label: "No Image",
         count: noImageCount,
-        active: availabilityFilter === "no-image",
+        active: availabilityFilter === "no-image" && saleFilter !== "on-sale",
         onClick: () => {
           setAvailabilityFilter("no-image");
           setVisibilityFilter("all");
+          setSaleFilter("all");
         },
       },
       {
@@ -672,13 +678,23 @@ export default function InventoryManagement({ initialAvailabilityFilter }: Inven
     const discountName = discountForm.discount_name.trim();
     const discountValue = Number.parseFloat(discountForm.discount_value);
 
-    if (!discountName || !Number.isFinite(discountValue) || discountValue < 0) {
-      toast.error('Enter a valid discount name and value.');
+    if (!discountName) {
+      toast.error('Enter a discount name.');
       return;
     }
 
-    if (discountForm.discount_type === 'percent' && discountValue > 100) {
-      toast.error('Percentage discounts cannot exceed 100.');
+    if (discountName.length > 30) {
+      toast.error('Discount name must be 30 characters or less.');
+      return;
+    }
+
+    if (!Number.isFinite(discountValue) || discountValue <= 0) {
+      toast.error('Enter a valid discount value greater than 0.');
+      return;
+    }
+
+    if (discountForm.discount_type === 'percent' && (discountValue < 1 || discountValue > 100)) {
+      toast.error('Percentage discount must be between 1 and 100.');
       return;
     }
 
@@ -795,20 +811,21 @@ export default function InventoryManagement({ initialAvailabilityFilter }: Inven
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold">Manage Inventory</h1>
-          <p className="text-gray-500 text-sm">
-            {inventoryScope === "active"
-              ? "Create, update, archive, and organize products and categories."
-              : "Review archived products and restore them when they should return to the active catalog."}
-          </p>
-        </div>
-        <div className="flex items-center gap-2 sm:shrink-0">
-          <div className="flex items-center rounded-lg border border-[#E7A3B0]/20 bg-[#fff9fb] p-1">
+      <div className="space-y-3">
+        {/* Top row: Title + scope toggle */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div>
+            <h1 className="text-2xl font-bold">Manage Inventory</h1>
+            <p className="text-gray-500 text-sm">
+              {inventoryScope === "active"
+                ? "Create, update, archive, and organize products and categories."
+                : "Review archived products and restore them when they should return to the active catalog."}
+            </p>
+          </div>
+          <div className="flex items-center rounded-lg border border-[#E7A3B0]/20 bg-[#fff9fb] p-1 sm:shrink-0">
             <button
               type="button"
-              onClick={() => setInventoryScope("active")}
+              onClick={() => { setProducts([]); setInventoryScope("active"); }}
               className={`rounded-md px-3 py-1.5 text-xs font-semibold transition-colors ${
                 inventoryScope === "active"
                   ? "bg-[#E7A3B0] text-white"
@@ -819,7 +836,7 @@ export default function InventoryManagement({ initialAvailabilityFilter }: Inven
             </button>
             <button
               type="button"
-              onClick={() => setInventoryScope("archived")}
+              onClick={() => { setProducts([]); setInventoryScope("archived"); }}
               className={`rounded-md px-3 py-1.5 text-xs font-semibold transition-colors ${
                 inventoryScope === "archived"
                   ? "bg-[#E7A3B0] text-white"
@@ -829,11 +846,15 @@ export default function InventoryManagement({ initialAvailabilityFilter }: Inven
               Archived
             </button>
           </div>
+        </div>
+
+        {/* Bottom row: Refresh left, action buttons right */}
+        <div className="flex items-center justify-between gap-2">
           <Button
             type="button"
             variant="outline"
             onClick={() => fetchProducts(true)}
-            className="h-10 border-[#E7A3B0]/30 text-[#b96d7d] hover:bg-[#fff5f7] hover:text-[#b96d7d]"
+            className="h-9 border-[#E7A3B0]/30 text-[#b96d7d] hover:bg-[#fff5f7] hover:text-[#b96d7d]"
             disabled={loading || actionLoading}
             title="Refresh inventory"
           >
@@ -841,7 +862,7 @@ export default function InventoryManagement({ initialAvailabilityFilter }: Inven
             Refresh
           </Button>
           {inventoryScope === "active" && (
-            <>
+            <div className="flex items-center gap-2">
               <button
                 onClick={() => setShowBulkImport(true)}
                 className="flex items-center gap-2 px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-800 rounded-lg text-sm font-medium transition-all duration-300 shadow-sm hover:shadow-md hover:scale-105 cursor-pointer"
@@ -863,7 +884,7 @@ export default function InventoryManagement({ initialAvailabilityFilter }: Inven
                 <Plus size={16} />
                 Add Product
               </button>
-            </>
+            </div>
           )}
         </div>
       </div>
@@ -896,22 +917,22 @@ export default function InventoryManagement({ initialAvailabilityFilter }: Inven
         />
       )}
 
-      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
+      <div className="grid gap-2 grid-cols-3 xl:grid-cols-6">
         {quickFilterCards.map((card) => (
           <button
             key={card.key}
             type="button"
             onClick={card.onClick}
-            className={`rounded-2xl border px-4 py-4 text-left transition-all ${
+            className={`rounded-xl border px-3 py-3 text-left transition-all ${
               card.active
                 ? "border-[#E7A3B0] bg-[#fff5f7] shadow-sm"
                 : "border-gray-200 bg-white hover:border-[#E7A3B0]/40 hover:bg-[#fffafb]"
             }`}
           >
-            <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[#b47c88]">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[#b47c88] truncate">
               {card.label}
             </p>
-            <p className="mt-2 text-2xl font-bold text-[#121212]">
+            <p className="mt-1 text-xl font-bold text-[#121212]">
               {card.count}
             </p>
           </button>
@@ -1036,16 +1057,16 @@ export default function InventoryManagement({ initialAvailabilityFilter }: Inven
         />
 
         <Select value={dateSort} onValueChange={(value) => setDateSort(value as "newest" | "oldest" | "updated" | "least-updated" | "az" | "za") }>
-          <SelectTrigger className="w-[140px] h-9 text-xs text-gray-900 bg-white">
+          <SelectTrigger className="w-[190px] h-9 text-xs text-gray-900 bg-white">
             <SelectValue placeholder="Sort Date" />
           </SelectTrigger>
           <SelectContent className="bg-white border-gray-200 text-black">
-            <SelectItem value="newest" className="cursor-pointer focus:bg-[#fff5f7] focus:text-[#E7A3B0]">Newest</SelectItem>
-            <SelectItem value="oldest" className="cursor-pointer focus:bg-[#fff5f7] focus:text-[#E7A3B0]">Oldest</SelectItem>
-            <SelectItem value="updated" className="cursor-pointer focus:bg-[#fff5f7] focus:text-[#E7A3B0]">Recently updated</SelectItem>
-            <SelectItem value="least-updated" className="cursor-pointer focus:bg-[#fff5f7] focus:text-[#E7A3B0]">Least updated</SelectItem>
-            <SelectItem value="az" className="cursor-pointer focus:bg-[#fff5f7] focus:text-[#E7A3B0]">Name: A to Z</SelectItem>
-            <SelectItem value="za" className="cursor-pointer focus:bg-[#fff5f7] focus:text-[#E7A3B0]">Name: Z to A</SelectItem>
+            <SelectItem value="newest" className="cursor-pointer focus:bg-[#fff5f7] focus:text-[#E7A3B0]">Newest first</SelectItem>
+            <SelectItem value="oldest" className="cursor-pointer focus:bg-[#fff5f7] focus:text-[#E7A3B0]">Oldest first</SelectItem>
+            <SelectItem value="updated" className="cursor-pointer focus:bg-[#fff5f7] focus:text-[#E7A3B0]">Last updated (newest)</SelectItem>
+            <SelectItem value="least-updated" className="cursor-pointer focus:bg-[#fff5f7] focus:text-[#E7A3B0]">Last updated (oldest)</SelectItem>
+            <SelectItem value="az" className="cursor-pointer focus:bg-[#fff5f7] focus:text-[#E7A3B0]">Name: A–Z</SelectItem>
+            <SelectItem value="za" className="cursor-pointer focus:bg-[#fff5f7] focus:text-[#E7A3B0]">Name: Z–A</SelectItem>
           </SelectContent>
         </Select>
 
@@ -1224,16 +1245,18 @@ export default function InventoryManagement({ initialAvailabilityFilter }: Inven
             </div>
 
             <div className="grid max-h-[calc(90vh-5.5rem)] gap-6 overflow-y-auto p-6 lg:grid-cols-[1.05fr_0.95fr]">
-              <div className="rounded-2xl border border-[#E7A3B0]/15 bg-[#fffafc] p-5 shadow-sm">
+              <div className="rounded-2xl border border-[#E7A3B0]/15 bg-[#fffafc] p-5 shadow-sm lg:sticky lg:top-0 lg:self-start">
                 <div className="space-y-4">
                   <div>
                     <label className="mb-2 block text-sm font-medium text-gray-700">Discount Name</label>
                     <Input
                       value={discountForm.discount_name}
-                      onChange={(event) => setDiscountForm((prev) => ({ ...prev, discount_name: event.target.value }))}
+                      onChange={(event) => setDiscountForm((prev) => ({ ...prev, discount_name: event.target.value.slice(0, 30) }))}
+                      maxLength={30}
                       placeholder="Back to School Sale"
                       className="border-gray-300 bg-white text-gray-900"
                     />
+                    <p className="mt-1 text-xs text-gray-400 text-right">{discountForm.discount_name.length}/30</p>
                   </div>
 
                   <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -1264,7 +1287,8 @@ export default function InventoryManagement({ initialAvailabilityFilter }: Inven
                       </label>
                       <Input
                         type="number"
-                        min="0"
+                        min="0.01"
+                        max={discountForm.discount_type === "percent" ? "100" : undefined}
                         step={discountForm.discount_type === "percent" ? "1" : "0.01"}
                         value={discountForm.discount_value}
                         onChange={(event) => setDiscountForm((prev) => ({ ...prev, discount_value: event.target.value }))}

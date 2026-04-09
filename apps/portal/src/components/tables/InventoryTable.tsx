@@ -86,12 +86,10 @@ export function InventoryTable({
         const updatedDate = new Date(rawValue);
         if (Number.isNaN(updatedDate.getTime())) return "-";
 
-        return updatedDate.toLocaleString("en-US", {
+        return updatedDate.toLocaleDateString("en-US", {
             month: "short",
             day: "numeric",
             year: "numeric",
-            hour: "numeric",
-            minute: "2-digit",
         });
     };
 
@@ -258,7 +256,7 @@ export function InventoryTable({
                             {mode === "archived" && (
                                 <TableHead className="p-4 text-center font-bold">Archived On</TableHead>
                             )}
-                            <TableHead className="p-4 text-center font-bold">Recently Updated</TableHead>
+                            <TableHead className="p-4 text-center font-bold">Last Updated</TableHead>
                             <TableHead className="p-4 text-center font-bold w-[200px]">Actions</TableHead>
                         </TableRow>
                     </TableHeader>
@@ -269,7 +267,6 @@ export function InventoryTable({
                                     key={product.product_id}
                                     className={cn("border-b hover:bg-gray-50", selectedProducts.has(product.product_id) && "bg-[#E7A3B0]/5")}
                                     onDoubleClick={() => activateRow(product)}
-                                    title={mode === "active" ? "Double-click to edit this product" : undefined}
                                 >
                                     <TableCell className="p-4">
                                         <Checkbox
@@ -294,7 +291,7 @@ export function InventoryTable({
                                             {formatPublishedDate(product.created_at)}
                                         </div>
                                     </TableCell>
-                                    <TableCell className="p-4 text-gray-600 overflow-hidden">
+                                    <TableCell className="p-4 text-gray-600 overflow-hidden" title={getCategoryName(product.category_id)}>
                                         <span className="line-clamp-2 wrap-anywhere">{getCategoryName(product.category_id)}</span>
                                     </TableCell>
                                     <TableCell className="p-4 text-center">

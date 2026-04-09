@@ -593,7 +593,7 @@ export default function AddProduct({ isOpen, onClose, categories, productToEdit,
                             </div>
                         </div>
 
-                        <div className="rounded-xl border border-[#E7A3B0]/15 bg-[#fffafc] p-4 space-y-4">
+                        <div className="rounded-xl border border-gray-200 bg-white p-4 space-y-4">
                             <div className="flex items-start gap-3">
                                 <Checkbox
                                     checked={discountEnabled}
@@ -604,6 +604,7 @@ export default function AddProduct({ isOpen, onClose, categories, productToEdit,
                                             setSelectedDiscountId("");
                                         }
                                     }}
+                                    className="!border-gray-600"
                                 />
                                 <div className="space-y-1">
                                     <p className="text-sm font-semibold text-gray-900">Apply discount code</p>
