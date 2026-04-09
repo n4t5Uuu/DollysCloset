@@ -1,16 +1,30 @@
 import { createClient } from "../supabase/browser";
 
+type ProductQueryScope = "active" | "archived" | "all";
+
 export const productHelper = {
     /**
      * Retrieves all product records from the database's `tbl_product` table.
      */
-    async getProducts(supabase = createClient()) {
-        const { data, error } = await supabase.from("tbl_product").select("*");
+    async getProducts(
+        supabase = createClient(),
+        { scope = "active" }: { scope?: ProductQueryScope } = {}
+    ) {
+        let query =
+            scope === "active"
+                ? supabase.from("active_products").select("*")
+                : supabase.from("tbl_product").select("*");
+
+        if (scope === "archived") {
+            query = query.not("archived_at", "is", null);
+        }
+
+        const { data, error } = await query.order("created_at", { ascending: false, nullsFirst: false });
         if (error) {
             console.error("Error Fetching Products: ", error);
             return { data: null, error };
         }
-        return { data, error: null };
+        return { data: data || [], error: null };
     },
 
     /**
@@ -50,22 +64,24 @@ export const productHelper = {
     },
 
     /**
-     * Deletes a single product by row identification.
+     * Hard deletes are disabled in favor of archive-only behavior.
      */
     async deleteProduct(productId: number | string, supabase = createClient()) {
-        const { error } = await supabase.from("tbl_product").delete().eq("product_id", productId);
-        if (error) {
-            console.error("Error Deleting Product: ", error);
-            return { success: false, error };
-        }
-        return { success: true, error: null };
+        const error = new Error(`Hard delete is disabled for product ${productId}. Archive the product instead.`);
+        console.error("Error Deleting Product: ", error);
+        return { success: false, error };
     },
 
     /**
      * Retrieves a single product by ID.
      */
-    async getProductById(productId: number | string, supabase = createClient()) {
-        const { data, error } = await supabase.from("tbl_product").select("*").eq("product_id", productId).maybeSingle();
+    async getProductById(
+        productId: number | string,
+        supabase = createClient(),
+        { includeArchived = false }: { includeArchived?: boolean } = {}
+    ) {
+        const source = includeArchived ? "tbl_product" : "active_products";
+        const { data, error } = await supabase.from(source).select("*").eq("product_id", productId).maybeSingle();
         if (error) {
             console.error("Error Fetching Product by ID: ", error);
             return { data: null, error };
@@ -113,7 +129,7 @@ export const productHelper = {
      * Retrieves products marked explicitly to show in public catalog views.
      */
     async getProductsCatalog(supabase = createClient()) {
-        const { data, error } = await supabase.from("tbl_product").select("*").eq("show_in_catalog", true).order("created_at", { ascending: false, nullsFirst: false });
+        const { data, error } = await supabase.from("active_products").select("*").eq("show_in_catalog", true).order("created_at", { ascending: false, nullsFirst: false });
         if (error) {
             console.error("Error Fetching Catalog Products: ", error);
             return { data: null, error };
@@ -173,12 +189,9 @@ export const productHelper = {
      * Deletes multiple products by identification codes.
      */
     async deleteProductsBulk(productIds: number[], supabase = createClient()) {
-        const { error } = await supabase.from("tbl_product").delete().in("product_id", productIds);
-        if (error) {
-            console.error("Error Deleting Bulk Products: ", error);
-            return { success: false, error };
-        }
-        return { success: true, error: null };
+        const error = new Error(`Hard delete is disabled for ${productIds.length} product(s). Archive the products instead.`);
+        console.error("Error Deleting Bulk Products: ", error);
+        return { success: false, error };
     },
 
     /**

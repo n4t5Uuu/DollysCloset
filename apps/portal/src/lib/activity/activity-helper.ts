@@ -244,17 +244,9 @@ export const activityHelper = {
      * Clears all items in the activity log table.
      */
     async clearLogs(supabase = createClient()) {
-        const { error } = await supabase
-            .from("tbl_activity_log")
-            .delete()
-            .gte("log_id", 0);
-
-        if (error) {
-            console.error("Error clearing logs: ", error);
-            return { success: false, error };
-        }
-
-        return { success: true, error: null };
+        const error = new Error("Activity logs are permanent and cannot be cleared.");
+        console.error("Error clearing logs: ", error);
+        return { success: false, error };
     },
 
     /**

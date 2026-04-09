@@ -14,6 +14,7 @@ export interface InventoryProduct {
     show_in_catalog: boolean;
     image_id: string | null;
     created_at: string;
+    archived_at: string | null;
 }
 
 /**

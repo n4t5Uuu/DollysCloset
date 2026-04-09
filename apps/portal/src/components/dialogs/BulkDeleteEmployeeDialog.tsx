@@ -12,6 +12,7 @@ import {
 
 interface BulkDeleteEmployeeDialogProps {
   selectedCount: number;
+  mode: "archive" | "restore";
   onClose: () => void;
   onDelete: () => void;
   actionLoading: boolean;
@@ -20,6 +21,7 @@ interface BulkDeleteEmployeeDialogProps {
 
 export default function BulkDeleteEmployeeDialog({
   selectedCount,
+  mode,
   onClose,
   onDelete,
   actionLoading,
@@ -29,9 +31,13 @@ export default function BulkDeleteEmployeeDialog({
     <AlertDialog open={true} onOpenChange={(open) => { if (!open) onClose(); }}>
       <AlertDialogContent className="bg-white">
         <AlertDialogHeader>
-          <AlertDialogTitle className="text-gray-900">Delete Multiple Employees</AlertDialogTitle>
+          <AlertDialogTitle className="text-gray-900">
+            {mode === "archive" ? "Archive Multiple Employees" : "Restore Multiple Employees"}
+          </AlertDialogTitle>
           <AlertDialogDescription>
-               Are you sure you want to delete <span className="font-semibold">{selectedCount} employee{selectedCount !== 1 ? 's' : ''}</span>? This will permanently delete the accounts and all associated data. This action cannot be undone.
+               {mode === "archive"
+                ? <>Archive <span className="font-semibold">{selectedCount} employee{selectedCount !== 1 ? 's' : ''}</span>? Archived accounts are hidden from active dashboards and blocked from portal access until restored.</>
+                : <>Restore <span className="font-semibold">{selectedCount} employee{selectedCount !== 1 ? 's' : ''}</span> to the active employee directory?</>}
           </AlertDialogDescription>
         </AlertDialogHeader>
 
@@ -51,16 +57,18 @@ export default function BulkDeleteEmployeeDialog({
           </AlertDialogCancel>
           <AlertDialogAction 
             onClick={(e) => { e.preventDefault(); onDelete(); }} 
-            className="bg-red-500 hover:bg-red-600 text-white cursor-pointer flex items-center justify-center gap-2" 
+            className={`${mode === "archive" ? "bg-amber-500 hover:bg-amber-600" : "bg-emerald-600 hover:bg-emerald-700"} text-white cursor-pointer flex items-center justify-center gap-2`} 
             disabled={actionLoading}
           >
              {actionLoading ? (
                <>
                  <Loader2 className="w-4 h-4 animate-spin" />
-                 Deleting...
+                 {mode === "archive" ? "Archiving..." : "Restoring..."}
                </>
              ) : (
-               `Delete ${selectedCount} Employee${selectedCount !== 1 ? 's' : ''}`
+               mode === "archive"
+                ? `Archive ${selectedCount} Employee${selectedCount !== 1 ? 's' : ''}`
+                : `Restore ${selectedCount} Employee${selectedCount !== 1 ? 's' : ''}`
              )}
           </AlertDialogAction>
         </AlertDialogFooter>

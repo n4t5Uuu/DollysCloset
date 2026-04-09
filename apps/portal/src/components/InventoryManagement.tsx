@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { useSearchParams, useRouter, usePathname } from "next/navigation";
-import { Plus, Trash, X, Upload, SlidersHorizontal, RefreshCw } from "lucide-react";
+import { Plus, Archive, RotateCcw, X, Upload, SlidersHorizontal, RefreshCw } from "lucide-react";
 import { 
   createClient,
   InventoryProduct as Product,
@@ -40,6 +40,8 @@ import { toast } from "sonner";
 interface InventoryManagementProps {
   initialAvailabilityFilter?: string;
 }
+
+type InventoryScope = "active" | "archived";
 
 const availabilityLabels: Record<string, string> = {
   "all": "All stock",
@@ -85,6 +87,7 @@ export default function InventoryManagement({ initialAvailabilityFilter }: Inven
   const [actionLoading, setActionLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [actionNotice, setActionNotice] = useState<{ tone: "success" | "warning"; message: string } | null>(null);
+  const [inventoryScope, setInventoryScope] = useState<InventoryScope>("active");
 
   const [searchQuery, setSearchQuery] = useState("");
   const [visibilityFilter, setVisibilityFilter] = useState("all");
@@ -106,14 +109,14 @@ export default function InventoryManagement({ initialAvailabilityFilter }: Inven
   const itemsPerPage = 10;
   const lowStockThreshold = 10;
 
-  const fetchProducts = useCallback(async (showGlobalLoader = false) => {
+  const fetchProducts = useCallback(async (showGlobalLoader = false, scope = inventoryScope) => {
     try {
       if (showGlobalLoader) {
         setLoading(true);
       }
       setError(null);
 
-      const response = await fetch('/api/admin/products', { cache: 'no-store' });
+      const response = await fetch(`/api/admin/products?scope=${scope}`, { cache: 'no-store' });
       if (!response.ok) throw new Error('Failed to fetch products');
       
       const result = await response.json();
@@ -126,7 +129,7 @@ export default function InventoryManagement({ initialAvailabilityFilter }: Inven
     } finally {
       if (showGlobalLoader) setLoading(false);
     }
-  }, []);
+  }, [inventoryScope]);
 
   const fetchCategories = useCallback(async () => {
     try {
@@ -188,6 +191,16 @@ export default function InventoryManagement({ initialAvailabilityFilter }: Inven
   useEffect(() => {
     router.replace(pathname);
   }, [searchQuery, visibilityFilter, availabilityFilter, categoryFilter, dateSort, router, pathname]);
+
+  useEffect(() => {
+    setSelectedProducts(new Set());
+    setViewProduct(null);
+    setViewImages([]);
+    setSelectedViewImage(null);
+    setEditingProduct(null);
+    setShowAddModal(false);
+    setShowBulkImport(false);
+  }, [inventoryScope]);
 
   const categoryById = useMemo(
     () => new Map(categories.map((category) => [Number(category.category_id), category])),
@@ -394,9 +407,20 @@ export default function InventoryManagement({ initialAvailabilityFilter }: Inven
     ];
   }, [availabilityFilter, lowStockThreshold, products, visibilityFilter]);
 
-  const inventoryEmptyTitle = products.length === 0 ? "No products yet" : "No products matched your filters";
+  const outOfStockActiveCount = useMemo(() => {
+    if (inventoryScope !== "active") return 0;
+    return products.filter((p) => p.product_stock === 0).length;
+  }, [products, inventoryScope]);
+
+  const inventoryEmptyTitle = products.length === 0
+    ? inventoryScope === "active"
+      ? "No products yet"
+      : "No archived products"
+    : "No products matched your filters";
   const inventoryEmptyDescription = products.length === 0
-    ? "Add a product or import your inventory to start managing products here."
+    ? inventoryScope === "active"
+      ? "Add a product or import your inventory to start managing products here."
+      : "Archived products will appear here and can be restored when needed."
     : "Try clearing one or more filters, or broaden your search to see more products.";
 
   const clearAllFilters = () => {
@@ -467,7 +491,7 @@ export default function InventoryManagement({ initialAvailabilityFilter }: Inven
     }
   };
 
-  const handleDeleteProduct = async (productId: string) => {
+  const handleArchiveProduct = async (productId: string) => {
     setActionLoading(true);
     setError(null);
     setActionNotice(null);
@@ -476,8 +500,8 @@ export default function InventoryManagement({ initialAvailabilityFilter }: Inven
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) throw new Error('Not authenticated');
       
-      const response = await fetch('/api/admin/products', {
-        method: 'DELETE',
+      const response = await fetch('/api/admin/products/archive', {
+        method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${session.access_token}`
@@ -485,13 +509,13 @@ export default function InventoryManagement({ initialAvailabilityFilter }: Inven
         body: JSON.stringify({ product_id: productId })
       });
       const data = await response.json();
-      if (!response.ok) throw new Error(data.error || 'Failed to delete product');
+      if (!response.ok) throw new Error(data.error || 'Failed to archive product');
       setError(null);
       await fetchProducts();
-      toast.success("Product deleted successfully.");
-      setActionNotice({ tone: "success", message: "Product deleted. The inventory list has been refreshed." });
+      toast.success("Product archived successfully.");
+      setActionNotice({ tone: "success", message: "Product archived. It has been moved to the archive view." });
     } catch (err: unknown) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to delete product';
+      const errorMessage = err instanceof Error ? err.message : 'Failed to archive product';
       setError(errorMessage);
       toast.error(errorMessage);
     } finally {
@@ -499,7 +523,39 @@ export default function InventoryManagement({ initialAvailabilityFilter }: Inven
     }
   };
 
-  const handleBulkDelete = async () => {
+  const handleRestoreProduct = async (productId: string) => {
+    setActionLoading(true);
+    setError(null);
+    setActionNotice(null);
+    try {
+      const supabase = createClient();
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error('Not authenticated');
+
+      const response = await fetch('/api/admin/products/restore', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`
+        },
+        body: JSON.stringify({ product_id: productId })
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || 'Failed to restore product');
+      setError(null);
+      await fetchProducts();
+      toast.success("Product restored successfully.");
+      setActionNotice({ tone: "success", message: "Product restored and returned to the active inventory list." });
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to restore product';
+      setError(errorMessage);
+      toast.error(errorMessage);
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleBulkScopeAction = async () => {
     if (selectedProducts.size === 0) {
       setError("No products selected");
       return;
@@ -512,8 +568,9 @@ export default function InventoryManagement({ initialAvailabilityFilter }: Inven
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) throw new Error('Not authenticated');
       
-      const response = await fetch('/api/admin/products/bulk-delete', {
-        method: 'DELETE',
+      const endpoint = inventoryScope === "active" ? '/api/admin/products/archive' : '/api/admin/products/restore';
+      const response = await fetch(endpoint, {
+        method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${session.access_token}`
@@ -521,14 +578,19 @@ export default function InventoryManagement({ initialAvailabilityFilter }: Inven
         body: JSON.stringify({ product_ids: Array.from(selectedProducts) })
       });
       const data = await response.json();
-      if (!response.ok) throw new Error(data.error || 'Failed to delete products');
+      if (!response.ok) throw new Error(data.error || (inventoryScope === "active" ? 'Failed to archive products' : 'Failed to restore products'));
       setSelectedProducts(new Set());
       setError(null);
       await fetchProducts();
-      toast.success("Selected products deleted successfully.");
-      setActionNotice({ tone: "success", message: "Selected products were deleted and the inventory list is up to date." });
+      if (inventoryScope === "active") {
+        toast.success("Selected products archived successfully.");
+        setActionNotice({ tone: "success", message: "Selected products were archived and moved to the archive view." });
+      } else {
+        toast.success("Selected products restored successfully.");
+        setActionNotice({ tone: "success", message: "Selected products were restored to the active inventory list." });
+      }
     } catch (err: unknown) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to delete products';
+      const errorMessage = err instanceof Error ? err.message : (inventoryScope === "active" ? 'Failed to archive products' : 'Failed to restore products');
       setError(errorMessage);
       toast.error(errorMessage);
     } finally {
@@ -541,9 +603,37 @@ export default function InventoryManagement({ initialAvailabilityFilter }: Inven
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold">Manage Inventory</h1>
-          <p className="text-gray-500 text-sm">Create, update, and organize products and categories.</p>
+          <p className="text-gray-500 text-sm">
+            {inventoryScope === "active"
+              ? "Create, update, archive, and organize products and categories."
+              : "Review archived products and restore them when they should return to the active catalog."}
+          </p>
         </div>
         <div className="flex items-center gap-2 sm:shrink-0">
+          <div className="flex items-center rounded-lg border border-[#E7A3B0]/20 bg-[#fff9fb] p-1">
+            <button
+              type="button"
+              onClick={() => setInventoryScope("active")}
+              className={`rounded-md px-3 py-1.5 text-xs font-semibold transition-colors ${
+                inventoryScope === "active"
+                  ? "bg-[#E7A3B0] text-white"
+                  : "text-[#8f5f69] hover:bg-white"
+              }`}
+            >
+              Active
+            </button>
+            <button
+              type="button"
+              onClick={() => setInventoryScope("archived")}
+              className={`rounded-md px-3 py-1.5 text-xs font-semibold transition-colors ${
+                inventoryScope === "archived"
+                  ? "bg-[#E7A3B0] text-white"
+                  : "text-[#8f5f69] hover:bg-white"
+              }`}
+            >
+              Archived
+            </button>
+          </div>
           <Button
             type="button"
             variant="outline"
@@ -555,20 +645,24 @@ export default function InventoryManagement({ initialAvailabilityFilter }: Inven
             <RefreshCw className={`mr-2 h-4 w-4 ${(loading || actionLoading) ? "animate-spin" : ""}`} />
             Refresh
           </Button>
-          <button
-            onClick={() => setShowBulkImport(true)}
-            className="flex items-center gap-2 px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-800 rounded-lg text-sm font-medium transition-all duration-300 shadow-sm hover:shadow-md hover:scale-105 cursor-pointer"
-          >
-            <Upload size={16} />
-            Import
-          </button>
-          <button
-            onClick={openAddModal}
-            className="flex items-center gap-2 px-4 py-2 bg-linear-to-r from-[#E7A3B0] to-[#f0b8c3] hover:from-[#d891a0] hover:to-[#E7A3B0] text-white rounded-lg text-sm font-medium transition-all duration-300 shadow-md hover:shadow-lg hover:scale-105 cursor-pointer"
-          >
-            <Plus size={16} />
-            Add Product
-          </button>
+          {inventoryScope === "active" && (
+            <>
+              <button
+                onClick={() => setShowBulkImport(true)}
+                className="flex items-center gap-2 px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-800 rounded-lg text-sm font-medium transition-all duration-300 shadow-sm hover:shadow-md hover:scale-105 cursor-pointer"
+              >
+                <Upload size={16} />
+                Import
+              </button>
+              <button
+                onClick={openAddModal}
+                className="flex items-center gap-2 px-4 py-2 bg-linear-to-r from-[#E7A3B0] to-[#f0b8c3] hover:from-[#d891a0] hover:to-[#E7A3B0] text-white rounded-lg text-sm font-medium transition-all duration-300 shadow-md hover:shadow-lg hover:scale-105 cursor-pointer"
+              >
+                <Plus size={16} />
+                Add Product
+              </button>
+            </>
+          )}
         </div>
       </div>
 
@@ -582,6 +676,20 @@ export default function InventoryManagement({ initialAvailabilityFilter }: Inven
           onAction={() => {
             void fetchProducts(true);
             void fetchCategories();
+          }}
+        />
+      )}
+
+      {outOfStockActiveCount > 0 && (
+        <AdminNoticeBanner
+          tone="info"
+          title="Out-of-stock products detected"
+          message={`${outOfStockActiveCount} product${outOfStockActiveCount === 1 ? " is" : "s are"} currently out of stock. Consider archiving ${outOfStockActiveCount === 1 ? "it" : "them"} to keep your active inventory clean.`}
+          onDismiss={() => {}}
+          actionLabel="View out-of-stock"
+          onAction={() => {
+            setAvailabilityFilter("out-of-stock");
+            setVisibilityFilter("all");
           }}
         />
       )}
@@ -780,27 +888,35 @@ export default function InventoryManagement({ initialAvailabilityFilter }: Inven
             <AlertDialog>
               <AlertDialogTrigger asChild>
                 <Button
-                  size="sm"
-                  className="bg-red-500 hover:bg-red-600 text-white h-9 text-xs font-medium"
+                  className={inventoryScope === "active" ? "bg-amber-500 hover:bg-amber-600 text-white" : "bg-emerald-600 hover:bg-emerald-700 text-white"}
                   disabled={actionLoading}
                 >
-                  <Trash className="w-4 h-4 mr-2" />
-                  Delete ({selectedProducts.size})
+                  {inventoryScope === "active" ? <Archive className="w-4 h-4 mr-2" /> : <RotateCcw className="w-4 h-4 mr-2" />}
+                  {inventoryScope === "active" ? "Archive" : "Restore"} ({selectedProducts.size})
                 </Button>
               </AlertDialogTrigger>
               <AlertDialogContent className="bg-white">
                 <AlertDialogHeader>
                   <AlertDialogTitle className="text-gray-900">
-                    {selectedProducts.size === 1 ? "Delete Product" : "Delete Multiple Products"}
+                    {inventoryScope === "active"
+                      ? selectedProducts.size === 1 ? "Archive Product" : "Archive Multiple Products"
+                      : selectedProducts.size === 1 ? "Restore Product" : "Restore Multiple Products"}
                   </AlertDialogTitle>
                   <AlertDialogDescription>
-                    Are you sure you want to delete <span className="font-semibold">{selectedProducts.size}</span> {selectedProducts.size === 1 ? "product" : "products"}? This action cannot be undone.
+                    {inventoryScope === "active"
+                      ? <>Archive <span className="font-semibold">{selectedProducts.size}</span> {selectedProducts.size === 1 ? "product" : "products"}? Archived products are hidden from active dashboards and can be restored later.</>
+                      : <>Restore <span className="font-semibold">{selectedProducts.size}</span> {selectedProducts.size === 1 ? "product" : "products"} to the active inventory list?</>}
                   </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
                   <AlertDialogCancel className="border-zinc-300 bg-white text-zinc-700 hover:bg-zinc-50 hover:text-zinc-900">Cancel</AlertDialogCancel>
-                  <AlertDialogAction className="bg-red-500 hover:bg-red-600 text-white cursor-pointer" onClick={handleBulkDelete}>
-                    {selectedProducts.size === 1 ? "Delete" : "Delete All"}
+                  <AlertDialogAction
+                    className={`${inventoryScope === "active" ? "bg-amber-500 hover:bg-amber-600" : "bg-emerald-600 hover:bg-emerald-700"} text-white cursor-pointer`}
+                    onClick={handleBulkScopeAction}
+                  >
+                    {inventoryScope === "active"
+                      ? selectedProducts.size === 1 ? "Archive" : "Archive All"
+                      : selectedProducts.size === 1 ? "Restore" : "Restore All"}
                   </AlertDialogAction>
                 </AlertDialogFooter>
               </AlertDialogContent>
@@ -818,6 +934,7 @@ export default function InventoryManagement({ initialAvailabilityFilter }: Inven
         </div>
       ) : (
         <InventoryTable
+          mode={inventoryScope}
           currentProducts={currentProducts}
           selectedProducts={selectedProducts}
           toggleSelectAll={() => toggleSelectAll(selectedProducts.size !== currentProducts.length || currentProducts.length === 0)}
@@ -825,8 +942,9 @@ export default function InventoryManagement({ initialAvailabilityFilter }: Inven
           getCategoryName={getCategoryName}
           handleViewProduct={handleViewProduct}
           handleEditProduct={handleEditProduct}
-          handleDeleteProduct={handleDeleteProduct}
-          onRowActivate={handleEditProduct}
+          handleArchiveProduct={handleArchiveProduct}
+          handleRestoreProduct={handleRestoreProduct}
+          onRowActivate={inventoryScope === "active" ? handleEditProduct : undefined}
           actionLoading={actionLoading}
           emptyTitle={inventoryEmptyTitle}
           emptyDescription={inventoryEmptyDescription}

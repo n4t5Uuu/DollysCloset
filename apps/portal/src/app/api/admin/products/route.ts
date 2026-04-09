@@ -9,6 +9,16 @@ import {
   uiContentLimits,
 } from "@dollys-closet/core";
 
+type ProductScope = "active" | "archived" | "all";
+
+function normalizeScope(rawScope: string | null): ProductScope {
+  if (rawScope === "archived" || rawScope === "all") {
+    return rawScope;
+  }
+
+  return "active";
+}
+
 export async function GET(request: Request) {
   try {
     const authResult = await requireRequestAuth(request, {
@@ -20,8 +30,10 @@ export async function GET(request: Request) {
       return authResult.response;
     }
 
+    const { searchParams } = new URL(request.url);
+    const scope = normalizeScope(searchParams.get("scope"));
     const supabaseAdmin = createAdminClient();
-    const { data, error } = await productHelper.getProducts(supabaseAdmin);
+    const { data, error } = await productHelper.getProducts(supabaseAdmin, { scope });
 
     if (error) {
       console.error('Error fetching products:', error)
@@ -159,7 +171,17 @@ export async function PUT(request: NextRequest) {
     }
 
     const supabaseAdmin = createAdminClient();
-    const { data: currentProduct } = await productHelper.getProductById(product_id, supabaseAdmin);
+    const { data: currentProduct } = await productHelper.getProductById(product_id, supabaseAdmin, {
+      includeArchived: true,
+    });
+
+    if (!currentProduct) {
+      return NextResponse.json({ error: 'Product not found' }, { status: 404 });
+    }
+
+    if (currentProduct.archived_at) {
+      return NextResponse.json({ error: 'Archived products must be restored before they can be edited.' }, { status: 409 });
+    }
 
     const parsedStock = parseInt(product_stock) || 0;
     const requestedShowInCatalog = show_in_catalog !== false;
@@ -247,91 +269,8 @@ export async function PUT(request: NextRequest) {
 }
 
 export async function DELETE(request: NextRequest) {
-  try {
-    const authResult = await requireRequestAuth(request, {
-      allowedRoles: ["admin", "employee"],
-    });
-
-    if (!authResult.ok) {
-      return authResult.response;
-    }
-
-    const { user } = authResult;
-    const editor = user.email || user.user_metadata?.username || 'Unknown';
-
-    const { product_id } = await request.json();
-
-    if (!product_id) {
-      return NextResponse.json({ error: 'Missing product_id' }, { status: 400 });
-    }
-
-    const productIdValue = Number.parseInt(String(product_id), 10);
-    if (Number.isNaN(productIdValue)) {
-      return NextResponse.json({ error: 'Invalid product_id' }, { status: 400 });
-    }
-
-    const supabaseAdmin = createAdminClient();
-    const { data: images, error: imagesError } = await productHelper.getProductImages(productIdValue, supabaseAdmin);
-
-    if (imagesError) {
-      console.error('Image fetch error:', imagesError);
-      return NextResponse.json({ error: imagesError.message }, { status: 500 });
-    }
-
-    if (images && images.length > 0) {
-      const { error: clearImageReferenceError } = await productHelper.updateProduct(
-        productIdValue,
-        { image_id: null },
-        supabaseAdmin
-      );
-
-      if (clearImageReferenceError) {
-        console.error('Clear image reference error:', clearImageReferenceError);
-        return NextResponse.json({ error: clearImageReferenceError.message }, { status: 500 });
-      }
-
-      const filePaths = images
-        .map((img) => img.image_url?.split('/').slice(-2).join('/'))
-        .filter((path) => path);
-
-      if (filePaths.length > 0) {
-        await supabaseAdmin.storage.from('product-images').remove(filePaths);
-      }
-
-      const { error: imageDeleteError } = await productHelper.deleteProductImageReferences(
-        productIdValue,
-        supabaseAdmin
-      );
-
-      if (imageDeleteError) {
-        console.error('Image delete error:', imageDeleteError);
-        return NextResponse.json({ error: imageDeleteError.message }, { status: 500 });
-      }
-    }
-
-    const { error: deleteError } = await productHelper.deleteProduct(productIdValue, supabaseAdmin);
-
-    if (deleteError) {
-      console.error('Delete error:', deleteError);
-      return NextResponse.json({ error: deleteError.message }, { status: 500 });
-    }
-
-    await activityHelper.logActivity({
-      actionType: 'delete_product',
-      productId: product_id,
-      description: 'Deleted product',
-      editor: editor,
-      user_id: user.id,
-      supabase: supabaseAdmin
-    });
-
-    return NextResponse.json({
-      success: true,
-      message: 'Product deleted successfully'
-    });
-
-  } catch (error: unknown) {
-    console.error('Error deleting product:', error);
-    return NextResponse.json({ error: error instanceof Error ? error.message : 'Internal server error' }, { status: 500 });
-  }
+  return NextResponse.json(
+    { error: 'Hard delete is disabled. Archive products instead.' },
+    { status: 405 }
+  );
 }

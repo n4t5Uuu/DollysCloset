@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServerSupabase } from "@dollys-closet/core/lib/supabase/server";
 import { createAdminClient } from "@dollys-closet/core/lib/supabase/admin";
+import { getUserAccessState } from "@/lib/auth/auth-server";
 
 // Simple in-memory sliding-window rate limiter
 // Note: resets on serverless cold starts — provides best-effort protection.
@@ -115,13 +116,31 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: error.message }, { status: 401 });
     }
 
+    const supabaseAdmin = createAdminClient();
+    const accessState = await getUserAccessState(data.user.id, supabaseAdmin);
+
+    if (accessState.archived) {
+      await supabase.auth.signOut().catch(() => {});
+      return NextResponse.json(
+        { error: "This account has been archived and can no longer access the portal." },
+        { status: 403 }
+      );
+    }
+
+    if (!accessState.role) {
+      await supabase.auth.signOut().catch(() => {});
+      return NextResponse.json(
+        { error: "This account is not permitted to access the portal." },
+        { status: 403 }
+      );
+    }
+
     clearFailedAttempts(ip);
 
     // Revoke all other active sessions for this account so only one device
     // can be logged in at a time. Uses scope "others" to preserve the new session.
     let otherSessionsRevoked = false;
     if (data.session?.access_token) {
-      const supabaseAdmin = createAdminClient();
       const { error: revokeError } = await supabaseAdmin.auth.admin.signOut(
         data.session.access_token,
         "others"

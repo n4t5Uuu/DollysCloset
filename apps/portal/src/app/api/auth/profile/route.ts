@@ -25,7 +25,15 @@ export async function GET() {
     }
 
     const supabaseAdmin = createAdminClient();
-    const { data: userRow } = await employeeHelper.getUserById(user.id, supabaseAdmin);
+    const { data: userRow } = await employeeHelper.getUserById(user.id, supabaseAdmin, {
+      includeArchived: true,
+    });
+
+    if (userRow?.archived_at) {
+      await supabase.auth.signOut().catch(() => {});
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+
     const normalizedRole = normalizeRole(userRow?.role);
 
     const firstName = String(userRow?.first_name || "").trim();

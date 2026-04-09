@@ -1,6 +1,13 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 import { buildLoginPath, buildUnauthorizedPath } from '@/lib/auth/auth-routing'
+import { createAdminClient } from '@dollys-closet/core/lib/supabase/admin'
+
+function isAppRole(role: unknown): boolean {
+  if (typeof role !== 'string') return false;
+  const normalized = role.trim().toLowerCase();
+  return normalized === 'admin' || normalized === 'employee';
+}
 
 /**
  * middleware.ts
@@ -106,6 +113,24 @@ export async function middleware(request: NextRequest) {
     })
 
     return redirectResponse
+  }
+
+  if (user && isDashboardRoute) {
+    const supabaseAdmin = createAdminClient();
+    const { data: userRow, error: userRowError } = await supabaseAdmin
+      .from('tbl_users')
+      .select('role, archived_at')
+      .eq('user_id', user.id)
+      .maybeSingle();
+
+    const isArchived = Boolean(userRow?.archived_at);
+    const hasAppAccess = Boolean(userRow && !isArchived && isAppRole(userRow.role));
+
+    if (userRowError || !hasAppAccess) {
+      await supabase.auth.signOut().catch(() => {});
+      response.cookies.delete(lastActiveCookieName);
+      return redirect(buildUnauthorizedPath('access-denied'));
+    }
   }
 
   // Redirect unauthenticated users to login

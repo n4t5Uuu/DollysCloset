@@ -102,13 +102,17 @@ export const authHelper = {
     async getUserRole(user_id: string, supabase?: any) {
         const client = supabase ?? createClient();
         const { data, error } = await client.from("tbl_users")
-            .select("role")
+            .select("role, archived_at")
             .eq("user_id", user_id)
             .maybeSingle();
 
         if (error) {
             console.error(`Error Fetching Role for User ${user_id}: `, error.message ?? error.code ?? JSON.stringify(error));
             return { data: null, error };
+        }
+
+        if (data?.archived_at) {
+            return { data: { role: null }, error: null };
         }
 
         return { data, error };
