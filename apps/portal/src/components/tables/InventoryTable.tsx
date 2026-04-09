@@ -79,20 +79,6 @@ export function InventoryTable({
         });
     };
 
-    const formatRecentlyUpdatedDate = (product: Product) => {
-        const rawValue = product.updated_at || product.time_updated || product.created_at;
-        if (!rawValue) return "-";
-
-        const updatedDate = new Date(rawValue);
-        if (Number.isNaN(updatedDate.getTime())) return "-";
-
-        return updatedDate.toLocaleDateString("en-US", {
-            month: "short",
-            day: "numeric",
-            year: "numeric",
-        });
-    };
-
     const activateRow = (product: Product) => {
         if (onRowActivate) {
             onRowActivate(product);
@@ -256,7 +242,6 @@ export function InventoryTable({
                             {mode === "archived" && (
                                 <TableHead className="p-4 text-center font-bold">Archived On</TableHead>
                             )}
-                            <TableHead className="p-4 text-center font-bold">Last Updated</TableHead>
                             <TableHead className="p-4 text-center font-bold w-[200px]">Actions</TableHead>
                         </TableRow>
                     </TableHeader>
@@ -331,9 +316,6 @@ export function InventoryTable({
                                             )}
                                         </TableCell>
                                     )}
-                                    <TableCell className="p-4 text-center text-sm text-gray-600">
-                                        {formatRecentlyUpdatedDate(product)}
-                                    </TableCell>
                                     <TableCell className="p-4">
                                         <div className="flex gap-2 justify-center flex-wrap">
                                             <Button
