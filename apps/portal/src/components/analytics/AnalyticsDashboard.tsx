@@ -359,7 +359,7 @@ export function AnalyticsDashboard({ selectedMonth }: { selectedMonth?: string }
               <Legend wrapperStyle={{ fontSize: 12, color: '#6b7280' }} />
               <Line yAxisId="left" type="linear" dataKey="users" stroke={BRAND} strokeWidth={2} dot={false} name="Users" />
               <Line yAxisId="left" type="linear" dataKey="sessions" stroke="#111827" strokeWidth={2} dot={false} name="Sessions" />
-              <Line yAxisId="right" type="linear" dataKey="pageViews" stroke="#9ca3af" strokeWidth={2} dot={false} name="Page Views" />
+              <Line yAxisId="right" type="linear" dataKey="pageViews" stroke="#6b7280" strokeWidth={2} dot={false} name="Page Views" />
             </LineChart>
           </ResponsiveContainer>
         </div>
@@ -383,7 +383,7 @@ export function AnalyticsDashboard({ selectedMonth }: { selectedMonth?: string }
                 <Legend wrapperStyle={{ fontSize: 12, color: '#6b7280' }} />
                 <Bar yAxisId="left" dataKey="users" name="Users" fill={BRAND} radius={[4, 4, 0, 0]} />
                 <Bar yAxisId="left" dataKey="sessions" name="Sessions" fill="#111827" radius={[4, 4, 0, 0]} />
-                <Bar yAxisId="right" dataKey="pageViews" name="Page Views" fill="#d1d5db" radius={[4, 4, 0, 0]} />
+                <Bar yAxisId="right" dataKey="pageViews" name="Page Views" fill="#6b7280" radius={[4, 4, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </div>

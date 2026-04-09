@@ -1,16 +1,16 @@
-import { 
-    Table, 
-    TableBody, 
-    TableCell, 
-    TableHead, 
-    TableHeader, 
+import {
+    Table,
+    TableBody,
+    TableCell,
+    TableHead,
+    TableHeader,
     TableRow,
     Checkbox,
     Button,
-    Empty, 
-    EmptyDescription, 
-    EmptyHeader, 
-    EmptyMedia, 
+    Empty,
+    EmptyDescription,
+    EmptyHeader,
+    EmptyMedia,
     EmptyTitle,
     AlertDialog,
     AlertDialogAction,
@@ -22,8 +22,8 @@ import {
     AlertDialogTitle,
     AlertDialogTrigger,
 } from "@dollys-closet/ui";
+import { cn, InventoryProduct as Product } from "@dollys-closet/core";
 import { Eye, Pencil, Trash2, PackageSearch } from "lucide-react";
-import { InventoryProduct as Product } from "@dollys-closet/core";
 
 interface InventoryTableProps {
     currentProducts: Product[];
@@ -93,7 +93,7 @@ export function InventoryTable({
                 <AlertDialogHeader>
                     <AlertDialogTitle className="text-gray-900">Delete Product</AlertDialogTitle>
                     <AlertDialogDescription>
-                        Are you sure you want to delete <span className="font-semibold">{product.product_name}</span>? This action cannot be undone.
+                        Are you sure you want to delete <span className="font-semibold wrap-anywhere">{product.product_name}</span>? This action cannot be undone.
                     </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
@@ -149,6 +149,8 @@ export function InventoryTable({
                                         </span>
                                     </div>
                                     <div className="flex items-center gap-2 mt-0.5 text-xs text-gray-500">
+                                        <span className="text-[10px] text-gray-400">#{product.product_id}</span>
+                                        <span className="text-gray-300">&middot;</span>
                                         <span>{getMobileCategory(getCategoryName(product.category_id))}</span>
                                         <span>&middot;</span>
                                         <span className={product.product_stock < 10 ? "text-orange-600 font-medium" : ""}>
@@ -188,7 +190,7 @@ export function InventoryTable({
             </div>
 
             <div className="hidden sm:block bg-white rounded-lg border overflow-x-auto">
-                <Table className="w-full">
+                <Table className="w-full table-fixed">
                     <TableHeader className="border-b bg-gray-50">
                         <TableRow>
                             <TableHead className="p-4 text-left w-12">
@@ -197,13 +199,13 @@ export function InventoryTable({
                                     onCheckedChange={toggleSelectAll}
                                 />
                             </TableHead>
-                            <TableHead className="p-4 text-left font-bold w-[110px]">ID</TableHead>
-                            <TableHead className="p-4 text-left font-bold">Product Name</TableHead>
-                            <TableHead className="p-4 text-left font-bold">Category</TableHead>
-                            <TableHead className="p-4 text-center font-bold">Stock</TableHead>
-                            <TableHead className="p-4 text-right font-bold">Price</TableHead>
-                            <TableHead className="p-4 text-center font-bold">Status</TableHead>
-                            <TableHead className="p-4 text-center font-bold w-[200px]">Actions</TableHead>
+                            <TableHead className="p-4 text-left font-bold w-[60px]">ID</TableHead>
+                            <TableHead className="p-4 text-left font-bold w-[25%]">Product Name</TableHead>
+                            <TableHead className="p-4 text-left font-bold w-[20%]">Category</TableHead>
+                            <TableHead className="p-4 text-center font-bold w-[8%]">Stock</TableHead>
+                            <TableHead className="p-4 text-right font-bold w-[12%]">Price</TableHead>
+                            <TableHead className="p-4 text-center font-bold w-[10%]">Status</TableHead>
+                            <TableHead className="p-4 text-center font-bold w-[150px]">Actions</TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -211,7 +213,7 @@ export function InventoryTable({
                             currentProducts.map((product) => (
                                 <TableRow
                                     key={product.product_id}
-                                    className="border-b hover:bg-gray-50"
+                                    className={cn("border-b hover:bg-gray-50", selectedProducts.has(product.product_id) && "bg-[#E7A3B0]/5")}
                                     onDoubleClick={() => (onRowActivate ?? handleEditProduct)(product)}
                                     title="Double-click to edit this product"
                                 >
@@ -224,18 +226,23 @@ export function InventoryTable({
                                     <TableCell className="p-4 text-sm font-medium text-gray-900">
                                         <div className="break-all">{product.product_id}</div>
                                     </TableCell>
-                                    <TableCell className="p-4">
+
+                                    <TableCell className="p-4 overflow-hidden">
                                         <button
                                             type="button"
                                             onClick={() => (onRowActivate ?? handleEditProduct)(product)}
-                                            className="font-medium text-left transition-colors hover:text-[#E7A3B0] break-words [overflow-wrap:anywhere] block max-w-[200px] md:max-w-xs line-clamp-3"
+                                            className="font-medium text-left transition-colors hover:text-[#E7A3B0] break-all block max-w-[200px] md:max-w-xs line-clamp-3"
                                             title={`Edit ${product.product_name}`}
                                         >
                                             {product.product_name}
                                         </button>
-                                        <div className="text-xs text-gray-500 mt-1">Published {formatPublishedDate(product.created_at)}</div>
+                                        <div className="text-[11px] text-gray-400 mt-1">
+                                            {formatPublishedDate(product.created_at)}
+                                        </div>
                                     </TableCell>
-                                    <TableCell className="p-4 text-gray-600">{getCategoryName(product.category_id)}</TableCell>
+                                    <TableCell className="p-4 text-gray-600 overflow-hidden">
+                                        <span className="line-clamp-2 wrap-anywhere">{getCategoryName(product.category_id)}</span>
+                                    </TableCell>
                                     <TableCell className="p-4 text-center">
                                         <span className={product.product_stock < 10 ? "text-orange-600 font-medium" : ""}>
                                             {product.product_stock}

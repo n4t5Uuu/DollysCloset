@@ -261,6 +261,7 @@ export default function InventoryManagement({ initialAvailabilityFilter }: Inven
         const normalizedQuery = searchQuery.trim().toLowerCase();
         const categoryPath = buildCategoryPath(product.category_id).toLowerCase();
         const matchesSearch = normalizedQuery === ""
+          || String(product.product_id).includes(normalizedQuery)
           || product.product_name.toLowerCase().includes(normalizedQuery)
           || product.product_brand.toLowerCase().includes(normalizedQuery)
           || (product.product_description || "").toLowerCase().includes(normalizedQuery)
@@ -758,24 +759,29 @@ export default function InventoryManagement({ initialAvailabilityFilter }: Inven
         <div className="text-sm text-gray-600">
           Showing {filteredProducts.length > 0 ? startIndex + 1 : 0}-{Math.min(endIndex, filteredProducts.length)} of {filteredProducts.length} items
         </div>
-        <div className="flex gap-3">
+        <div className="flex items-center gap-2">
           {selectedProducts.size > 0 && (
-            <div className="flex items-center gap-2 rounded-full border border-[#E7A3B0]/20 bg-[#fff9fb] px-3 py-1.5 text-xs text-[#8f5f69]">
-              <span>{selectedProducts.size} selected</span>
-              <button
-                type="button"
-                onClick={clearSelection}
-                className="font-semibold uppercase tracking-[0.16em] text-[#b47c88] transition-colors hover:text-[#8f5f69]"
-              >
-                Clear
-              </button>
-            </div>
+            <span className="rounded-md bg-[#fff0f3] px-2.5 py-1 text-xs font-semibold text-[#b96d7d]">
+              {selectedProducts.size} selected
+            </span>
+          )}
+          {selectedProducts.size > 0 && (
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={clearSelection}
+              className="h-8 border-zinc-200 text-zinc-600 hover:bg-zinc-50 hover:text-zinc-700"
+            >
+              Clear selection
+            </Button>
           )}
           {selectedProducts.size > 0 && (
             <AlertDialog>
               <AlertDialogTrigger asChild>
                 <Button
-                  className="bg-red-500 hover:bg-red-600 text-white"
+                  size="sm"
+                  className="bg-red-500 hover:bg-red-600 text-white h-9 text-xs font-medium"
                   disabled={actionLoading}
                 >
                   <Trash className="w-4 h-4 mr-2" />
