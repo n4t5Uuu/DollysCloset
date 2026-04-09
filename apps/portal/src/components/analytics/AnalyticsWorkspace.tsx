@@ -3,15 +3,15 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { BarChart3, Download, Loader2, Package, RefreshCcw } from 'lucide-react';
 import { toast } from 'sonner';
-import { 
-  Button, 
-  Select, 
-  SelectContent, 
-  SelectItem, 
-  SelectTrigger, 
-  SelectValue
+import {
+  Button,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
 } from '@dollys-closet/ui';
-import { AdminNoticeBanner } from "@/components/ui/admin-notice-banner";
+import { AdminNoticeBanner } from '@/components/ui/admin-notice-banner';
 import { AnalyticsDashboard } from './AnalyticsDashboard';
 import { ProductsDashboard } from './ProductsDashboard';
 
@@ -20,7 +20,7 @@ const tabs = [
   { key: 'products', label: 'Products', icon: Package },
 ] as const;
 
-type Tab = typeof tabs[number]['key'];
+type Tab = (typeof tabs)[number]['key'];
 
 export function AnalyticsWorkspace() {
   const [active, setActive] = useState<Tab>('overview');
@@ -38,16 +38,17 @@ export function AnalyticsWorkspace() {
     } else {
       setLoadingMonths(true);
     }
+
     setMonthsError(null);
 
     try {
-      const res = await fetch('/api/admin/analytics', { cache: 'no-store' });
-      const contentType = res.headers.get('content-type') ?? '';
+      const response = await fetch('/api/admin/analytics', { cache: 'no-store' });
+      const contentType = response.headers.get('content-type') ?? '';
       const json = contentType.includes('application/json')
-        ? await res.json()
+        ? await response.json()
         : { error: 'Analytics service is unavailable right now.' };
 
-      if (!res.ok || json.error) {
+      if (!response.ok || json.error) {
         const message =
           typeof json.error === 'string' && json.error.trim().length > 0
             ? json.error
@@ -69,7 +70,6 @@ export function AnalyticsWorkspace() {
         : [];
 
       setActiveMonths(list);
-
     } catch (error) {
       console.error('Failed to load analytics months', error);
       setMonthsError('Unable to load analytics right now.');
@@ -109,6 +109,7 @@ export function AnalyticsWorkspace() {
     if (!selectedMonth || selectedMonth === 'all') {
       return 'Full summary';
     }
+
     return activeMonths.find((month) => month.value === selectedMonth)?.label ?? selectedMonth;
   }, [activeMonths, selectedMonth]);
 
@@ -119,13 +120,14 @@ export function AnalyticsWorkspace() {
           <div className="space-y-1">
             <p className="text-sm font-semibold text-[#8a6b73]">Analytics overview</p>
             <p className="text-sm text-[#8a6b73]">
-              Review traffic trends first, then switch to product analytics for operational follow-up. Refresh before exporting if a report looks stale.
+              Review traffic trends first, then switch to product analytics for operational follow-up.
+              Refresh before exporting if a report looks stale.
             </p>
             <p className="text-xs text-[#9a7a83]">
               Current scope: <span className="font-medium text-[#8a6b73]">{selectedMonthLabel}</span>
             </p>
           </div>
-          <div className="flex items-center gap-2 shrink-0 sm:flex-nowrap flex-wrap md:self-auto self-end">
+          <div className="flex flex-wrap items-center gap-2 self-end md:self-auto">
             <Button
               type="button"
               variant="outline"
@@ -150,7 +152,7 @@ export function AnalyticsWorkspace() {
         </div>
       </div>
 
-      {monthsError && (
+      {monthsError ? (
         <AdminNoticeBanner
           tone="error"
           title="Unable to load analytics"
@@ -160,11 +162,11 @@ export function AnalyticsWorkspace() {
             void loadMonths(true);
           }}
         />
-      )}
+      ) : null}
 
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div
-          className="inline-flex items-center rounded-xl p-1 w-fit"
+          className="inline-flex w-fit items-center rounded-xl p-1"
           style={{ backgroundColor: '#f3f4f6', border: '1px solid #e5e7eb' }}
         >
           {tabs.map((tab) => {
@@ -177,14 +179,14 @@ export function AnalyticsWorkspace() {
                 type="button"
                 onClick={() => setActive(tab.key)}
                 aria-pressed={isActive}
-                className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200"
+                className="flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-all duration-200"
                 style={
                   isActive
                     ? { backgroundColor: 'white', color: '#111827', boxShadow: '0 1px 3px rgba(0,0,0,0.08)' }
                     : { backgroundColor: 'transparent', color: '#9ca3af' }
                 }
               >
-                <Icon className="w-4 h-4" />
+                <Icon className="h-4 w-4" />
                 {tab.label}
               </button>
             );
@@ -196,7 +198,7 @@ export function AnalyticsWorkspace() {
           onValueChange={setSelectedMonth}
           disabled={exporting || loadingMonths || refreshing}
         >
-          <SelectTrigger className="w-[180px] h-9 shrink-0">
+          <SelectTrigger className="h-9 w-[180px] shrink-0">
             <SelectValue placeholder={loadingMonths ? 'Loading months...' : 'Full Summary'} />
           </SelectTrigger>
           <SelectContent>
@@ -210,20 +212,11 @@ export function AnalyticsWorkspace() {
         </Select>
       </div>
 
-      <div style={{ position: 'relative', overflow: 'hidden' }}>
-        <div style={{ display: active === 'overview' ? 'block' : 'none' }}>
-          <AnalyticsDashboard key={`overview-${selectedMonth}-${refreshToken}`} selectedMonth={selectedMonth} />
-        </div>
-        <div
-          style={
-            active === 'products'
-              ? {}
-              : { position: 'absolute', top: 0, left: '-9999px', width: '900px', pointerEvents: 'none' }
-          }
-        >
-          <ProductsDashboard key={`products-${selectedMonth}-${refreshToken}`} selectedMonth={selectedMonth} />
-        </div>
-      </div>
+      {active === 'overview' ? (
+        <AnalyticsDashboard selectedMonth={selectedMonth} refreshToken={refreshToken} />
+      ) : (
+        <ProductsDashboard selectedMonth={selectedMonth} refreshToken={refreshToken} />
+      )}
     </div>
   );
 }

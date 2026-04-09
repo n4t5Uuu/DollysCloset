@@ -31,8 +31,8 @@ export default async function DashboardLayout({ children }: { children: React.Re
         <ClientAuthGuard>
             <div className="flex min-h-screen w-full bg-gray-50 overflow-hidden">
                 <Sidebar />
-                <SidebarInset className="flex flex-1 flex-col overflow-hidden">
-                    <div className="flex-1 overflow-y-auto px-4 pb-4 md:px-8 md:pb-8 pt-8 md:pt-8">
+                <SidebarInset className="flex min-w-0 flex-1 flex-col overflow-hidden">
+                    <div className="flex-1 overflow-x-hidden overflow-y-auto px-4 pb-4 pt-8 md:px-8 md:pb-8 md:pt-8">
                         {children}
                     </div>
                 </SidebarInset>

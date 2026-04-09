@@ -1,31 +1,73 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import {
-  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell,
+  Bar,
+  BarChart,
+  CartesianGrid,
+  Cell,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
 } from 'recharts';
-import { Package, Tag, AlertTriangle, XCircle, Pencil, Loader2, ImageOff, ArrowRight, RefreshCcw } from 'lucide-react';
-import AddProduct from '@/components/dialogs/AddProduct';
+import {
+  AlertTriangle,
+  ArrowRight,
+  ImageOff,
+  Loader2,
+  Package,
+  Pencil,
+  RefreshCcw,
+  Tag,
+  XCircle,
+} from 'lucide-react';
 import { Button } from '@dollys-closet/ui';
-import { InventoryProduct, InventoryCategory } from "@dollys-closet/core";
+import { InventoryCategory, InventoryProduct } from '@dollys-closet/core';
+import AddProduct from '@/components/dialogs/AddProduct';
+import {
+  DashboardCardLayout,
+  type DashboardCardDefinition,
+} from '@/components/dashboard-layout/DashboardCardLayout';
 
 const BRAND = '#E7A3B0';
 const BRAND_LIGHT = '#fdf2f4';
+const CARD_ROW_ACTION_BUTTON_CLASS =
+  'shrink-0 border-[#f5d4dc] bg-[#fff5f7] text-[#b96d7d] hover:border-[#E7A3B0]/40 hover:bg-[#fdecef] hover:text-[#a25767]';
 
-const card: React.CSSProperties = {
-  backgroundColor: 'white',
-  border: '1px solid #e5e7eb',
-  borderRadius: '0.75rem',
-  boxShadow: '0 1px 3px rgba(0,0,0,0.06)',
-};
+interface StockItem {
+  id: string;
+  name: string;
+  stock: number;
+}
 
-interface StockItem { id: string; name: string; stock: number; }
-interface SimpleItem { id: string; name: string; }
-interface CategoryBreakdown { category: string; count: number; }
-interface MostEdited { name: string; edits: number; }
-interface MostViewed { name: string; views: number; }
+interface SimpleItem {
+  id: string;
+  name: string;
+}
+
+interface CategoryBreakdown {
+  category: string;
+  count: number;
+}
+
+interface MostEdited {
+  name: string;
+  edits: number;
+}
+
+interface MostViewed {
+  name: string;
+  views: number;
+}
+
 interface ProductsData {
-  summary: { totalProducts: number; totalCategories: number; outOfStock: number; lowStock: number; };
+  summary: {
+    totalProducts: number;
+    totalCategories: number;
+    outOfStock: number;
+    lowStock: number;
+  };
   topCategories: CategoryBreakdown[];
   mostEdited: MostEdited[];
   mostViewed: MostViewed[];
@@ -34,11 +76,14 @@ interface ProductsData {
   missingImageList: SimpleItem[];
 }
 
+type Period = 'all' | 'month' | 'week';
+
 function StockBadge({ stock }: { stock: number }) {
   const isOut = stock === 0;
+
   return (
     <span
-      className="text-xs font-semibold px-2 py-0.5 rounded-full"
+      className="rounded-full px-2 py-0.5 text-xs font-semibold"
       style={{
         backgroundColor: isOut ? '#fef2f2' : '#fffbeb',
         color: isOut ? '#ef4444' : '#f59e0b',
@@ -48,8 +93,6 @@ function StockBadge({ stock }: { stock: number }) {
     </span>
   );
 }
-
-type Period = 'all' | 'month' | 'week';
 
 function formatMonthLabel(monthValue: string) {
   const [year, month] = monthValue.split('-').map(Number);
@@ -62,7 +105,61 @@ function formatMonthLabel(monthValue: string) {
   });
 }
 
-export function ProductsDashboard({ selectedMonth }: { selectedMonth?: string }) {
+function MetricList({
+  items,
+  valueKey,
+  highlightColor = BRAND,
+  suffix,
+}: {
+  items: Array<{ name: string; edits?: number; views?: number }>;
+  valueKey: 'edits' | 'views';
+  highlightColor?: string;
+  suffix: string;
+}) {
+  if (items.length === 0) {
+    return <p className="text-sm text-gray-500">No data for this range yet.</p>;
+  }
+
+  const maxValue = items[0]?.[valueKey] ?? 0;
+
+  return (
+    <div className="space-y-3">
+      {items.map((item, index) => {
+        const value = item[valueKey] ?? 0;
+        const pct = maxValue > 0 ? Math.round((value / maxValue) * 100) : 0;
+        return (
+          <div key={`${item.name}-${index}`} className="space-y-1">
+            <div className="flex items-center justify-between text-sm">
+              <span className="max-w-[70%] truncate font-medium text-[#374151]" title={item.name}>
+                {item.name}
+              </span>
+              <span className="text-gray-500">
+                {value} {value === 1 ? suffix : `${suffix}s`}
+              </span>
+            </div>
+            <div className="h-1.5 overflow-hidden rounded-full bg-gray-100">
+              <div
+                className="h-full rounded-full"
+                style={{
+                  width: `${pct}%`,
+                  backgroundColor: index === 0 ? highlightColor : '#d1d5db',
+                }}
+              />
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+export function ProductsDashboard({
+  selectedMonth,
+  refreshToken = 0,
+}: {
+  selectedMonth?: string;
+  refreshToken?: number;
+}) {
   const [data, setData] = useState<ProductsData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -75,115 +172,128 @@ export function ProductsDashboard({ selectedMonth }: { selectedMonth?: string })
   const [periodLoading, setPeriodLoading] = useState(false);
   const hasSelectedMonth = Boolean(selectedMonth && selectedMonth !== 'all');
 
-  const fetchData = useCallback((p: Period = 'all', m?: string, silent = false, isMountedRef?: { current: boolean }) => {
-    if (!silent) setLoading(true);
-    setError(null);
-    let url = `/api/admin/analytics/products?period=${p}`;
-    if (m && m !== 'all') {
-      url += `&month=${m}`;
-    }
-    fetch(url, { cache: 'no-store' })
-      .then(async (res) => {
-        const contentType = res.headers.get('content-type') ?? '';
+  const fetchData = useCallback(
+    async (nextPeriod: Period = 'all', month?: string, silent = false) => {
+      if (!silent) setLoading(true);
+      setError(null);
+
+      let url = `/api/admin/analytics/products?period=${nextPeriod}`;
+      if (month && month !== 'all') {
+        url += `&month=${month}`;
+      }
+
+      try {
+        const response = await fetch(url, { cache: 'no-store' });
+        const contentType = response.headers.get('content-type') ?? '';
         const json = contentType.includes('application/json')
-          ? await res.json()
+          ? await response.json()
           : { error: 'Product analytics are unavailable right now.' };
 
-        if (!res.ok) {
-          return { ...json, error: json.error || 'Product analytics are unavailable right now.' };
+        if (!response.ok || json.error) {
+          throw new Error(json.error || 'Product analytics are unavailable right now.');
         }
 
-        return json;
-      })
-      .then(json => {
-        if (isMountedRef && !isMountedRef.current) return;
-        if (json.error) {
-          setError(json.error);
-          setData(null);
-        } else {
-          setData(json);
-          setLastUpdated(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
-        }
-      })
-      .catch(() => { 
-        if (isMountedRef && !isMountedRef.current) return;
-        setError('Unable to load product analytics right now.');
+        setData(json);
+        setLastUpdated(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
+      } catch (fetchError) {
+        setError(
+          fetchError instanceof Error
+            ? fetchError.message
+            : 'Unable to load product analytics right now.'
+        );
         setData(null);
-      })
-      .finally(() => { 
-        if (isMountedRef && !isMountedRef.current) return;
-        if (!silent) setLoading(false);
-      });
-  }, []);
+      } finally {
+        if (!silent) {
+          setLoading(false);
+        }
+      }
+    },
+    []
+  );
 
-  useEffect(() => { 
-    const isMounted = { current: true };
-    fetchData('all', selectedMonth, false, isMounted); 
-    return () => { isMounted.current = false; };
-  }, [fetchData, selectedMonth, retryToken]);
+  useEffect(() => {
+    void fetchData(hasSelectedMonth ? 'month' : 'all', selectedMonth);
+  }, [fetchData, hasSelectedMonth, refreshToken, retryToken, selectedMonth]);
 
   useEffect(() => {
     if (hasSelectedMonth) {
-      setPeriod('all');
+      setPeriod('month');
       setPeriodLoading(false);
     }
   }, [hasSelectedMonth]);
 
-  const handlePeriodChange = useCallback((p: Period) => {
-    setPeriod(p);
-    setPeriodLoading(true);
-    let url = `/api/admin/analytics/products?period=${p}`;
-    if (selectedMonth && selectedMonth !== 'all') {
-      url += `&month=${selectedMonth}`;
-    }
-    fetch(url, { cache: 'no-store' })
-      .then(async (res) => {
-        const contentType = res.headers.get('content-type') ?? '';
+  const handlePeriodChange = useCallback(
+    async (nextPeriod: Period) => {
+      setPeriod(nextPeriod);
+      setPeriodLoading(true);
+
+      let url = `/api/admin/analytics/products?period=${nextPeriod}`;
+      if (selectedMonth && selectedMonth !== 'all') {
+        url += `&month=${selectedMonth}`;
+      }
+
+      try {
+        const response = await fetch(url, { cache: 'no-store' });
+        const contentType = response.headers.get('content-type') ?? '';
         const json = contentType.includes('application/json')
-          ? await res.json()
+          ? await response.json()
           : { error: 'Product analytics are unavailable right now.' };
-        return json;
-      })
-      .then(json => {
+
         if (!json.error) {
-          setData(prev => prev ? {
-            ...prev,
-            mostEdited: json.mostEdited,
-            mostViewed: json.mostViewed,
-          } : json);
+          setData((currentData) =>
+            currentData
+              ? {
+                  ...currentData,
+                  mostEdited: json.mostEdited,
+                  mostViewed: json.mostViewed,
+                }
+              : json
+          );
         }
-      })
-      .catch(() => {})
-      .finally(() => setPeriodLoading(false));
-  }, [selectedMonth]);
+      } catch {
+        // Keep the existing data visible if this quick refresh fails.
+      } finally {
+        setPeriodLoading(false);
+      }
+    },
+    [selectedMonth]
+  );
 
   const handleEditClick = useCallback(async (productId: string) => {
     setLoadingProductId(productId);
     try {
-      const [productsRes, categoriesRes] = await Promise.all([
+      const [productsResponse, categoriesResponse] = await Promise.all([
         fetch('/api/admin/products'),
         fetch('/api/admin/categories'),
       ]);
-      const productsJson = await productsRes.json();
-      const categoriesJson = await categoriesRes.json();
-      const product = (productsJson.data as InventoryProduct[]).find(p => p.product_id === productId);
+      const productsJson = await productsResponse.json();
+      const categoriesJson = await categoriesResponse.json();
+      const product = (productsJson.data as InventoryProduct[]).find(
+        (item) => String(item.product_id) === productId
+      );
+
       if (product) {
         setCategories(categoriesJson.data ?? []);
         setEditingProduct(product);
       }
-    } catch { /* silently fail */ }
-    finally { setLoadingProductId(null); }
+    } catch {
+      // Leave the dashboard state untouched if preloading edit data fails.
+    } finally {
+      setLoadingProductId(null);
+    }
   }, []);
 
   if (loading) {
     return (
       <div className="space-y-6 animate-pulse">
-        <div className="grid grid-cols-2 xl:grid-cols-4 gap-4">
-          {[...Array(4)].map((_, i) => <div key={i} className="h-28 rounded-xl" style={{ backgroundColor: '#f3f4f6' }} />)}
+        <div className="grid grid-cols-2 gap-4 xl:grid-cols-4">
+          {[...Array(4)].map((_, index) => (
+            <div key={index} className="h-28 rounded-xl bg-gray-100" />
+          ))}
         </div>
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <div className="h-72 rounded-xl" style={{ backgroundColor: '#f3f4f6' }} />
-          <div className="h-72 rounded-xl" style={{ backgroundColor: '#f3f4f6' }} />
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+          <div className="h-72 rounded-xl bg-gray-100" />
+          <div className="h-72 rounded-xl bg-gray-100" />
         </div>
       </div>
     );
@@ -191,8 +301,8 @@ export function ProductsDashboard({ selectedMonth }: { selectedMonth?: string })
 
   if (error || !data) {
     return (
-      <div className="flex flex-col items-center justify-center rounded-2xl border border-red-100 bg-red-50 py-12 text-center gap-3">
-        <AlertTriangle className="w-10 h-10 text-red-300" />
+      <div className="flex flex-col items-center justify-center gap-3 rounded-2xl border border-red-100 bg-red-50 py-12 text-center">
+        <AlertTriangle className="h-10 w-10 text-red-300" />
         <p className="text-sm font-medium text-red-700">{error ?? 'No product analytics available.'}</p>
         <Button type="button" variant="outline" onClick={() => setRetryToken((current) => current + 1)}>
           <RefreshCcw className="mr-2 h-4 w-4" />
@@ -202,8 +312,6 @@ export function ProductsDashboard({ selectedMonth }: { selectedMonth?: string })
     );
   }
 
-  const maxEdits = data.mostEdited[0]?.edits ?? 1;
-  const ALERT_CAP = 5;
   const rankingScopeDescription = hasSelectedMonth
     ? formatMonthLabel(selectedMonth!)
     : period === 'week'
@@ -211,53 +319,25 @@ export function ProductsDashboard({ selectedMonth }: { selectedMonth?: string })
       : period === 'month'
         ? 'the last 30 days'
         : 'all time';
+
+  const alertCap = 5;
   const allStockAlerts = [
-    ...data.outOfStockList.map(p => ({ ...p, status: 'out' as const })),
-    ...data.lowStockList.map(p => ({ ...p, status: 'low' as const })),
+    ...data.outOfStockList.map((item) => ({ ...item, status: 'out' as const })),
+    ...data.lowStockList.map((item) => ({ ...item, status: 'low' as const })),
   ];
-  const stockAlerts = allStockAlerts.slice(0, ALERT_CAP);
-  const missingImages = data.missingImageList.slice(0, ALERT_CAP);
+  const stockAlerts = allStockAlerts.slice(0, alertCap);
+  const missingImages = data.missingImageList.slice(0, alertCap);
 
-  return (
-    <div className="space-y-6">
-      <div className="rounded-xl border border-gray-200 bg-gray-50/70 px-4 py-3 text-sm text-gray-600 flex flex-col gap-1 md:flex-row md:items-center md:justify-between">
-        <p>
-          {selectedMonth && selectedMonth !== 'all'
-            ? `Showing product analytics for ${selectedMonth}.`
-            : 'Showing the full product analytics summary.'}
-          {' '}Product rankings follow {hasSelectedMonth ? 'the selected month.' : 'the selected time range.'}
-        </p>
-        <p className="text-xs text-gray-500">
-          {lastUpdated ? `Last updated at ${lastUpdated}` : 'Waiting for product data'}
-        </p>
-      </div>
-
-      {/* Summary cards */}
-      <div className="grid grid-cols-2 xl:grid-cols-4 gap-4">
-        {[
-          { label: 'Total Products', value: data.summary.totalProducts, icon: <Package className="w-5 h-5" style={{ color: BRAND }} />, bg: BRAND_LIGHT },
-          { label: 'Categories', value: data.summary.totalCategories, icon: <Tag className="w-5 h-5" style={{ color: '#6366f1' }} />, bg: '#eef2ff' },
-          { label: 'Low Stock', value: data.summary.lowStock, icon: <AlertTriangle className="w-5 h-5" style={{ color: '#f59e0b' }} />, bg: '#fffbeb' },
-          { label: 'Out of Stock', value: data.summary.outOfStock, icon: <XCircle className="w-5 h-5" style={{ color: '#ef4444' }} />, bg: '#fef2f2' },
-        ].map(c => (
-          <div key={c.label} style={card} className="p-5 flex items-center gap-4">
-            <div className="p-3 rounded-xl shrink-0" style={{ backgroundColor: c.bg }}>{c.icon}</div>
-            <div>
-              <p className="text-2xl font-bold" style={{ color: '#111827' }}>{c.value}</p>
-              <p className="text-sm" style={{ color: '#6b7280' }}>{c.label}</p>
-            </div>
-          </div>
-        ))}
-      </div>
-
-      {/* Category breakdown + Most edited + Most viewed */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Category breakdown */}
-        <div style={card} className="p-6">
-          <h2 className="text-base font-semibold mb-1" style={{ color: '#111827' }}>Products by Category</h2>
-          <p className="text-xs mb-4" style={{ color: '#9ca3af' }}>Top 10 categories by product count</p>
-          {data.topCategories.length === 0 ? (
-            <p className="text-sm" style={{ color: '#9ca3af' }}>No category breakdown yet.</p>
+  const productCards: DashboardCardDefinition[] = [
+      {
+        id: 'top-categories',
+        title: 'Products by Category',
+        description: 'Top 10 categories by product count.',
+        icon: <Tag className="h-4 w-4" />,
+        contentClassName: 'p-6',
+        render: () =>
+          data.topCategories.length === 0 ? (
+            <p className="text-sm text-gray-500">No category breakdown yet.</p>
           ) : (
             <div id="pdf-chart-top-categories">
               <ResponsiveContainer width="100%" height={260}>
@@ -265,204 +345,257 @@ export function ProductsDashboard({ selectedMonth }: { selectedMonth?: string })
                   <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" horizontal={false} />
                   <XAxis type="number" tick={{ fontSize: 11, fill: '#9ca3af' }} tickLine={false} axisLine={false} allowDecimals={false} />
                   <YAxis type="category" dataKey="category" tick={{ fontSize: 11, fill: '#6b7280' }} tickLine={false} axisLine={false} width={80} />
-                  <Tooltip contentStyle={{ fontSize: 12, borderRadius: 8, border: '1px solid #e5e7eb', backgroundColor: '#fff', color: '#111' }} cursor={{ fill: '#f9fafb' }} formatter={(value) => [value, 'Products']} />
+                  <Tooltip
+                    contentStyle={{
+                      fontSize: 12,
+                      borderRadius: 8,
+                      border: '1px solid #e5e7eb',
+                      backgroundColor: '#fff',
+                      color: '#111',
+                    }}
+                    cursor={{ fill: '#f9fafb' }}
+                    formatter={(value) => [value, 'Products']}
+                  />
                   <Bar dataKey="count" name="Products" radius={[0, 4, 4, 0]}>
-                    {data.topCategories.map((_, i) => <Cell key={i} fill={i === 0 ? BRAND : '#e5e7eb'} />)}
+                    {data.topCategories.map((_, index) => (
+                      <Cell key={index} fill={index === 0 ? BRAND : '#e5e7eb'} />
+                    ))}
                   </Bar>
                 </BarChart>
               </ResponsiveContainer>
             </div>
-          )}
-        </div>
-
-        {/* Most edited */}
-        <div style={card} className="p-6">
-          <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 mb-2">
-            <h2 className="text-base font-semibold shrink-0" style={{ color: '#111827' }}>Most Edited Products</h2>
+          ),
+      },
+      {
+        id: 'most-edited-products',
+        title: 'Most Edited Products',
+        description: `Products with the most logged edits for ${rankingScopeDescription}.`,
+        icon: <Pencil className="h-4 w-4" />,
+        contentClassName: 'p-6',
+        render: () => (
+          <div className="space-y-4">
             {hasSelectedMonth ? (
               <div
-                className="shrink-0 rounded-full px-3 py-1 text-xs font-medium"
-                style={{ backgroundColor: BRAND_LIGHT, color: '#8a6b73', border: '1px solid rgba(231,163,176,0.25)' }}
+                className="w-fit rounded-full border px-3 py-1 text-xs font-medium"
+                style={{
+                  backgroundColor: BRAND_LIGHT,
+                  color: '#8a6b73',
+                  borderColor: 'rgba(231,163,176,0.25)',
+                }}
               >
                 {formatMonthLabel(selectedMonth!)}
               </div>
             ) : (
-              <div className="flex items-center gap-1 shrink-0" style={{ backgroundColor: '#f3f4f6', borderRadius: '0.5rem', padding: '2px' }}>
-                {(['all', 'month', 'week'] as Period[]).map(p => (
+              <div
+                className="flex w-fit items-center gap-1 rounded-lg p-0.5"
+                style={{ backgroundColor: '#f3f4f6', border: '1px solid #e5e7eb' }}
+              >
+                {(['all', 'month', 'week'] as Period[]).map((option) => (
                   <button
-                    key={p}
-                    onClick={() => handlePeriodChange(p)}
-                    className="text-xs px-2.5 py-1 rounded-md font-medium transition-colors"
+                    key={option}
+                    type="button"
+                    onClick={() => handlePeriodChange(option)}
+                    className="rounded-md px-2.5 py-1 text-xs font-medium transition-colors"
                     style={{
-                      backgroundColor: period === p ? 'white' : 'transparent',
-                      color: period === p ? '#111827' : '#6b7280',
-                      boxShadow: period === p ? '0 1px 2px rgba(0,0,0,0.08)' : 'none',
+                      backgroundColor: period === option ? 'white' : 'transparent',
+                      color: period === option ? '#111827' : '#6b7280',
+                      boxShadow: period === option ? '0 1px 2px rgba(0,0,0,0.08)' : 'none',
                     }}
                   >
-                    {p === 'all' ? 'All time' : p === 'month' ? '30 days' : '7 days'}
+                    {option === 'all' ? 'All time' : option === 'month' ? '30 days' : '7 days'}
                   </button>
                 ))}
               </div>
             )}
-          </div>
-          <p className="text-xs mb-4" style={{ color: '#9ca3af' }}>
-            Products with the most updates logged in activity history for {rankingScopeDescription}
-          </p>
-          {periodLoading ? (
-            <div className="space-y-3 animate-pulse">
-              {[...Array(4)].map((_, i) => <div key={i} className="h-8 rounded" style={{ backgroundColor: '#f3f4f6' }} />)}
-            </div>
-          ) : data.mostEdited.length === 0 ? (
-            <p className="text-sm" style={{ color: '#9ca3af' }}>No edit history for this time range yet.</p>
-          ) : (
-            <div className="space-y-3">
-              {data.mostEdited.map((p, i) => {
-                const pct = Math.round((p.edits / maxEdits) * 100);
-                return (
-                  <div key={i} className="space-y-1">
-                    <div className="flex items-center justify-between text-sm">
-                      <span className="truncate max-w-[70%] font-medium" style={{ color: '#374151' }} title={p.name}>
-                        {p.name}
-                      </span>
-                      <span style={{ color: '#6b7280' }}>{p.edits} {p.edits === 1 ? 'edit' : 'edits'}</span>
-                    </div>
-                    <div className="h-1.5 rounded-full overflow-hidden" style={{ backgroundColor: '#f3f4f6' }}>
-                      <div className="h-full rounded-full" style={{ width: `${pct}%`, backgroundColor: i === 0 ? BRAND : '#d1d5db' }} />
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </div>
 
-        {/* Most viewed */}
-        <div style={card} className="p-6">
-          <div className="flex items-start justify-between gap-2 mb-1">
-            <h2 className="text-base font-semibold" style={{ color: '#111827' }}>Most Viewed Products</h2>
+            {periodLoading ? (
+              <div className="space-y-3 animate-pulse">
+                {[...Array(4)].map((_, index) => (
+                  <div key={index} className="h-8 rounded bg-gray-100" />
+                ))}
+              </div>
+            ) : (
+              <MetricList items={data.mostEdited} valueKey="edits" suffix="edit" />
+            )}
           </div>
-          <p className="text-xs mb-4" style={{ color: '#9ca3af' }}>
-            Most clicked products from the catalog collection for {rankingScopeDescription}
-          </p>
-          {data.mostViewed.length === 0 ? (
-            <p className="text-sm" style={{ color: '#9ca3af' }}>No product views recorded yet.</p>
+        ),
+      },
+      {
+        id: 'most-viewed-products',
+        title: 'Most Viewed Products',
+        description: `Products with the most catalog clicks for ${rankingScopeDescription}.`,
+        icon: <Package className="h-4 w-4" />,
+        contentClassName: 'p-6',
+        render: () => <MetricList items={data.mostViewed} valueKey="views" suffix="view" />,
+      },
+      {
+        id: 'stock-alerts',
+        title: 'Stock Alerts',
+        description: 'Out of stock or running low (5 or fewer remaining).',
+        icon: <AlertTriangle className="h-4 w-4" />,
+        render: () =>
+          stockAlerts.length === 0 ? (
+            <p className="text-sm text-gray-500">No stock alerts right now.</p>
           ) : (
-            <div className="space-y-3">
-              {data.mostViewed.map((p, i) => {
-                const maxViews = data.mostViewed[0]?.views ?? 1;
-                const pct = Math.round((p.views / maxViews) * 100);
-                return (
-                  <div key={i} className="space-y-1">
-                    <div className="flex items-center justify-between text-sm">
-                      <span className="truncate max-w-[70%] font-medium" style={{ color: '#374151' }} title={p.name}>
-                        {p.name}
-                      </span>
-                      <span style={{ color: '#6b7280' }}>{p.views} {p.views === 1 ? 'view' : 'views'}</span>
-                    </div>
-                    <div className="h-1.5 rounded-full overflow-hidden" style={{ backgroundColor: '#f3f4f6' }}>
-                      <div className="h-full rounded-full" style={{ width: `${pct}%`, backgroundColor: i === 0 ? BRAND : '#d1d5db' }} />
+            <div className="space-y-2">
+              {stockAlerts.map((item) => (
+                <div
+                  key={`${item.id}-${item.status}`}
+                  className="flex items-center justify-between gap-3 rounded-lg border border-gray-100 px-4 py-3"
+                >
+                  <div className="min-w-0 flex flex-1 items-center gap-2">
+                    <p className="truncate text-sm font-medium text-[#111827]">{item.name}</p>
+                    <div className="shrink-0">
+                      <StockBadge stock={item.stock} />
                     </div>
                   </div>
-                );
-              })}
+                  <Button
+                    size="icon"
+                    variant="outline"
+                    className={CARD_ROW_ACTION_BUTTON_CLASS}
+                    onClick={() => handleEditClick(item.id)}
+                    disabled={loadingProductId === item.id}
+                  >
+                    {loadingProductId === item.id ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Pencil className="h-4 w-4" />
+                    )}
+                  </Button>
+                </div>
+              ))}
+
+              {allStockAlerts.length > alertCap ? (
+                <div className="pt-1">
+                  <a href="/dashboard/inventory" className="flex items-center gap-1 text-xs font-medium" style={{ color: BRAND }}>
+                    View all {allStockAlerts.length} alerts in Inventory <ArrowRight className="h-3 w-3" />
+                  </a>
+                </div>
+              ) : null}
             </div>
-          )}
-        </div>
+          ),
+      },
+      {
+        id: 'missing-images',
+        title: 'Missing Images',
+        description: 'Products without a photo that still need catalog-ready images.',
+        icon: <ImageOff className="h-4 w-4" />,
+        render: () =>
+          missingImages.length === 0 ? (
+            <p className="text-sm text-gray-500">All tracked products have images.</p>
+          ) : (
+            <div className="space-y-2">
+              {missingImages.map((item) => (
+                <div
+                  key={item.id}
+                  className="flex items-center justify-between gap-3 rounded-lg border border-gray-100 px-4 py-3"
+                >
+                  <p className="truncate text-sm font-medium text-[#111827]">{item.name}</p>
+                  <Button
+                    size="icon"
+                    variant="outline"
+                    className={CARD_ROW_ACTION_BUTTON_CLASS}
+                    onClick={() => handleEditClick(item.id)}
+                    disabled={loadingProductId === item.id}
+                  >
+                    {loadingProductId === item.id ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Pencil className="h-4 w-4" />
+                    )}
+                  </Button>
+                </div>
+              ))}
+
+              {data.missingImageList.length > alertCap ? (
+                <div className="pt-1">
+                  <a href="/dashboard/inventory" className="flex items-center gap-1 text-xs font-medium" style={{ color: BRAND }}>
+                    View all {data.missingImageList.length} in Inventory <ArrowRight className="h-3 w-3" />
+                  </a>
+                </div>
+              ) : null}
+            </div>
+        ),
+      },
+    ];
+
+  return (
+    <div className="space-y-6">
+      <div className="flex flex-col gap-1 rounded-xl border border-gray-200 bg-gray-50/70 px-4 py-3 text-sm text-gray-600 md:flex-row md:items-center md:justify-between">
+        <p>
+          {selectedMonth && selectedMonth !== 'all'
+            ? `Showing product analytics for ${selectedMonth}.`
+            : 'Showing the full product analytics summary.'}{' '}
+          Product rankings follow {hasSelectedMonth ? 'the selected month.' : 'the selected time range.'}
+        </p>
+        <p className="text-xs text-gray-500">
+          {lastUpdated ? `Last updated at ${lastUpdated}` : 'Waiting for product data'}
+        </p>
       </div>
 
-      {/* Stock alerts + Missing images side by side */}
-      {(allStockAlerts.length > 0 || data.missingImageList.length > 0) && (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Stock alerts */}
-          {stockAlerts.length > 0 && (
-            <div style={card} className="overflow-hidden">
-              <div className="px-6 py-4" style={{ borderBottom: '1px solid #f3f4f6' }}>
-                <h2 className="text-base font-semibold flex items-center gap-2" style={{ color: '#111827' }}>
-                  <AlertTriangle className="w-4 h-4" style={{ color: '#ef4444' }} />
-                  Stock Alerts
-                </h2>
-                <p className="text-xs mt-0.5" style={{ color: '#9ca3af' }}>Out of stock or running low (5 or fewer remaining)</p>
-              </div>
-              <div className="p-4 space-y-2">
-                {stockAlerts.map((p, i) => (
-                  <div key={i} className="flex items-center justify-between gap-3 rounded-lg px-4 py-3" style={{ border: '1px solid #f3f4f6' }}>
-                    <div className="min-w-0 flex-1 flex items-center gap-2">
-                      <p className="text-sm font-medium truncate" style={{ color: '#111827' }}>{p.name}</p>
-                      <div className="shrink-0"><StockBadge stock={p.stock} /></div>
-                    </div>
-                    <Button
-                      size="icon"
-                      variant="outline"
-                      className="shrink-0 border-blue-200 text-blue-600 bg-blue-50 hover:bg-blue-200 hover:text-blue-700 hover:border-blue-300"
-                      onClick={() => handleEditClick(p.id)}
-                      disabled={loadingProductId === p.id}
-                    >
-                      {loadingProductId === p.id
-                        ? <Loader2 className="h-4 w-4 animate-spin" />
-                        : <Pencil className="h-4 w-4" />}
-                    </Button>
-                  </div>
-                ))}
-              </div>
-              {allStockAlerts.length > ALERT_CAP && (
-                <div className="px-4 pb-4">
-                  <a href="/dashboard/inventory" className="flex items-center gap-1 text-xs font-medium" style={{ color: BRAND }}>
-                    View all {allStockAlerts.length} alerts in Inventory <ArrowRight className="w-3 h-3" />
-                  </a>
-                </div>
-              )}
+      <div className="grid grid-cols-2 gap-4 xl:grid-cols-4">
+        {[
+          {
+            label: 'Total Products',
+            value: data.summary.totalProducts,
+            icon: <Package className="h-5 w-5" style={{ color: BRAND }} />,
+            bg: BRAND_LIGHT,
+          },
+          {
+            label: 'Categories',
+            value: data.summary.totalCategories,
+            icon: <Tag className="h-5 w-5" style={{ color: '#6366f1' }} />,
+            bg: '#eef2ff',
+          },
+          {
+            label: 'Low Stock',
+            value: data.summary.lowStock,
+            icon: <AlertTriangle className="h-5 w-5" style={{ color: '#f59e0b' }} />,
+            bg: '#fffbeb',
+          },
+          {
+            label: 'Out of Stock',
+            value: data.summary.outOfStock,
+            icon: <XCircle className="h-5 w-5" style={{ color: '#ef4444' }} />,
+            bg: '#fef2f2',
+          },
+        ].map((card) => (
+          <div key={card.label} className="flex items-center gap-4 rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
+            <div className="shrink-0 rounded-xl p-3" style={{ backgroundColor: card.bg }}>
+              {card.icon}
             </div>
-          )}
-
-          {/* Missing images */}
-          {data.missingImageList.length > 0 && (
-            <div style={card} className="overflow-hidden">
-              <div className="px-6 py-4" style={{ borderBottom: '1px solid #f3f4f6' }}>
-                <h2 className="text-base font-semibold flex items-center gap-2" style={{ color: '#111827' }}>
-                  <ImageOff className="w-4 h-4" style={{ color: '#f59e0b' }} />
-                  Missing Images
-                </h2>
-                <p className="text-xs mt-0.5" style={{ color: '#9ca3af' }}>Products without a photo — add one so they show up in the catalog</p>
-              </div>
-              <div className="p-4 space-y-2">
-                {missingImages.map((p, i) => (
-                  <div key={i} className="flex items-center justify-between gap-3 rounded-lg px-4 py-3" style={{ border: '1px solid #f3f4f6' }}>
-                    <p className="text-sm font-medium truncate" style={{ color: '#111827' }}>{p.name}</p>
-                    <Button
-                      size="icon"
-                      variant="outline"
-                      className="shrink-0 border-blue-200 text-blue-600 bg-blue-50 hover:bg-blue-200 hover:text-blue-700 hover:border-blue-300"
-                      onClick={() => handleEditClick(p.id)}
-                      disabled={loadingProductId === p.id}
-                    >
-                      {loadingProductId === p.id
-                        ? <Loader2 className="h-4 w-4 animate-spin" />
-                        : <Pencil className="h-4 w-4" />}
-                    </Button>
-                  </div>
-                ))}
-              </div>
-              {data.missingImageList.length > ALERT_CAP && (
-                <div className="px-4 pb-4">
-                  <a href="/dashboard/inventory" className="flex items-center gap-1 text-xs font-medium" style={{ color: BRAND }}>
-                    View all {data.missingImageList.length} in Inventory <ArrowRight className="w-3 h-3" />
-                  </a>
-                </div>
-              )}
+            <div>
+              <p className="text-2xl font-bold text-[#111827]">{card.value}</p>
+              <p className="text-sm text-gray-500">{card.label}</p>
             </div>
-          )}
-        </div>
-      )}
+          </div>
+        ))}
+      </div>
 
-      {editingProduct && (
+      <DashboardCardLayout
+        surface="admin_analytics_products"
+        cards={productCards}
+        gridClassName="grid grid-cols-1 gap-6 lg:auto-rows-max lg:grid-cols-2 lg:grid-flow-row-dense xl:grid-cols-3"
+        desktopRailTopClass="top-56"
+        desktopRailTabTopClass="top-64"
+      />
+
+      {editingProduct ? (
         <AddProduct
           isOpen={true}
           onClose={() => setEditingProduct(null)}
           categories={categories}
           productToEdit={editingProduct}
-          onProductSaved={() => { setEditingProduct(null); fetchData(period, selectedMonth, true); }}
+          onProductSaved={() => {
+            setEditingProduct(null);
+            void fetchData(hasSelectedMonth ? 'month' : period, selectedMonth, true);
+          }}
         />
-      )}
+      ) : null}
     </div>
   );
 }
+
+
+
+
