@@ -7,17 +7,26 @@ import {
   Megaphone,
   Phone,
   BookOpen,
+  HelpCircle,
+  Pencil,
+  Trash2,
+  Plus,
+  X,
 } from "lucide-react";
-import { 
+import {
   Button,
   Input,
   Textarea,
-  Card, 
-  CardContent, 
-  CardHeader, 
+  Card,
+  CardContent,
+  CardHeader,
   CardTitle,
-  CustomPagination,
-  Skeleton
+  Skeleton,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
 } from "@dollys-closet/ui";
 import { AdminNoticeBanner } from "@/components/ui/admin-notice-banner";
 import { useUnsavedChanges } from "@dollys-closet/core";
@@ -28,7 +37,6 @@ import {
   ABOUT_SECTION_FIELD_CONFIG,
   CONTACT_FIELD_CONFIG,
   CONTACT_SLUG,
-  FAQ_FIELD_CONFIG,
   AboutDetailsPayload,
   AboutFieldKey,
   ContactFieldKey,
@@ -47,6 +55,8 @@ import {
   sanitizeContactDetailsPayload,
   sanitizeContactDetailText,
   uiContentLimits,
+  FAQRow,
+  FAQCategory,
 } from "@dollys-closet/core";
 import { toast } from "sonner";
 
@@ -72,13 +82,23 @@ export default function ManageDetailsClient({ role }: ManageDetailsClientProps) 
   const textareaClassName = "border-gray-200 bg-white text-gray-900 placeholder:text-gray-400 focus-visible:border-[#E7A3B0] focus-visible:ring-[#E7A3B0]";
   const { setIsDirty, setUnsavedMessage } = useUnsavedChanges();
 
-  const [activeSection, setActiveSection] = useState<"announcement" | "contact" | "about">("announcement");
+  const [activeSection, setActiveSection] = useState<"announcement" | "contact" | "about" | "faq">("announcement");
   const [announcementText, setAnnouncementText] = useState(defaultAnnouncementText);
   const [savedAnnouncementText, setSavedAnnouncementText] = useState(defaultAnnouncementText);
   const [details, setDetails] = useState<ContactDetailsPayload>(defaultContactDetails);
   const [savedDetails, setSavedDetails] = useState<ContactDetailsPayload>(defaultContactDetails);
   const [aboutDetails, setAboutDetails] = useState<AboutDetailsPayload>(defaultAboutDetails);
   const [savedAboutDetails, setSavedAboutDetails] = useState<AboutDetailsPayload>(defaultAboutDetails);
+
+  // FAQ state
+  const [faqs, setFaqs] = useState<FAQRow[]>([]);
+  const [loadingFaqs, setLoadingFaqs] = useState(false);
+  const [hasLoadedFaqs, setHasLoadedFaqs] = useState(false);
+  const [editingFaq, setEditingFaq] = useState<FAQRow | null>(null);
+  const [addingFaq, setAddingFaq] = useState(false);
+  const [faqForm, setFaqForm] = useState<{ question: string; answer: string; category: FAQCategory }>({ question: "", answer: "", category: "General" });
+  const [savingFaq, setSavingFaq] = useState(false);
+  const [deletingFaqId, setDeletingFaqId] = useState<string | null>(null);
 
   const [loadingAnnouncement, setLoadingAnnouncement] = useState(false);
   const [hasLoadedAnnouncement, setHasLoadedAnnouncement] = useState(false);
@@ -87,16 +107,10 @@ export default function ManageDetailsClient({ role }: ManageDetailsClientProps) 
   const [loadingAbout, setLoadingAbout] = useState(false);
   const [hasLoadedAbout, setHasLoadedAbout] = useState(false);
   const [savingAboutField, setSavingAboutField] = useState<AboutFieldKey | null>(null);
-  const [aboutPage, setAboutPage] = useState<1 | 2 | 3>(1);
   const [savingField, setSavingField] = useState<ContactFieldKey | null>(null);
   const [refreshingSection, setRefreshingSection] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
-  const aboutFieldConfigByKey = useMemo(
-    () => new Map([...ABOUT_SECTION_FIELD_CONFIG, ...FAQ_FIELD_CONFIG].map((field) => [field.key, field])),
-    []
-  );
-
   const formatSingleLineMeta = useCallback((value: string, maxLength: number) => {
     return `${value.length}/${maxLength} characters`;
   }, []);
@@ -172,6 +186,24 @@ export default function ManageDetailsClient({ role }: ManageDetailsClientProps) 
     }
   }, []);
 
+  const fetchFAQs = useCallback(async () => {
+    try {
+      setLoadingFaqs(true);
+      setError(null);
+      const response = await fetch("/api/admin/faqs", { cache: "no-store" });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error || "Failed to fetch FAQs");
+      setFaqs(result.data as FAQRow[]);
+      setHasLoadedFaqs(true);
+      return true;
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Failed to fetch FAQs");
+      return false;
+    } finally {
+      setLoadingFaqs(false);
+    }
+  }, []);
+
   useEffect(() => {
     if (isAdmin) {
       fetchContactDetails();
@@ -189,6 +221,12 @@ export default function ManageDetailsClient({ role }: ManageDetailsClientProps) 
       fetchAboutDetails();
     }
   }, [isAdmin, activeSection, hasLoadedAbout, fetchAboutDetails]);
+
+  useEffect(() => {
+    if (isAdmin && activeSection === "faq" && !hasLoadedFaqs) {
+      fetchFAQs();
+    }
+  }, [isAdmin, activeSection, hasLoadedFaqs, fetchFAQs]);
 
   const announcementDirty = announcementText !== savedAnnouncementText;
   const contactDirtyCount = useMemo(
@@ -227,12 +265,12 @@ export default function ManageDetailsClient({ role }: ManageDetailsClientProps) 
 
   const currentSectionUnsavedCount =
     activeSection === "announcement"
-      ? announcementDirty
-        ? 1
-        : 0
+      ? announcementDirty ? 1 : 0
       : activeSection === "contact"
         ? contactDirtyCount
-        : aboutDirtyCount;
+        : activeSection === "faq"
+          ? 0
+          : aboutDirtyCount;
 
   const sectionMeta =
     activeSection === "announcement"
@@ -247,11 +285,17 @@ export default function ManageDetailsClient({ role }: ManageDetailsClientProps) 
             description: "Update the business contact information customers use to get in touch.",
             guidance: "Each field saves independently, so you can publish one correction at a time.",
           }
-        : {
-            title: "About Details",
-            description: "Edit About page copy and FAQ content shown on the customer site.",
-            guidance: "Page 1 edits section bodies. Pages 2-3 edit FAQ items 1-8.",
-          };
+        : activeSection === "faq"
+          ? {
+              title: "FAQ Management",
+              description: "Add, edit, or remove FAQ items shown on the About page.",
+              guidance: "FAQs are sorted by how often customers click them — most clicked appears first.",
+            }
+          : {
+              title: "About Details",
+              description: "Edit About page copy and FAQ content shown on the customer site.",
+              guidance: "Page 1 edits section bodies. Pages 2-3 edit FAQ items 1-8.",
+            };
 
   const sectionOptions = [
     {
@@ -277,18 +321,97 @@ export default function ManageDetailsClient({ role }: ManageDetailsClientProps) 
             icon: BookOpen,
             unsavedCount: aboutDirtyCount,
           },
+          {
+            key: "faq" as const,
+            label: "FAQ",
+            description: "Manage FAQ items shown on the About page.",
+            icon: HelpCircle,
+            unsavedCount: 0,
+          },
         ]
       : []),
   ];
 
-  const handleSetActiveSection = (section: "announcement" | "contact" | "about") => {
+  const handleSetActiveSection = (section: "announcement" | "contact" | "about" | "faq") => {
     setActiveSection(section);
-    if (section === "about") {
-      setAboutPage(1);
-    }
+    if (section !== "faq") { setAddingFaq(false); setEditingFaq(null); }
     setSuccess(null);
     setError(null);
   };
+
+  async function handleSaveFaq() {
+    if (!faqForm.question.trim() || !faqForm.answer.trim()) return;
+    try {
+      setSavingFaq(true);
+      setError(null);
+      if (editingFaq) {
+        const response = await fetch(`/api/admin/faqs/${editingFaq.id}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(faqForm),
+        });
+        const result = await response.json();
+        if (!response.ok) throw new Error(result.error || "Failed to update FAQ");
+        setFaqs((prev) => prev.map((f) => f.id === editingFaq.id ? result.data as FAQRow : f));
+        toast.success("FAQ updated.");
+        setEditingFaq(null);
+      } else {
+        const response = await fetch("/api/admin/faqs", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(faqForm),
+        });
+        const result = await response.json();
+        if (!response.ok) throw new Error(result.error || "Failed to create FAQ");
+        setFaqs((prev) => [...prev, result.data as FAQRow]);
+        toast.success("FAQ created.");
+        setAddingFaq(false);
+      }
+      setFaqForm({ question: "", answer: "", category: "General" });
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Failed to save FAQ";
+      setError(msg);
+      toast.error(msg);
+    } finally {
+      setSavingFaq(false);
+    }
+  }
+
+  async function handleDeleteFaq(id: string) {
+    try {
+      setDeletingFaqId(id);
+      setError(null);
+      const response = await fetch(`/api/admin/faqs/${id}`, { method: "DELETE" });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error || "Failed to delete FAQ");
+      setFaqs((prev) => prev.filter((f) => f.id !== id));
+      toast.success("FAQ deleted.");
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Failed to delete FAQ";
+      setError(msg);
+      toast.error(msg);
+    } finally {
+      setDeletingFaqId(null);
+    }
+  }
+
+  function startEditFaq(faq: FAQRow) {
+    setEditingFaq(faq);
+    setFaqForm({ question: faq.question, answer: faq.answer, category: faq.category });
+    setAddingFaq(false);
+  }
+
+  function startAddFaq() {
+    setAddingFaq(true);
+    setEditingFaq(null);
+    setFaqForm({ question: "", answer: "", category: "General" });
+  }
+
+  function cancelFaqForm() {
+    setAddingFaq(false);
+    setEditingFaq(null);
+    setFaqForm({ question: "", answer: "", category: "General" });
+  }
 
   const handleRefreshCurrentSection = async () => {
     setRefreshingSection(true);
@@ -301,7 +424,9 @@ export default function ManageDetailsClient({ role }: ManageDetailsClientProps) 
           ? await fetchAnnouncementDetails()
           : activeSection === "contact"
             ? await fetchContactDetails()
-            : await fetchAboutDetails();
+            : activeSection === "about"
+              ? await fetchAboutDetails()
+              : await fetchFAQs();
 
       if (refreshed) {
         setError(null);
@@ -713,6 +838,160 @@ export default function ManageDetailsClient({ role }: ManageDetailsClientProps) 
         </Card>
       )}
 
+      {activeSection === "faq" && (
+        <Card className="border border-[#E7A3B0]/30 bg-white shadow-sm">
+          <CardHeader className="pb-3">
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-xl font-semibold text-gray-900">FAQ Items</CardTitle>
+              {!addingFaq && !editingFaq && (
+                <Button
+                  type="button"
+                  onClick={startAddFaq}
+                  className="bg-[#cc7f8f] text-white hover:bg-[#b96f80] gap-2"
+                >
+                  <Plus className="h-4 w-4" />
+                  Add FAQ
+                </Button>
+              )}
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {loadingFaqs ? (
+              <div className="space-y-3">
+                {Array.from({ length: 3 }).map((_, i) => (
+                  <Skeleton key={i} className="h-20 w-full rounded-xl" />
+                ))}
+              </div>
+            ) : (
+              <>
+                {(addingFaq || editingFaq) && (
+                  <div className="rounded-xl border border-[#E7A3B0]/40 bg-[#fffafb] p-4 space-y-4">
+                    <div className="flex items-center justify-between">
+                      <p className="text-sm font-semibold text-gray-900">
+                        {editingFaq ? "Edit FAQ" : "New FAQ"}
+                      </p>
+                      <button type="button" onClick={cancelFaqForm} className="text-gray-400 hover:text-gray-600">
+                        <X className="h-4 w-4" />
+                      </button>
+                    </div>
+                    <div className="space-y-3">
+                      <div>
+                        <p className="text-xs font-medium text-gray-700 mb-1">Question</p>
+                        <Input
+                          value={faqForm.question}
+                          onChange={(e) => setFaqForm((prev) => ({ ...prev, question: e.target.value }))}
+                          maxLength={300}
+                          placeholder="e.g. What is your return policy?"
+                          className={inputClassName}
+                        />
+                        <p className="text-xs text-gray-400 mt-1">{faqForm.question.length}/300</p>
+                      </div>
+                      <div>
+                        <p className="text-xs font-medium text-gray-700 mb-1">Answer</p>
+                        <Textarea
+                          value={faqForm.answer}
+                          onChange={(e) => setFaqForm((prev) => ({ ...prev, answer: e.target.value }))}
+                          maxLength={1000}
+                          placeholder="Write a clear, concise answer..."
+                          className={`min-h-[100px] ${textareaClassName}`}
+                        />
+                        <p className="text-xs text-gray-400 mt-1">{faqForm.answer.length}/1000</p>
+                      </div>
+                      <div>
+                        <p className="text-xs font-medium text-gray-700 mb-1">Category</p>
+                        <Select
+                          value={faqForm.category}
+                          onValueChange={(val) => setFaqForm((prev) => ({ ...prev, category: val as FAQCategory }))}
+                        >
+                          <SelectTrigger className={inputClassName}>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {(["General", "Ordering", "Shipping", "Returns", "Products"] as FAQCategory[]).map((cat) => (
+                              <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+                    <div className="flex justify-end gap-2">
+                      <Button type="button" variant="outline" onClick={cancelFaqForm} className="border-gray-200">
+                        Cancel
+                      </Button>
+                      <Button
+                        type="button"
+                        onClick={handleSaveFaq}
+                        disabled={savingFaq || !faqForm.question.trim() || !faqForm.answer.trim()}
+                        className="bg-[#cc7f8f] text-white hover:bg-[#b96f80]"
+                      >
+                        {savingFaq ? (
+                          <span className="inline-flex items-center gap-2">
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                            Saving
+                          </span>
+                        ) : editingFaq ? "Save changes" : "Create FAQ"}
+                      </Button>
+                    </div>
+                  </div>
+                )}
+
+                {faqs.length === 0 && !addingFaq ? (
+                  <div className="rounded-xl border border-dashed border-gray-200 py-12 text-center text-gray-400 text-sm">
+                    No FAQ items yet. Click &ldquo;Add FAQ&rdquo; to create the first one.
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {faqs.map((faq, index) => (
+                      <div
+                        key={faq.id}
+                        className={`rounded-xl border p-4 ${editingFaq?.id === faq.id ? "border-[#E7A3B0] bg-[#fff5f7]" : "border-gray-200 bg-gray-50/50"}`}
+                      >
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 mb-1">
+                              <span className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider">#{index + 1}</span>
+                              <span className="rounded-full bg-[#E7A3B0]/20 px-2 py-0.5 text-[10px] font-medium text-[#b96d7d]">{faq.category}</span>
+                              <span className="text-[10px] text-gray-400">{faq.click_count} click{faq.click_count !== 1 ? "s" : ""}</span>
+                              {!faq.is_active && (
+                                <span className="rounded-full bg-gray-200 px-2 py-0.5 text-[10px] font-medium text-gray-500">Hidden</span>
+                              )}
+                            </div>
+                            <p className="text-sm font-semibold text-gray-900 truncate">{faq.question}</p>
+                            <p className="text-xs text-gray-500 mt-1 line-clamp-2">{faq.answer}</p>
+                          </div>
+                          <div className="flex items-center gap-1 shrink-0">
+                            <button
+                              type="button"
+                              onClick={() => startEditFaq(faq)}
+                              disabled={deletingFaqId !== null || savingFaq}
+                              className="rounded-lg p-1.5 text-gray-400 hover:bg-white hover:text-[#b96d7d] transition-colors"
+                            >
+                              <Pencil className="h-3.5 w-3.5" />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleDeleteFaq(faq.id)}
+                              disabled={deletingFaqId !== null || savingFaq}
+                              className="rounded-lg p-1.5 text-gray-400 hover:bg-white hover:text-red-500 transition-colors"
+                            >
+                              {deletingFaqId === faq.id ? (
+                                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                              ) : (
+                                <Trash2 className="h-3.5 w-3.5" />
+                              )}
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
       {activeSection === "about" && (
         <Card className="border border-[#E7A3B0]/30 bg-white shadow-sm">
           <CardHeader className="pb-3">
@@ -732,168 +1011,67 @@ export default function ManageDetailsClient({ role }: ManageDetailsClientProps) 
             ) : (
               <>
                 <div className="rounded-xl border border-gray-200 bg-gray-50/50 px-4 py-3 text-sm text-gray-600">
-                  {aboutPage === 1
-                    ? "Page 1 contains the main About page copy blocks."
-                    : `Page ${aboutPage} contains FAQ items ${aboutPage === 2 ? "1-4" : "5-8"}.`}
+                  Edit the About and History copy blocks shown on the customer-facing About page.
                 </div>
+                <div className="grid grid-cols-1 gap-4">
+                  {ABOUT_SECTION_FIELD_CONFIG.map((field) => {
+                    const isDirty = aboutDetails[field.key] !== savedAboutDetails[field.key];
+                    const isSaving = savingAboutField === field.key;
 
-                {aboutPage === 1 && (
-                  <div className="space-y-6">
-                    <h3 className="text-base font-semibold text-gray-900">About Section Bodies</h3>
-                    <div className="grid grid-cols-1 gap-4">
-                      {ABOUT_SECTION_FIELD_CONFIG.map((field) => {
-                        const isDirty = aboutDetails[field.key] !== savedAboutDetails[field.key];
-                        const isSaving = savingAboutField === field.key;
-
-                        return (
-                          <div
-                            key={field.key}
-                            className={`rounded-xl border p-4 ${
-                              isDirty ? "border-[#E7A3B0]/40 bg-[#fffafb]" : "border-gray-200 bg-gray-50/50"
+                    return (
+                      <div
+                        key={field.key}
+                        className={`rounded-xl border p-4 ${
+                          isDirty ? "border-[#E7A3B0]/40 bg-[#fffafb]" : "border-gray-200 bg-gray-50/50"
+                        }`}
+                      >
+                        <div className="mb-3 flex items-start justify-between gap-3">
+                          <div>
+                            <p className="text-sm font-semibold text-gray-900">{field.label}</p>
+                            <p className="text-xs text-gray-500">
+                              Save each block after reviewing readability and tone for customers.
+                            </p>
+                          </div>
+                          <span
+                            className={`rounded-full px-2.5 py-1 text-[10px] font-semibold ${
+                              isDirty ? "bg-[#E7A3B0] text-white" : "border border-gray-200 bg-white text-gray-500"
                             }`}
                           >
-                            <div className="mb-3 flex items-start justify-between gap-3">
-                              <div>
-                                <p className="text-sm font-semibold text-gray-900">{field.label}</p>
-                                <p className="text-xs text-gray-500">
-                                  Save each block after reviewing readability and tone for customers.
-                                </p>
-                              </div>
-                              <span
-                                className={`rounded-full px-2.5 py-1 text-[10px] font-semibold ${
-                                  isDirty ? "bg-[#E7A3B0] text-white" : "border border-gray-200 bg-white text-gray-500"
-                                }`}
-                              >
-                                {isDirty ? "Unsaved" : "Saved"}
+                            {isDirty ? "Unsaved" : "Saved"}
+                          </span>
+                        </div>
+                        <Textarea
+                          value={aboutDetails[field.key]}
+                          onChange={(e) => updateAboutDetails(field.key, e.target.value)}
+                          maxLength={field.maxLength}
+                          className={`${field.minHeightClassName || "min-h-[90px]"} ${textareaClassName}`}
+                        />
+                        <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
+                          <p className="text-xs text-gray-500">
+                            {isDirty ? "This field has unsaved edits." : "No pending changes."} {formatLongFormMeta(aboutDetails[field.key], field.maxLength, field.recommendedLength)}
+                          </p>
+                          <Button
+                            type="button"
+                            onClick={() => handleSaveAboutField(field.key, field.label)}
+                            disabled={savingAboutField !== null || !isDirty}
+                            className="bg-[#cc7f8f] text-white hover:bg-[#b96f80]"
+                          >
+                            {isSaving ? (
+                              <span className="inline-flex items-center gap-2">
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                                Saving
                               </span>
-                            </div>
-                            <Textarea
-                              value={aboutDetails[field.key]}
-                              onChange={(e) => updateAboutDetails(field.key, e.target.value)}
-                              maxLength={field.maxLength}
-                              className={`${field.minHeightClassName || "min-h-[90px]"} ${textareaClassName}`}
-                            />
-                            <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
-                              <p className="text-xs text-gray-500">
-                                {isDirty ? "This field has unsaved edits." : "No pending changes."} {formatLongFormMeta(aboutDetails[field.key], field.maxLength, field.recommendedLength)}
-                              </p>
-                              <Button
-                                type="button"
-                                onClick={() => handleSaveAboutField(field.key, field.label)}
-                                disabled={savingAboutField !== null || !isDirty}
-                                className="bg-[#cc7f8f] text-white hover:bg-[#b96f80]"
-                              >
-                                {isSaving ? (
-                                  <span className="inline-flex items-center gap-2">
-                                    <Loader2 className="h-4 w-4 animate-spin" />
-                                    Saving
-                                  </span>
-                                ) : isDirty ? (
-                                  "Save field"
-                                ) : (
-                                  "Saved"
-                                )}
-                              </Button>
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-                )}
-                {(aboutPage === 2 || aboutPage === 3) && (
-                  <div className="space-y-6">
-                    <h3 className="text-base font-semibold text-gray-900">FAQ (8 Items)</h3>
-                    <div className="grid grid-cols-1 gap-4">
-                      {Array.from({ length: 4 }, (_, index) => {
-                        const number = (aboutPage === 2 ? 0 : 4) + index + 1;
-                        const questionKey = `question${number}` as AboutFieldKey;
-                        const answerKey = `answer${number}` as AboutFieldKey;
-                        const questionLabel = `Question ${number}`;
-                        const answerLabel = `Answer ${number}`;
-                        const questionDirty = aboutDetails[questionKey] !== savedAboutDetails[questionKey];
-                        const answerDirty = aboutDetails[answerKey] !== savedAboutDetails[answerKey];
-                        const questionConfig = aboutFieldConfigByKey.get(questionKey);
-                        const answerConfig = aboutFieldConfigByKey.get(answerKey);
-                        return (
-                          <div key={number} className="space-y-3 rounded-lg border border-gray-200 p-4">
-                            <div>
-                              <p className="text-sm font-semibold text-gray-900">FAQ Item {number}</p>
-                              <p className="text-xs text-gray-500">Save the question and answer separately after editing.</p>
-                            </div>
-                            <div className="space-y-2">
-                              <div className="flex items-center justify-between gap-3">
-                                <p className="text-sm font-medium text-gray-700">{questionLabel}</p>
-                                <span
-                                  className={`rounded-full px-2.5 py-1 text-[10px] font-semibold ${
-                                    questionDirty ? "bg-[#E7A3B0] text-white" : "border border-gray-200 bg-white text-gray-500"
-                                  }`}
-                                >
-                                  {questionDirty ? "Unsaved" : "Saved"}
-                                </span>
-                              </div>
-                              <div className="flex flex-col gap-2 md:flex-row">
-                                <div className="flex-1 space-y-2">
-                                  <Input
-                                    value={aboutDetails[questionKey]}
-                                    onChange={(e) => updateAboutDetails(questionKey, e.target.value)}
-                                    maxLength={questionConfig?.maxLength}
-                                    className={inputClassName}
-                                  />
-                                  <div className="text-xs text-gray-500">
-                                    {questionConfig ? formatSingleLineMeta(aboutDetails[questionKey], questionConfig.maxLength) : null}
-                                  </div>
-                                </div>
-                                <Button type="button" onClick={() => handleSaveAboutField(questionKey, questionLabel)} disabled={savingAboutField !== null || !questionDirty} className="bg-[#cc7f8f] text-white hover:bg-[#b96f80] md:min-w-28">
-                                  {savingAboutField === questionKey ? (
-                                    <span className="inline-flex items-center gap-2"><Loader2 className="h-4 w-4 animate-spin" />Saving</span>
-                                  ) : questionDirty ? (
-                                    "Save field"
-                                  ) : (
-                                    "Saved"
-                                  )}
-                                </Button>
-                              </div>
-                            </div>
-                            <div className="space-y-2">
-                              <div className="flex items-center justify-between gap-3">
-                                <p className="text-sm font-medium text-gray-700">{answerLabel}</p>
-                                <span
-                                  className={`rounded-full px-2.5 py-1 text-[10px] font-semibold ${
-                                    answerDirty ? "bg-[#E7A3B0] text-white" : "border border-gray-200 bg-white text-gray-500"
-                                  }`}
-                                >
-                                  {answerDirty ? "Unsaved" : "Saved"}
-                                </span>
-                              </div>
-                              <Textarea
-                                value={aboutDetails[answerKey]}
-                                onChange={(e) => updateAboutDetails(answerKey, e.target.value)}
-                                maxLength={answerConfig?.maxLength}
-                                className={`min-h-[90px] ${textareaClassName}`}
-                              />
-                              <div className="flex justify-end">
-                                <p className="mr-auto text-xs text-gray-500">
-                                  {answerConfig ? formatLongFormMeta(aboutDetails[answerKey], answerConfig.maxLength, answerConfig.recommendedLength) : null}
-                                </p>
-                                <Button type="button" onClick={() => handleSaveAboutField(answerKey, answerLabel)} disabled={savingAboutField !== null || !answerDirty} className="bg-[#cc7f8f] text-white hover:bg-[#b96f80]">
-                                  {savingAboutField === answerKey ? (
-                                    <span className="inline-flex items-center gap-2"><Loader2 className="h-4 w-4 animate-spin" />Saving</span>
-                                  ) : answerDirty ? (
-                                    "Save field"
-                                  ) : (
-                                    "Saved"
-                                  )}
-                                </Button>
-                              </div>
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-                )}
-                <CustomPagination className="mt-4 pb-2" currentPage={aboutPage} totalPages={3} onPageChange={(p) => setAboutPage(p as 1 | 2 | 3)} disabled={savingAboutField !== null} />
+                            ) : isDirty ? (
+                              "Save field"
+                            ) : (
+                              "Saved"
+                            )}
+                          </Button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
               </>
             )}
           </CardContent>

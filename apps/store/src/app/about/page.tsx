@@ -1,6 +1,6 @@
-import { createAdminClient, getAboutDetails } from "@dollys-closet/core";
-import { AboutView } from "@dollys-closet/ui";
+import { createAdminClient, getAboutDetails, getFAQs } from "@dollys-closet/core";
 import type { Metadata } from "next";
+import AboutClient from "./AboutClient";
 
 export const dynamic = "force-dynamic";
 
@@ -11,7 +11,10 @@ export const metadata: Metadata = {
 
 export default async function AboutPage() {
   const supabase = createAdminClient();
-  const aboutDetails = await getAboutDetails(supabase);
+  const [aboutDetails, faqs] = await Promise.all([
+    getAboutDetails(supabase),
+    getFAQs(supabase),
+  ]);
 
-  return <AboutView aboutDetails={aboutDetails} />;
+  return <AboutClient aboutDetails={aboutDetails} initialFaqs={faqs} />;
 }

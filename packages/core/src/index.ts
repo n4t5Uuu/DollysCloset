@@ -22,6 +22,7 @@ export * from "./lib/business-details/fetchers";
 export * from "./lib/business-details/public-details-service";
 export * from "./data/outfit-images";
 export * from "./data/faq";
+export * from "./lib/faq/faq-service";
 export * from "./lib/images/product-placeholder";
 export * from "./lib/images/upload-product-image";
 export * from "./lib/images/image-compression";
