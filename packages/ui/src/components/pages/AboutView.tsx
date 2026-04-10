@@ -2,19 +2,21 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { 
-  Accordion, 
-  AccordionContent, 
-  AccordionItem, 
-  AccordionTrigger 
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger
 } from "../ui/accordion";
 import { cn } from "@dollys-closet/core";
 import { InView } from "../motion-primitives/in-view";
-import { AboutDetailsPayload } from "@dollys-closet/core";
+import { AboutDetailsPayload, FAQRow } from "@dollys-closet/core";
 import { images } from "@dollys-closet/core";
 
 interface AboutViewProps {
   aboutDetails: AboutDetailsPayload;
+  faqs: FAQRow[];
+  onFAQClick?: (id: string) => void;
 }
 
 function renderParagraphs(text: string) {
@@ -25,18 +27,7 @@ function renderParagraphs(text: string) {
     .map((paragraph, index) => <p key={`${paragraph.slice(0, 24)}-${index}`}>{paragraph}</p>);
 }
 
-export function AboutView({ aboutDetails }: AboutViewProps) {
-  const faqs = Array.from({ length: 8 }, (_, index) => {
-    const number = index + 1;
-    const questionKey = `question${number}` as keyof AboutDetailsPayload;
-    const answerKey = `answer${number}` as keyof AboutDetailsPayload;
-
-    return {
-      id: String(number),
-      question: aboutDetails[questionKey],
-      answer: aboutDetails[answerKey],
-    };
-  });
+export function AboutView({ aboutDetails, faqs = [], onFAQClick }: AboutViewProps) {
 
   return (
     <div className="w-full bg-white text-black">
@@ -265,7 +256,14 @@ export function AboutView({ aboutDetails }: AboutViewProps) {
             transition={{ duration: 0.3, ease: "easeInOut" }}
           >
             <div className="bg-gray-50/50 p-6 md:p-10 rounded-2xl border border-gray-100 shadow-sm">
-              <Accordion type="single" collapsible className="w-full space-y-4">
+              <Accordion
+                type="single"
+                collapsible
+                className="w-full space-y-4"
+                onValueChange={(value) => {
+                  if (value && onFAQClick) onFAQClick(value);
+                }}
+              >
                 {faqs.map((faq) => (
                   <AccordionItem
                     key={faq.id}
