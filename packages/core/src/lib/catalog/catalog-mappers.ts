@@ -73,6 +73,7 @@ export function mapCatalogProduct(
       product.discount ? discountHelper.calculateDiscountedPrice(Number(product.product_price || 0), product.discount) : null
     ),
     isOnSale: Boolean(product.isOnSale ?? product.discount),
+    seasonId: product.season_id ?? null,
   };
 }
 

@@ -8,6 +8,7 @@ import {
     InventoryCategory as Category,
     InventoryProductImage as ProductImage,
     ProductDiscount,
+    Season,
     discountHelper,
     sanitizeMultilineInput,
     sanitizeMultilineText,
@@ -101,6 +102,8 @@ export default function AddProduct({ isOpen, onClose, categories, productToEdit,
     const conditionDropdownRef = useRef<HTMLDivElement>(null);
     const [discountEnabled, setDiscountEnabled] = useState(false);
     const [selectedDiscountId, setSelectedDiscountId] = useState("");
+    const [seasons, setSeasons] = useState<Season[]>([]);
+    const [loadingSeasons, setLoadingSeasons] = useState(false);
 
     const [showDiscardConfirm, setShowDiscardConfirm] = useState(false);
     const [formData, setFormData] = useState({
@@ -113,6 +116,7 @@ export default function AddProduct({ isOpen, onClose, categories, productToEdit,
         product_condition: "",
         size_label: "",
         show_in_catalog: true,
+        season_id: "",
         image_id: "",
     });
 
@@ -163,6 +167,7 @@ export default function AddProduct({ isOpen, onClose, categories, productToEdit,
                 formData.show_in_catalog !== productToEdit.show_in_catalog ||
                 discountEnabled !== Boolean(productToEdit.discount) ||
                 selectedDiscountId !== String(productToEdit.discount?.id || "") ||
+                formData.season_id !== String(productToEdit.season_id || "") ||
                 stagedFiles.length > 0
             );
         }
@@ -176,6 +181,7 @@ export default function AddProduct({ isOpen, onClose, categories, productToEdit,
             formData.product_condition !== "New" ||
             formData.size_label !== "" ||
             formData.show_in_catalog !== true ||
+            formData.season_id !== "" ||
             discountEnabled !== false ||
             selectedDiscountId !== "" ||
             stagedFiles.length > 0
@@ -272,6 +278,7 @@ export default function AddProduct({ isOpen, onClose, categories, productToEdit,
                     product_condition: sanitizeSingleLineInput(productToEdit.product_condition || "", schemaExactLimits.productCondition),
                     size_label: sanitizeSingleLineInput(productToEdit.size_label || "", schemaExactLimits.productSizeLabel),
                     show_in_catalog: productToEdit.show_in_catalog,
+                    season_id: String(productToEdit.season_id || ""),
                     image_id: productToEdit.image_id || "",
                 });
                 setDiscountEnabled(Boolean(productToEdit.discount));
@@ -319,6 +326,7 @@ export default function AddProduct({ isOpen, onClose, categories, productToEdit,
             product_condition: "New",
             size_label: "",
             show_in_catalog: true,
+            season_id: "",
             image_id: "",
         });
         setDiscountEnabled(false);
@@ -327,6 +335,27 @@ export default function AddProduct({ isOpen, onClose, categories, productToEdit,
         setProductImages([]);
         setError(null);
     };
+
+    useEffect(() => {
+        if (!isOpen) return;
+
+        const fetchSeasons = async () => {
+            setLoadingSeasons(true);
+            try {
+                const response = await fetch("/api/admin/seasons", { cache: "no-store" });
+                const result = await response.json();
+                if (!response.ok) throw new Error(result.error || "Failed to fetch seasons");
+                setSeasons(result.data || []);
+            } catch (err) {
+                console.error("Failed to load seasons:", err);
+                setSeasons([]);
+            } finally {
+                setLoadingSeasons(false);
+            }
+        };
+
+        fetchSeasons();
+    }, [isOpen]);
 
     /**
      * Fetches product images from the backend for a specific product.
@@ -471,6 +500,7 @@ export default function AddProduct({ isOpen, onClose, categories, productToEdit,
                     show_in_catalog: formData.show_in_catalog,
                     image_id: formData.image_id || null,
                     discount_id: discountEnabled ? selectedDiscountId || null : null,
+                    season_id: formData.season_id || null,
                 })
             });
 
@@ -589,6 +619,27 @@ export default function AddProduct({ isOpen, onClose, categories, productToEdit,
                                 />
                                 <p className="mt-1 text-xs text-gray-500">
                                     Enter the selling price in Philippine pesos.
+                                </p>
+                            </div>
+
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-2">Season</label>
+                                <Select
+                                    value={formData.season_id || "none"}
+                                    onValueChange={(value) => setFormData({ ...formData, season_id: value === "none" ? "" : value })}
+                                >
+                                    <SelectTrigger className="border-gray-300 bg-white text-gray-900">
+                                        <SelectValue placeholder={loadingSeasons ? "Loading seasons..." : "No season"} />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="none">No season</SelectItem>
+                                        {seasons.map((season) => (
+                                            <SelectItem key={season.id} value={season.id}>{season.name}</SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                                <p className="mt-1 text-xs text-gray-500">
+                                    Optional. Leave empty if this item is not seasonal.
                                 </p>
                             </div>
                         </div>

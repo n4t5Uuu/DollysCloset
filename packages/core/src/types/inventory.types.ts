@@ -14,6 +14,7 @@ export interface InventoryProduct {
     product_condition: string;
     size_label: string;
     show_in_catalog: boolean;
+    season_id?: string | null;
     image_id: string | null;
     created_at: string;
     updated_at?: string | null;

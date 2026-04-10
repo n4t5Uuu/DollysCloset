@@ -15,6 +15,7 @@ export * from "./lib/catalog/product-helper";
 export * from "./lib/catalog/discount-helper";
 export * from "./lib/catalog/catalog-mappers";
 export * from "./lib/catalog/catalog-service";
+export * from "./lib/catalog/season-helper";
 
 export * from "./lib/input-sanitization";
 export * from "./lib/business-details/business-details";

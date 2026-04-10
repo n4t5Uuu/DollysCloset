@@ -11,10 +11,11 @@ export const productHelper = {
         supabase = createClient(),
         { scope = "active" }: { scope?: ProductQueryScope } = {}
     ) {
-        let query =
-            scope === "active"
-                ? supabase.from("active_products").select("*")
-                : supabase.from("tbl_product").select("*");
+        let query = supabase.from("tbl_product").select("*");
+
+        if (scope === "active") {
+            query = query.is("archived_at", null);
+        }
 
         if (scope === "archived") {
             query = query.not("archived_at", "is", null);
@@ -103,8 +104,12 @@ export const productHelper = {
         supabase = createClient(),
         { includeArchived = false }: { includeArchived?: boolean } = {}
     ) {
-        const source = includeArchived ? "tbl_product" : "active_products";
-        const { data, error } = await supabase.from(source).select("*").eq("product_id", productId).maybeSingle();
+        let query = supabase.from("tbl_product").select("*").eq("product_id", productId);
+        if (!includeArchived) {
+            query = query.is("archived_at", null);
+        }
+
+        const { data, error } = await query.maybeSingle();
         if (error) {
             console.error("Error Fetching Product by ID: ", error);
             return { data: null, error };
@@ -172,7 +177,12 @@ export const productHelper = {
      * Retrieves products marked explicitly to show in public catalog views.
      */
     async getProductsCatalog(supabase = createClient()) {
-        const { data, error } = await supabase.from("active_products").select("*").eq("show_in_catalog", true).order("created_at", { ascending: false, nullsFirst: false });
+        const { data, error } = await supabase
+            .from("tbl_product")
+            .select("*")
+            .is("archived_at", null)
+            .eq("show_in_catalog", true)
+            .order("created_at", { ascending: false, nullsFirst: false });
         if (error) {
             console.error("Error Fetching Catalog Products: ", error);
             return { data: null, error };

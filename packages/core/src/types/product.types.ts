@@ -3,6 +3,16 @@
  */
 export type DiscountType = "flat" | "percent" | "fixed_price";
 
+export interface Season {
+    id: string;
+    name: string;
+    startMonth: number;
+    startDay: number;
+    endMonth: number;
+    endDay: number;
+    isActive?: boolean;
+}
+
 export interface ProductDiscount {
     id: string;
     discount_name: string;
@@ -29,6 +39,8 @@ export interface Product {
     discount?: ProductDiscount | null;
     discountedPrice?: number | null;
     isOnSale?: boolean;
+    seasonId?: string | null;
+    seasonName?: string | null;
 }
 
 export type CatalogCategory = {
@@ -55,4 +67,13 @@ export type CatalogApiProduct = {
     discount?: ProductDiscount | null;
     discountedPrice?: number | null;
     isOnSale?: boolean;
+    seasonId?: string | null;
+    seasonName?: string | null;
+};
+
+export type CatalogPayload = {
+    categories: CatalogCategory[];
+    products: CatalogApiProduct[];
+    featuredProducts: CatalogApiProduct[];
+    activeSeason: Season | null;
 };

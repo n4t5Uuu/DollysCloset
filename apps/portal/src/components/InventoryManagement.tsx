@@ -2,13 +2,14 @@
 
 import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { useSearchParams, useRouter, usePathname } from "next/navigation";
-import { Plus, Archive, RotateCcw, X, Upload, SlidersHorizontal, RefreshCw, BadgePercent, Trash2 } from "lucide-react";
+import { Plus, Archive, RotateCcw, X, Upload, SlidersHorizontal, RefreshCw, BadgePercent, Trash2, CalendarRange } from "lucide-react";
 import { 
   createClient,
   InventoryProduct as Product,
   InventoryProductImage as ProductImage,
   InventoryCategory as Category,
   ProductDiscount,
+  Season,
 } from "@dollys-closet/core";
 import {
   Button,
@@ -74,6 +75,26 @@ const sortLabels: Record<string, string> = {
   "za": "Name: Z\u2013A",
 };
 
+const MONTH_OPTIONS = [
+  { value: 1, label: "January" },
+  { value: 2, label: "February" },
+  { value: 3, label: "March" },
+  { value: 4, label: "April" },
+  { value: 5, label: "May" },
+  { value: 6, label: "June" },
+  { value: 7, label: "July" },
+  { value: 8, label: "August" },
+  { value: 9, label: "September" },
+  { value: 10, label: "October" },
+  { value: 11, label: "November" },
+  { value: 12, label: "December" },
+];
+
+function maxDayInMonth(month: number) {
+  const date = new Date(2001, month, 0);
+  return date.getDate();
+}
+
 export default function InventoryManagement({ initialAvailabilityFilter }: InventoryManagementProps) {
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -118,6 +139,18 @@ export default function InventoryManagement({ initialAvailabilityFilter }: Inven
   const [discounts, setDiscounts] = useState<InventoryDiscount[]>([]);
   const [discountLoading, setDiscountLoading] = useState(false);
   const [showDiscountModal, setShowDiscountModal] = useState(false);
+  const [seasons, setSeasons] = useState<Season[]>([]);
+  const [seasonsLoading, setSeasonsLoading] = useState(false);
+  const [showSeasonModal, setShowSeasonModal] = useState(false);
+  const [editingSeasonId, setEditingSeasonId] = useState<string | null>(null);
+  const [seasonForm, setSeasonForm] = useState({
+    name: "",
+    startMonth: 1,
+    startDay: 1,
+    endMonth: 12,
+    endDay: 31,
+    isActive: true,
+  });
   const [discountForm, setDiscountForm] = useState({
     discount_name: "",
     discount_type: "percent" as "percent" | "flat" | "fixed_price",
@@ -180,17 +213,33 @@ export default function InventoryManagement({ initialAvailabilityFilter }: Inven
     }
   }, []);
 
+  const fetchSeasons = useCallback(async () => {
+    try {
+      setSeasonsLoading(true);
+      const response = await fetch('/api/admin/seasons', { cache: 'no-store' });
+      if (!response.ok) throw new Error('Failed to fetch seasons');
+
+      const result = await response.json();
+      setSeasons(result.data || []);
+    } catch (err: unknown) {
+      console.error('Error fetching seasons:', err);
+      setSeasons([]);
+    } finally {
+      setSeasonsLoading(false);
+    }
+  }, []);
+
   useEffect(() => {
     const initializeInventory = async () => {
       setLoading(true);
       try {
-        await Promise.all([fetchProducts(false), fetchCategories(), fetchDiscounts()]);
+        await Promise.all([fetchProducts(false), fetchCategories(), fetchDiscounts(), fetchSeasons()]);
       } finally {
         setLoading(false);
       }
     };
     initializeInventory();
-  }, [fetchProducts, fetchCategories, fetchDiscounts]);
+  }, [fetchProducts, fetchCategories, fetchDiscounts, fetchSeasons]);
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
@@ -237,6 +286,7 @@ export default function InventoryManagement({ initialAvailabilityFilter }: Inven
     setShowAddModal(false);
     setShowBulkImport(false);
     setShowDiscountModal(false);
+    setShowSeasonModal(false);
     setProducts([]);
   }, [inventoryScope]);
 
@@ -809,6 +859,119 @@ export default function InventoryManagement({ initialAvailabilityFilter }: Inven
     }
   };
 
+  const resetSeasonForm = useCallback(() => {
+    setSeasonForm({
+      name: "",
+      startMonth: 1,
+      startDay: 1,
+      endMonth: 12,
+      endDay: 31,
+      isActive: true,
+    });
+    setEditingSeasonId(null);
+  }, []);
+
+  const handleEditSeason = (season: Season) => {
+    setEditingSeasonId(season.id);
+    setSeasonForm({
+      name: season.name,
+      startMonth: season.startMonth,
+      startDay: season.startDay,
+      endMonth: season.endMonth,
+      endDay: season.endDay,
+      isActive: season.isActive !== false,
+    });
+  };
+
+  const handleSaveSeason = async () => {
+    const trimmedName = seasonForm.name.trim();
+    if (!trimmedName) {
+      toast.error('Enter a season name.');
+      return;
+    }
+
+    const startMax = maxDayInMonth(seasonForm.startMonth);
+    const endMax = maxDayInMonth(seasonForm.endMonth);
+    if (seasonForm.startDay < 1 || seasonForm.startDay > startMax) {
+      toast.error('Start day is invalid for the selected month.');
+      return;
+    }
+    if (seasonForm.endDay < 1 || seasonForm.endDay > endMax) {
+      toast.error('End day is invalid for the selected month.');
+      return;
+    }
+
+    setActionLoading(true);
+    try {
+      const supabase = createClient();
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error('Not authenticated');
+
+      const method = editingSeasonId ? 'PUT' : 'POST';
+      const response = await fetch('/api/admin/seasons', {
+        method,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({
+          ...(editingSeasonId ? { season_id: editingSeasonId } : {}),
+          season_name: trimmedName,
+          start_month: seasonForm.startMonth,
+          start_day: seasonForm.startDay,
+          end_month: seasonForm.endMonth,
+          end_day: seasonForm.endDay,
+          is_active: seasonForm.isActive,
+        }),
+      });
+
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error || 'Failed to save season');
+
+      await fetchSeasons();
+      resetSeasonForm();
+      toast.success(editingSeasonId ? 'Season updated successfully.' : 'Season created successfully.');
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : 'Failed to save season');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleDeleteSeason = async (season: Season) => {
+    const shouldDelete = window.confirm(`Delete season "${season.name}"? Linked products will be set to no season.`);
+    if (!shouldDelete) return;
+
+    setActionLoading(true);
+    try {
+      const supabase = createClient();
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error('Not authenticated');
+
+      const response = await fetch('/api/admin/seasons', {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({ season_id: season.id }),
+      });
+
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error || 'Failed to delete season');
+
+      await fetchSeasons();
+      if (editingSeasonId === season.id) {
+        resetSeasonForm();
+      }
+      toast.success('Season deleted successfully.');
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : 'Failed to delete season');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="space-y-3">
@@ -869,6 +1032,16 @@ export default function InventoryManagement({ initialAvailabilityFilter }: Inven
               >
                 <Upload size={16} />
                 Import
+              </button>
+              <button
+                onClick={() => {
+                  resetSeasonForm();
+                  setShowSeasonModal(true);
+                }}
+                className="flex items-center gap-2 px-4 py-2 bg-white border border-[#E7A3B0]/30 text-[#b96d7d] rounded-lg text-sm font-medium transition-all duration-300 shadow-sm hover:shadow-md hover:border-[#E7A3B0] hover:bg-[#fff5f7] hover:scale-105 cursor-pointer"
+              >
+                <CalendarRange size={16} />
+                Manage Seasons
               </button>
               <button
                 onClick={() => setShowDiscountModal(true)}
@@ -1387,6 +1560,239 @@ export default function InventoryManagement({ initialAvailabilityFilter }: Inven
                                 disabled={actionLoading}
                                 className="border-rose-200 text-rose-600 hover:border-rose-300 hover:bg-rose-50 hover:text-rose-700"
                                 aria-label={`Delete discount code ${discount.discount_name}`}
+                              >
+                                <Trash2 className="h-3.5 w-3.5" />
+                              </Button>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showSeasonModal && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-4"
+          onClick={() => {
+            setShowSeasonModal(false);
+            resetSeasonForm();
+          }}
+        >
+          <div
+            className="w-full max-w-5xl max-h-[90vh] overflow-hidden rounded-3xl border border-[#E7A3B0]/20 bg-white shadow-[0_24px_80px_rgba(17,24,39,0.28)]"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="flex items-start justify-between gap-4 border-b border-[#E7A3B0]/15 bg-[#fffafc] px-6 py-5">
+              <div>
+                <div className="flex items-center gap-2 text-2xl font-semibold text-gray-900">
+                  <CalendarRange className="h-5 w-5 text-[#E7A3B0]" />
+                  Seasons
+                </div>
+                <p className="mt-1 text-sm text-gray-600">
+                  Create, edit, and remove seasons. Date windows cannot overlap.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setShowSeasonModal(false);
+                  resetSeasonForm();
+                }}
+                className="inline-flex h-9 w-9 items-center justify-center rounded-full text-gray-400 hover:bg-white hover:text-gray-700"
+                aria-label="Close seasons modal"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            <div className="grid max-h-[calc(90vh-5.5rem)] gap-6 overflow-y-auto p-6 lg:grid-cols-[1.05fr_0.95fr]">
+              <div className="rounded-2xl border border-[#E7A3B0]/15 bg-[#fffafc] p-5 shadow-sm lg:sticky lg:top-0 lg:self-start">
+                <div className="space-y-4">
+                  <div>
+                    <label className="mb-2 block text-sm font-medium text-gray-700">Season Name</label>
+                    <Input
+                      value={seasonForm.name}
+                      onChange={(event) => setSeasonForm((previous) => ({ ...previous, name: event.target.value.slice(0, 50) }))}
+                      maxLength={50}
+                      placeholder="Summer Sale"
+                      className="border-gray-300 bg-white text-gray-900"
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="mb-2 block text-sm font-medium text-gray-700">Start Month</label>
+                      <Select
+                        value={String(seasonForm.startMonth)}
+                        onValueChange={(value) => {
+                          const nextMonth = Number.parseInt(value, 10);
+                          setSeasonForm((previous) => {
+                            const adjustedDay = Math.min(previous.startDay, maxDayInMonth(nextMonth));
+                            return { ...previous, startMonth: nextMonth, startDay: adjustedDay };
+                          });
+                        }}
+                      >
+                        <SelectTrigger className="border-gray-300 bg-white text-gray-900">
+                          <SelectValue placeholder="Month" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {MONTH_OPTIONS.map((month) => (
+                            <SelectItem key={`start-month-${month.value}`} value={String(month.value)}>{month.label}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <label className="mb-2 block text-sm font-medium text-gray-700">Start Day</label>
+                      <Input
+                        type="number"
+                        min="1"
+                        max={String(maxDayInMonth(seasonForm.startMonth))}
+                        value={seasonForm.startDay}
+                        onChange={(event) => {
+                          const parsed = Number.parseInt(event.target.value, 10);
+                          setSeasonForm((previous) => ({
+                            ...previous,
+                            startDay: Number.isFinite(parsed) ? Math.max(1, Math.min(maxDayInMonth(previous.startMonth), parsed)) : 1,
+                          }));
+                        }}
+                        className="border-gray-300 bg-white text-gray-900"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="mb-2 block text-sm font-medium text-gray-700">End Month</label>
+                      <Select
+                        value={String(seasonForm.endMonth)}
+                        onValueChange={(value) => {
+                          const nextMonth = Number.parseInt(value, 10);
+                          setSeasonForm((previous) => {
+                            const adjustedDay = Math.min(previous.endDay, maxDayInMonth(nextMonth));
+                            return { ...previous, endMonth: nextMonth, endDay: adjustedDay };
+                          });
+                        }}
+                      >
+                        <SelectTrigger className="border-gray-300 bg-white text-gray-900">
+                          <SelectValue placeholder="Month" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {MONTH_OPTIONS.map((month) => (
+                            <SelectItem key={`end-month-${month.value}`} value={String(month.value)}>{month.label}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <label className="mb-2 block text-sm font-medium text-gray-700">End Day</label>
+                      <Input
+                        type="number"
+                        min="1"
+                        max={String(maxDayInMonth(seasonForm.endMonth))}
+                        value={seasonForm.endDay}
+                        onChange={(event) => {
+                          const parsed = Number.parseInt(event.target.value, 10);
+                          setSeasonForm((previous) => ({
+                            ...previous,
+                            endDay: Number.isFinite(parsed) ? Math.max(1, Math.min(maxDayInMonth(previous.endMonth), parsed)) : 1,
+                          }));
+                        }}
+                        className="border-gray-300 bg-white text-gray-900"
+                      />
+                    </div>
+                  </div>
+
+                  <label className="flex items-center gap-3 rounded-xl border border-[#E7A3B0]/15 bg-white px-4 py-3 text-sm text-gray-700">
+                    <Checkbox
+                      checked={seasonForm.isActive}
+                      onCheckedChange={(checked) => setSeasonForm((previous) => ({ ...previous, isActive: Boolean(checked) }))}
+                    />
+                    <span>Season is active</span>
+                  </label>
+
+                  <div className="flex items-center gap-2">
+                    <Button
+                      type="button"
+                      onClick={() => void handleSaveSeason()}
+                      disabled={actionLoading}
+                      className="flex-1 bg-[#E7A3B0] text-white hover:bg-[#d891a0]"
+                    >
+                      {actionLoading ? "Saving..." : editingSeasonId ? "Update Season" : "Create Season"}
+                    </Button>
+                    {editingSeasonId && (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={resetSeasonForm}
+                        disabled={actionLoading}
+                        className="border-gray-300 text-gray-700"
+                      >
+                        Cancel Edit
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-sm font-semibold uppercase tracking-[0.18em] text-gray-500">Existing Seasons</h3>
+                  <span className="rounded-full bg-[#fff0f5] px-3 py-1 text-xs font-semibold text-[#b96d7d]">
+                    {seasons.length}
+                  </span>
+                </div>
+
+                {seasonsLoading ? (
+                  <div className="rounded-2xl border border-dashed border-gray-200 bg-white px-4 py-8 text-center text-sm text-gray-500">
+                    Loading seasons...
+                  </div>
+                ) : seasons.length === 0 ? (
+                  <div className="rounded-2xl border border-dashed border-gray-200 bg-white px-4 py-8 text-center text-sm text-gray-500">
+                    No seasons yet. Create one from the form.
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {seasons.map((season) => {
+                      const startMonth = MONTH_OPTIONS.find((month) => month.value === season.startMonth)?.label || season.startMonth;
+                      const endMonth = MONTH_OPTIONS.find((month) => month.value === season.endMonth)?.label || season.endMonth;
+                      return (
+                        <div key={season.id} className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
+                          <div className="flex items-start justify-between gap-3">
+                            <div className="min-w-0 space-y-1">
+                              <p className="truncate text-base font-semibold text-gray-900">{season.name}</p>
+                              <p className="text-sm text-gray-600">
+                                {startMonth} {season.startDay} - {endMonth} {season.endDay}
+                              </p>
+                              <p className={`text-xs font-medium ${season.isActive !== false ? "text-emerald-600" : "text-gray-500"}`}>
+                                {season.isActive !== false ? "Active" : "Inactive"}
+                              </p>
+                            </div>
+
+                            <div className="flex shrink-0 gap-2">
+                              <Button
+                                type="button"
+                                size="sm"
+                                onClick={() => handleEditSeason(season)}
+                                disabled={actionLoading}
+                                className="bg-[#121212] text-white hover:bg-[#2a2a2a]"
+                              >
+                                Edit
+                              </Button>
+                              <Button
+                                type="button"
+                                size="sm"
+                                variant="outline"
+                                onClick={() => void handleDeleteSeason(season)}
+                                disabled={actionLoading}
+                                className="border-rose-200 text-rose-600 hover:border-rose-300 hover:bg-rose-50 hover:text-rose-700"
+                                aria-label={`Delete season ${season.name}`}
                               >
                                 <Trash2 className="h-3.5 w-3.5" />
                               </Button>

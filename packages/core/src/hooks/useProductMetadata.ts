@@ -60,6 +60,13 @@ export function useProductMetadata(product: Product) {
                 className: "bg-[#121212] text-white",
             });
         } else {
+            if (hasDisplayValue(product.seasonName)) {
+                badges.push({
+                    label: product.seasonName!.trim(),
+                    className: "bg-[#eef7ff] text-[#2b6b93] ring-1 ring-[#b8daf0]/70 shadow-sm",
+                });
+            }
+
             if (hasDiscount && discountLabel) {
                 badges.push({
                     label: product.discount?.discount_name ? product.discount.discount_name : discountLabel,

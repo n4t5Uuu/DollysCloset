@@ -185,7 +185,7 @@ export default function ProductCard({ product, href, onClick }: ProductCardProps
 
                     <div className="pointer-events-none absolute inset-x-0 bottom-0 h-24 bg-linear-to-t from-black/20 via-black/0 to-transparent opacity-80" />
 
-                    <div className="absolute left-3 top-3 flex max-w-[calc(100%-5rem)] flex-wrap gap-2">
+                    <div className="absolute left-3 top-3 flex max-w-[calc(100%-6.75rem)] flex-wrap gap-2">
                         {nonDiscountBadges.map((badge) => (
                             <ProductBadge 
                                 key={badge.label} 

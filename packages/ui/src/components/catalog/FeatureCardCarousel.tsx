@@ -115,7 +115,7 @@ function CardContent({ product, cardImageHeight, cardWidth }: { product: Product
                 />
                 <div className="pointer-events-none absolute inset-x-0 bottom-0 h-24 bg-linear-to-t from-black/25 via-black/0 to-transparent opacity-70" />
 
-                <div className="absolute left-3 top-3 flex max-w-[58%] flex-wrap gap-2">
+                <div className="absolute left-3 top-3 flex max-w-[54%] flex-wrap gap-2">
                     {displayBadges.map((badge) => (
                         <ProductBadge
                             key={badge.label}
@@ -126,7 +126,7 @@ function CardContent({ product, cardImageHeight, cardWidth }: { product: Product
                     ))}
                 </div>
 
-                <div className="absolute right-3 top-3 max-w-[38%] rounded-full bg-white/88 px-3 py-1.5 backdrop-blur-sm ring-1 ring-black/5">
+                <div className="absolute right-3 top-3 max-w-[42%] rounded-full bg-white/88 px-3 py-1.5 backdrop-blur-sm ring-1 ring-black/5">
                     <p className="truncate font-montserrat text-[10px] font-semibold uppercase tracking-[0.16em] text-[#6f5058]">
                         {categoryBadgeLabel}
                     </p>

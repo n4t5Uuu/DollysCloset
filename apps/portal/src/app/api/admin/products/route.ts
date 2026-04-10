@@ -19,6 +19,36 @@ function normalizeScope(rawScope: string | null): ProductScope {
   return "active";
 }
 
+function normalizeSeasonId(value: unknown) {
+  return typeof value === "string" && value.trim() ? value.trim() : null;
+}
+
+async function validateSeasonSelection(
+  body: Record<string, unknown>,
+  seasonId: string | null,
+  supabaseAdmin: ReturnType<typeof createAdminClient>
+) {
+  if (!Object.prototype.hasOwnProperty.call(body, "season_id") || !seasonId) {
+    return null;
+  }
+
+  const { data: seasonRow, error: seasonError } = await supabaseAdmin
+    .from("tbl_season")
+    .select("season_id")
+    .eq("season_id", seasonId)
+    .maybeSingle();
+
+  if (seasonError) {
+    return NextResponse.json({ error: seasonError.message }, { status: 500 });
+  }
+
+  if (!seasonRow) {
+    return NextResponse.json({ error: "Selected season was not found." }, { status: 404 });
+  }
+
+  return null;
+}
+
 export async function GET(request: Request) {
   try {
     const authResult = await requireRequestAuth(request, {
@@ -67,7 +97,7 @@ export async function POST(request: NextRequest) {
     const { user } = authResult;
     const editor = user.email || user.user_metadata?.username || 'Unknown';
 
-    const body = await request.json();
+    const body = await request.json() as Record<string, unknown>;
     const {
       product_name,
       category_id,
@@ -80,6 +110,7 @@ export async function POST(request: NextRequest) {
       show_in_catalog,
       image_id,
       discount_id,
+      season_id,
     } = body;
     const normalizedProductName = sanitizeSingleLineText(product_name, schemaExactLimits.productName);
     const normalizedBrand = sanitizeSingleLineText(product_brand, schemaExactLimits.productBrand) || "Dolly's Closet";
@@ -108,6 +139,12 @@ export async function POST(request: NextRequest) {
     }
 
     const supabaseAdmin = createAdminClient();
+
+    const normalizedSeasonId = normalizeSeasonId(season_id);
+    const seasonValidationResponse = await validateSeasonSelection(body, normalizedSeasonId, supabaseAdmin);
+    if (seasonValidationResponse) {
+      return seasonValidationResponse;
+    }
 
     if (Object.prototype.hasOwnProperty.call(body, "discount_id") && discount_id) {
       const { data: selectedDiscount, error: discountError } = await discountHelper.getDiscountById(discount_id, supabaseAdmin);
@@ -149,6 +186,7 @@ export async function POST(request: NextRequest) {
       product_condition: normalizedCondition,
       size_label: normalizedSizeLabel,
       show_in_catalog: finalShowInCatalog,
+      season_id: normalizedSeasonId,
       image_id: image_id || null,
     }, supabaseAdmin);
 
@@ -204,8 +242,8 @@ export async function PUT(request: NextRequest) {
     const { user } = authResult;
     const editor = user.email || user.user_metadata?.username || 'Unknown';
 
-    const body = await request.json();
-    const { product_id, product_name, category_id, product_price, product_brand, product_description, product_stock, product_condition, size_label, show_in_catalog, image_id, discount_id } = body;
+    const body = await request.json() as Record<string, unknown>;
+    const { product_id, product_name, category_id, product_price, product_brand, product_description, product_stock, product_condition, size_label, show_in_catalog, image_id, discount_id, season_id } = body;
     const normalizedProductName = sanitizeSingleLineText(product_name, schemaExactLimits.productName);
     const normalizedBrand = sanitizeSingleLineText(product_brand, schemaExactLimits.productBrand) || "Dolly's Closet";
     const normalizedDescription = sanitizeMultilineText(product_description, uiContentLimits.productDescription.maxLength);
@@ -217,6 +255,12 @@ export async function PUT(request: NextRequest) {
     }
 
     const supabaseAdmin = createAdminClient();
+    const normalizedSeasonId = normalizeSeasonId(season_id);
+    const seasonValidationResponse = await validateSeasonSelection(body, normalizedSeasonId, supabaseAdmin);
+    if (seasonValidationResponse) {
+      return seasonValidationResponse;
+    }
+
     const { data: currentProduct } = await productHelper.getProductById(product_id, supabaseAdmin, {
       includeArchived: true,
     });
@@ -256,6 +300,7 @@ export async function PUT(request: NextRequest) {
       if (currentProduct.product_condition !== normalizedCondition) changes.push(`condition: ${currentProduct.product_condition} → ${normalizedCondition}`);
       if (currentProduct.size_label !== normalizedSizeLabel) changes.push(`size: ${currentProduct.size_label} → ${normalizedSizeLabel}`);
       if (currentProduct.show_in_catalog !== finalShowInCatalog) changes.push(`visibility: ${currentProduct.show_in_catalog ? 'shown' : 'hidden'} → ${finalShowInCatalog ? 'shown' : 'hidden'}`);
+      if ((currentProduct.season_id || null) !== normalizedSeasonId) changes.push(`season updated`);
     }
 
     let normalizedImageId: string | number | null = null;
@@ -317,6 +362,7 @@ export async function PUT(request: NextRequest) {
       product_condition: normalizedCondition,
       size_label: normalizedSizeLabel,
       show_in_catalog: finalShowInCatalog,
+      season_id: normalizedSeasonId,
       image_id: normalizedImageId,
     }, supabaseAdmin);
 
