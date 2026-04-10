@@ -20,7 +20,7 @@ import {
 } from "@dollys-closet/ui";
 import AdminSearchInput from "@/components/general-components/AdminSearchInput";
 import { AdminNoticeBanner } from "@/components/ui/admin-notice-banner";
-import { Calendar, ChevronDown, ClipboardList, X, Eye, SlidersHorizontal, RefreshCcw } from "lucide-react";
+import { Calendar, ChevronDown, ClipboardList, X, Eye, SlidersHorizontal, RefreshCcw, Download, Trash2, AlertTriangle } from "lucide-react";
 
 interface ActivityLog {
   log_id: number;
@@ -71,6 +71,16 @@ const actionLabels: Record<string, string> = {
   set_primary_image: "Updated Image",
   delete_image: "Deleted Image",
   reorder_images: "Reordered Images",
+  create_discount: "Created Discount",
+  apply_discount: "Applied Discount",
+  delete_discount: "Deleted Discount",
+  create_faq: "Created FAQ",
+  edit_faq: "Edited FAQ",
+  delete_faq: "Deleted FAQ",
+  create_season: "Created Season",
+  edit_season: "Edited Season",
+  delete_season: "Deleted Season",
+  purge_activity_logs: "Purged Activity Logs",
   edit_contact_details: "Updated Contact Details",
   edit_about_details: "Updated About Details",
   edit_announcement: "Edited Announcement",
@@ -96,6 +106,16 @@ const actionColors: Record<string, string> = {
   set_primary_image: "bg-blue-100 text-blue-800",
   delete_image: "bg-red-100 text-red-800",
   reorder_images: "bg-indigo-100 text-indigo-800",
+  create_discount: "bg-green-100 text-green-800",
+  apply_discount: "bg-emerald-100 text-emerald-800",
+  delete_discount: "bg-red-100 text-red-800",
+  create_faq: "bg-green-100 text-green-800",
+  edit_faq: "bg-blue-100 text-blue-800",
+  delete_faq: "bg-red-100 text-red-800",
+  create_season: "bg-green-100 text-green-800",
+  edit_season: "bg-blue-100 text-blue-800",
+  delete_season: "bg-red-100 text-red-800",
+  purge_activity_logs: "bg-red-100 text-red-800",
   edit_contact_details: "bg-amber-100 text-amber-800",
   edit_about_details: "bg-violet-100 text-violet-800",
   edit_announcement: "bg-pink-100 text-pink-800",
@@ -117,7 +137,11 @@ const actionTypeGroups: Record<string, { label: string; actions: string[] }> = {
   products:   { label: "Products",   actions: ["create_product", "edit_product", "archive_product", "restore_product", "delete_product"] },
   employees:  { label: "Employees",  actions: ["create_employee", "edit_employee", "archive_employee", "restore_employee", "delete_employee"] },
   images:     { label: "Images",     actions: ["upload_image", "set_primary_image", "delete_image", "reorder_images"] },
+  discounts:  { label: "Discounts",  actions: ["create_discount", "apply_discount", "delete_discount"] },
+  seasons:    { label: "Seasons",    actions: ["create_season", "edit_season", "delete_season"] },
+  faqs:       { label: "FAQs",       actions: ["create_faq", "edit_faq", "delete_faq"] },
   content:    { label: "Content",    actions: ["edit_contact_details", "edit_about_details", "edit_announcement"] },
+  system:     { label: "System",     actions: ["purge_activity_logs"] },
   auth:       { label: "Auth",       actions: ["login", "logout"] },
 };
 
@@ -150,6 +174,23 @@ export default function ActivityLogsClient() {
   const [actionTypeFilter, setActionTypeFilter] = useState<Set<string>>(new Set());
   const [showFilters, setShowFilters] = useState(false);
   const [actionNotice, setActionNotice] = useState<ActionNotice | null>(null);
+
+  type PurgeMode = "preset" | "custom";
+  type PurgeFormat = "csv" | "xlsx";
+  const [purgeOpen, setPurgeOpen] = useState(false);
+  const [purgeMode, setPurgeMode] = useState<PurgeMode>("preset");
+  const [purgePresetDays, setPurgePresetDays] = useState<30 | 90 | 180>(90);
+  const [purgeCustomDate, setPurgeCustomDate] = useState<string>("");
+  const [purgeFormat, setPurgeFormat] = useState<PurgeFormat>("xlsx");
+  const [purgePreviewCount, setPurgePreviewCount] = useState<number | null>(null);
+  const [purgePreviewing, setPurgePreviewing] = useState(false);
+  const [purgePreviewError, setPurgePreviewError] = useState<string | null>(null);
+  const [purgeDownloading, setPurgeDownloading] = useState(false);
+  const [purgeDownloaded, setPurgeDownloaded] = useState(false);
+  const [purgeConfirmText, setPurgeConfirmText] = useState("");
+  const [purgeSubmitting, setPurgeSubmitting] = useState(false);
+  const [purgeError, setPurgeError] = useState<string | null>(null);
+
   const pickerRef = useRef<HTMLDivElement>(null);
   const filtersRef = useRef<HTMLDivElement>(null);
   const searchInputRef = useRef<HTMLInputElement | null>(null);
@@ -399,6 +440,187 @@ export default function ActivityLogsClient() {
     await fetchLogs();
   };
 
+  /**
+   * Resolves the current modal selection (preset days or custom date) to an
+   * ISO string that the backend treats as the exclusive upper bound.
+   */
+  const resolvePurgeCutoff = useCallback((): { iso: string; label: string } | { error: string } => {
+    if (purgeMode === "preset") {
+      const cutoff = new Date();
+      cutoff.setDate(cutoff.getDate() - purgePresetDays);
+      return {
+        iso: cutoff.toISOString(),
+        label: `older than ${purgePresetDays} days (before ${cutoff.toLocaleDateString()})`,
+      };
+    }
+
+    if (!purgeCustomDate) {
+      return { error: "Pick a cutoff date to continue." };
+    }
+
+    const parsed = new Date(`${purgeCustomDate}T00:00:00`);
+    if (Number.isNaN(parsed.getTime())) {
+      return { error: "Invalid cutoff date." };
+    }
+
+    if (parsed.getTime() >= Date.now()) {
+      return { error: "Cutoff must be in the past." };
+    }
+
+    return {
+      iso: parsed.toISOString(),
+      label: `older than ${parsed.toLocaleDateString()}`,
+    };
+  }, [purgeMode, purgePresetDays, purgeCustomDate]);
+
+  const resetPurgeState = useCallback(() => {
+    setPurgePreviewCount(null);
+    setPurgePreviewError(null);
+    setPurgeDownloaded(false);
+    setPurgeConfirmText("");
+    setPurgeError(null);
+  }, []);
+
+  const handleOpenPurge = () => {
+    resetPurgeState();
+    setPurgeMode("preset");
+    setPurgePresetDays(90);
+    setPurgeCustomDate("");
+    setPurgeFormat("xlsx");
+    setPurgeOpen(true);
+  };
+
+  const handleClosePurge = () => {
+    if (purgeSubmitting || purgeDownloading || purgePreviewing) return;
+    setPurgeOpen(false);
+  };
+
+  // Any change to the cutoff invalidates the download/confirmation state.
+  useEffect(() => {
+    if (!purgeOpen) return;
+    resetPurgeState();
+  }, [purgeOpen, purgeMode, purgePresetDays, purgeCustomDate, resetPurgeState]);
+
+  const handlePurgePreview = async () => {
+    const resolved = resolvePurgeCutoff();
+    if ("error" in resolved) {
+      setPurgePreviewError(resolved.error);
+      setPurgePreviewCount(null);
+      return;
+    }
+
+    try {
+      setPurgePreviewing(true);
+      setPurgePreviewError(null);
+      const params = new URLSearchParams({ dryRun: "1", before: resolved.iso });
+      const response = await fetch(`/api/admin/logs/reset?${params}`, {
+        cache: "no-store",
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.error || "Failed to preview purge");
+      }
+      setPurgePreviewCount(typeof data.count === "number" ? data.count : 0);
+    } catch (err: unknown) {
+      setPurgePreviewError(err instanceof Error ? err.message : "Failed to preview purge");
+      setPurgePreviewCount(null);
+    } finally {
+      setPurgePreviewing(false);
+    }
+  };
+
+  const handlePurgeDownload = async () => {
+    const resolved = resolvePurgeCutoff();
+    if ("error" in resolved) {
+      setPurgeError(resolved.error);
+      return;
+    }
+
+    try {
+      setPurgeDownloading(true);
+      setPurgeError(null);
+      const params = new URLSearchParams({
+        before: resolved.iso,
+        format: purgeFormat,
+      });
+      const response = await fetch(`/api/admin/logs/export?${params}`, {
+        cache: "no-store",
+      });
+      if (!response.ok) {
+        const data = await response.json().catch(() => ({}));
+        throw new Error(data.error || "Failed to export logs");
+      }
+
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      const anchor = document.createElement("a");
+      anchor.href = url;
+      const stamp = new Date().toISOString().replace(/[:.]/g, "-");
+      anchor.download = `activity-logs-export-${stamp}.${purgeFormat}`;
+      document.body.appendChild(anchor);
+      anchor.click();
+      document.body.removeChild(anchor);
+      URL.revokeObjectURL(url);
+
+      setPurgeDownloaded(true);
+    } catch (err: unknown) {
+      setPurgeError(err instanceof Error ? err.message : "Failed to export logs");
+    } finally {
+      setPurgeDownloading(false);
+    }
+  };
+
+  const handlePurgeSubmit = async () => {
+    const resolved = resolvePurgeCutoff();
+    if ("error" in resolved) {
+      setPurgeError(resolved.error);
+      return;
+    }
+
+    if (!purgeDownloaded) {
+      setPurgeError("You must download the export before purging.");
+      return;
+    }
+
+    if (purgeConfirmText !== "DELETE") {
+      setPurgeError('You must type "DELETE" to confirm.');
+      return;
+    }
+
+    try {
+      setPurgeSubmitting(true);
+      setPurgeError(null);
+      const response = await fetch("/api/admin/logs/reset", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          before: resolved.iso,
+          confirm: "DELETE",
+          exportConfirmed: true,
+        }),
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.error || "Failed to purge logs");
+      }
+
+      setPurgeOpen(false);
+      resetPurgeState();
+      setActionNotice({
+        type: "success",
+        message:
+          typeof data.purged === "number"
+            ? `Purged ${data.purged} activity log${data.purged === 1 ? "" : "s"} ${resolved.label}.`
+            : "Activity logs purged.",
+      });
+      await fetchLogs();
+    } catch (err: unknown) {
+      setPurgeError(err instanceof Error ? err.message : "Failed to purge logs");
+    } finally {
+      setPurgeSubmitting(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -416,6 +638,15 @@ export default function ActivityLogsClient() {
           >
             <RefreshCcw className={`mr-2 h-4 w-4 ${loading ? "animate-spin" : ""}`} />
             Refresh
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={handleOpenPurge}
+            className="h-10 border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700"
+          >
+            <Trash2 className="mr-2 h-4 w-4" />
+            Export &amp; Purge
           </Button>
         </div>
       </div>
@@ -804,6 +1035,214 @@ export default function ActivityLogsClient() {
           totalPages={totalPages}
           onPageChange={handlePageChange}
         />
+      )}
+
+      {purgeOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="w-full max-w-lg max-h-[90vh] overflow-y-auto rounded-2xl bg-white shadow-2xl">
+            <div className="flex items-center justify-between border-b px-6 py-4">
+              <div className="flex items-center gap-2">
+                <AlertTriangle className="h-5 w-5 text-red-500" />
+                <h2 className="text-lg font-semibold text-gray-900">Export &amp; Purge Activity Logs</h2>
+              </div>
+              <button
+                type="button"
+                onClick={handleClosePurge}
+                disabled={purgeSubmitting || purgeDownloading || purgePreviewing}
+                className="rounded-full p-1 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600 disabled:opacity-50"
+                aria-label="Close"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            <div className="space-y-5 px-6 py-5">
+              <p className="text-sm text-gray-600">
+                Download older activity logs as a backup, then permanently delete them to keep the database lean. This action cannot be undone.
+              </p>
+
+              <div className="space-y-2">
+                <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">Cutoff</p>
+                <div className="flex gap-2 rounded-lg border border-gray-200 p-1">
+                  <button
+                    type="button"
+                    onClick={() => setPurgeMode("preset")}
+                    className={`flex-1 rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${
+                      purgeMode === "preset"
+                        ? "bg-[#E7A3B0] text-white shadow-sm"
+                        : "text-gray-600 hover:bg-gray-50"
+                    }`}
+                  >
+                    Preset
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setPurgeMode("custom")}
+                    className={`flex-1 rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${
+                      purgeMode === "custom"
+                        ? "bg-[#E7A3B0] text-white shadow-sm"
+                        : "text-gray-600 hover:bg-gray-50"
+                    }`}
+                  >
+                    Custom date
+                  </button>
+                </div>
+
+                {purgeMode === "preset" ? (
+                  <div className="flex gap-2">
+                    {[30, 90, 180].map((days) => (
+                      <button
+                        key={days}
+                        type="button"
+                        onClick={() => setPurgePresetDays(days as 30 | 90 | 180)}
+                        className={`flex-1 rounded-lg border px-3 py-2 text-xs font-medium transition-colors ${
+                          purgePresetDays === days
+                            ? "border-[#E7A3B0] bg-[#fff5f7] text-[#b96d7d]"
+                            : "border-gray-200 text-gray-600 hover:border-[#E7A3B0]/50 hover:bg-[#fffafb]"
+                        }`}
+                      >
+                        Older than {days} days
+                      </button>
+                    ))}
+                  </div>
+                ) : (
+                  <input
+                    type="date"
+                    value={purgeCustomDate}
+                    max={new Date().toISOString().slice(0, 10)}
+                    onChange={(e) => setPurgeCustomDate(e.target.value)}
+                    className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-700 focus:border-[#E7A3B0] focus:outline-none focus:ring-2 focus:ring-[#E7A3B0]/20"
+                  />
+                )}
+              </div>
+
+              <div className="space-y-2">
+                <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">Export format</p>
+                <div className="flex gap-2 rounded-lg border border-gray-200 p-1">
+                  <button
+                    type="button"
+                    onClick={() => setPurgeFormat("xlsx")}
+                    className={`flex-1 rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${
+                      purgeFormat === "xlsx"
+                        ? "bg-[#E7A3B0] text-white shadow-sm"
+                        : "text-gray-600 hover:bg-gray-50"
+                    }`}
+                  >
+                    XLSX
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setPurgeFormat("csv")}
+                    className={`flex-1 rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${
+                      purgeFormat === "csv"
+                        ? "bg-[#E7A3B0] text-white shadow-sm"
+                        : "text-gray-600 hover:bg-gray-50"
+                    }`}
+                  >
+                    CSV
+                  </button>
+                </div>
+              </div>
+
+              <div className="rounded-xl bg-gray-50 p-4">
+                <div className="flex items-center justify-between gap-3">
+                  <div>
+                    <p className="text-xs uppercase tracking-wide text-gray-500">Logs to purge</p>
+                    <p className="text-sm font-semibold text-gray-900">
+                      {purgePreviewCount === null ? "—" : `${purgePreviewCount} log${purgePreviewCount === 1 ? "" : "s"}`}
+                    </p>
+                  </div>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={handlePurgePreview}
+                    disabled={purgePreviewing}
+                    className="h-9 border-gray-200 text-gray-700 hover:bg-gray-100 hover:text-gray-900"
+                  >
+                    {purgePreviewing ? "Checking..." : "Preview count"}
+                  </Button>
+                </div>
+                {purgePreviewError && (
+                  <p className="mt-2 text-xs text-red-600">{purgePreviewError}</p>
+                )}
+              </div>
+
+              <div className="space-y-2">
+                <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">
+                  Step 1 — Download backup
+                </p>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={handlePurgeDownload}
+                  disabled={purgeDownloading || purgePreviewCount === null || purgePreviewCount === 0}
+                  className="w-full h-10 border-[#E7A3B0]/40 text-[#b96d7d] hover:bg-[#fff5f7] hover:text-[#b96d7d]"
+                >
+                  <Download className="mr-2 h-4 w-4" />
+                  {purgeDownloading
+                    ? "Downloading..."
+                    : purgeDownloaded
+                      ? `Downloaded (${purgeFormat.toUpperCase()}) — click to redownload`
+                      : `Download ${purgeFormat.toUpperCase()}`}
+                </Button>
+                {purgePreviewCount === 0 && (
+                  <p className="text-xs text-gray-500">No logs match the selected cutoff.</p>
+                )}
+              </div>
+
+              <div className="space-y-2">
+                <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">
+                  Step 2 — Confirm deletion
+                </p>
+                <p className="text-xs text-gray-600">
+                  Type <span className="font-mono font-semibold text-red-600">DELETE</span> to enable the purge button.
+                </p>
+                <input
+                  type="text"
+                  value={purgeConfirmText}
+                  onChange={(e) => setPurgeConfirmText(e.target.value)}
+                  disabled={!purgeDownloaded}
+                  placeholder="DELETE"
+                  className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-700 focus:border-red-400 focus:outline-none focus:ring-2 focus:ring-red-200 disabled:cursor-not-allowed disabled:bg-gray-50"
+                />
+              </div>
+
+              {purgeError && (
+                <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700">
+                  {purgeError}
+                </div>
+              )}
+            </div>
+
+            <div className="flex items-center justify-end gap-2 border-t bg-gray-50 px-6 py-4">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={handleClosePurge}
+                disabled={purgeSubmitting || purgeDownloading || purgePreviewing}
+                className="border-gray-200 text-gray-700 hover:bg-gray-100 hover:text-gray-900"
+              >
+                Cancel
+              </Button>
+              <Button
+                type="button"
+                onClick={handlePurgeSubmit}
+                disabled={
+                  purgeSubmitting ||
+                  !purgeDownloaded ||
+                  purgeConfirmText !== "DELETE" ||
+                  purgePreviewCount === null ||
+                  purgePreviewCount === 0
+                }
+                className="bg-red-500 text-white hover:bg-red-600 hover:text-white"
+              >
+                <Trash2 className="mr-2 h-4 w-4" />
+                {purgeSubmitting ? "Purging..." : "Purge Logs"}
+              </Button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

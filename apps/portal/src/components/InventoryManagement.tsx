@@ -21,6 +21,9 @@ import {
   SelectTrigger,
   SelectValue,
   Skeleton,
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
   CustomPagination,
   AlertDialog,
   AlertDialogAction,
@@ -39,6 +42,7 @@ import AddProduct from "@/components/dialogs/AddProduct";
 import BulkImportModal from "@/components/dialogs/BulkImportModal";
 import { InventoryTable } from "@/components/tables/InventoryTable";
 import ViewProductDialog from "@/components/dialogs/ViewProductDialog";
+import { SeasonCalendar, getSeasonColor } from "@/components/seasons/SeasonCalendar";
 import { toast } from "sonner";
 
 interface InventoryManagementProps {
@@ -156,7 +160,6 @@ export default function InventoryManagement({ initialAvailabilityFilter }: Inven
     discount_type: "percent" as "percent" | "flat" | "fixed_price",
     discount_value: "",
     ends_at: "",
-    is_active: true,
   });
 
   const itemsPerPage = 10;
@@ -765,7 +768,6 @@ export default function InventoryManagement({ initialAvailabilityFilter }: Inven
           discount_type: discountForm.discount_type,
           discount_value: discountValue,
           ends_at: discountForm.ends_at || null,
-          is_active: discountForm.is_active,
         }),
       });
 
@@ -777,7 +779,6 @@ export default function InventoryManagement({ initialAvailabilityFilter }: Inven
         discount_type: "percent",
         discount_value: "",
         ends_at: "",
-        is_active: true,
       });
       await fetchDiscounts();
       setShowDiscountModal(false);
@@ -859,6 +860,38 @@ export default function InventoryManagement({ initialAvailabilityFilter }: Inven
     }
   };
 
+  const handleToggleDiscount = async (discountId: string, isActive: boolean) => {
+    setActionLoading(true);
+    try {
+      const supabase = createClient();
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error('Not authenticated');
+
+      const response = await fetch('/api/admin/discounts', {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({ discount_id: discountId, is_active: isActive }),
+      });
+
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error || 'Failed to update discount');
+
+      await fetchDiscounts();
+      toast.success(isActive ? 'Discount activated.' : 'Discount deactivated.');
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : 'Failed to update discount');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleSeasonCalendarChange = useCallback((sm: number, sd: number, em: number, ed: number) => {
+    setSeasonForm((prev) => ({ ...prev, startMonth: sm, startDay: sd, endMonth: em, endDay: ed }));
+  }, []);
+
   const resetSeasonForm = useCallback(() => {
     setSeasonForm({
       name: "",
@@ -887,6 +920,11 @@ export default function InventoryManagement({ initialAvailabilityFilter }: Inven
     const trimmedName = seasonForm.name.trim();
     if (!trimmedName) {
       toast.error('Enter a season name.');
+      return;
+    }
+
+    if (trimmedName.length > 30) {
+      toast.error('Season name must be 30 characters or less.');
       return;
     }
 
@@ -1488,14 +1526,6 @@ export default function InventoryManagement({ initialAvailabilityFilter }: Inven
                     />
                   </div>
 
-                  <label className="flex items-center gap-3 rounded-xl border border-[#E7A3B0]/15 bg-white px-4 py-3 text-sm text-gray-700">
-                    <Checkbox
-                      checked={discountForm.is_active}
-                      onCheckedChange={(checked) => setDiscountForm((prev) => ({ ...prev, is_active: Boolean(checked) }))}
-                    />
-                    <span>Make this code active immediately</span>
-                  </label>
-
                   <Button
                     type="button"
                     onClick={handleCreateDiscount}
@@ -1529,7 +1559,7 @@ export default function InventoryManagement({ initialAvailabilityFilter }: Inven
                       const isExpired = Boolean(discount.ends_at && new Date(discount.ends_at).getTime() <= Date.now());
                       return (
                         <div key={discount.id} className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
-                          <div className="flex items-start justify-between gap-3">
+                          <div className="space-y-3">
                             <div className="min-w-0 space-y-1">
                               <p className="truncate text-base font-semibold text-gray-900">{discount.discount_name}</p>
                               <p className="text-sm text-gray-600">
@@ -1541,8 +1571,7 @@ export default function InventoryManagement({ initialAvailabilityFilter }: Inven
                                 {typeof discount.productCount === "number" ? ` • ${discount.productCount} product(s)` : ""}
                               </p>
                             </div>
-
-                            <div className="flex shrink-0 gap-2">
+                            <div className="flex flex-wrap gap-2">
                               <Button
                                 type="button"
                                 size="sm"
@@ -1552,6 +1581,20 @@ export default function InventoryManagement({ initialAvailabilityFilter }: Inven
                               >
                                 Apply to selected
                               </Button>
+                              {!isExpired && (
+                                <Button
+                                  type="button"
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => void handleToggleDiscount(String(discount.id), !discount.is_active)}
+                                  disabled={actionLoading}
+                                  className={discount.is_active
+                                    ? "border-gray-200 text-gray-600 hover:border-gray-300 hover:bg-gray-50"
+                                    : "border-emerald-200 text-emerald-700 hover:border-emerald-300 hover:bg-emerald-50"}
+                                >
+                                  {discount.is_active ? "Deactivate" : "Activate"}
+                                </Button>
+                              )}
                               <Button
                                 type="button"
                                 size="sm"
@@ -1611,198 +1654,174 @@ export default function InventoryManagement({ initialAvailabilityFilter }: Inven
               </button>
             </div>
 
-            <div className="grid max-h-[calc(90vh-5.5rem)] gap-6 overflow-y-auto p-6 lg:grid-cols-[1.05fr_0.95fr]">
-              <div className="rounded-2xl border border-[#E7A3B0]/15 bg-[#fffafc] p-5 shadow-sm lg:sticky lg:top-0 lg:self-start">
-                <div className="space-y-4">
-                  <div>
-                    <label className="mb-2 block text-sm font-medium text-gray-700">Season Name</label>
-                    <Input
-                      value={seasonForm.name}
-                      onChange={(event) => setSeasonForm((previous) => ({ ...previous, name: event.target.value.slice(0, 50) }))}
-                      maxLength={50}
-                      placeholder="Summer Sale"
-                      className="border-gray-300 bg-white text-gray-900"
-                    />
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <label className="mb-2 block text-sm font-medium text-gray-700">Start Month</label>
-                      <Select
-                        value={String(seasonForm.startMonth)}
-                        onValueChange={(value) => {
-                          const nextMonth = Number.parseInt(value, 10);
-                          setSeasonForm((previous) => {
-                            const adjustedDay = Math.min(previous.startDay, maxDayInMonth(nextMonth));
-                            return { ...previous, startMonth: nextMonth, startDay: adjustedDay };
-                          });
-                        }}
-                      >
-                        <SelectTrigger className="border-gray-300 bg-white text-gray-900">
-                          <SelectValue placeholder="Month" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {MONTH_OPTIONS.map((month) => (
-                            <SelectItem key={`start-month-${month.value}`} value={String(month.value)}>{month.label}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div>
-                      <label className="mb-2 block text-sm font-medium text-gray-700">Start Day</label>
-                      <Input
-                        type="number"
-                        min="1"
-                        max={String(maxDayInMonth(seasonForm.startMonth))}
-                        value={seasonForm.startDay}
-                        onChange={(event) => {
-                          const parsed = Number.parseInt(event.target.value, 10);
-                          setSeasonForm((previous) => ({
-                            ...previous,
-                            startDay: Number.isFinite(parsed) ? Math.max(1, Math.min(maxDayInMonth(previous.startMonth), parsed)) : 1,
-                          }));
-                        }}
-                        className="border-gray-300 bg-white text-gray-900"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <label className="mb-2 block text-sm font-medium text-gray-700">End Month</label>
-                      <Select
-                        value={String(seasonForm.endMonth)}
-                        onValueChange={(value) => {
-                          const nextMonth = Number.parseInt(value, 10);
-                          setSeasonForm((previous) => {
-                            const adjustedDay = Math.min(previous.endDay, maxDayInMonth(nextMonth));
-                            return { ...previous, endMonth: nextMonth, endDay: adjustedDay };
-                          });
-                        }}
-                      >
-                        <SelectTrigger className="border-gray-300 bg-white text-gray-900">
-                          <SelectValue placeholder="Month" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {MONTH_OPTIONS.map((month) => (
-                            <SelectItem key={`end-month-${month.value}`} value={String(month.value)}>{month.label}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div>
-                      <label className="mb-2 block text-sm font-medium text-gray-700">End Day</label>
-                      <Input
-                        type="number"
-                        min="1"
-                        max={String(maxDayInMonth(seasonForm.endMonth))}
-                        value={seasonForm.endDay}
-                        onChange={(event) => {
-                          const parsed = Number.parseInt(event.target.value, 10);
-                          setSeasonForm((previous) => ({
-                            ...previous,
-                            endDay: Number.isFinite(parsed) ? Math.max(1, Math.min(maxDayInMonth(previous.endMonth), parsed)) : 1,
-                          }));
-                        }}
-                        className="border-gray-300 bg-white text-gray-900"
-                      />
-                    </div>
-                  </div>
-
-                  <label className="flex items-center gap-3 rounded-xl border border-[#E7A3B0]/15 bg-white px-4 py-3 text-sm text-gray-700">
-                    <Checkbox
-                      checked={seasonForm.isActive}
-                      onCheckedChange={(checked) => setSeasonForm((previous) => ({ ...previous, isActive: Boolean(checked) }))}
-                    />
-                    <span>Season is active</span>
-                  </label>
-
-                  <div className="flex items-center gap-2">
-                    <Button
-                      type="button"
-                      onClick={() => void handleSaveSeason()}
-                      disabled={actionLoading}
-                      className="flex-1 bg-[#E7A3B0] text-white hover:bg-[#d891a0]"
-                    >
-                      {actionLoading ? "Saving..." : editingSeasonId ? "Update Season" : "Create Season"}
-                    </Button>
-                    {editingSeasonId && (
-                      <Button
-                        type="button"
-                        variant="outline"
-                        onClick={resetSeasonForm}
-                        disabled={actionLoading}
-                        className="border-gray-300 text-gray-700"
-                      >
-                        Cancel Edit
-                      </Button>
-                    )}
-                  </div>
-                </div>
+            <div className="grid max-h-[calc(90vh-5.5rem)] gap-5 overflow-y-auto p-6 lg:grid-cols-[3fr_2fr]">
+              {/* LEFT — calendar */}
+              <div className="lg:sticky lg:top-0 lg:self-start">
+                <SeasonCalendar
+                  seasons={seasons}
+                  editingSeasonId={editingSeasonId}
+                  startMonth={seasonForm.startMonth}
+                  startDay={seasonForm.startDay}
+                  endMonth={seasonForm.endMonth}
+                  endDay={seasonForm.endDay}
+                  onChange={handleSeasonCalendarChange}
+                />
               </div>
 
-              <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <h3 className="text-sm font-semibold uppercase tracking-[0.18em] text-gray-500">Existing Seasons</h3>
-                  <span className="rounded-full bg-[#fff0f5] px-3 py-1 text-xs font-semibold text-[#b96d7d]">
-                    {seasons.length}
-                  </span>
+              {/* RIGHT — form + list */}
+              <div className="space-y-5">
+                {/* Form */}
+                <div className="rounded-2xl border border-[#E7A3B0]/15 bg-[#fffafc] p-5 shadow-sm">
+                  <div className="space-y-4">
+                    {/* Step 1 — name */}
+                    <div>
+                      <div className="mb-2 flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <span className="flex h-5 w-5 items-center justify-center rounded-full bg-[#E7A3B0]/25 text-[10px] font-bold text-[#b96d7d]">1</span>
+                          <label className="text-sm font-medium text-gray-700">Season Name</label>
+                        </div>
+                        <span className={`text-xs tabular-nums ${seasonForm.name.length >= 30 ? "font-medium text-rose-500" : "text-gray-400"}`}>
+                          {seasonForm.name.length}/30
+                        </span>
+                      </div>
+                      <Input
+                        value={seasonForm.name}
+                        onChange={(event) => setSeasonForm((previous) => ({ ...previous, name: event.target.value.slice(0, 30) }))}
+                        maxLength={30}
+                        placeholder="Summer Sale"
+                        className="border-gray-300 bg-white text-gray-900"
+                      />
+                      <p className="mt-1.5 text-xs text-gray-400">
+                        {MONTH_OPTIONS.find((m) => m.value === seasonForm.startMonth)?.label} {seasonForm.startDay}
+                        <span className="mx-1 text-gray-300">→</span>
+                        {MONTH_OPTIONS.find((m) => m.value === seasonForm.endMonth)?.label} {seasonForm.endDay}
+                        <span className="ml-1.5 opacity-60">· pick dates on the calendar</span>
+                      </p>
+                    </div>
+
+                    {/* Step 2 — active */}
+                    <div>
+                      <div className="mb-2 flex items-center gap-2">
+                        <span className="flex h-5 w-5 items-center justify-center rounded-full bg-[#E7A3B0]/25 text-[10px] font-bold text-[#b96d7d]">2</span>
+                        <span className="text-sm font-medium text-gray-700">Status</span>
+                      </div>
+                      <label className="flex items-center gap-3 rounded-xl border border-[#E7A3B0]/15 bg-white px-4 py-3 text-sm text-gray-700">
+                        <Checkbox
+                          checked={seasonForm.isActive}
+                          onCheckedChange={(checked) => setSeasonForm((previous) => ({ ...previous, isActive: Boolean(checked) }))}
+                        />
+                        <span>Season is active</span>
+                      </label>
+                    </div>
+
+                    {/* Save / Cancel */}
+                    <div className="flex items-center gap-2">
+                      {!editingSeasonId && seasons.length >= 20 ? (
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <span className="flex-1">
+                              <Button type="button" disabled className="w-full bg-[#E7A3B0] text-white opacity-50">
+                                Create Season
+                              </Button>
+                            </span>
+                          </TooltipTrigger>
+                          <TooltipContent side="top">
+                            Maximum of 20 seasons reached. Delete one to create a new season.
+                          </TooltipContent>
+                        </Tooltip>
+                      ) : (
+                        <Button
+                          type="button"
+                          onClick={() => void handleSaveSeason()}
+                          disabled={actionLoading}
+                          className="flex-1 bg-[#E7A3B0] text-white hover:bg-[#d891a0]"
+                        >
+                          {actionLoading ? "Saving..." : editingSeasonId ? "Update Season" : "Create Season"}
+                        </Button>
+                      )}
+                      {editingSeasonId && (
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={resetSeasonForm}
+                          disabled={actionLoading}
+                          className="border-gray-300 text-gray-700"
+                        >
+                          Cancel Edit
+                        </Button>
+                      )}
+                    </div>
+                  </div>
                 </div>
 
-                {seasonsLoading ? (
-                  <div className="rounded-2xl border border-dashed border-gray-200 bg-white px-4 py-8 text-center text-sm text-gray-500">
-                    Loading seasons...
+                {/* Season list */}
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-sm font-semibold uppercase tracking-[0.18em] text-gray-500">Existing Seasons</h3>
+                    <span className={`rounded-full px-3 py-1 text-xs font-semibold ${seasons.length >= 20 ? "bg-rose-50 text-rose-600" : "bg-[#fff0f5] text-[#b96d7d]"}`}>
+                      {seasons.length}/20
+                    </span>
                   </div>
-                ) : seasons.length === 0 ? (
-                  <div className="rounded-2xl border border-dashed border-gray-200 bg-white px-4 py-8 text-center text-sm text-gray-500">
-                    No seasons yet. Create one from the form.
-                  </div>
-                ) : (
-                  <div className="space-y-3">
-                    {seasons.map((season) => {
-                      const startMonth = MONTH_OPTIONS.find((month) => month.value === season.startMonth)?.label || season.startMonth;
-                      const endMonth = MONTH_OPTIONS.find((month) => month.value === season.endMonth)?.label || season.endMonth;
-                      return (
-                        <div key={season.id} className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
-                          <div className="flex items-start justify-between gap-3">
-                            <div className="min-w-0 space-y-1">
-                              <p className="truncate text-base font-semibold text-gray-900">{season.name}</p>
-                              <p className="text-sm text-gray-600">
-                                {startMonth} {season.startDay} - {endMonth} {season.endDay}
-                              </p>
-                              <p className={`text-xs font-medium ${season.isActive !== false ? "text-emerald-600" : "text-gray-500"}`}>
-                                {season.isActive !== false ? "Active" : "Inactive"}
-                              </p>
-                            </div>
 
-                            <div className="flex shrink-0 gap-2">
-                              <Button
-                                type="button"
-                                size="sm"
-                                onClick={() => handleEditSeason(season)}
-                                disabled={actionLoading}
-                                className="bg-[#121212] text-white hover:bg-[#2a2a2a]"
-                              >
-                                Edit
-                              </Button>
-                              <Button
-                                type="button"
-                                size="sm"
-                                variant="outline"
-                                onClick={() => void handleDeleteSeason(season)}
-                                disabled={actionLoading}
-                                className="border-rose-200 text-rose-600 hover:border-rose-300 hover:bg-rose-50 hover:text-rose-700"
-                                aria-label={`Delete season ${season.name}`}
-                              >
-                                <Trash2 className="h-3.5 w-3.5" />
-                              </Button>
+                  {seasonsLoading ? (
+                    <div className="rounded-2xl border border-dashed border-gray-200 bg-white px-4 py-8 text-center text-sm text-gray-500">
+                      Loading seasons...
+                    </div>
+                  ) : seasons.length === 0 ? (
+                    <div className="rounded-2xl border border-dashed border-gray-200 bg-white px-4 py-8 text-center text-sm text-gray-500">
+                      No seasons yet. Create one from the form.
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      {seasons.map((season) => {
+                        const startMonth = MONTH_OPTIONS.find((month) => month.value === season.startMonth)?.label || season.startMonth;
+                        const endMonth = MONTH_OPTIONS.find((month) => month.value === season.endMonth)?.label || season.endMonth;
+                        const color = getSeasonColor(season.id, seasons, editingSeasonId);
+                        return (
+                          <div key={season.id} className="rounded-2xl border border-gray-200 bg-white p-3 shadow-sm">
+                            <div className="flex items-center gap-3">
+                              <span
+                                className="h-8 w-1.5 shrink-0 rounded-full"
+                                style={{ backgroundColor: color.border }}
+                              />
+                              <div className="min-w-0 flex-1">
+                                <p className="truncate text-sm font-semibold text-gray-900">{season.name}</p>
+                                <p className="text-xs text-gray-500">
+                                  {startMonth} {season.startDay} – {endMonth} {season.endDay}
+                                  <span className={`ml-2 font-medium ${season.isActive !== false ? "text-emerald-600" : "text-gray-400"}`}>
+                                    · {season.isActive !== false ? "Active" : "Inactive"}
+                                  </span>
+                                </p>
+                              </div>
+                              <div className="flex shrink-0 gap-1.5">
+                                <Button
+                                  type="button"
+                                  size="sm"
+                                  onClick={() => handleEditSeason(season)}
+                                  disabled={actionLoading}
+                                  className="bg-[#121212] text-white hover:bg-[#2a2a2a]"
+                                >
+                                  Edit
+                                </Button>
+                                <Button
+                                  type="button"
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => void handleDeleteSeason(season)}
+                                  disabled={actionLoading}
+                                  className="border-rose-200 text-rose-600 hover:border-rose-300 hover:bg-rose-50 hover:text-rose-700"
+                                  aria-label={`Delete season ${season.name}`}
+                                >
+                                  <Trash2 className="h-3.5 w-3.5" />
+                                </Button>
+                              </div>
                             </div>
                           </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
           </div>

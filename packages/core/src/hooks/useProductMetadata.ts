@@ -33,7 +33,7 @@ export function useProductMetadata(product: Product) {
         const formatCurrency = (value: number) => `\u20B1${value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
         const discountLabel = product.discount
             ? product.discount.discount_type === "percent"
-                ? `-${Number(product.discount.discount_value).toFixed(Number.isInteger(product.discount.discount_value) ? 0 : 2)}%`
+                ? `-${Math.round(Number(product.discount.discount_value))}%`
                 : product.discount.discount_type === "fixed_price"
                     ? `Final price ${formatCurrency(Number(product.discount.discount_value))}`
                 : `-\u20B1${Number(product.discount.discount_value).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient, mapSeasonRow, seasonHelper, windowsOverlap, type SeasonRow } from "@dollys-closet/core";
 import { requireRequestAuth } from "@/lib/auth/auth-server";
+import { activityHelper } from "@/lib/activity/activity-helper";
 
 type SeasonPayload = {
   season_name?: unknown;
@@ -131,6 +132,8 @@ export async function POST(request: NextRequest) {
       return authResult.response;
     }
 
+    const { user } = authResult;
+    const editor = user.email || user.user_metadata?.username || "Unknown";
     const body = (await request.json()) as SeasonPayload;
     const validation = validateSeasonInput(body);
     if ("error" in validation) {
@@ -160,6 +163,16 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
+    if (data) {
+      await activityHelper.logActivity({
+        actionType: "create_season",
+        description: `Created season ${data.season_name}`,
+        editor,
+        user_id: user.id,
+        supabase: supabaseAdmin,
+      });
+    }
+
     return NextResponse.json({
       success: true,
       season: data ? mapSeasonRow(data as SeasonRow) : null,
@@ -180,6 +193,8 @@ export async function PUT(request: NextRequest) {
       return authResult.response;
     }
 
+    const { user } = authResult;
+    const editor = user.email || user.user_metadata?.username || "Unknown";
     const body = await request.json();
     const seasonId = typeof body.season_id === "string" ? body.season_id.trim() : "";
     if (!seasonId) {
@@ -215,6 +230,16 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
+    if (data) {
+      await activityHelper.logActivity({
+        actionType: "edit_season",
+        description: `Updated season ${data.season_name}`,
+        editor,
+        user_id: user.id,
+        supabase: supabaseAdmin,
+      });
+    }
+
     return NextResponse.json({
       success: true,
       season: data ? mapSeasonRow(data as SeasonRow) : null,
@@ -235,6 +260,8 @@ export async function DELETE(request: NextRequest) {
       return authResult.response;
     }
 
+    const { user } = authResult;
+    const editor = user.email || user.user_metadata?.username || "Unknown";
     const body = await request.json().catch(() => ({}));
     const seasonId = typeof body?.season_id === "string" ? body.season_id.trim() : "";
     if (!seasonId) {
@@ -242,6 +269,19 @@ export async function DELETE(request: NextRequest) {
     }
 
     const supabaseAdmin = createAdminClient();
+    const { data: existingSeason, error: existingSeasonError } = await supabaseAdmin
+      .from("tbl_season")
+      .select("season_id, season_name")
+      .eq("season_id", seasonId)
+      .maybeSingle();
+
+    if (existingSeasonError) {
+      return NextResponse.json({ error: existingSeasonError.message }, { status: 500 });
+    }
+
+    if (!existingSeason) {
+      return NextResponse.json({ error: "Season not found." }, { status: 404 });
+    }
 
     const { error: clearError } = await supabaseAdmin
       .from("tbl_product")
@@ -260,6 +300,14 @@ export async function DELETE(request: NextRequest) {
     if (error) {
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
+
+    await activityHelper.logActivity({
+      actionType: "delete_season",
+      description: `Deleted season ${existingSeason.season_name}`,
+      editor,
+      user_id: user.id,
+      supabase: supabaseAdmin,
+    });
 
     return NextResponse.json({ success: true });
   } catch (error: unknown) {

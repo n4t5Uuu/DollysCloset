@@ -209,6 +209,22 @@ export const discountHelper = {
         return { success: true, error: null };
     },
 
+    async toggleDiscountActive(discountId: string | number, isActive: boolean, supabase = createClient()) {
+        const { data, error } = await supabase
+            .from("tbl_discounts")
+            .update({ is_active: isActive })
+            .eq("id", String(discountId))
+            .select("id, discount_name, discount_type, discount_value, created_at, ends_at, is_active")
+            .maybeSingle();
+
+        if (error) {
+            console.error("Error Toggling Discount Active Status:", error);
+            return { data: null, error };
+        }
+
+        return { data: data as ProductDiscount | null, error: null };
+    },
+
     async deleteDiscount(discountId: string | number, supabase = createClient()) {
         const { error } = await supabase
             .from("tbl_discounts")

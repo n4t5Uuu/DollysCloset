@@ -239,6 +239,9 @@ export function InventoryTable({
                             <TableHead className="p-4 text-center font-bold">Stock</TableHead>
                             <TableHead className="p-4 text-right font-bold">Price</TableHead>
                             <TableHead className="p-4 text-center font-bold">Status</TableHead>
+                            {mode === "active" && (
+                                <TableHead className="p-4 text-center font-bold">Last Updated</TableHead>
+                            )}
                             {mode === "archived" && (
                                 <TableHead className="p-4 text-center font-bold">Archived On</TableHead>
                             )}
@@ -304,6 +307,13 @@ export function InventoryTable({
                                             {product.show_in_catalog ? "Listed" : "Hidden"}
                                         </span>
                                     </TableCell>
+                                    {mode === "active" && (
+                                        <TableCell className="p-4 text-center text-sm text-gray-600">
+                                            {formatPublishedDate(
+                                                product.updated_at ?? product.time_updated ?? product.created_at
+                                            )}
+                                        </TableCell>
+                                    )}
                                     {mode === "archived" && (
                                         <TableCell className="p-4 text-center">
                                             {product.archived_at ? (
@@ -347,7 +357,7 @@ export function InventoryTable({
                             ))
                         ) : (
                             <TableRow>
-                                <TableCell colSpan={mode === "archived" ? 10 : 9} className="p-0 border-none">
+                                <TableCell colSpan={9} className="p-0 border-none">
                                     {emptyState}
                                 </TableCell>
                             </TableRow>

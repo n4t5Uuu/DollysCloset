@@ -242,11 +242,88 @@ export const activityHelper = {
 
     /**
      * Clears all items in the activity log table.
+     * Retained as a hard block so non-admin code paths continue to fail loudly.
+     * The admin "Export then Purge" flow uses `purgeLogsOlderThan` instead.
      */
     async clearLogs(supabase = createClient()) {
+        void supabase;
         const error = new Error("Activity logs are permanent and cannot be cleared.");
         console.error("Error clearing logs: ", error);
         return { success: false, error };
+    },
+
+    /**
+     * Counts activity logs whose `created_at` is strictly before the given ISO cutoff.
+     * Used by the Export & Purge modal's dry-run preview.
+     */
+    async countLogsOlderThan(cutoffIso: string, supabase = createClient()) {
+        const { count, error } = await supabase
+            .from("tbl_activity_log")
+            .select("log_id", { count: "exact", head: true })
+            .lt("created_at", cutoffIso);
+
+        if (error) {
+            console.error("Error counting logs older than cutoff:", error);
+            return { count: 0, error };
+        }
+
+        return { count: count ?? 0, error: null };
+    },
+
+    /**
+     * Fetches the full row set of activity logs strictly older than the given
+     * ISO cutoff, with the joined user_key flattened. Used by the CSV export
+     * endpoint before a purge.
+     */
+    async fetchLogsForExport(cutoffIso: string, supabase = createClient()) {
+        const { data, error } = await supabase
+            .from("tbl_activity_log")
+            .select(
+                "log_id, created_at, action_type, product_id, business_details, description, editor, user_id, tbl_users(user_key)"
+            )
+            .lt("created_at", cutoffIso)
+            .order("created_at", { ascending: false });
+
+        if (error) {
+            console.error("Error fetching logs for export:", error);
+            return { data: null, error };
+        }
+
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const flat = (data || []).map((log: any) => ({
+            log_id: log.log_id,
+            created_at: log.created_at,
+            action_type: log.action_type,
+            product_id: log.product_id,
+            business_details: log.business_details,
+            description: log.description,
+            editor: log.editor,
+            user_id: log.user_id,
+            user_key: log.tbl_users?.user_key ?? null,
+        }));
+
+        return { data: flat, error: null };
+    },
+
+    /**
+     * Hard-deletes activity logs strictly older than the given ISO cutoff by
+     * calling the `admin_purge_activity_logs` SECURITY DEFINER RPC. The
+     * `prevent_activity_log_mutation` trigger blocks direct DELETEs for
+     * everyone (including service_role), so the RPC is the only sanctioned
+     * path. Must be called with a service-role Supabase client since the
+     * RPC's EXECUTE grant is locked to `service_role`.
+     */
+    async purgeLogsOlderThan(cutoffIso: string, supabase = createClient()) {
+        const { data, error } = await supabase.rpc("admin_purge_activity_logs", {
+            cutoff: cutoffIso,
+        });
+
+        if (error) {
+            console.error("Error purging logs older than cutoff:", error);
+            return { count: 0, error };
+        }
+
+        return { count: typeof data === "number" ? data : 0, error: null };
     },
 
     /**

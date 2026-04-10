@@ -125,6 +125,41 @@ export async function POST(request: NextRequest) {
     }
 }
 
+export async function PATCH(request: NextRequest) {
+    try {
+        const authResult = await requireRequestAuth(request, {
+            allowedRoles: ["admin", "employee"],
+        });
+
+        if (!authResult.ok) {
+            return authResult.response;
+        }
+
+        const body = await request.json();
+        const discountId = body.discount_id;
+
+        if (!discountId) {
+            return NextResponse.json({ error: "Discount ID is required." }, { status: 400 });
+        }
+
+        if (typeof body.is_active !== "boolean") {
+            return NextResponse.json({ error: "is_active must be a boolean." }, { status: 400 });
+        }
+
+        const supabaseAdmin = createAdminClient();
+        const { data, error } = await discountHelper.toggleDiscountActive(discountId, body.is_active, supabaseAdmin);
+
+        if (error) {
+            return NextResponse.json({ error: error.message }, { status: 500 });
+        }
+
+        return NextResponse.json({ success: true, discount: data });
+    } catch (error: unknown) {
+        console.error("Error toggling discount:", error);
+        return NextResponse.json({ error: error instanceof Error ? error.message : "Failed to toggle discount" }, { status: 500 });
+    }
+}
+
 export async function DELETE(request: NextRequest) {
     try {
         const authResult = await requireRequestAuth(request, {
