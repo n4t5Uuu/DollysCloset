@@ -4,7 +4,7 @@ import { CardTitle } from "../ui/card"
 import { cn, type Product, resolveProductPlaceholder, useProductMetadata } from "@dollys-closet/core"
 
 import Image from "next/image"
-import { useEffect, useMemo, useRef, useState } from "react"
+import { useMemo, useRef, useState } from "react"
 
 import { ProductBadge } from "./ProductBadge";
 
@@ -29,7 +29,6 @@ export default function ProductCard({ product, href, onClick }: ProductCardProps
     const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
     const animTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const rafRef = useRef<number | null>(null);
-    const [now, setNow] = useState(Date.now());
 
     // Get centralized metadata
     const { 
@@ -45,33 +44,46 @@ export default function ProductCard({ product, href, onClick }: ProductCardProps
         discountLabel,
     } = useProductMetadata(product || {} as Product);
 
-    useEffect(() => {
-        if (!product?.discount?.ends_at || !hasDiscount) {
-            return;
+    const discountDisplayInfo = useMemo(() => {
+        if (!hasDiscount || !product?.discount || product.discountedPrice === null || product.discountedPrice === undefined) {
+            return null;
         }
 
-        const timer = setInterval(() => setNow(Date.now()), 1000);
-        return () => clearInterval(timer);
-    }, [hasDiscount, product?.discount?.ends_at]);
+        const discountType = product.discount.discount_type;
+        const rawValue = Math.max(0, Number(product.discount.discount_value) || 0);
+        const originalPrice = Math.max(0, Number(product.price) || 0);
+        const discountedPrice = Math.max(0, Number(product.discountedPrice) || 0);
+        const amountOff = Math.max(0, originalPrice - discountedPrice);
+        const effectivePercent = originalPrice > 0 ? (amountOff / originalPrice) * 100 : 0;
 
-    const countdownLabel = useMemo(() => {
-        if (!product?.discount?.ends_at || !hasDiscount) return null;
+        const formatNumber = (value: number) => {
+            if (Number.isInteger(value)) return value.toLocaleString();
+            return value.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 });
+        };
 
-        const endTime = new Date(product.discount.ends_at).getTime();
-        if (!Number.isFinite(endTime)) return null;
+        const formatPercent = (value: number) => `${parseFloat(value.toFixed(2)).toString()}%`;
 
-        const delta = endTime - now;
-        if (delta <= 0) return "Sale ended";
+        const topRightLabel = discountType === "percent"
+            ? formatPercent(rawValue)
+            : discountType === "fixed_price"
+                ? formatPercent(effectivePercent)
+                : `-${formatNumber(rawValue)}`;
 
-        const totalSeconds = Math.floor(delta / 1000);
-        const days = Math.floor(totalSeconds / 86400);
-        const hours = Math.floor((totalSeconds % 86400) / 3600);
-        const minutes = Math.floor((totalSeconds % 3600) / 60);
+        const codeDiscountLabel = discountType === "percent"
+            ? formatPercent(rawValue)
+            : formatPercent(effectivePercent);
 
-        if (days > 0) return `Ends in ${days}d ${hours}h`;
-        if (hours > 0) return `Ends in ${hours}h ${minutes}m`;
-        return `Ends in ${Math.max(1, minutes)}m`;
-    }, [hasDiscount, now, product?.discount?.ends_at]);
+        return {
+            topRightLabel,
+            codeLabel: product.discount.discount_name
+                ? `${product.discount.discount_name} - ${codeDiscountLabel}`
+                : codeDiscountLabel,
+        };
+    }, [hasDiscount, product]);
+
+    const nonDiscountBadges = useMemo(() => {
+        return badges.filter((badge) => badge.label !== (product.discount?.discount_name || "") && badge.label !== (discountLabel || ""));
+    }, [badges, discountLabel, product.discount?.discount_name]);
 
     if (!product) {
         return (
@@ -171,18 +183,10 @@ export default function ProductCard({ product, href, onClick }: ProductCardProps
                         </div>
                     )}
 
-                    {/* Hover Overlay */}
-                    <div className="absolute inset-0 flex items-end justify-center bg-linear-to-t from-black/55 via-black/10 to-transparent opacity-0 transition-all duration-300 group-hover:opacity-100 backdrop-blur-[1px]">
-                        <span className="mb-4 inline-flex items-center gap-2 rounded-full bg-white/90 px-4 py-2 font-montserrat text-[11px] font-semibold uppercase tracking-[0.22em] text-[#121212] shadow-lg transition-transform duration-300 group-hover:-translate-y-1">
-                            View Details
-                            <span className="h-1.5 w-1.5 rounded-full bg-[#E7A3B0]" />
-                        </span>
-                    </div>
-
                     <div className="pointer-events-none absolute inset-x-0 bottom-0 h-24 bg-linear-to-t from-black/20 via-black/0 to-transparent opacity-80" />
 
-                    <div className="absolute inset-x-3 top-3 flex max-w-[calc(100%-1.5rem)] flex-wrap gap-2">
-                        {badges.map((badge) => (
+                    <div className="absolute left-3 top-3 flex max-w-[calc(100%-5rem)] flex-wrap gap-2">
+                        {nonDiscountBadges.map((badge) => (
                             <ProductBadge 
                                 key={badge.label} 
                                 label={badge.label} 
@@ -191,6 +195,15 @@ export default function ProductCard({ product, href, onClick }: ProductCardProps
                             />
                         ))}
                     </div>
+
+                    {hasDiscount && !isSoldOut && discountDisplayInfo && (
+                        <div className="absolute right-3 top-3">
+                            <ProductBadge
+                                label={discountDisplayInfo.topRightLabel}
+                                className="bg-[#fff2e8] text-[#b86a36] ring-1 ring-[#f1c8a7]/70 shadow-sm"
+                            />
+                        </div>
+                    )}
                 </div>
 
                 <div className="flex flex-1 flex-col gap-2 px-2 pt-3 pb-1.5">
@@ -229,9 +242,9 @@ export default function ProductCard({ product, href, onClick }: ProductCardProps
                             </p>
                             {hasDiscount && !isSoldOut && formattedSalePrice ? (
                                 <div className="space-y-1 rounded-[0.9rem] border border-[#f0d9df] bg-[#fff9fb] px-3 py-2">
-                                    {product.discount?.discount_name && (
+                                    {discountDisplayInfo && (
                                         <p className="font-montserrat text-[10px] font-semibold uppercase tracking-[0.16em] text-[#a76f7c]">
-                                            {product.discount.discount_name}
+                                            {discountDisplayInfo.codeLabel}
                                         </p>
                                     )}
                                     <p className="font-oswald text-sm tracking-[0.18em] text-[#8b7580] line-through">
@@ -240,11 +253,6 @@ export default function ProductCard({ product, href, onClick }: ProductCardProps
                                     <p className="font-oswald text-xl tracking-[0.04em] text-[#c95f7b]">
                                         {formattedSalePrice}
                                     </p>
-                                    {countdownLabel && (
-                                        <p className="font-montserrat text-[10px] font-medium uppercase tracking-[0.14em] text-[#a76f7c]">
-                                            {discountLabel} • {countdownLabel}
-                                        </p>
-                                    )}
                                 </div>
                             ) : (
                                 <p className={cn(
