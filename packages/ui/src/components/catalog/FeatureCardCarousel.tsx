@@ -25,8 +25,8 @@ function compactCategoryBadgeLabel(label: string) {
         .replace(/\s+/g, " ")
         .trim();
 
-    if (normalized.length <= 14) return normalized;
-    return `${normalized.slice(0, 12)}...`;
+    if (normalized.length <= 10) return normalized;
+    return `${normalized.slice(0, 7)}...`;
 }
 
 // Keeps visual edge-to-edge gaps equal regardless of scale.
@@ -58,8 +58,46 @@ type LaunchOverride = { id: string; offset: number };
 type ExitClone = { id: string; startOffset: number; endOffset: number; active: boolean };
 
 function CardContent({ product, cardImageHeight, cardWidth }: { product: Product; cardImageHeight: number; cardWidth: number }) {
-    const { isSoldOut, eyebrow, categoryLabel, badges, formattedPrice } = useProductMetadata(product);
+    const { isSoldOut, eyebrow, categoryLabel, badges, formattedPrice, hasDiscount, discountLabel } = useProductMetadata(product);
     const categoryBadgeLabel = compactCategoryBadgeLabel(categoryLabel);
+
+    const discountBadgeLabel = useMemo(() => {
+        if (!hasDiscount || !product.discount || product.discountedPrice === null || product.discountedPrice === undefined) {
+            return null;
+        }
+
+        const discountType = product.discount.discount_type;
+        const rawValue = Math.max(0, Number(product.discount.discount_value) || 0);
+        const originalPrice = Math.max(0, Number(product.price) || 0);
+        const discountedPrice = Math.max(0, Number(product.discountedPrice) || 0);
+        const amountOff = Math.max(0, originalPrice - discountedPrice);
+        const effectivePercent = originalPrice > 0 ? (amountOff / originalPrice) * 100 : 0;
+
+        const formatNumber = (value: number) => {
+            if (Number.isInteger(value)) return value.toLocaleString();
+            return value.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 });
+        };
+
+        const formatPercent = (value: number) => `${parseFloat(value.toFixed(2)).toString()}%`;
+
+        if (discountType === "percent") return formatPercent(rawValue);
+        if (discountType === "fixed_price") return formatPercent(effectivePercent);
+        return `-${formatNumber(rawValue)}`;
+    }, [hasDiscount, product]);
+
+    const displayBadges = useMemo(() => {
+        if (!discountBadgeLabel || !product.discount) return badges;
+
+        return badges.map((badge) => {
+            const isDiscountBadge = badge.label === product.discount?.discount_name || badge.label === (discountLabel || "");
+            if (!isDiscountBadge) return badge;
+
+            return {
+                ...badge,
+                label: discountBadgeLabel,
+            };
+        });
+    }, [badges, discountBadgeLabel, discountLabel, product.discount]);
 
     return (
         <>
@@ -77,8 +115,8 @@ function CardContent({ product, cardImageHeight, cardWidth }: { product: Product
                 />
                 <div className="pointer-events-none absolute inset-x-0 bottom-0 h-24 bg-linear-to-t from-black/25 via-black/0 to-transparent opacity-70" />
 
-                <div className="absolute left-3 top-3 flex max-w-[58%] flex-wrap gap-2">
-                    {badges.map((badge) => (
+                <div className="absolute left-3 top-3 flex max-w-[54%] flex-wrap gap-2">
+                    {displayBadges.map((badge) => (
                         <ProductBadge
                             key={badge.label}
                             label={badge.label}
@@ -88,7 +126,7 @@ function CardContent({ product, cardImageHeight, cardWidth }: { product: Product
                     ))}
                 </div>
 
-                <div className="absolute right-3 top-3 max-w-[38%] rounded-full bg-white/88 px-3 py-1.5 backdrop-blur-sm ring-1 ring-black/5">
+                <div className="absolute right-3 top-3 max-w-[42%] rounded-full bg-white/88 px-3 py-1.5 backdrop-blur-sm ring-1 ring-black/5">
                     <p className="truncate font-montserrat text-[10px] font-semibold uppercase tracking-[0.16em] text-[#6f5058]">
                         {categoryBadgeLabel}
                     </p>

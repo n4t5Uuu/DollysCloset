@@ -1,3 +1,5 @@
+import type { ProductDiscount } from "./product.types";
+
 /**
  * Outlines strictly mapped schema boundaries reflecting `tbl_product` records loaded from the inventory database.
  */
@@ -14,8 +16,15 @@ export interface InventoryProduct {
     size_label: string;
     discount_expires_at?: string;
     show_in_catalog: boolean;
+    season_id?: string | null;
     image_id: string | null;
     created_at: string;
+    updated_at?: string | null;
+    time_updated?: string | null;
+    archived_at: string | null;
+    discount?: ProductDiscount | null;
+    discountedPrice?: number | null;
+    isOnSale?: boolean;
 }
 
 /**

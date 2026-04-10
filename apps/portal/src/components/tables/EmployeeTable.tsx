@@ -1,11 +1,12 @@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@dollys-closet/ui";
 import { Checkbox } from "@dollys-closet/ui";
 import { Button } from "@dollys-closet/ui";
-import { Eye, Pencil, Trash2, Users } from "lucide-react";
+import { Eye, Pencil, Archive, RotateCcw, Users } from "lucide-react";
 import { Employee } from "@dollys-closet/core";
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@dollys-closet/ui";
 
 interface EmployeeTableProps {
+  mode: "active" | "archived";
   sortedEmployees: Employee[];
   selectedRows: Set<string>;
   hasSelectableRows: boolean;
@@ -14,7 +15,7 @@ interface EmployeeTableProps {
   toggleSelectRow: (id: string) => void;
   openViewModal: (employee: Employee) => void;
   openEditModal: (employee: Employee) => void;
-  openDeleteModal: (employee: Employee) => void;
+  openPrimaryActionModal: (employee: Employee) => void;
   currentUserId?: string | null;
   onRowActivate?: (employee: Employee) => void;
   emptyTitle?: string;
@@ -30,6 +31,7 @@ function formatDate(value: string) {
 }
 
 export function EmployeeTable({
+  mode,
   sortedEmployees,
   selectedRows,
   hasSelectableRows,
@@ -38,12 +40,23 @@ export function EmployeeTable({
   toggleSelectRow,
   openViewModal,
   openEditModal,
-  openDeleteModal,
+  openPrimaryActionModal,
   currentUserId,
   onRowActivate,
   emptyTitle = "No employees found",
   emptyDescription = "We couldn't find any employees matching your current search or filters.",
 }: EmployeeTableProps) {
+  const activateRow = (employee: Employee) => {
+    if (onRowActivate) {
+      onRowActivate(employee);
+      return;
+    }
+
+    if (mode === "active") {
+      openEditModal(employee);
+    }
+  };
+
   const emptyState = (
     <Empty className="border-none rounded-none py-12">
       <EmptyHeader>
@@ -93,7 +106,7 @@ export function EmployeeTable({
                         <div className="min-w-0">
                           <button
                             type="button"
-                            onClick={() => onRowActivate?.(employee)}
+                            onClick={() => activateRow(employee)}
                             className="max-w-full text-left font-medium text-sm text-gray-900 transition-colors hover:text-[#b96d7d]"
                           >
                             <span className="block truncate">{employee.first_name?.split(" ")[0] ?? ""} {employee.last_name}</span>
@@ -111,7 +124,7 @@ export function EmployeeTable({
                         </span>
                       </div>
 
-                      <div className="grid grid-cols-2 gap-2 text-xs text-gray-500">
+                      <div className={`grid ${mode === "archived" ? "grid-cols-3" : "grid-cols-2"} gap-2 text-xs text-gray-500`}>
                         <div>
                           <span className="block uppercase tracking-wide">Joined</span>
                           <span className="text-gray-700">{formatDate(employee.created_at)}</span>
@@ -120,6 +133,12 @@ export function EmployeeTable({
                           <span className="block uppercase tracking-wide">Updated</span>
                           <span className="text-gray-700">{formatDate(employee.updated_at)}</span>
                         </div>
+                        {mode === "archived" && employee.archived_at && (
+                          <div>
+                            <span className="block uppercase tracking-wide text-amber-600">Archived</span>
+                            <span className="text-amber-700 font-medium">{formatDate(employee.archived_at)}</span>
+                          </div>
+                        )}
                       </div>
 
                       <div className="flex items-center gap-1.5 pt-1">
@@ -133,26 +152,30 @@ export function EmployeeTable({
                         >
                           <Eye className="h-3.5 w-3.5" />
                         </Button>
-                        <Button
-                          size="icon"
-                          variant="outline"
-                          title="Edit employee"
-                          aria-label={`Edit ${employee.first_name} ${employee.last_name}`}
-                          className="h-8 w-8 border-blue-200 text-blue-600 bg-blue-50 hover:bg-blue-200 hover:text-blue-700 hover:border-blue-300"
-                          onClick={() => openEditModal(employee)}
-                        >
-                          <Pencil className="h-3.5 w-3.5" />
-                        </Button>
+                        {mode === "active" && (
+                          <Button
+                            size="icon"
+                            variant="outline"
+                            title="Edit employee"
+                            aria-label={`Edit ${employee.first_name} ${employee.last_name}`}
+                            className="h-8 w-8 border-blue-200 text-blue-600 bg-blue-50 hover:bg-blue-200 hover:text-blue-700 hover:border-blue-300"
+                            onClick={() => openEditModal(employee)}
+                          >
+                            <Pencil className="h-3.5 w-3.5" />
+                          </Button>
+                        )}
                         {!isOwnRow && (
                           <Button
                             size="icon"
                             variant="outline"
-                            title="Delete employee"
-                            aria-label={`Delete ${employee.first_name} ${employee.last_name}`}
-                            className="h-8 w-8 border-red-200 text-red-600 bg-red-50 hover:bg-red-200 hover:text-red-700 hover:border-red-300"
-                            onClick={() => openDeleteModal(employee)}
+                            title={mode === "active" ? "Archive employee" : "Restore employee"}
+                            aria-label={`${mode === "active" ? "Archive" : "Restore"} ${employee.first_name} ${employee.last_name}`}
+                            className={mode === "active"
+                              ? "h-8 w-8 border-amber-200 text-amber-700 bg-amber-50 hover:bg-amber-100 hover:text-amber-800 hover:border-amber-300"
+                              : "h-8 w-8 border-emerald-200 text-emerald-700 bg-emerald-50 hover:bg-emerald-100 hover:text-emerald-800 hover:border-emerald-300"}
+                            onClick={() => openPrimaryActionModal(employee)}
                           >
-                            <Trash2 className="h-3.5 w-3.5" />
+                            {mode === "active" ? <Archive className="h-3.5 w-3.5" /> : <RotateCcw className="h-3.5 w-3.5" />}
                           </Button>
                         )}
                       </div>
@@ -183,6 +206,9 @@ export function EmployeeTable({
                 <TableHead className="p-4 font-bold">Last Name</TableHead>
                 <TableHead className="p-4 font-bold">Joined</TableHead>
                 <TableHead className="p-4 font-bold">Last Updated</TableHead>
+                {mode === "archived" && (
+                  <TableHead className="p-4 font-bold">Archived On</TableHead>
+                )}
                 <TableHead className="p-4 text-center font-bold w-[200px]">Actions</TableHead>
               </TableRow>
             </TableHeader>
@@ -194,7 +220,7 @@ export function EmployeeTable({
                     <TableRow
                       key={employee.user_key}
                       className={`border-b hover:bg-gray-50 ${selectedRows.has(employee.user_id) ? "bg-[#E7A3B0]/5" : ""}`}
-                      onDoubleClick={() => onRowActivate?.(employee)}
+                      onDoubleClick={() => activateRow(employee)}
                     >
                       <TableCell className="p-4">
                         {!isOwnRow && (
@@ -220,7 +246,7 @@ export function EmployeeTable({
                       <TableCell className="p-4 text-gray-700">
                         <button
                           type="button"
-                          onClick={() => onRowActivate?.(employee)}
+                          onClick={() => activateRow(employee)}
                           className="text-left transition-colors hover:text-[#b96d7d] block max-w-[80px] md:max-w-[120px] lg:max-w-[150px] truncate"
                           title={employee.first_name}
                         >
@@ -230,7 +256,7 @@ export function EmployeeTable({
                       <TableCell className="p-4 text-gray-700">
                         <button
                           type="button"
-                          onClick={() => onRowActivate?.(employee)}
+                          onClick={() => activateRow(employee)}
                           className="text-left transition-colors hover:text-[#b96d7d] block max-w-[80px] md:max-w-[120px] lg:max-w-[150px] truncate"
                           title={employee.last_name}
                         >
@@ -239,6 +265,18 @@ export function EmployeeTable({
                       </TableCell>
                       <TableCell className="p-4 text-gray-600 text-sm">{formatDate(employee.created_at)}</TableCell>
                       <TableCell className="p-4 text-gray-600 text-sm">{formatDate(employee.updated_at)}</TableCell>
+                      {mode === "archived" && (
+                        <TableCell className="p-4 text-sm">
+                          {employee.archived_at ? (
+                            <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-50 border border-amber-200 px-2.5 py-1 text-xs font-medium text-amber-700">
+                              <Archive className="h-3 w-3" />
+                              {formatDate(employee.archived_at)}
+                            </span>
+                          ) : (
+                            <span className="text-gray-400">-</span>
+                          )}
+                        </TableCell>
+                      )}
                       <TableCell className="p-4">
                         <div className="flex items-center justify-center gap-2">
                           <Button
@@ -251,26 +289,30 @@ export function EmployeeTable({
                           >
                             <Eye className="h-4 w-4" />
                           </Button>
-                          <Button
-                            size="icon"
-                            variant="outline"
-                            title="Edit employee"
-                            aria-label={`Edit ${employee.first_name} ${employee.last_name}`}
-                            className="border-blue-200 text-blue-600 bg-blue-50 hover:bg-blue-200 hover:text-blue-700 hover:border-blue-300"
-                            onClick={() => openEditModal(employee)}
-                          >
-                            <Pencil className="h-4 w-4" />
-                          </Button>
+                          {mode === "active" && (
+                            <Button
+                              size="icon"
+                              variant="outline"
+                              title="Edit employee"
+                              aria-label={`Edit ${employee.first_name} ${employee.last_name}`}
+                              className="border-blue-200 text-blue-600 bg-blue-50 hover:bg-blue-200 hover:text-blue-700 hover:border-blue-300"
+                              onClick={() => openEditModal(employee)}
+                            >
+                              <Pencil className="h-4 w-4" />
+                            </Button>
+                          )}
                           {!isOwnRow && (
                             <Button
                               size="icon"
                               variant="outline"
-                              title="Delete employee"
-                              aria-label={`Delete ${employee.first_name} ${employee.last_name}`}
-                              className="border-red-200 text-red-600 bg-red-50 hover:bg-red-200 hover:text-red-700 hover:border-red-300"
-                              onClick={() => openDeleteModal(employee)}
+                              title={mode === "active" ? "Archive employee" : "Restore employee"}
+                              aria-label={`${mode === "active" ? "Archive" : "Restore"} ${employee.first_name} ${employee.last_name}`}
+                              className={mode === "active"
+                                ? "border-amber-200 text-amber-700 bg-amber-50 hover:bg-amber-100 hover:text-amber-800 hover:border-amber-300"
+                                : "border-emerald-200 text-emerald-700 bg-emerald-50 hover:bg-emerald-100 hover:text-emerald-800 hover:border-emerald-300"}
+                              onClick={() => openPrimaryActionModal(employee)}
                             >
-                              <Trash2 className="h-4 w-4" />
+                              {mode === "active" ? <Archive className="h-4 w-4" /> : <RotateCcw className="h-4 w-4" />}
                             </Button>
                           )}
                         </div>
@@ -280,7 +322,7 @@ export function EmployeeTable({
                 })
               ) : (
                 <TableRow>
-                  <TableCell colSpan={8} className="p-0 border-none">
+                  <TableCell colSpan={mode === "archived" ? 9 : 8} className="p-0 border-none">
                     {emptyState}
                   </TableCell>
                 </TableRow>

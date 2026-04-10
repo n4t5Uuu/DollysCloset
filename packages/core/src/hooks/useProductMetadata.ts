@@ -28,13 +28,16 @@ export function useProductMetadata(product: Product) {
     return useMemo(() => {
         const isSoldOut = product.stock <= 0;
         const hasLowStock = product.stock > 0 && product.stock <= 3;
-        const discountPercent = Math.min(100, Math.max(0, Number(product.discountPercent || 0)));
-        const countdownInfo = product.discountExpiresAt ? formatCountdownTime(product.discountExpiresAt) : null;
-        const isDiscountExpired = countdownInfo?.isExpired ?? false;
-        const isOnSale = discountPercent > 0 && !isDiscountExpired;
-        const discountedPrice = Number(
-            (product.discountedPrice ?? product.price * (1 - discountPercent / 100)).toFixed(2)
-        );
+        const hasDiscount = Boolean(product.isOnSale && product.discount && product.discountedPrice !== null && product.discountedPrice !== undefined);
+
+        const formatCurrency = (value: number) => `\u20B1${value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+        const discountLabel = product.discount
+            ? product.discount.discount_type === "percent"
+                ? `-${Number(product.discount.discount_value).toFixed(Number.isInteger(product.discount.discount_value) ? 0 : 2)}%`
+                : product.discount.discount_type === "fixed_price"
+                    ? `Final price ${formatCurrency(Number(product.discount.discount_value))}`
+                : `-\u20B1${Number(product.discount.discount_value).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+            : null;
 
         // Eyebrow label logic
         const eyebrow = hasDisplayValue(product.brand)
@@ -57,10 +60,17 @@ export function useProductMetadata(product: Product) {
                 className: "bg-[#121212] text-white",
             });
         } else {
-            if (isOnSale) {
+            if (hasDisplayValue(product.seasonName)) {
                 badges.push({
-                    label: `-${discountPercent}%`,
-                    className: "bg-linear-to-r from-[#ff4d6d] via-[#ff7a59] to-[#ffb347] text-white ring-1 ring-[#ffb347]/60 animate-pulse",
+                    label: product.seasonName!.trim(),
+                    className: "bg-[#eef7ff] text-[#2b6b93] ring-1 ring-[#b8daf0]/70 shadow-sm",
+                });
+            }
+
+            if (hasDiscount && discountLabel) {
+                badges.push({
+                    label: product.discount?.discount_name ? product.discount.discount_name : discountLabel,
+                    className: "bg-[#fff2e8] text-[#b86a36] ring-1 ring-[#f1c8a7]/70 shadow-sm",
                 });
             }
 
@@ -89,43 +99,17 @@ export function useProductMetadata(product: Product) {
         return {
             isSoldOut,
             hasLowStock,
-            isOnSale,
-            discountPercent,
-            discountedPrice,
+            hasDiscount,
             eyebrow,
             categoryLabel,
             badges,
             metadataChips,
-            formattedPrice: `\u20B1${product.price.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
-            formattedDiscountedPrice: `\u20B1${discountedPrice.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
-            saleCountdown: countdownInfo?.countdown ?? null,
-            saleEndDate: countdownInfo?.endDate ?? null,
+            formattedPrice: formatCurrency(product.price),
+            formattedOriginalPrice: formatCurrency(product.price),
+            formattedSalePrice: product.discountedPrice !== null && product.discountedPrice !== undefined
+                ? formatCurrency(product.discountedPrice)
+                : null,
+            discountLabel,
         };
     }, [product]);
-}
-
-function formatCountdownTime(expiresAt: string): { countdown: string; endDate: string; isExpired: boolean } {
-    const now = new Date();
-    const expiryDate = new Date(expiresAt);
-    const isExpired = expiryDate < now;
-    const endDate = expiryDate.toLocaleString();
-    
-    if (isExpired) {
-        return { countdown: "Ended", endDate, isExpired: true };
-    }
-    
-    const diffMs = expiryDate.getTime() - now.getTime();
-    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
-    const diffHours = Math.floor((diffMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-    
-    let countdown = "";
-    if (diffDays > 0) {
-        countdown = `${diffDays} day${diffDays !== 1 ? "s" : ""} left`;
-    } else if (diffHours > 0) {
-        countdown = `${diffHours} hour${diffHours !== 1 ? "s" : ""} left`;
-    } else {
-        countdown = "Last few hours";
-    }
-    
-    return { countdown, endDate, isExpired: false };
 }

@@ -6,6 +6,7 @@ import { AuthRedirectReason } from "@/lib/auth/auth-routing";
 import { createServerSupabase } from "@dollys-closet/core/lib/supabase/server";
 import { createAdminClient } from "@dollys-closet/core/lib/supabase/admin";
 import { employeeHelper } from "@/lib/employees/employee-helper";
+import type { Employee } from "@dollys-closet/core";
 
 /**
  * Represents the two primary administrative roles supported by the application.
@@ -40,6 +41,12 @@ interface ServerAuthFailure {
   reason: AuthRedirectReason;
 }
 
+interface UserAccessState {
+  archived: boolean;
+  role: AppRole | null;
+  userRow: Employee | null;
+}
+
 function isAppRole(role: string | null | undefined): role is AppRole {
   if (!role) return false;
   const normalized = role.toLowerCase();
@@ -63,16 +70,26 @@ function getForbiddenResponse() {
  */
 async function getUserRole(userId: string, supabase = createAdminClient()) {
   try {
-    console.log(`[auth-server] getUserRole called for userId: ${userId}`);
-    const { data: userRow, error } = await employeeHelper.getUserById(userId, supabase);
-    console.log(`[auth-server] getUserById result:`, { data: userRow, error });
+    const { data: userRow, error } = await employeeHelper.getUserById(userId, supabase, {
+      includeArchived: true,
+    });
 
     if (error) {
       console.error(`[auth-server] Error fetching user row for ${userId}:`, error);
       return null;
     }
 
-    if (!userRow || !isAppRole(userRow.role)) {
+    if (!userRow) {
+      console.warn(`[auth-server] User ${userId} has no app record in tbl_users.`);
+      return null;
+    }
+
+    if (userRow.archived_at) {
+      console.warn(`[auth-server] User ${userId} is archived and cannot access the portal.`);
+      return null;
+    }
+
+    if (!isAppRole(userRow.role)) {
       console.warn(`[auth-server] User ${userId} has no valid app role in tbl_users. Found:`, userRow?.role);
       return null;
     }
@@ -82,6 +99,34 @@ async function getUserRole(userId: string, supabase = createAdminClient()) {
     console.error(`[auth-server] EXCEPTION in getUserRole for ${userId}:`, e);
     return null;
   }
+}
+
+export async function getUserAccessState(userId: string, supabase = createAdminClient()): Promise<UserAccessState> {
+  const { data: userRow, error } = await employeeHelper.getUserById(userId, supabase, {
+    includeArchived: true,
+  });
+
+  if (error || !userRow) {
+    return {
+      archived: false,
+      role: null,
+      userRow: null,
+    };
+  }
+
+  if (userRow.archived_at) {
+    return {
+      archived: true,
+      role: null,
+      userRow,
+    };
+  }
+
+  return {
+    archived: false,
+    role: isAppRole(userRow.role) ? userRow.role.toLowerCase() as AppRole : null,
+    userRow,
+  };
 }
 
 

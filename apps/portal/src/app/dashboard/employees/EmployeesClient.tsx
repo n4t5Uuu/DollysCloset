@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams, useRouter, usePathname } from "next/navigation";
-import { Plus, Trash, RefreshCcw, X } from "lucide-react";
+import { Plus, Archive, RotateCcw, RefreshCcw, X } from "lucide-react";
 import { createClient, Employee } from "@dollys-closet/core";
 import {
   Button,
@@ -23,6 +23,8 @@ type ActionNotice = {
   type: "success" | "warning" | "info";
   message: string;
 };
+
+type EmployeeScope = "active" | "archived";
 
 export default function EmployeesClient() {
   const searchParams = useSearchParams();
@@ -46,6 +48,7 @@ export default function EmployeesClient() {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedRows, setSelectedRows] = useState<Set<string>>(new Set());
   const [actionNotice, setActionNotice] = useState<ActionNotice | null>(null);
+  const [employeeScope, setEmployeeScope] = useState<EmployeeScope>("active");
   const searchInputRef = useRef<HTMLInputElement | null>(null);
   const itemsPerPage = 10;
 
@@ -66,12 +69,12 @@ export default function EmployeesClient() {
     });
   }, []);
 
-  const fetchEmployees = useCallback(async (isBackground = false) => {
+  const fetchEmployees = useCallback(async (isBackground = false, scope = employeeScope) => {
     try {
       if (!isBackground) setLoading(true);
       setError(null);
 
-      const response = await fetch("/api/admin/employees", {
+      const response = await fetch(`/api/admin/employees?scope=${scope}`, {
         cache: "no-store",
       });
       
@@ -90,7 +93,7 @@ export default function EmployeesClient() {
     } finally {
       if (!isBackground) setLoading(false);
     }
-  }, []);
+  }, [employeeScope]);
 
   useEffect(() => {
     fetchEmployees();
@@ -104,15 +107,7 @@ export default function EmployeesClient() {
         const username = (emp.username ?? "").toLowerCase();
         const firstName = (emp.first_name ?? "").toLowerCase();
         const lastName = (emp.last_name ?? "").toLowerCase();
-        const fullName = `${firstName} ${lastName}`.trim();
-
-        return (
-          userId.includes(query) ||
-          username.includes(query) ||
-          firstName.includes(query) ||
-          lastName.includes(query) ||
-          fullName.includes(query)
-        );
+        return String(emp.user_key).includes(query) || username.includes(query) || firstName.includes(query) || lastName.includes(query);
       }),
     [employees, searchTerm]
   );
@@ -126,6 +121,16 @@ export default function EmployeesClient() {
   useEffect(() => {
     router.replace(pathname);
   }, [searchTerm, router, pathname]);
+
+  useEffect(() => {
+    setSelectedRows(new Set());
+    setSelectedEmployee(null);
+    setShowViewModal(false);
+    setShowEditModal(false);
+    setShowDeleteModal(false);
+    setShowBulkDeleteModal(false);
+    setShowAddModal(false);
+  }, [employeeScope]);
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -160,13 +165,17 @@ export default function EmployeesClient() {
 
   useEffect(() => {
     setSelectedRows(new Set());
-  }, [searchTerm, safePage]);
+  }, [searchTerm]);
 
   const toggleSelectAll = () => {
     if (allSelectableRowsSelected) {
-      setSelectedRows(new Set());
+      const next = new Set(selectedRows);
+      selectableEmployees.forEach((e) => next.delete(e.user_id));
+      setSelectedRows(next);
     } else {
-      setSelectedRows(new Set(selectableEmployees.map((e) => e.user_id)));
+      const next = new Set(selectedRows);
+      selectableEmployees.forEach((e) => next.add(e.user_id));
+      setSelectedRows(next);
     }
   };
 
@@ -197,7 +206,7 @@ export default function EmployeesClient() {
     setShowViewModal(true);
   };
 
-  const openDeleteModal = (employee: Employee) => {
+  const openPrimaryActionModal = (employee: Employee) => {
     setSelectedEmployee(employee);
     setError(null);
     setShowDeleteModal(true);
@@ -220,7 +229,7 @@ export default function EmployeesClient() {
     }
   };
 
-  const handleDeleteEmployee = async () => {
+  const handlePrimaryEmployeeAction = async () => {
     if (!selectedEmployee) return;
     setActionLoading(true);
     setError(null);
@@ -228,8 +237,9 @@ export default function EmployeesClient() {
       const supabase = createClient();
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) throw new Error('Not authenticated');
-      const response = await fetch('/api/admin/employees', {
-        method: 'DELETE',
+      const endpoint = employeeScope === "active" ? '/api/admin/employees/archive' : '/api/admin/employees/restore';
+      const response = await fetch(endpoint, {
+        method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${session.access_token}`
@@ -237,7 +247,7 @@ export default function EmployeesClient() {
         body: JSON.stringify({ employee_id: selectedEmployee.user_id })
       });
       const data = await response.json();
-      if (!response.ok) throw new Error(data.error || 'Failed to delete employee');
+      if (!response.ok) throw new Error(data.error || (employeeScope === "active" ? 'Failed to archive employee' : 'Failed to restore employee'));
       await fetchEmployees();
       setSelectedRows((currentSelection) => {
         const nextSelection = new Set(currentSelection);
@@ -246,13 +256,21 @@ export default function EmployeesClient() {
       });
       setShowDeleteModal(false);
       setSelectedEmployee(null);
-      setActionNotice({
-        type: "success",
-        message: "Employee removed and the directory is up to date.",
-      });
-      toast.success("Employee deleted successfully.");
+      if (employeeScope === "active") {
+        setActionNotice({
+          type: "success",
+          message: "Employee archived and moved to the archived directory.",
+        });
+        toast.success("Employee archived successfully.");
+      } else {
+        setActionNotice({
+          type: "success",
+          message: "Employee restored to the active directory.",
+        });
+        toast.success("Employee restored successfully.");
+      }
     } catch (err: unknown) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to delete employee';
+      const errorMessage = err instanceof Error ? err.message : (employeeScope === "active" ? 'Failed to archive employee' : 'Failed to restore employee');
       setError(errorMessage);
       toast.error(errorMessage);
     } finally {
@@ -260,7 +278,7 @@ export default function EmployeesClient() {
     }
   };
 
-  const handleBulkDelete = async () => {
+  const handleBulkScopeAction = async () => {
     setActionLoading(true);
     setError(null);
     try {
@@ -268,8 +286,9 @@ export default function EmployeesClient() {
       const supabase = createClient();
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) throw new Error('Not authenticated');
-      const response = await fetch('/api/admin/employees/bulk-delete', {
-        method: 'DELETE',
+      const endpoint = employeeScope === "active" ? '/api/admin/employees/archive' : '/api/admin/employees/restore';
+      const response = await fetch(endpoint, {
+        method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${session.access_token}`
@@ -277,7 +296,7 @@ export default function EmployeesClient() {
         body: JSON.stringify({ employee_ids: idsToDelete })
       });
       const data = await response.json();
-      if (!response.ok) throw new Error(data.error || 'Failed to delete employees');
+      if (!response.ok) throw new Error(data.error || (employeeScope === "active" ? 'Failed to archive employees' : 'Failed to restore employees'));
       await fetchEmployees();
       const failedIds = Array.isArray(data.failed_ids) ? data.failed_ids : [];
       setSelectedRows(new Set(failedIds));
@@ -285,18 +304,22 @@ export default function EmployeesClient() {
       if ((data.failed_count ?? 0) > 0) {
         setActionNotice({
           type: "warning",
-          message: data.message || "Some employees could not be deleted. Review the remaining rows and try again.",
+          message: data.message || (employeeScope === "active"
+            ? "Some employees could not be archived. Review the remaining rows and try again."
+            : "Some employees could not be restored. Review the remaining rows and try again."),
         });
-        toast.warning(data.message || 'Some employees could not be deleted.');
+        toast.warning(data.message || (employeeScope === "active" ? 'Some employees could not be archived.' : 'Some employees could not be restored.'));
       } else {
         setActionNotice({
           type: "success",
-          message: "Selected employees removed and the directory is up to date.",
+          message: employeeScope === "active"
+            ? "Selected employees were archived and moved to the archived directory."
+            : "Selected employees were restored to the active directory.",
         });
-        toast.success("Selected employees deleted successfully.");
+        toast.success(employeeScope === "active" ? "Selected employees archived successfully." : "Selected employees restored successfully.");
       }
     } catch (err: unknown) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to delete employees';
+      const errorMessage = err instanceof Error ? err.message : (employeeScope === "active" ? 'Failed to archive employees' : 'Failed to restore employees');
       setError(errorMessage);
       toast.error(errorMessage);
     } finally {
@@ -325,7 +348,9 @@ export default function EmployeesClient() {
     if (filteredEmployees.length === 0) {
       return hasSearch
         ? `No employees matched "${searchTerm.trim()}".`
-        : "No employees have been added yet.";
+        : employeeScope === "active"
+          ? "No employees have been added yet."
+          : "No employee accounts are currently archived.";
     }
 
     const rangeStart = startIndex + 1;
@@ -335,12 +360,18 @@ export default function EmployeesClient() {
       : "in the directory";
 
     return `Showing ${rangeStart}-${rangeEnd} of ${filteredEmployees.length} employee${filteredEmployees.length === 1 ? "" : "s"} ${suffix}.`;
-  }, [endIndex, filteredEmployees.length, hasSearch, loading, searchTerm, startIndex]);
+  }, [employeeScope, endIndex, filteredEmployees.length, hasSearch, loading, searchTerm, startIndex]);
 
-  const emptyTitle = hasSearch ? "No employees matched your search" : "No employees yet";
+  const emptyTitle = hasSearch
+    ? "No employees matched your search"
+    : employeeScope === "active"
+      ? "No employees yet"
+      : "No archived employees";
   const emptyDescription = hasSearch
     ? "Try a different name or email, or clear the search to view the full employee directory."
-    : "Create your first employee account to start managing staff access.";
+    : employeeScope === "active"
+      ? "Create your first employee account to start managing staff access."
+      : "Archived employees will appear here and can be restored when they need access again.";
   const clearAllFilters = () => {
     setSearchTerm("");
   };
@@ -350,9 +381,37 @@ export default function EmployeesClient() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold">Manage Employees</h1>
-          <p className="text-gray-500 text-sm">Manage staff members, roles, and permissions</p>
+          <p className="text-gray-500 text-sm">
+            {employeeScope === "active"
+              ? "Manage staff members, roles, and archive access when accounts should no longer be active."
+              : "Review archived employee accounts and restore them when access should be re-enabled."}
+          </p>
         </div>
         <div className="flex items-center gap-3">
+          <div className="flex items-center rounded-lg border border-[#E7A3B0]/20 bg-[#fff9fb] p-1">
+            <button
+              type="button"
+              onClick={() => setEmployeeScope("active")}
+              className={`rounded-md px-3 py-1.5 text-xs font-semibold transition-colors ${
+                employeeScope === "active"
+                  ? "bg-[#E7A3B0] text-white"
+                  : "text-[#8f5f69] hover:bg-white"
+              }`}
+            >
+              Active
+            </button>
+            <button
+              type="button"
+              onClick={() => setEmployeeScope("archived")}
+              className={`rounded-md px-3 py-1.5 text-xs font-semibold transition-colors ${
+                employeeScope === "archived"
+                  ? "bg-[#E7A3B0] text-white"
+                  : "text-[#8f5f69] hover:bg-white"
+              }`}
+            >
+              Archived
+            </button>
+          </div>
           <Button
             type="button"
             variant="outline"
@@ -363,13 +422,15 @@ export default function EmployeesClient() {
             <RefreshCcw className={`mr-2 h-4 w-4 ${loading ? "animate-spin" : ""}`} />
             Refresh
           </Button>
-          <button
-            onClick={openAddModal}
-            className="flex items-center gap-2 px-4 py-2 bg-linear-to-r from-[#E7A3B0] to-[#f0b8c3] hover:from-[#d891a0] hover:to-[#E7A3B0] text-white rounded-lg text-sm font-medium transition-all duration-300 shadow-md hover:shadow-lg hover:scale-105 cursor-pointer sm:shrink-0"
-          >
-            <Plus size={16} />
-            Add Employee
-          </button>
+          {employeeScope === "active" && (
+            <button
+              onClick={openAddModal}
+              className="flex items-center gap-2 px-4 py-2 bg-linear-to-r from-[#E7A3B0] to-[#f0b8c3] hover:from-[#d891a0] hover:to-[#E7A3B0] text-white rounded-lg text-sm font-medium transition-all duration-300 shadow-md hover:shadow-lg hover:scale-105 cursor-pointer sm:shrink-0"
+            >
+              <Plus size={16} />
+              Add Employee
+            </button>
+          )}
         </div>
       </div>
 
@@ -444,7 +505,7 @@ export default function EmployeesClient() {
             <p className="text-sm text-gray-600">{rangeSummaryMessage}</p>
             {selectedCount > 0 && (
               <div className="flex items-center gap-2 flex-wrap">
-                <span className="rounded-full bg-[#fff5f7] px-3 py-1 text-xs font-medium text-[#b96d7d]">
+                <span className="rounded-md bg-[#fff0f3] px-2.5 py-1 text-xs font-semibold text-[#b96d7d]">
                   {selectedCount} selected
                 </span>
                 <Button
@@ -456,23 +517,15 @@ export default function EmployeesClient() {
                 >
                   Clear selection
                 </Button>
+                  <Button
+                    size="sm"
+                    className={`${employeeScope === "active" ? "bg-amber-500 hover:bg-amber-600" : "bg-emerald-600 hover:bg-emerald-700"} text-white h-9 text-xs font-medium`}
+                    onClick={() => setShowBulkDeleteModal(true)}
+                  >
+                  {employeeScope === "active" ? <Archive className="w-4 h-4 mr-2" /> : <RotateCcw className="w-4 h-4 mr-2" />}
+                  {employeeScope === "active" ? "Archive" : "Restore"} ({selectedCount})
+                </Button>
               </div>
-            )}
-          </div>
-        </div>
-
-        <div className="flex items-center justify-between flex-wrap gap-4 mb-4">
-          <div className="text-sm text-gray-600" />
-          <div className="flex gap-3">
-            {selectedRows.size > 0 && (
-              <Button
-                size="sm"
-                className="bg-red-500 hover:bg-red-600 text-white h-9 text-xs font-medium"
-                onClick={() => setShowBulkDeleteModal(true)}
-              >
-                <Trash className="w-4 h-4 mr-2" />
-                Delete ({selectedRows.size})
-              </Button>
             )}
           </div>
         </div>
@@ -486,6 +539,7 @@ export default function EmployeesClient() {
           </div>
         ) : (
           <EmployeeTable
+            mode={employeeScope}
             sortedEmployees={currentEmployees}
             selectedRows={selectedRows}
             hasSelectableRows={hasSelectableRows}
@@ -494,9 +548,9 @@ export default function EmployeesClient() {
             toggleSelectRow={toggleSelectRow}
             openViewModal={openViewModal}
             openEditModal={openEditModal}
-            openDeleteModal={openDeleteModal}
+            openPrimaryActionModal={openPrimaryActionModal}
             currentUserId={currentUserId}
-            onRowActivate={openEditModal}
+            onRowActivate={employeeScope === "active" ? openEditModal : undefined}
             emptyTitle={emptyTitle}
             emptyDescription={emptyDescription}
           />
@@ -535,8 +589,9 @@ export default function EmployeesClient() {
       {showDeleteModal && selectedEmployee && (
         <DeleteEmployeeDialog
           employee={selectedEmployee}
+          mode={employeeScope === "active" ? "archive" : "restore"}
           onClose={() => setShowDeleteModal(false)}
-          onDelete={handleDeleteEmployee}
+          onDelete={handlePrimaryEmployeeAction}
           actionLoading={actionLoading}
           error={error}
         />
@@ -545,8 +600,9 @@ export default function EmployeesClient() {
       {showBulkDeleteModal && (
         <BulkDeleteEmployeeDialog
           selectedCount={selectedRows.size}
+          mode={employeeScope === "active" ? "archive" : "restore"}
           onClose={() => setShowBulkDeleteModal(false)}
-          onDelete={handleBulkDelete}
+          onDelete={handleBulkScopeAction}
           actionLoading={actionLoading}
           error={error}
         />

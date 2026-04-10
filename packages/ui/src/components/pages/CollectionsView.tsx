@@ -16,9 +16,11 @@ import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "..
 import { PackageSearch, Filter, RefreshCw, X } from "lucide-react";
 import { 
   ANNOUNCEMENT_SLUG,
+    type CatalogPayload,
   type CatalogApiProduct, 
   type CatalogCategory, 
-  type Product 
+    type Product,
+    type Season,
 } from "@dollys-closet/core";
 import {
     Sheet,
@@ -36,9 +38,6 @@ function toViewProduct(product: CatalogApiProduct): Product {
         category: product.categoryPath,
         type: product.categoryName,
         price: product.price,
-        discountPercent: product.discountPercent,
-        discountedPrice: product.discountedPrice,
-        discountExpiresAt: product.discountExpiresAt,
         brand: product.brand,
         size: product.size,
         condition: product.condition,
@@ -46,6 +45,11 @@ function toViewProduct(product: CatalogApiProduct): Product {
         stock: product.stock,
         isNewArrival: product.isNewArrival,
         images: product.images,
+        discount: product.discount,
+        discountedPrice: product.discountedPrice,
+        isOnSale: product.isOnSale,
+        seasonId: product.seasonId,
+        seasonName: product.seasonName,
     };
 }
 
@@ -195,6 +199,7 @@ export function CollectionsView() {
     const [categories, setCategories] = useState<CatalogCategory[]>([]);
     const [products, setProducts] = useState<CatalogApiProduct[]>([]);
     const [featuredProducts, setFeaturedProducts] = useState<CatalogApiProduct[]>([]);
+    const [activeSeason, setActiveSeason] = useState<Season | null>(null);
 
     const fetchCatalog = useCallback(async () => {
         try {
@@ -208,14 +213,17 @@ export function CollectionsView() {
                 throw new Error(result.error || "Failed to fetch catalog");
             }
 
-            setCategories(result.data?.categories || []);
-            setProducts(result.data?.products || []);
-            setFeaturedProducts(result.data?.featuredProducts || []);
+            const payload = (result.data || {}) as Partial<CatalogPayload>;
+            setCategories(payload.categories || []);
+            setProducts(payload.products || []);
+            setFeaturedProducts(payload.featuredProducts || []);
+            setActiveSeason(payload.activeSeason || null);
         } catch (err: unknown) {
             setError(err instanceof Error ? err.message : "Failed to fetch catalog");
             setCategories([]);
             setProducts([]);
             setFeaturedProducts([]);
+            setActiveSeason(null);
         } finally {
             setLoading(false);
         }
@@ -390,12 +398,14 @@ export function CollectionsView() {
 
         if (activeFilter === "new") {
             list = list.filter((product) => product.isNewArrival);
-        } else if (activeFilter === "discounted") {
-            list = list.filter((product) => {
-                if (Number(product.discountPercent || 0) <= 0) return false;
-                if (!product.discountExpiresAt) return true;
-                return new Date(product.discountExpiresAt).getTime() > Date.now();
-            });
+        } else if (activeFilter === "on-sale") {
+            list = list.filter((product) => product.isOnSale);
+        } else if (activeFilter === "current-season") {
+            if (activeSeason?.id) {
+                list = list.filter((product) => product.seasonId === activeSeason.id);
+            } else {
+                list = [];
+            }
         } else if (activeFilter.startsWith("root-")) {
             const normalizedRootName = activeFilter.replace("root-", "");
             const rootCategoryIds = rootCategoryIdsByName.get(normalizedRootName) || [];
@@ -432,7 +442,7 @@ export function CollectionsView() {
         }
 
         return list;
-    }, [products, activeFilter, sortBy, rootCategoryIdsByName, searchQuery, collectDescendantCategoryIds, selectedPriceRange.max, selectedPriceRange.min]);
+    }, [products, activeFilter, sortBy, rootCategoryIdsByName, searchQuery, collectDescendantCategoryIds, selectedPriceRange.max, selectedPriceRange.min, activeSeason?.id]);
 
     const totalPages = Math.max(1, Math.ceil(filteredProducts.length / itemsPerPage));
     const safePage = Math.min(currentPage, totalPages);
@@ -450,10 +460,11 @@ export function CollectionsView() {
     const featuredViewProducts = featuredProducts.map(toViewProduct);
     const isBrowsingFiltered = activeFilter !== "all" || searchQuery.trim() !== "" || sortBy !== "newest" || hasActivePriceFilter;
     const newArrivalCount = useMemo(() => products.filter((product) => product.isNewArrival).length, [products]);
-    const discountedCount = useMemo(
-        () => products.filter((product) => Number(product.discountPercent || 0) > 0 && (!product.discountExpiresAt || new Date(product.discountExpiresAt).getTime() > Date.now())).length,
-        [products]
-    );
+    const saleCount = useMemo(() => products.filter((product) => product.isOnSale).length, [products]);
+    const currentSeasonCount = useMemo(() => {
+        if (!activeSeason?.id) return 0;
+        return products.filter((product) => product.seasonId === activeSeason.id).length;
+    }, [activeSeason?.id, products]);
 
     const categoryProductCounts = useMemo(() => {
         const counts: Record<number, number> = {};
@@ -491,7 +502,8 @@ export function CollectionsView() {
     const activeFilterLabel = useMemo(() => {
         if (activeFilter === "all") return null;
         if (activeFilter === "new") return "New Arrivals";
-        if (activeFilter === "discounted") return "On Sale";
+        if (activeFilter === "on-sale") return "On Sale";
+        if (activeFilter === "current-season") return activeSeason?.name ? `Current Season (${activeSeason.name})` : "Current Season";
 
         if (activeFilter.startsWith("root-")) {
             const rootKey = activeFilter.replace("root-", "");
@@ -522,7 +534,7 @@ export function CollectionsView() {
         }
 
         return "Category";
-    }, [activeFilter, categoryById, rootCategoryLabelsByName]);
+    }, [activeFilter, categoryById, rootCategoryLabelsByName, activeSeason?.name]);
 
     const activeSortLabel = useMemo(() => {
         const sortLabels: Record<string, string> = {
@@ -541,7 +553,7 @@ export function CollectionsView() {
             ? { key: "search", label: `Search: "${searchQuery.trim()}"`, onRemove: clearSearch }
             : null,
         activeFilter !== "all" && activeFilterLabel
-            ? { key: "filter", label: (activeFilter === "new" || activeFilter === "discounted") ? `Filter: ${activeFilterLabel}` : `Category: ${activeFilterLabel}`, onRemove: clearFilter }
+            ? { key: "filter", label: activeFilter === "new" || activeFilter === "on-sale" || activeFilter === "current-season" ? `Filter: ${activeFilterLabel}` : `Category: ${activeFilterLabel}`, onRemove: clearFilter }
             : null,
         sortBy !== "newest"
             ? { key: "sort", label: `Sort: ${activeSortLabel}`, onRemove: clearSort }
@@ -654,7 +666,9 @@ export function CollectionsView() {
                                                 sortBy={sortBy}
                                                 allCount={products.length}
                                                 newCount={newArrivalCount}
-                                                discountedCount={discountedCount}
+                                                saleCount={saleCount}
+                                                currentSeasonCount={currentSeasonCount}
+                                                currentSeasonLabel={activeSeason?.name || null}
                                                 categoryCounts={categoryProductCounts}
                                                 rootGroupCounts={rootGroupProductCounts}
                                                 minAvailablePrice={priceBounds.min}
@@ -736,7 +750,9 @@ export function CollectionsView() {
                                     sortBy={sortBy}
                                     allCount={products.length}
                                     newCount={newArrivalCount}
-                                    discountedCount={discountedCount}
+                                    saleCount={saleCount}
+                                    currentSeasonCount={currentSeasonCount}
+                                    currentSeasonLabel={activeSeason?.name || null}
                                     categoryCounts={categoryProductCounts}
                                     rootGroupCounts={rootGroupProductCounts}
                                     minAvailablePrice={priceBounds.min}

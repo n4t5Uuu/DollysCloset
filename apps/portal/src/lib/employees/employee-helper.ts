@@ -15,56 +15,73 @@ interface EmployeeDeleteFailure {
 }
 
 type EmployeeSupabaseClient = SupabaseClient;
-
-async function restoreEmployeeRecord(
-    employee: Employee,
-    supabase: EmployeeSupabaseClient
-) {
-    const { error } = await supabase.from("tbl_users").insert(employee);
-    return error;
-}
+type EmployeeQueryScope = "active" | "archived" | "all";
 
 export const employeeHelper = {
     /**
      * Retrieves all users marked as "Employee" from the user table in the database.
      */
-    async fetchEmployees(supabase = createClient()) {
-        const { data, error } = await supabase
-            .from("tbl_users")
-            .select("*")
-            .eq("role", "Employee");
+    async fetchEmployees(
+        supabase = createClient(),
+        { scope = "active" }: { scope?: EmployeeQueryScope } = {}
+    ) {
+        let query =
+            scope === "active"
+                ? supabase.from("active_users").select("*")
+                : supabase.from("tbl_users").select("*");
+
+        if (scope === "archived") {
+            query = query.not("archived_at", "is", null);
+        }
+
+        const { data, error } = await query
+            .eq("role", "employee")
+            .order("user_key", { ascending: true });
 
         if (error) {
             console.error("Error Fetching Employees: ", error);
             return { data: null, error };
         }
 
-        return { data, error: null };
+        return { data: data || [], error: null };
     },
 
     /**
      * Retrieves all users without filtering.
      */
-    async getUsers(supabase = createClient()) {
-        const { data, error } = await supabase
-            .from("tbl_users")
-            .select("*")
-            .order("user_key", { ascending: true });
+    async getUsers(
+        supabase = createClient(),
+        { scope = "active" }: { scope?: EmployeeQueryScope } = {}
+    ) {
+        let query =
+            scope === "active"
+                ? supabase.from("active_users").select("*")
+                : supabase.from("tbl_users").select("*");
+
+        if (scope === "archived") {
+            query = query.not("archived_at", "is", null);
+        }
+
+        const { data, error } = await query.order("user_key", { ascending: true });
 
         if (error) {
             console.error("Error Fetching Users: ", error);
             return { data: null, error };
         }
 
-        return { data, error: null };
+        return { data: data || [], error: null };
     },
 
     /**
      * Retrieves a single user record by its ID.
      */
-    async getUserById(userId: string, supabase = createClient()) {
+    async getUserById(
+        userId: string,
+        supabase = createClient(),
+        { includeArchived = false }: { includeArchived?: boolean } = {}
+    ) {
         const { data, error } = await supabase
-            .from("tbl_users")
+            .from(includeArchived ? "tbl_users" : "active_users")
             .select("*")
             .eq("user_id", userId)
             .maybeSingle();
@@ -106,6 +123,7 @@ export const employeeHelper = {
                 first_name: payload.first_name,
                 last_name: payload.last_name,
                 role: 'employee',
+                archived_at: null,
             })
             .eq("user_id", authData.user?.id);
 
@@ -205,7 +223,13 @@ export const employeeHelper = {
      * Standardizes tearing down Auth credentials cascading recursively to row identifiers locally.
      */
     async deleteEmployeeAccount(employeeId: string, supabase: EmployeeSupabaseClient) {
-        const { data: employee, error: fetchError } = await this.getUserById(employeeId, supabase);
+        const error = new Error(`Hard delete is disabled for employee ${employeeId}. Archive the account instead.`);
+        console.error("Employee profile Delete error: ", error);
+        return { success: false, error };
+    },
+
+    async archiveEmployeeAccount(employeeId: string, supabase: EmployeeSupabaseClient) {
+        const { data: employee, error: fetchError } = await this.getUserById(employeeId, supabase, { includeArchived: true });
 
         if (fetchError) {
             console.error("Employee lookup error: ", fetchError);
@@ -216,30 +240,51 @@ export const employeeHelper = {
             return { success: false, error: new Error("Employee not found") };
         }
 
-        const { error: deleteUserError } = await supabase
-            .from("tbl_users")
-            .delete()
-            .eq("user_id", employeeId);
-
-        if (deleteUserError) {
-            console.error("Employee profile Delete error: ", deleteUserError);
-            return { success: false, error: deleteUserError };
+        if (employee.archived_at) {
+            return { success: true, error: null };
         }
 
-        const { error: deleteAuthError } = await supabase.auth.admin.deleteUser(employeeId);
-        if (deleteAuthError) {
-            console.error("Employee auth delete error: ", deleteAuthError);
+        const { error: archiveError } = await supabase
+            .from("tbl_users")
+            .update({
+                archived_at: new Date().toISOString(),
+            })
+            .eq("user_id", employeeId);
 
-            const restoreError = await restoreEmployeeRecord(employee, supabase);
-            if (restoreError) {
-                console.error("Employee record restore error: ", restoreError);
-                return {
-                    success: false,
-                    error: new Error(`${deleteAuthError.message}. Restore failed: ${restoreError.message}`),
-                };
-            }
+        if (archiveError) {
+            console.error("Employee archive error: ", archiveError);
+            return { success: false, error: archiveError };
+        }
 
-            return { success: false, error: deleteAuthError };
+        return { success: true, error: null };
+    },
+
+    async restoreEmployeeAccount(employeeId: string, supabase: EmployeeSupabaseClient) {
+        const { data: employee, error: fetchError } = await this.getUserById(employeeId, supabase, { includeArchived: true });
+
+        if (fetchError) {
+            console.error("Employee lookup error: ", fetchError);
+            return { success: false, error: fetchError };
+        }
+
+        if (!employee) {
+            return { success: false, error: new Error("Employee not found") };
+        }
+
+        if (!employee.archived_at) {
+            return { success: true, error: null };
+        }
+
+        const { error: restoreError } = await supabase
+            .from("tbl_users")
+            .update({
+                archived_at: null,
+            })
+            .eq("user_id", employeeId);
+
+        if (restoreError) {
+            console.error("Employee restore error: ", restoreError);
+            return { success: false, error: restoreError };
         }
 
         return { success: true, error: null };
@@ -249,11 +294,23 @@ export const employeeHelper = {
      * Standardizes bulk tearing down Auth credentials cascading recursively to row identifiers locally.
      */
     async deleteEmployeesBulkAccount(employeeIds: string[], supabase: EmployeeSupabaseClient) {
+        return {
+            success: false,
+            error: new Error(`Hard delete is disabled for ${employeeIds.length} employee(s). Archive the accounts instead.`),
+            deletedIds: [],
+            failures: employeeIds.map((employeeId) => ({
+                employeeId,
+                reason: "Hard delete is disabled. Archive the account instead.",
+            })),
+        };
+    },
+
+    async archiveEmployeesBulkAccount(employeeIds: string[], supabase: EmployeeSupabaseClient) {
         const deletedIds: string[] = [];
         const failures: EmployeeDeleteFailure[] = [];
 
         for (const employeeId of employeeIds) {
-            const { data: employee, error: fetchError } = await this.getUserById(employeeId, supabase);
+            const { data: employee, error: fetchError } = await this.getUserById(employeeId, supabase, { includeArchived: true });
 
             if (fetchError) {
                 failures.push({ employeeId, reason: fetchError.message });
@@ -265,25 +322,20 @@ export const employeeHelper = {
                 continue;
             }
 
-            const { error: deleteUserError } = await supabase
-                .from("tbl_users")
-                .delete()
-                .eq("user_id", employeeId);
-
-            if (deleteUserError) {
-                failures.push({ employeeId, reason: deleteUserError.message });
+            if (employee.archived_at) {
+                deletedIds.push(employeeId);
                 continue;
             }
 
-            const { error: deleteAuthError } = await supabase.auth.admin.deleteUser(employeeId);
+            const { error: archiveError } = await supabase
+                .from("tbl_users")
+                .update({
+                    archived_at: new Date().toISOString(),
+                })
+                .eq("user_id", employeeId);
 
-            if (deleteAuthError) {
-                const restoreError = await restoreEmployeeRecord(employee, supabase);
-                const reason = restoreError
-                    ? `${deleteAuthError.message}. Restore failed: ${restoreError.message}`
-                    : deleteAuthError.message;
-
-                failures.push({ employeeId, reason });
+            if (archiveError) {
+                failures.push({ employeeId, reason: archiveError.message });
                 continue;
             }
 
@@ -294,6 +346,51 @@ export const employeeHelper = {
             success: failures.length === 0,
             error: null,
             deletedIds,
+            failures,
+        };
+    },
+
+    async restoreEmployeesBulkAccount(employeeIds: string[], supabase: EmployeeSupabaseClient) {
+        const restoredIds: string[] = [];
+        const failures: EmployeeDeleteFailure[] = [];
+
+        for (const employeeId of employeeIds) {
+            const { data: employee, error: fetchError } = await this.getUserById(employeeId, supabase, { includeArchived: true });
+
+            if (fetchError) {
+                failures.push({ employeeId, reason: fetchError.message });
+                continue;
+            }
+
+            if (!employee) {
+                failures.push({ employeeId, reason: "Employee not found" });
+                continue;
+            }
+
+            if (!employee.archived_at) {
+                restoredIds.push(employeeId);
+                continue;
+            }
+
+            const { error: restoreError } = await supabase
+                .from("tbl_users")
+                .update({
+                    archived_at: null,
+                })
+                .eq("user_id", employeeId);
+
+            if (restoreError) {
+                failures.push({ employeeId, reason: restoreError.message });
+                continue;
+            }
+
+            restoredIds.push(employeeId);
+        }
+
+        return {
+            success: failures.length === 0,
+            error: null,
+            restoredIds,
             failures,
         };
     },

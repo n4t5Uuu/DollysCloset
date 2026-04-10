@@ -133,6 +133,28 @@ export async function POST(request: NextRequest) {
     }
 
     const supabaseAdmin = createAdminClient();
+    const { data: productRow, error: productError } = await productHelper.getProductById(productIdValue, supabaseAdmin, {
+      includeArchived: true,
+    });
+
+    if (productError) {
+      return NextResponse.json(
+        { error: "Product lookup failed", details: productError.message },
+        { status: 500 }
+      );
+    }
+
+    if (!productRow) {
+      return NextResponse.json({ error: "Product not found" }, { status: 404 });
+    }
+
+    if (productRow.archived_at) {
+      return NextResponse.json(
+        { error: "Archived products must be restored before their images can be changed." },
+        { status: 409 }
+      );
+    }
+
     const { data: existingImages, error: fetchError } = await productHelper.getProductImages(productIdValue, supabaseAdmin);
 
     if (fetchError) {
@@ -193,8 +215,6 @@ export async function POST(request: NextRequest) {
     }
 
     if (imageData?.image_id) {
-      const { data: productRow } = await productHelper.getProductById(productIdValue, supabaseAdmin);
-
       if (isFirstImage || productRow?.image_id == null) {
         await productHelper.updateProduct(productIdValue, { image_id: imageData.image_id }, supabaseAdmin);
       }
@@ -244,6 +264,25 @@ export async function PUT(request: NextRequest) {
     }));
 
     const supabaseAdmin = createAdminClient();
+    const { data: productRow, error: productError } = await productHelper.getProductById(product_id, supabaseAdmin, {
+      includeArchived: true,
+    });
+
+    if (productError) {
+      return NextResponse.json({ error: productError.message }, { status: 500 });
+    }
+
+    if (!productRow) {
+      return NextResponse.json({ error: "Product not found" }, { status: 404 });
+    }
+
+    if (productRow.archived_at) {
+      return NextResponse.json(
+        { error: "Archived products must be restored before their images can be changed." },
+        { status: 409 }
+      );
+    }
+
     const { error: batchError } = await productHelper.batchUpdateProductImages(updates, supabaseAdmin);
     if (batchError) throw batchError;
 
@@ -300,6 +339,23 @@ export async function DELETE(request: NextRequest) {
     const { product_id, is_primary, display_order, image_url } = image;
     const productIdValue = product_id;
 
+    const { data: archivedProduct, error: archivedProductError } = await productHelper.getProductById(
+      productIdValue,
+      supabaseAdmin,
+      { includeArchived: true }
+    );
+
+    if (archivedProductError) {
+      return NextResponse.json({ error: archivedProductError.message }, { status: 500 });
+    }
+
+    if (archivedProduct?.archived_at) {
+      return NextResponse.json(
+        { error: "Archived products must be restored before their images can be changed." },
+        { status: 409 }
+      );
+    }
+
     const { data: remainingBeforeDelete, error: remainingBeforeDeleteError } = await productHelper.getRemainingImagesExcluding(
       productIdValue,
       imageIdValue,
@@ -314,7 +370,8 @@ export async function DELETE(request: NextRequest) {
 
     const { data: productRow, error: productFetchError } = await productHelper.getProductById(
       productIdValue,
-      supabaseAdmin
+      supabaseAdmin,
+      { includeArchived: true }
     );
 
     if (productFetchError && productFetchError.code !== "PGRST116") {

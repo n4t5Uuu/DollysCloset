@@ -46,6 +46,9 @@ function toViewProduct(product: CatalogApiProduct): Product {
     stock: product.stock,
     isNewArrival: product.isNewArrival,
     images: product.images,
+    discount: product.discount,
+    discountedPrice: product.discountedPrice,
+    isOnSale: product.isOnSale,
   };
 }
 
@@ -493,13 +496,30 @@ export function ProductDetailsView({
                   {decodeHtmlEntities(product.name)}
                 </h1>
                 <div className="flex items-baseline space-x-4">
-                  <span className="text-3xl font-medium text-gray-900">{formatPrice(product.price)}</span>
+                  {product.discountedPrice !== null && product.discountedPrice !== undefined ? (
+                    <>
+                      <span className="text-3xl font-medium text-gray-900">{formatPrice(product.discountedPrice)}</span>
+                      <span className="text-lg font-medium text-gray-400 line-through">{formatPrice(product.price)}</span>
+                    </>
+                  ) : (
+                    <span className="text-3xl font-medium text-gray-900">{formatPrice(product.price)}</span>
+                  )}
                   {product.stock <= 5 && product.stock > 0 && (
                     <span className="animate-pulse text-sm font-semibold text-rose-600">
                       Only {product.stock} left!
                     </span>
                   )}
                 </div>
+                {product.discount && product.discount.ends_at && (
+                  <p className="text-sm font-medium text-rose-600">
+                    Sale ends {new Date(product.discount.ends_at).toLocaleString()}
+                  </p>
+                )}
+                {product.discount?.discount_name && (
+                  <p className="text-sm font-medium text-[#b96d7d]">
+                    Code: {product.discount.discount_name}
+                  </p>
+                )}
               </div>
 
               <div className="space-y-6">

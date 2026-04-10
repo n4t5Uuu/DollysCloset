@@ -4,7 +4,7 @@ import { CardTitle } from "../ui/card"
 import { cn, type Product, resolveProductPlaceholder, useProductMetadata } from "@dollys-closet/core"
 
 import Image from "next/image"
-import { useRef, useState } from "react"
+import { useMemo, useRef, useState } from "react"
 
 import { ProductBadge } from "./ProductBadge";
 
@@ -33,17 +33,57 @@ export default function ProductCard({ product, href, onClick }: ProductCardProps
     // Get centralized metadata
     const { 
         isSoldOut, 
-        isOnSale,
+        hasDiscount,
         eyebrow, 
         categoryLabel, 
         badges, 
         metadataChips, 
         formattedPrice,
-        formattedDiscountedPrice,
-        discountPercent,
-        saleCountdown,
-        saleEndDate,
+        formattedOriginalPrice,
+        formattedSalePrice,
+        discountLabel,
     } = useProductMetadata(product || {} as Product);
+
+    const discountDisplayInfo = useMemo(() => {
+        if (!hasDiscount || !product?.discount || product.discountedPrice === null || product.discountedPrice === undefined) {
+            return null;
+        }
+
+        const discountType = product.discount.discount_type;
+        const rawValue = Math.max(0, Number(product.discount.discount_value) || 0);
+        const originalPrice = Math.max(0, Number(product.price) || 0);
+        const discountedPrice = Math.max(0, Number(product.discountedPrice) || 0);
+        const amountOff = Math.max(0, originalPrice - discountedPrice);
+        const effectivePercent = originalPrice > 0 ? (amountOff / originalPrice) * 100 : 0;
+
+        const formatNumber = (value: number) => {
+            if (Number.isInteger(value)) return value.toLocaleString();
+            return value.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 });
+        };
+
+        const formatPercent = (value: number) => `${parseFloat(value.toFixed(2)).toString()}%`;
+
+        const topRightLabel = discountType === "percent"
+            ? formatPercent(rawValue)
+            : discountType === "fixed_price"
+                ? formatPercent(effectivePercent)
+                : `-${formatNumber(rawValue)}`;
+
+        const codeDiscountLabel = discountType === "percent"
+            ? formatPercent(rawValue)
+            : formatPercent(effectivePercent);
+
+        return {
+            topRightLabel,
+            codeLabel: product.discount.discount_name
+                ? `${product.discount.discount_name} - ${codeDiscountLabel}`
+                : codeDiscountLabel,
+        };
+    }, [hasDiscount, product]);
+
+    const nonDiscountBadges = useMemo(() => {
+        return badges.filter((badge) => badge.label !== (product.discount?.discount_name || "") && badge.label !== (discountLabel || ""));
+    }, [badges, discountLabel, product.discount?.discount_name]);
 
     if (!product) {
         return (
@@ -103,11 +143,12 @@ export default function ProductCard({ product, href, onClick }: ProductCardProps
         >
             <article
                 className={cn(
-                    "flex h-full flex-col rounded-[1rem] bg-white p-1.5 shadow-[0_8px_24px_rgba(18,18,18,0.10),0_2px_8px_rgba(231,163,176,0.10)] transition-all duration-300 overflow-hidden",
-                    "group-hover:-translate-y-1 group-hover:shadow-[0_20px_48px_rgba(18,18,18,0.15),0_4px_16px_rgba(231,163,176,0.15)]"
+                    "flex h-full flex-col overflow-hidden rounded-[1.4rem] border border-[#f1e1e6] bg-linear-to-b from-white via-[#fffdfd] to-[#fff7f9] p-2 shadow-[0_10px_28px_rgba(18,18,18,0.08),0_2px_8px_rgba(231,163,176,0.10)] transition-all duration-300",
+                    "group-hover:-translate-y-1 group-hover:border-[#e7a3b0]/70 group-hover:shadow-[0_24px_54px_rgba(18,18,18,0.14),0_8px_20px_rgba(231,163,176,0.16)]"
                 )}
             >
-                <div className="relative aspect-3/4 overflow-hidden rounded-[0.8rem] bg-[#f7eef1]">
+                <div className="relative aspect-3/4 overflow-hidden rounded-[1.05rem] border border-white/70 bg-[#f7eef1] shadow-inner">
+                    <div className="pointer-events-none absolute inset-0 bg-linear-to-t from-black/12 via-transparent to-white/10 opacity-90" />
                     <div
                         className={cn(
                             "absolute inset-0",
@@ -142,18 +183,10 @@ export default function ProductCard({ product, href, onClick }: ProductCardProps
                         </div>
                     )}
 
-                    {/* Hover Overlay */}
-                    <div className="absolute inset-0 bg-black/40 opacity-0 transition-all duration-300 group-hover:opacity-100 flex items-center justify-center backdrop-blur-[2px]">
-                        <span className="font-playfair-display text-white text-lg md:text-xl font-medium tracking-wide translate-y-4 transition-transform duration-300 group-hover:translate-y-0 relative">
-                            View Details
-                            <span className="absolute -bottom-1 left-0 w-0 h-[1.5px] bg-white transition-all duration-500 group-hover:w-full" />
-                        </span>
-                    </div>
+                    <div className="pointer-events-none absolute inset-x-0 bottom-0 h-24 bg-linear-to-t from-black/20 via-black/0 to-transparent opacity-80" />
 
-                    <div className="pointer-events-none absolute inset-x-0 bottom-0 h-24 bg-linear-to-t from-black/25 via-black/0 to-transparent opacity-70" />
-
-                    <div className="absolute inset-x-3 top-3 flex max-w-[calc(100%-1.5rem)] flex-wrap gap-2">
-                        {badges.map((badge) => (
+                    <div className="absolute left-3 top-3 flex max-w-[calc(100%-6.75rem)] flex-wrap gap-2">
+                        {nonDiscountBadges.map((badge) => (
                             <ProductBadge 
                                 key={badge.label} 
                                 label={badge.label} 
@@ -162,18 +195,27 @@ export default function ProductCard({ product, href, onClick }: ProductCardProps
                             />
                         ))}
                     </div>
+
+                    {hasDiscount && !isSoldOut && discountDisplayInfo && (
+                        <div className="absolute right-3 top-3">
+                            <ProductBadge
+                                label={discountDisplayInfo.topRightLabel}
+                                className="bg-[#fff2e8] text-[#b86a36] ring-1 ring-[#f1c8a7]/70 shadow-sm"
+                            />
+                        </div>
+                    )}
                 </div>
 
-                <div className="flex flex-1 flex-col gap-2 px-2 pb-1.5 pt-3">
-                    <div className="min-w-0">
-                        <p className="hidden sm:block font-montserrat text-[10px] font-semibold uppercase tracking-[0.16em] text-[#6f5058]">
+                <div className="flex flex-1 flex-col gap-2 px-2 pt-3 pb-1.5">
+                    <div className="min-w-0 space-y-0.5">
+                        <p className="hidden sm:block font-montserrat text-[10px] font-semibold uppercase tracking-[0.16em] text-[#8b7580] truncate">
                             {categoryLabel}
                         </p>
-                        <p className="font-oswald text-[11px] uppercase tracking-[0.28em] text-[#b47c88] truncate" title={eyebrow}>
+                        <p className="font-oswald text-[11px] uppercase tracking-[0.24em] text-[#c0929d] truncate" title={eyebrow}>
                             {eyebrow}
                         </p>
                         <CardTitle 
-                            className="mt-1 font-playfair-display text-sm sm:text-base leading-snug text-[#121212] line-clamp-3 break-all"
+                            className="mt-1 font-playfair-display text-sm sm:text-base leading-snug text-[#121212] line-clamp-3 break-words"
                             title={product.name}
                         >
                             {product.name}
@@ -185,7 +227,7 @@ export default function ProductCard({ product, href, onClick }: ProductCardProps
                             {metadataChips.map((chip) => (
                                 <span
                                     key={chip}
-                                    className="rounded-full bg-[#f8f3f4] px-2 py-0.5 font-montserrat text-[9px] sm:text-[10px] font-medium uppercase tracking-[0.12em] text-[#6a5a5f] break-words max-w-full"
+                                    className="max-w-full truncate rounded-full border border-[#efdde1] bg-[#fff9fb] px-2.5 py-0.5 font-montserrat text-[9px] sm:text-[10px] font-medium uppercase tracking-[0.10em] text-[#725c62]"
                                 >
                                     {chip}
                                 </span>
@@ -195,33 +237,22 @@ export default function ProductCard({ product, href, onClick }: ProductCardProps
 
                     <div className="mt-auto border-t border-[#E7A3B0]/12 pt-2">
                         <div>
-                            <p className="font-oswald text-[10px] uppercase tracking-[0.28em] text-[#c0929d]">
-                                {isSoldOut ? "Last Price" : isOnSale ? "Sale Price" : "Price"}
+                            <p className="font-oswald text-[10px] uppercase tracking-[0.24em] text-[#c0929d]">
+                                {isSoldOut ? "Last Price" : "Price"}
                             </p>
-                            {isOnSale ? (
-                                <div className="space-y-1">
-                                    <p className="font-montserrat text-[11px] text-[#9c8690] line-through">
-                                        {formattedPrice}
-                                    </p>
-                                    <p className={cn(
-                                        "font-oswald text-xl tracking-[0.04em] bg-linear-to-r from-[#ff4d6d] via-[#ff7a59] to-[#ffb347] bg-clip-text text-transparent",
-                                        isSoldOut && "text-[#8b7580] bg-none"
-                                    )}>
-                                        {isSoldOut ? formattedPrice : formattedDiscountedPrice}
-                                    </p>
-                                    <p className="font-oswald text-[10px] uppercase tracking-[0.2em] text-[#ff4d6d]">
-                                        Save {discountPercent}%
-                                    </p>
-                                    {saleCountdown && (
-                                        <p className="font-oswald text-[9px] uppercase tracking-[0.15em] text-[#ff7a59]">
-                                            {saleCountdown}
+                            {hasDiscount && !isSoldOut && formattedSalePrice ? (
+                                <div className="space-y-1 rounded-[0.9rem] border border-[#f0d9df] bg-[#fff9fb] px-3 py-2">
+                                    {discountDisplayInfo && (
+                                        <p className="font-montserrat text-[10px] font-semibold uppercase tracking-[0.16em] text-[#a76f7c]">
+                                            {discountDisplayInfo.codeLabel}
                                         </p>
                                     )}
-                                    {saleEndDate && (
-                                        <p className="font-montserrat text-[10px] text-[#9c8690]">
-                                            Ends: {saleEndDate}
-                                        </p>
-                                    )}
+                                    <p className="font-oswald text-sm tracking-[0.18em] text-[#8b7580] line-through">
+                                        {formattedOriginalPrice}
+                                    </p>
+                                    <p className="font-oswald text-xl tracking-[0.04em] text-[#c95f7b]">
+                                        {formattedSalePrice}
+                                    </p>
                                 </div>
                             ) : (
                                 <p className={cn(

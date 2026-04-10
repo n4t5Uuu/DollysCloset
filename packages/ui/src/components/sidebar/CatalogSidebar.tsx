@@ -25,7 +25,9 @@ interface CatalogSidebarProps {
     sortBy: string;
     allCount: number;
     newCount: number;
-    discountedCount: number;
+    saleCount: number;
+    currentSeasonCount: number;
+    currentSeasonLabel: string | null;
     categoryCounts: Record<number, number>;
     rootGroupCounts: Record<string, number>;
     minAvailablePrice: number;
@@ -46,7 +48,9 @@ export default function CatalogSidebar({
     sortBy,
     allCount,
     newCount,
-    discountedCount,
+    saleCount,
+    currentSeasonCount,
+    currentSeasonLabel,
     categoryCounts,
     rootGroupCounts,
     minAvailablePrice,
@@ -434,24 +438,6 @@ export default function CatalogSidebar({
                         </button>
 
                         <button
-                            onClick={() => handleFilterChange("discounted")}
-                            className={cn(
-                                "text-left cursor-pointer rounded-md px-2.5 py-2 font-montserrat text-sm font-medium transition-colors duration-200 hover:text-[#E7A3B0] hover:bg-[#fff5f7]",
-                                activeFilter === "discounted" ? "bg-[#121212] text-[#E7A3B0] font-semibold" : "text-gray-600"
-                            )}
-                        >
-                            <span className="flex items-center justify-between gap-3">
-                                <span>On Sale</span>
-                                <span className={cn(
-                                    "rounded-full px-2 py-0.5 text-[10px] font-oswald tracking-[0.18em]",
-                                    activeFilter === "discounted" ? "bg-[#2a2a2a] text-[#f6ccd4]" : "bg-[#f8f3f4] text-[#8d7078]"
-                                )}>
-                                    {discountedCount}
-                                </span>
-                            </span>
-                        </button>
-
-                        <button
                             onClick={() => handleFilterChange("new")}
                             className={cn(
                                 "text-left cursor-pointer rounded-md px-2.5 py-2 font-montserrat text-sm font-medium transition-colors duration-200 hover:text-[#E7A3B0] hover:bg-[#fff5f7]",
@@ -465,6 +451,44 @@ export default function CatalogSidebar({
                                     activeFilter === "new" ? "bg-[#2a2a2a] text-[#f6ccd4]" : "bg-[#f8f3f4] text-[#8d7078]"
                                 )}>
                                     {newCount}
+                                </span>
+                            </span>
+                        </button>
+
+                        <button
+                            onClick={() => handleFilterChange("on-sale")}
+                            className={cn(
+                                "text-left cursor-pointer rounded-md px-2.5 py-2 font-montserrat text-sm font-medium transition-colors duration-200 hover:text-[#E7A3B0] hover:bg-[#fff5f7]",
+                                activeFilter === "on-sale" ? "bg-[#121212] text-[#E7A3B0] font-semibold" : "text-gray-600"
+                            )}
+                        >
+                            <span className="flex items-center justify-between gap-3">
+                                <span>On Sale</span>
+                                <span className={cn(
+                                    "rounded-full px-2 py-0.5 text-[10px] font-oswald tracking-[0.18em]",
+                                    activeFilter === "on-sale" ? "bg-[#2a2a2a] text-[#f6ccd4]" : "bg-[#f8f3f4] text-[#8d7078]"
+                                )}>
+                                    {saleCount}
+                                </span>
+                            </span>
+                        </button>
+
+                        <button
+                            onClick={() => handleFilterChange("current-season")}
+                            className={cn(
+                                "text-left cursor-pointer rounded-md px-2.5 py-2 font-montserrat text-sm font-medium transition-colors duration-200 hover:text-[#E7A3B0] hover:bg-[#fff5f7]",
+                                activeFilter === "current-season" ? "bg-[#121212] text-[#E7A3B0] font-semibold" : "text-gray-600"
+                            )}
+                            disabled={!currentSeasonLabel}
+                            title={currentSeasonLabel ? `Currently active season: ${currentSeasonLabel}` : "No active season set"}
+                        >
+                            <span className="flex items-center justify-between gap-3">
+                                <span>{currentSeasonLabel ? "Current Season" : "Current Season (Unavailable)"}</span>
+                                <span className={cn(
+                                    "rounded-full px-2 py-0.5 text-[10px] font-oswald tracking-[0.18em]",
+                                    activeFilter === "current-season" ? "bg-[#2a2a2a] text-[#f6ccd4]" : "bg-[#f8f3f4] text-[#8d7078]"
+                                )}>
+                                    {currentSeasonCount}
                                 </span>
                             </span>
                         </button>

@@ -13,12 +13,16 @@ import type { DashboardSurfaceKey } from "@/lib/dashboard-layout/config";
 const actionLabels: Record<string, string> = {
   create_product: "Listed Product",
   edit_product: "Edited Product",
+  archive_product: "Archived Product",
+  restore_product: "Restored Product",
   delete_product: "Deleted Product",
   create_category: "Created Category",
   edit_category: "Edited Category",
   delete_category: "Deleted Category",
   create_employee: "Created Employee",
   edit_employee: "Edited Employee",
+  archive_employee: "Archived Employee",
+  restore_employee: "Restored Employee",
   delete_employee: "Deleted Employee",
   upload_image: "Uploaded Image",
   set_primary_image: "Updated Image",
@@ -211,7 +215,7 @@ export default function Dashboard({ role }: DashboardProps) {
   const myProductLogs = useMemo(() => {
     return logs.filter(
       (log) =>
-        ["create_product", "edit_product", "delete_product"].includes(log.action_type) &&
+        ["create_product", "edit_product", "archive_product", "restore_product", "delete_product"].includes(log.action_type) &&
         currentUserId !== null &&
         String(log.user_id) === currentUserId
     );
@@ -265,12 +269,20 @@ export default function Dashboard({ role }: DashboardProps) {
         const product =
           log.product_id !== null ? productById.get(String(log.product_id)) : undefined;
         const statusLabel = product
-          ? product.show_in_catalog
-            ? "Listed"
-            : "Unlisted"
+          ? log.action_type === "archive_product"
+            ? "Archived"
+            : log.action_type === "restore_product"
+              ? "Restored"
+              : product.show_in_catalog
+                ? "Listed"
+                : "Unlisted"
           : log.action_type === "delete_product"
             ? "Deleted"
-            : "Updated";
+            : log.action_type === "archive_product"
+              ? "Archived"
+              : log.action_type === "restore_product"
+                ? "Restored"
+                : "Updated";
 
         return {
           logId: log.log_id,

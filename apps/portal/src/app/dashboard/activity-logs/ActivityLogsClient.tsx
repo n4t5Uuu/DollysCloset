@@ -17,19 +17,10 @@ import {
   EmptyHeader,
   EmptyMedia,
   EmptyTitle,
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
 } from "@dollys-closet/ui";
 import AdminSearchInput from "@/components/general-components/AdminSearchInput";
 import { AdminNoticeBanner } from "@/components/ui/admin-notice-banner";
-import { Calendar, ChevronDown, ClipboardList, X, Eye, SlidersHorizontal, RefreshCcw, RefreshCw } from "lucide-react";
+import { Calendar, ChevronDown, ClipboardList, X, Eye, SlidersHorizontal, RefreshCcw } from "lucide-react";
 
 interface ActivityLog {
   log_id: number;
@@ -65,12 +56,16 @@ function getLinkedEntityLabel(log: ActivityLog) {
 const actionLabels: Record<string, string> = {
   create_product: "Created Product",
   edit_product: "Edited Product",
+  archive_product: "Archived Product",
+  restore_product: "Restored Product",
   delete_product: "Deleted Product",
   create_category: "Created Category",
   edit_category: "Edited Category",
   delete_category: "Deleted Category",
   create_employee: "Created Employee",
   edit_employee: "Edited Employee",
+  archive_employee: "Archived Employee",
+  restore_employee: "Restored Employee",
   delete_employee: "Deleted Employee",
   upload_image: "Uploaded Image",
   set_primary_image: "Updated Image",
@@ -86,12 +81,16 @@ const actionLabels: Record<string, string> = {
 const actionColors: Record<string, string> = {
   create_product: "bg-green-100 text-green-800",
   edit_product: "bg-blue-100 text-blue-800",
+  archive_product: "bg-amber-100 text-amber-800",
+  restore_product: "bg-emerald-100 text-emerald-800",
   delete_product: "bg-red-100 text-red-800",
   create_category: "bg-purple-100 text-purple-800",
   edit_category: "bg-indigo-100 text-indigo-800",
   delete_category: "bg-red-100 text-red-800",
   create_employee: "bg-green-100 text-green-800",
   edit_employee: "bg-blue-100 text-blue-800",
+  archive_employee: "bg-amber-100 text-amber-800",
+  restore_employee: "bg-emerald-100 text-emerald-800",
   delete_employee: "bg-red-100 text-red-800",
   upload_image: "bg-green-100 text-green-800",
   set_primary_image: "bg-blue-100 text-blue-800",
@@ -107,14 +106,16 @@ const actionColors: Record<string, string> = {
 const employeeManagementActions = new Set([
   "create_employee",
   "edit_employee",
+  "archive_employee",
+  "restore_employee",
   "delete_employee",
   "login",
   "logout",
 ]);
 
 const actionTypeGroups: Record<string, { label: string; actions: string[] }> = {
-  products:   { label: "Products",   actions: ["create_product", "edit_product", "delete_product"] },
-  employees:  { label: "Employees",  actions: ["create_employee", "edit_employee", "delete_employee"] },
+  products:   { label: "Products",   actions: ["create_product", "edit_product", "archive_product", "restore_product", "delete_product"] },
+  employees:  { label: "Employees",  actions: ["create_employee", "edit_employee", "archive_employee", "restore_employee", "delete_employee"] },
   images:     { label: "Images",     actions: ["upload_image", "set_primary_image", "delete_image", "reorder_images"] },
   content:    { label: "Content",    actions: ["edit_contact_details", "edit_about_details", "edit_announcement"] },
   auth:       { label: "Auth",       actions: ["login", "logout"] },
@@ -398,35 +399,6 @@ export default function ActivityLogsClient() {
     await fetchLogs();
   };
 
-  const handleResetLogs = async () => {
-    try {
-      const response = await fetch('/api/admin/logs/reset', {
-        method: 'POST',
-      });
-
-      if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.error || 'Failed to reset logs');
-      }
-
-      setLogs([]);
-      setTotalCount(0);
-      setAvailableMonths([]);
-      setSearchQuery("");
-      setDebouncedSearch("");
-      setSelectedMonth(null);
-      setActionTypeFilter(new Set());
-      setShowFilters(false);
-      setShowPicker(false);
-      setActionNotice({
-        type: "success",
-        message: "Activity logs cleared. New activity will appear here as it happens.",
-      });
-    } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Failed to reset logs');
-    }
-  };
-
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -445,27 +417,6 @@ export default function ActivityLogsClient() {
             <RefreshCcw className={`mr-2 h-4 w-4 ${loading ? "animate-spin" : ""}`} />
             Refresh
           </Button>
-          <AlertDialog>
-            <AlertDialogTrigger asChild>
-              <button
-                className="bg-red-500 hover:bg-red-600 text-white text-sm font-medium px-4 py-2 rounded-lg transition-all duration-300 shadow-md hover:shadow-lg hover:scale-105 cursor-pointer sm:shrink-0"
-              >
-                Reset Logs
-              </button>
-            </AlertDialogTrigger>
-            <AlertDialogContent className="bg-white">
-              <AlertDialogHeader>
-                <AlertDialogTitle className="text-gray-900">Clear Activity Logs</AlertDialogTitle>
-                <AlertDialogDescription>
-                  Delete every saved activity log entry? This cannot be undone and will clear the full activity history.
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel className="border-zinc-300 bg-white text-zinc-700 hover:bg-zinc-50 hover:text-zinc-900">Cancel</AlertDialogCancel>
-                <AlertDialogAction className="bg-red-500 hover:bg-red-600 text-white cursor-pointer" onClick={handleResetLogs}>Reset All</AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
         </div>
       </div>
 
@@ -664,17 +615,17 @@ export default function ActivityLogsClient() {
         </div>
       ) : (
         <div className="bg-white rounded-lg border overflow-x-auto">
-          <Table className="w-full min-w-[1100px]">
+          <Table className="w-full table-fixed">
             <TableHeader className="border-b bg-gray-50">
               <TableRow>
-                <TableHead className="p-4 font-bold w-[110px]">Log ID</TableHead>
-                <TableHead className="p-4 font-bold w-[180px]">Date & Time</TableHead>
-                <TableHead className="p-4 font-bold w-[150px]">Action</TableHead>
-                <TableHead className="p-4 font-bold text-center w-[140px]">Linked ID</TableHead>
-                <TableHead className="p-4 font-bold w-[120px]">User</TableHead>
-                <TableHead className="p-4 font-bold w-[300px]">Description</TableHead>
-                <TableHead className="p-4 font-bold w-[120px]">Editor</TableHead>
-                <TableHead className="p-4 font-bold text-center w-[100px]">Actions</TableHead>
+                <TableHead className="p-4 text-left font-bold w-[60px]">Log</TableHead>
+                <TableHead className="p-4 font-bold w-[14%]">Date & Time</TableHead>
+                <TableHead className="p-4 font-bold w-[17%]">Action</TableHead>
+                <TableHead className="p-4 font-bold w-[7%]">Linked ID</TableHead>
+                <TableHead className="p-4 font-bold w-[7%]">User</TableHead>
+                <TableHead className="p-4 font-bold w-[21%]">Description</TableHead>
+                <TableHead className="p-4 font-bold">Editor</TableHead>
+                <TableHead className="p-4 font-bold text-center w-[130px]">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -685,8 +636,8 @@ export default function ActivityLogsClient() {
                     className="border-b hover:bg-gray-50"
                     onDoubleClick={() => setViewLog(log)}
                   >
-                    <TableCell className="p-4 text-sm font-medium text-gray-900">
-                      <div className="line-clamp-2 break-all">{log.log_id}</div>
+                    <TableCell className="p-4">
+                      <span className="font-medium text-gray-900">{log.log_id}</span>
                     </TableCell>
                     <TableCell className="p-4 text-sm text-gray-700">
                       <div className="line-clamp-2 wrap-anywhere">{new Date(log.created_at).toLocaleString()}</div>
@@ -698,17 +649,14 @@ export default function ActivityLogsClient() {
                         </span>
                       </div>
                     </TableCell>
-                    <TableCell className="p-4 text-sm text-gray-900 align-middle">
-                      <div className="flex flex-col items-center gap-0.5 text-center leading-tight">
-                        <span className="line-clamp-2 break-all font-medium text-gray-900">
-                          {log.product_id ?? log.business_details ?? "-"}
-                        </span>
-                        {(log.product_id !== null || log.business_details !== null) && (
-                          <span className="text-[11px] uppercase tracking-wide text-gray-500">
-                            {getLinkedEntityLabel(log)}
-                          </span>
-                        )}
-                      </div>
+                    <TableCell className="p-4 text-sm text-gray-900">
+                      <div className="line-clamp-2 break-all">{log.product_id ?? log.business_details ?? "-"}</div>
+                      {log.product_id && (
+                        <div className="text-[11px] text-gray-400 mt-0.5">Product</div>
+                      )}
+                      {!log.product_id && log.business_details && (
+                        <div className="text-[11px] text-gray-400 mt-0.5">Business</div>
+                      )}
                     </TableCell>
                     <TableCell className="p-4 text-sm text-gray-900">
                       <div className="line-clamp-2 break-all">
@@ -793,7 +741,10 @@ export default function ActivityLogsClient() {
             onClick={(e) => e.stopPropagation()}
           >
             <div className="sticky top-0 bg-white border-b border-gray-100 px-6 py-4 flex items-center justify-between rounded-t-2xl">
-              <h2 id="activity-log-details-title" className="text-xl font-bold text-gray-900">Log Details</h2>
+              <div>
+                <h2 id="activity-log-details-title" className="text-xl font-bold text-gray-900">Log Details</h2>
+                <p className="text-[11px] text-gray-400 mt-0.5">Log #{viewLog.log_id}</p>
+              </div>
               <button onClick={() => setViewLog(null)} aria-label="Close log details" className="p-2 hover:bg-gray-100 rounded-lg text-gray-500 hover:text-gray-700">
                 <X size={20} />
               </button>
@@ -812,14 +763,13 @@ export default function ActivityLogsClient() {
                 </div>
                 <div className="bg-gray-50 rounded-xl p-4">
                   <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Linked ID</p>
-                  <div className="flex flex-col items-center gap-0.5 text-center leading-tight">
-                    <p className="text-sm font-semibold text-gray-900">{viewLog.product_id ?? viewLog.business_details ?? "-"}</p>
-                    {(viewLog.product_id !== null || viewLog.business_details !== null) && (
-                      <p className="text-[11px] uppercase tracking-wide text-gray-500">
-                        {getLinkedEntityLabel(viewLog)}
-                      </p>
-                    )}
-                  </div>
+                  <p className="text-sm font-semibold text-gray-900 break-all">{viewLog.product_id ?? viewLog.business_details ?? "-"}</p>
+                  {viewLog.product_id && (
+                    <p className="text-[11px] text-gray-400 mt-0.5">Product</p>
+                  )}
+                  {!viewLog.product_id && viewLog.business_details && (
+                    <p className="text-[11px] text-gray-400 mt-0.5">Business</p>
+                  )}
                 </div>
                 <div className="bg-gray-50 rounded-xl p-4">
                   <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">User</p>

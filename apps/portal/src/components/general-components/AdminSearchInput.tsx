@@ -55,7 +55,7 @@ const AdminSearchInput = React.forwardRef<HTMLInputElement, AdminSearchInputProp
         <Input
           ref={ref}
           id={inputId}
-          type="search"
+          type="text"
           value={value}
           onChange={(event) => onChange(event.target.value)}
           placeholder={placeholder}

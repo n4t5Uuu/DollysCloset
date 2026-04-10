@@ -1,43 +1,54 @@
 import { createClient } from "../supabase/browser";
+import { discountHelper } from "./discount-helper";
+
+type ProductQueryScope = "active" | "archived" | "all";
 
 export const productHelper = {
     /**
-     * Best-effort cleanup that ends expired sales by resetting discount fields.
-     */
-    async clearExpiredDiscounts(supabase = createClient()) {
-        const nowIso = new Date().toISOString();
-        const { data: expiredRows, error: fetchError } = await supabase
-            .from("tbl_product")
-            .select("product_id")
-            .gt("discount_percent", 0)
-            .not("discount_expires_at", "is", null)
-            .lte("discount_expires_at", nowIso);
-
-        if (fetchError) {
-            // Keep this non-blocking so product listing still works.
-            return;
-        }
-
-        const expiredIds = (expiredRows || []).map((row) => Number(row.product_id)).filter((id) => !Number.isNaN(id));
-        if (expiredIds.length === 0) return;
-
-        await supabase
-            .from("tbl_product")
-            .update({ discount_percent: 0, discount_expires_at: null })
-            .in("product_id", expiredIds);
-    },
-
-    /**
      * Retrieves all product records from the database's `tbl_product` table.
      */
-    async getProducts(supabase = createClient()) {
-        await this.clearExpiredDiscounts(supabase);
-        const { data, error } = await supabase.from("tbl_product").select("*");
+    async getProducts(
+        supabase = createClient(),
+        { scope = "active" }: { scope?: ProductQueryScope } = {}
+    ) {
+        let query = supabase.from("tbl_product").select("*");
+
+        if (scope === "active") {
+            query = query.is("archived_at", null);
+        }
+
+        if (scope === "archived") {
+            query = query.not("archived_at", "is", null);
+        }
+
+        const { data, error } = await query.order("created_at", { ascending: false, nullsFirst: false });
         if (error) {
             console.error("Error Fetching Products: ", error);
             return { data: null, error };
         }
-        return { data, error: null };
+
+        const products = (data || []) as Array<Record<string, unknown>>;
+        const discountMap = await discountHelper.getProductDiscountMap(
+            products.map((product) => String(product.product_id)),
+            supabase
+        );
+
+        const enrichedProducts = products.map((product) => {
+            const productDiscount = discountMap.get(String(product.product_id)) || null;
+            const price = Number(product.product_price || 0);
+            const discountedPrice = productDiscount
+                ? discountHelper.calculateDiscountedPrice(price, productDiscount)
+                : null;
+
+            return {
+                ...product,
+                discount: productDiscount,
+                discountedPrice,
+                isOnSale: Boolean(productDiscount && discountedPrice !== null && discountedPrice < price),
+            };
+        });
+
+        return { data: enrichedProducts, error: null };
     },
 
     /**
@@ -77,27 +88,53 @@ export const productHelper = {
     },
 
     /**
-     * Deletes a single product by row identification.
+     * Hard deletes are disabled in favor of archive-only behavior.
      */
     async deleteProduct(productId: number | string, supabase = createClient()) {
-        const { error } = await supabase.from("tbl_product").delete().eq("product_id", productId);
-        if (error) {
-            console.error("Error Deleting Product: ", error);
-            return { success: false, error };
-        }
-        return { success: true, error: null };
+        const error = new Error(`Hard delete is disabled for product ${productId}. Archive the product instead.`);
+        console.error("Error Deleting Product: ", error);
+        return { success: false, error };
     },
 
     /**
      * Retrieves a single product by ID.
      */
-    async getProductById(productId: number | string, supabase = createClient()) {
-        const { data, error } = await supabase.from("tbl_product").select("*").eq("product_id", productId).maybeSingle();
+    async getProductById(
+        productId: number | string,
+        supabase = createClient(),
+        { includeArchived = false }: { includeArchived?: boolean } = {}
+    ) {
+        let query = supabase.from("tbl_product").select("*").eq("product_id", productId);
+        if (!includeArchived) {
+            query = query.is("archived_at", null);
+        }
+
+        const { data, error } = await query.maybeSingle();
         if (error) {
             console.error("Error Fetching Product by ID: ", error);
             return { data: null, error };
         }
-        return { data, error: null };
+
+        if (!data) {
+            return { data: null, error: null };
+        }
+
+        const discountMap = await discountHelper.getProductDiscountMap([productId], supabase);
+        const productDiscount = discountMap.get(String(productId)) || null;
+        const price = Number(data.product_price || 0);
+        const discountedPrice = productDiscount
+            ? discountHelper.calculateDiscountedPrice(price, productDiscount)
+            : null;
+
+        return {
+            data: {
+                ...data,
+                discount: productDiscount,
+                discountedPrice,
+                isOnSale: Boolean(productDiscount && discountedPrice !== null && discountedPrice < price),
+            },
+            error: null,
+        };
     },
 
     /**
@@ -140,13 +177,39 @@ export const productHelper = {
      * Retrieves products marked explicitly to show in public catalog views.
      */
     async getProductsCatalog(supabase = createClient()) {
-        await this.clearExpiredDiscounts(supabase);
-        const { data, error } = await supabase.from("tbl_product").select("*").eq("show_in_catalog", true).order("created_at", { ascending: false, nullsFirst: false });
+        const { data, error } = await supabase
+            .from("tbl_product")
+            .select("*")
+            .is("archived_at", null)
+            .eq("show_in_catalog", true)
+            .order("created_at", { ascending: false, nullsFirst: false });
         if (error) {
             console.error("Error Fetching Catalog Products: ", error);
             return { data: null, error };
         }
-        return { data: data || [], error: null };
+
+        const products = (data || []) as Array<Record<string, unknown>>;
+        const discountMap = await discountHelper.getProductDiscountMap(
+            products.map((product) => String(product.product_id)),
+            supabase
+        );
+
+        const enrichedProducts = products.map((product) => {
+            const productDiscount = discountMap.get(String(product.product_id)) || null;
+            const price = Number(product.product_price || 0);
+            const discountedPrice = productDiscount
+                ? discountHelper.calculateDiscountedPrice(price, productDiscount)
+                : null;
+
+            return {
+                ...product,
+                discount: productDiscount,
+                discountedPrice,
+                isOnSale: Boolean(productDiscount && discountedPrice !== null && discountedPrice < price),
+            };
+        });
+
+        return { data: enrichedProducts, error: null };
     },
 
     /**
@@ -201,12 +264,9 @@ export const productHelper = {
      * Deletes multiple products by identification codes.
      */
     async deleteProductsBulk(productIds: number[], supabase = createClient()) {
-        const { error } = await supabase.from("tbl_product").delete().in("product_id", productIds);
-        if (error) {
-            console.error("Error Deleting Bulk Products: ", error);
-            return { success: false, error };
-        }
-        return { success: true, error: null };
+        const error = new Error(`Hard delete is disabled for ${productIds.length} product(s). Archive the products instead.`);
+        console.error("Error Deleting Bulk Products: ", error);
+        return { success: false, error };
     },
 
     /**
