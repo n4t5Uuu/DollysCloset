@@ -28,6 +28,7 @@ export * from "./lib/images/product-placeholder";
 export * from "./lib/images/upload-product-image";
 export * from "./lib/images/image-compression";
 export * from "./lib/images/normalize-image-url";
+export * from "./lib/storage/storage-usage-helper";
 
 export * from "./hooks/useProductMetadata";
 export * from "./hooks/useDebouncedSearch";

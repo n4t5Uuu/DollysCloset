@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createAdminClient, productHelper } from "@dollys-closet/core";
+import { createAdminClient, productHelper, storageUsageHelper } from "@dollys-closet/core";
 import { activityHelper } from "@/lib/activity/activity-helper";
 import { requireRequestAuth } from "@/lib/auth/auth-server";
 
@@ -184,6 +184,9 @@ export async function POST(request: NextRequest) {
         { status: 500 }
       );
     }
+
+    // Update storage usage counter (best-effort; drift can be corrected via reconcile script)
+    await storageUsageHelper.incrementStorageUsage(file.size, supabaseAdmin).catch(() => {});
 
     const { data: { publicUrl } } = supabaseAdmin.storage
       .from("product-images")
@@ -397,12 +400,26 @@ export async function DELETE(request: NextRequest) {
 
     const storageObjectPath = getStorageObjectPath(String(image_url || ""));
     if (storageObjectPath) {
+      // Try to get file size for usage tracking before removal (best-effort)
+      let deletedFileBytes = 0;
+      try {
+        const lastSlash = storageObjectPath.lastIndexOf("/");
+        const folder = storageObjectPath.substring(0, lastSlash);
+        const filename = storageObjectPath.substring(lastSlash + 1);
+        const { data: fileList } = await supabaseAdmin.storage
+          .from("product-images")
+          .list(folder, { search: filename });
+        deletedFileBytes = Number((fileList?.[0] as { metadata?: { size?: number } } | undefined)?.metadata?.size ?? 0);
+      } catch { /* best-effort */ }
+
       const { error: storageDeleteError } = await supabaseAdmin.storage
         .from("product-images")
         .remove([storageObjectPath]);
 
       if (storageDeleteError) {
         console.warn("Storage delete warning:", storageDeleteError.message);
+      } else if (deletedFileBytes > 0) {
+        await storageUsageHelper.decrementStorageUsage(deletedFileBytes, supabaseAdmin).catch(() => {});
       }
     }
 

@@ -61,6 +61,73 @@ function buildCategoriesSheetData(categoryOptions: string[]) {
     .join("");
 }
 
+/**
+ * Converts a zero-based column index to an Excel column letter (0 → A, 25 → Z, 26 → AA…).
+ */
+function columnIndexToLetter(index: number): string {
+  let result = "";
+  let n = index;
+  do {
+    result = String.fromCharCode(65 + (n % 26)) + result;
+    n = Math.floor(n / 26) - 1;
+  } while (n >= 0);
+  return result;
+}
+
+/**
+ * Best-effort: appends image_1 … image_5 header cells to row 1 of the
+ * "Export Ready" sheet. Fails silently — the template still works without
+ * them since the columns are optional (user can add them manually).
+ */
+function injectImageFilenamesHeader(files: Record<string, Uint8Array>): void {
+  try {
+    const workbookXml = strFromU8(files["xl/workbook.xml"]);
+    const relsXml = strFromU8(files["xl/_rels/workbook.xml.rels"]);
+
+    const sheetRidMatch = workbookXml.match(/name="Export Ready"[^>]*r:id="([^"]+)"/);
+    if (!sheetRidMatch) return;
+    const rId = sheetRidMatch[1];
+
+    const relTargetMatch = relsXml.match(new RegExp(`Id="${rId}"[^>]*Target="([^"]+)"`));
+    if (!relTargetMatch) return;
+    const sheetPath = relTargetMatch[1].startsWith("worksheets/")
+      ? `xl/${relTargetMatch[1]}`
+      : relTargetMatch[1];
+
+    const sheetBytes = files[sheetPath];
+    if (!sheetBytes) return;
+
+    let sheetXml = strFromU8(sheetBytes);
+
+    // Skip if image columns are already present (user added manually)
+    if (sheetXml.includes("image_1")) return;
+
+    // Find the last column letter in the header row
+    const headerCellPattern = /<c r="([A-Z]+)1"[^/]*(?:\/>|>[\s\S]*?<\/c>)/g;
+    const allHeaderCells = [...sheetXml.matchAll(headerCellPattern)];
+    if (allHeaderCells.length === 0) return;
+
+    const lastColLetter = allHeaderCells[allHeaderCells.length - 1][1];
+    let colIndex = 0;
+    for (const ch of lastColLetter) {
+      colIndex = colIndex * 26 + (ch.charCodeAt(0) - 64);
+    }
+
+    // Append image_1 … image_5
+    const newCells = [1, 2, 3, 4, 5]
+      .map((n) => {
+        const letter = columnIndexToLetter(colIndex + n - 1);
+        return `<c r="${letter}1" t="inlineStr"><is><t>image_${n}</t></is></c>`;
+      })
+      .join("");
+
+    sheetXml = sheetXml.replace(/(<\/row>)/, `${newCells}$1`);
+    files[sheetPath] = strToU8(sheetXml);
+  } catch {
+    // Best-effort; template still works without these columns
+  }
+}
+
 function injectCategoriesIntoTemplate(
   workbookBytes: Uint8Array,
   categoryOptions: string[],
@@ -100,6 +167,8 @@ function injectCategoriesIntoTemplate(
 
   files[sheet2Name] = strToU8(updatedSheet2Xml);
   files[sheet3Name] = strToU8(updatedSheet3Xml);
+
+  injectImageFilenamesHeader(files);
 
   return zipSync(files);
 }
