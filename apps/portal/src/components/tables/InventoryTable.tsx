@@ -224,7 +224,7 @@ export function InventoryTable({
             </div>
 
             <div className="hidden sm:block bg-white rounded-lg border overflow-x-auto">
-                <Table className="w-full table-fixed">
+                <Table className="w-full">
                     <TableHeader className="border-b bg-gray-50">
                         <TableRow>
                             <TableHead className="p-4 text-left w-12">
@@ -233,19 +233,19 @@ export function InventoryTable({
                                     onCheckedChange={toggleSelectAll}
                                 />
                             </TableHead>
-                            <TableHead className="p-4 text-left font-bold w-[110px]">ID</TableHead>
-                            <TableHead className="p-4 text-left font-bold">Product Name</TableHead>
-                            <TableHead className="p-4 text-left font-bold">Category</TableHead>
-                            <TableHead className="p-4 text-center font-bold">Stock</TableHead>
-                            <TableHead className="p-4 text-right font-bold">Price</TableHead>
-                            <TableHead className="p-4 text-center font-bold">Status</TableHead>
+                            <TableHead className="p-4 text-left font-bold w-[110px] min-w-[110px]">ID</TableHead>
+                            <TableHead className="p-4 text-left font-bold min-w-[200px] whitespace-normal">Product Name</TableHead>
+                            <TableHead className="p-4 text-left font-bold min-w-[150px] whitespace-normal">Category</TableHead>
+                            <TableHead className="p-4 text-center font-bold min-w-[80px]">Stock</TableHead>
+                            <TableHead className="p-4 text-right font-bold min-w-[120px]">Price</TableHead>
+                            <TableHead className="p-4 text-center font-bold min-w-[100px]">Status</TableHead>
                             {mode === "active" && (
-                                <TableHead className="p-4 text-center font-bold">Last Updated</TableHead>
+                                <TableHead className="p-4 text-center font-bold min-w-[120px]">Last Updated</TableHead>
                             )}
                             {mode === "archived" && (
-                                <TableHead className="p-4 text-center font-bold">Archived On</TableHead>
+                                <TableHead className="p-4 text-center font-bold min-w-[120px]">Archived On</TableHead>
                             )}
-                            <TableHead className="p-4 text-center font-bold w-[200px]">Actions</TableHead>
+                            <TableHead className="p-4 text-center font-bold w-[200px] min-w-[200px]">Actions</TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -266,11 +266,11 @@ export function InventoryTable({
                                         <div className="break-all">{product.product_id}</div>
                                     </TableCell>
 
-                                    <TableCell className="p-4 overflow-hidden">
+                                    <TableCell className="p-4 overflow-hidden whitespace-normal">
                                         <button
                                             type="button"
                                             onClick={() => activateRow(product)}
-                                            className="font-medium text-left transition-colors hover:text-[#E7A3B0] break-words [overflow-wrap:anywhere] block max-w-[200px] md:max-w-xs line-clamp-3"
+                                            className="font-medium text-left transition-colors hover:text-[#E7A3B0] break-words [overflow-wrap:anywhere] block max-w-full line-clamp-3"
                                             title={mode === "active" ? `Edit ${product.product_name}` : product.product_name}
                                         >
                                             {product.product_name}
@@ -279,8 +279,8 @@ export function InventoryTable({
                                             {formatPublishedDate(product.created_at)}
                                         </div>
                                     </TableCell>
-                                    <TableCell className="p-4 text-gray-600 overflow-hidden" title={getCategoryName(product.category_id)}>
-                                        <span className="line-clamp-2 wrap-anywhere">{getCategoryName(product.category_id)}</span>
+                                    <TableCell className="p-4 text-gray-600 overflow-hidden whitespace-normal" title={getCategoryName(product.category_id)}>
+                                        <span className="line-clamp-2 [overflow-wrap:anywhere]">{getCategoryName(product.category_id)}</span>
                                     </TableCell>
                                     <TableCell className="p-4 text-center">
                                         <span className={product.product_stock < 10 ? "text-orange-600 font-medium" : ""}>

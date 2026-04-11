@@ -387,7 +387,7 @@ export default function EmployeesClient() {
               : "Review archived employee accounts and restore them when access should be re-enabled."}
           </p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-3">
           <div className="flex items-center rounded-lg border border-[#E7A3B0]/20 bg-[#fff9fb] p-1">
             <button
               type="button"

@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { useSearchParams, useRouter, usePathname } from "next/navigation";
@@ -1050,7 +1050,7 @@ export default function InventoryManagement({ initialAvailabilityFilter }: Inven
         </div>
 
         {/* Bottom row: Refresh left, action buttons right */}
-        <div className="flex items-center justify-between gap-2">
+        <div className="flex flex-wrap items-center justify-between gap-3">
           <Button
             type="button"
             variant="outline"
@@ -1063,7 +1063,7 @@ export default function InventoryManagement({ initialAvailabilityFilter }: Inven
             Refresh
           </Button>
           {inventoryScope === "active" && (
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               <button
                 onClick={() => setShowBulkImport(true)}
                 className="flex items-center gap-2 px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-800 rounded-lg text-sm font-medium transition-all duration-300 shadow-sm hover:shadow-md hover:scale-105 cursor-pointer"

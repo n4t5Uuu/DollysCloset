@@ -628,7 +628,7 @@ export default function ActivityLogsClient() {
           <h1 className="text-2xl font-bold">Activity Logs</h1>
           <p className="text-gray-500 text-sm">Inventory actions by admin or employee.</p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-3">
           <Button
             type="button"
             variant="outline"
@@ -846,17 +846,17 @@ export default function ActivityLogsClient() {
         </div>
       ) : (
         <div className="bg-white rounded-lg border overflow-x-auto">
-          <Table className="w-full table-fixed">
+          <Table className="w-full">
             <TableHeader className="border-b bg-gray-50">
               <TableRow>
-                <TableHead className="p-4 text-left font-bold w-[60px]">Log</TableHead>
-                <TableHead className="p-4 font-bold w-[14%]">Date & Time</TableHead>
-                <TableHead className="p-4 font-bold w-[17%]">Action</TableHead>
-                <TableHead className="p-4 font-bold w-[7%]">Linked ID</TableHead>
-                <TableHead className="p-4 font-bold w-[7%]">User</TableHead>
-                <TableHead className="p-4 font-bold w-[21%]">Description</TableHead>
-                <TableHead className="p-4 font-bold">Editor</TableHead>
-                <TableHead className="p-4 font-bold text-center w-[130px]">Actions</TableHead>
+                <TableHead className="p-4 text-left font-bold min-w-[70px]">Log</TableHead>
+                <TableHead className="p-4 font-bold min-w-[160px]">Date & Time</TableHead>
+                <TableHead className="p-4 font-bold min-w-[150px]">Action</TableHead>
+                <TableHead className="p-4 font-bold min-w-[100px]">Linked ID</TableHead>
+                <TableHead className="p-4 font-bold min-w-[100px]">User</TableHead>
+                <TableHead className="p-4 font-bold min-w-[200px]">Description</TableHead>
+                <TableHead className="p-4 font-bold min-w-[150px]">Editor</TableHead>
+                <TableHead className="p-4 font-bold text-center min-w-[100px]">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -894,7 +894,7 @@ export default function ActivityLogsClient() {
                         {employeeManagementActions.has(log.action_type) ? (log.user_key || log.user_id || "-") : "-"}
                       </div>
                     </TableCell>
-                    <TableCell className="p-4 text-sm text-gray-600 max-w-0 overflow-hidden">
+                    <TableCell className="p-4 text-sm text-gray-600">
                       <div className="line-clamp-2 wrap-anywhere">{log.description || "-"}</div>
                     </TableCell>
                     <TableCell className="p-4 text-sm text-gray-600">
