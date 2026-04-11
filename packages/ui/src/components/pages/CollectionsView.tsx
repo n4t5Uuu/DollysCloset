@@ -3,13 +3,11 @@
 import { useEffect, useMemo, useState, useCallback } from "react";
 import { useSearchParams, useRouter, usePathname } from "next/navigation";
 
-import FeatureCardCarousel from "../catalog/FeatureCardCarousel";
+import MasonrySection from "../catalog/MasonrySection";
 import ProductCard from "../catalog/ProductCard";
 import CustomPagination from "../general-components/CustomPagination";
-import SearchBar from "../general-components/SearchBar";
 import CatalogSidebar from "../sidebar/CatalogSidebar";
 import { InfiniteSlider } from "../motion-primitives/infinite-slider";
-import { TextEffect } from "../motion-primitives/text-effect";
 import { InView } from "../motion-primitives/in-view";
 import { Button } from "../ui/button";
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "../ui/empty";
@@ -29,7 +27,24 @@ import {
     SheetTitle,
     SheetTrigger,
 } from "../ui/sheet";
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "../ui/select";
 import { Skeleton } from "../ui/skeleton";
+
+const SORT_OPTIONS = [
+    { value: "newest", label: "Newest First" },
+    { value: "price-low", label: "Price: Low to High" },
+    { value: "price-high", label: "Price: High to Low" },
+    { value: "az", label: "Name: A to Z" },
+    { value: "za", label: "Name: Z to A" },
+] as const;
+
+const collectionShellClass = "mx-auto w-full max-w-[1500px] px-4 sm:px-6 md:px-8 lg:px-10 xl:px-12";
 
 function toViewProduct(product: CatalogApiProduct): Product {
     return {
@@ -70,10 +85,10 @@ function parseOptionalNumber(value: string | null) {
 }
 
 function getItemsPerPage(viewportWidth: number) {
-    if (viewportWidth >= 1536) return 18;
-    if (viewportWidth >= 1280) return 15;
-    if (viewportWidth >= 768) return 12;
-    return 8;
+    // Column counts follow the catalog grid: 2 / 3 / 3 / 4 across breakpoints.
+    if (viewportWidth >= 1536) return 16; // 2xl: 4 cols × 4 rows
+    if (viewportWidth >= 768) return 12;  // md/lg/xl: 3 cols × 4 rows
+    return 8;                              // mobile/sm: 2 cols × 4 rows
 }
 
 function formatPriceLabel(value: number) {
@@ -82,6 +97,35 @@ function formatPriceLabel(value: number) {
         minimumFractionDigits: hasCents ? 2 : 0,
         maximumFractionDigits: hasCents ? 2 : 0,
     })}`;
+}
+
+function MasonrySkeleton() {
+    const slots = Array.from({ length: 8 });
+    return (
+        <section className="w-full py-8 sm:py-10">
+            <div className={collectionShellClass}>
+                <div className="mb-6 space-y-2">
+                    <Skeleton className="h-3 w-28" />
+                    <Skeleton className="h-8 w-52" />
+                </div>
+                <div className="flex items-stretch gap-4 sm:gap-5 overflow-hidden pb-3">
+                    {slots.map((_, i) => (
+                        <div
+                            key={i}
+                            className="shrink-0 grow-0 w-[205px] min-w-[205px] sm:w-[240px] sm:min-w-[240px] md:w-[265px] md:min-w-[265px] lg:w-[285px] lg:min-w-[285px] xl:w-[300px] xl:min-w-[300px]"
+                        >
+                            <Skeleton className="w-full aspect-[3/4] rounded-xl" />
+                            <div className="mt-3 space-y-2">
+                                <Skeleton className="h-3 w-2/3" />
+                                <Skeleton className="h-4 w-5/6" />
+                                <Skeleton className="h-5 w-1/3" />
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            </div>
+        </section>
+    );
 }
 
 export function CollectionsView() {
@@ -423,16 +467,26 @@ export function CollectionsView() {
             list = list.filter((product) => validCategoryIds.has(product.categoryId));
         }
 
+        // Effective price = what the customer actually pays. Falls back to the
+        // regular price when the product has no discount. This is what both the
+        // price-range filter and the price sort should read — otherwise a product
+        // marked down from ₱6000 to ₱1 would still sort as ₱6000.
+        const effectivePrice = (product: { price: number; discountedPrice?: number | null }) =>
+            product.discountedPrice !== null && product.discountedPrice !== undefined
+                ? product.discountedPrice
+                : product.price;
+
         if (products.length > 0) {
             list = list.filter((product) => {
-                return product.price >= selectedPriceRange.min && product.price <= selectedPriceRange.max;
+                const price = effectivePrice(product);
+                return price >= selectedPriceRange.min && price <= selectedPriceRange.max;
             });
         }
 
         if (sortBy === "price-low") {
-            list.sort((a, b) => a.price - b.price);
+            list.sort((a, b) => effectivePrice(a) - effectivePrice(b));
         } else if (sortBy === "price-high") {
-            list.sort((a, b) => b.price - a.price);
+            list.sort((a, b) => effectivePrice(b) - effectivePrice(a));
         } else if (sortBy === "az") {
             list.sort((a, b) => a.name.localeCompare(b.name));
         } else if (sortBy === "za") {
@@ -457,10 +511,18 @@ export function CollectionsView() {
         ? 0
         : visibleItemStart + paginatedProducts.length - 1;
 
-    const featuredViewProducts = featuredProducts.map(toViewProduct);
     const isBrowsingFiltered = activeFilter !== "all" || searchQuery.trim() !== "" || sortBy !== "newest" || hasActivePriceFilter;
     const newArrivalCount = useMemo(() => products.filter((product) => product.isNewArrival).length, [products]);
     const saleCount = useMemo(() => products.filter((product) => product.isOnSale).length, [products]);
+
+    const newArrivalMasonry = useMemo(() => {
+        const list = products.filter((p) => p.isNewArrival).slice(0, 16);
+        return (list.length > 0 ? list : featuredProducts.slice(0, 16)).map(toViewProduct);
+    }, [products, featuredProducts]);
+
+    const saleMasonry = useMemo(() => {
+        return products.filter((p) => p.isOnSale).slice(0, 16).map(toViewProduct);
+    }, [products]);
     const currentSeasonCount = useMemo(() => {
         if (!activeSeason?.id) return 0;
         return products.filter((product) => product.seasonId === activeSeason.id).length;
@@ -583,7 +645,7 @@ export function CollectionsView() {
             : "The collection is currently empty. Please check back later for new arrivals.";
 
     return (
-        <main className="w-full flex flex-col items-center">
+        <main className="w-full flex flex-col items-center bg-[#fff5f7]">
 
             {/* For the Announcements */}
             {announcementText && (
@@ -598,102 +660,144 @@ export function CollectionsView() {
                 </div>
             )}
 
-            {/* For the Featured Collection Carousel*/}
-            <InView 
+            {/* Top masonry strips — New Arrivals then On Sale */}
+            <InView
                 variants={{
-                    hidden: { opacity: 0, y: 30 },
+                    hidden: { opacity: 0, y: 20 },
                     visible: { opacity: 1, y: 0 }
                 }}
-                transition={{ duration: 0.8, ease: "easeOut" }}
-                className="w-full flex items-center justify-center flex-col py-12 bg-linear-to-b from-white to-[#fff0f5]/50"
+                transition={{ duration: 0.6, ease: "easeOut" }}
+                className="w-full"
             >
-                <div className="text-center mb-10 space-y-3">
-                    <p className="font-oswald text-xs font-bold tracking-[0.3em] text-[#E7A3B0] uppercase">
-                        <TextEffect as="span" per="word" preset="fade">Curated For You</TextEffect>
-                    </p>
-                    <h3 className="text-[#121212] font-playfair-display text-5xl mb-4">
-                        <TextEffect as="span" per="char" preset="fade-in-blur">New Arrivals</TextEffect>
-                    </h3>
-                </div>
                 {loading ? (
-                    <div className="w-full max-w-6xl flex gap-6 px-4 md:px-12 overflow-hidden overflow-x-auto">
-                        {Array.from({ length: 3 }).map((_, i) => (
-                            <div key={i} className="min-w-[280px] md:min-w-[340px] flex-1 space-y-4">
-                                <Skeleton className="h-[400px] w-full rounded-2xl" />
-                                <div className="space-y-2">
-                                    <Skeleton className="h-4 w-3/4" />
-                                    <Skeleton className="h-4 w-1/2" />
-                                </div>
-                            </div>
-                        ))}
-                    </div>
+                    <MasonrySkeleton />
                 ) : (
-                    <FeatureCardCarousel products={featuredViewProducts} onProductClick={handleFeaturedProductClick} />
+                    newArrivalMasonry.length > 0 && (
+                        <MasonrySection
+                            title="New Arrivals"
+                            subtitle="Curated For You"
+                            accent="rose"
+                            products={newArrivalMasonry}
+                            onProductClick={handleFeaturedProductClick}
+                            onViewAll={() => {
+                                handleFilterChange("new");
+                                if (typeof document !== "undefined") {
+                                    document.getElementById("collection-grid")?.scrollIntoView({ behavior: "smooth", block: "start" });
+                                }
+                            }}
+                            emptyMessage="No new arrivals yet."
+                        />
+                    )
+                )}
+            </InView>
+
+            <InView
+                variants={{
+                    hidden: { opacity: 0, y: 20 },
+                    visible: { opacity: 1, y: 0 }
+                }}
+                transition={{ duration: 0.6, ease: "easeOut", delay: 0.1 }}
+                className="w-full"
+            >
+                {loading ? (
+                    <MasonrySkeleton />
+                ) : (
+                    saleMasonry.length > 0 && (
+                        <MasonrySection
+                            title="On Sale"
+                            subtitle="Limited Time"
+                            accent="amber"
+                            products={saleMasonry}
+                            onProductClick={handleFeaturedProductClick}
+                            onViewAll={() => {
+                                handleFilterChange("on-sale");
+                                if (typeof document !== "undefined") {
+                                    document.getElementById("collection-grid")?.scrollIntoView({ behavior: "smooth", block: "start" });
+                                }
+                            }}
+                            emptyMessage="No sale items right now."
+                        />
+                    )
                 )}
             </InView>
 
             {/* For the Collections */}
-            <div className="w-full flex flex-col items-center">
-                <div className="md:hidden w-full px-4 py-3 text-center">
-                    <h2 className="font-playfair-display text-xl text-[#121212]">Our Collections</h2>
-                </div>
-
-                <div className="sticky top-0 z-30 w-full bg-[#fffcfd]/95 backdrop-blur-md border-b border-[#E7A3B0]/30 shadow-sm py-3 transition-all duration-300">
-                    <div className="w-full px-4 md:px-12 flex flex-col md:flex-row justify-between items-center gap-4">
-                        <h2 className="hidden md:block font-playfair-display text-2xl text-[#121212]">Our Collections</h2>
-                        <div className="w-full md:w-auto flex items-center gap-2 md:gap-3">
+            <div id="collection-grid" className="w-full flex flex-col items-center scroll-mt-24">
+                {/* Minimal title strip + mobile filter trigger + active filter chips */}
+                <div className="sticky top-20 z-40 w-full bg-[#fff5f7]/95 backdrop-blur-md border-b border-[#E7A3B0]/30 shadow-sm py-3 transition-all duration-300">
+                    <div className={`${collectionShellClass} flex flex-row items-center justify-between gap-4`}>
+                        <h2 className="font-playfair-display text-xl md:text-2xl text-[#121212]">Our Collection</h2>
+                        <div className="flex items-center gap-3">
+                            <div className="hidden sm:flex items-center gap-2">
+                                <span className="font-oswald text-[11px] uppercase tracking-[0.22em] text-[#b47c88]">
+                                    Sort
+                                </span>
+                                <Select value={sortBy} onValueChange={handleSortChange}>
+                                    <SelectTrigger className="h-10 w-[180px] rounded-xl border-[#E7A3B0]/40 bg-white px-4 font-montserrat text-sm text-[#3f2d31] shadow-none transition-colors hover:bg-[#fff8fa] focus-visible:ring-2 focus-visible:ring-[#E7A3B0]/30 focus-visible:ring-offset-0">
+                                        <SelectValue placeholder="Sort option" />
+                                    </SelectTrigger>
+                                    <SelectContent className="rounded-xl border-[#E7A3B0]/20 bg-white text-black shadow-lg">
+                                        {SORT_OPTIONS.map((option) => (
+                                            <SelectItem
+                                                key={option.value}
+                                                value={option.value}
+                                                className="font-montserrat text-black focus:bg-[#fff5f7] focus:text-[#E7A3B0] cursor-pointer"
+                                            >
+                                                {option.label}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                            </div>
                             <div className="lg:hidden shrink-0">
-                                <Sheet open={mobileFiltersOpen} onOpenChange={setMobileFiltersOpen}>
-                                    <SheetTrigger asChild>
-                                        <Button variant="outline" size="sm" className="border-[#E7A3B0]/50 text-[#121212] hover:bg-[#fff0f5] h-10 px-4">
-                                            <Filter className="w-4 h-4 mr-2" />
-                                            Filters
-                                            {activeBrowseCount > 0 && (
-                                                <span className="ml-2 inline-flex min-w-5 items-center justify-center rounded-full bg-[#E7A3B0] px-1.5 py-0.5 font-oswald text-[10px] tracking-[0.18em] text-white">
-                                                    {activeBrowseCount}
-                                                </span>
-                                            )}
-                                        </Button>
-                                    </SheetTrigger>
-                                    <SheetContent side="left" className="w-[300px] overflow-y-auto sm:w-[400px] bg-white text-black p-0 border-r border-[#E7A3B0]/20">
-                                        <div className="p-6">
-                                            <SheetHeader className="mb-6">
-                                                <SheetTitle className="font-playfair-display text-2xl text-left text-black">Filter Collection</SheetTitle>
-                                            </SheetHeader>
-                                            <CatalogSidebar
-                                                categories={categories}
-                                                activeFilter={activeFilter}
-                                                sortBy={sortBy}
-                                                allCount={products.length}
-                                                newCount={newArrivalCount}
-                                                saleCount={saleCount}
-                                                currentSeasonCount={currentSeasonCount}
-                                                currentSeasonLabel={activeSeason?.name || null}
-                                                categoryCounts={categoryProductCounts}
-                                                rootGroupCounts={rootGroupProductCounts}
-                                                minAvailablePrice={priceBounds.min}
-                                                maxAvailablePrice={priceBounds.max}
-                                                selectedMinPrice={selectedPriceRange.min}
-                                                selectedMaxPrice={selectedPriceRange.max}
-                                                hasActivePriceFilter={hasActivePriceFilter}
-                                                onFilterChange={handleFilterChange}
-                                                onSortChange={handleSortChange}
-                                                onPriceRangeChange={handlePriceRangeChange}
-                                                onClearPrice={clearPrice}
-                                                onInteractionComplete={() => setMobileFiltersOpen(false)}
-                                            />
-                                        </div>
-                                    </SheetContent>
-                                </Sheet>
-                            </div>
-                            <div className="flex-1 md:flex-none">
-                                <SearchBar onSearch={handleSearchChange} initialQuery={searchQuery} />
-                            </div>
+                            <Sheet open={mobileFiltersOpen} onOpenChange={setMobileFiltersOpen}>
+                                <SheetTrigger asChild>
+                                    <Button variant="outline" size="sm" className="border-[#E7A3B0]/50 text-[#121212] hover:bg-[#fff0f5] h-10 px-4">
+                                        <Filter className="w-4 h-4 mr-2" />
+                                        Filters
+                                        {activeBrowseCount > 0 && (
+                                            <span className="ml-2 inline-flex min-w-5 items-center justify-center rounded-full bg-[#E7A3B0] px-1.5 py-0.5 font-oswald text-[10px] tracking-[0.18em] text-white">
+                                                {activeBrowseCount}
+                                            </span>
+                                        )}
+                                    </Button>
+                                </SheetTrigger>
+                                <SheetContent side="left" className="w-[300px] overflow-y-auto sm:w-[400px] bg-white text-black p-0 border-r border-[#E7A3B0]/20">
+                                    <div className="p-6">
+                                        <SheetHeader className="mb-6">
+                                            <SheetTitle className="font-playfair-display text-2xl text-left text-black">Filter Collection</SheetTitle>
+                                        </SheetHeader>
+                                        <CatalogSidebar
+                                            categories={categories}
+                                            activeFilter={activeFilter}
+                                            searchQuery={searchQuery}
+                                            onSearchChange={handleSearchChange}
+                                            allCount={products.length}
+                                            newCount={newArrivalCount}
+                                            saleCount={saleCount}
+                                            currentSeasonCount={currentSeasonCount}
+                                            currentSeasonLabel={activeSeason?.name || null}
+                                            categoryCounts={categoryProductCounts}
+                                            rootGroupCounts={rootGroupProductCounts}
+                                            minAvailablePrice={priceBounds.min}
+                                            maxAvailablePrice={priceBounds.max}
+                                            selectedMinPrice={selectedPriceRange.min}
+                                            selectedMaxPrice={selectedPriceRange.max}
+                                            hasActivePriceFilter={hasActivePriceFilter}
+                                            onFilterChange={handleFilterChange}
+                                            onPriceRangeChange={handlePriceRangeChange}
+                                            onClearPrice={clearPrice}
+                                            onInteractionComplete={() => setMobileFiltersOpen(false)}
+                                        />
+                                    </div>
+                                </SheetContent>
+                            </Sheet>
+                        </div>
                         </div>
                     </div>
 
                     {activeBrowseCount > 0 && (
-                        <div className="w-full px-4 md:px-12 pt-1">
+                        <div className={`${collectionShellClass} pt-1`}>
                             <div className="flex flex-wrap items-center gap-2 border-t border-[#E7A3B0]/15 pt-3">
                                 <span className="font-oswald text-[11px] uppercase tracking-[0.28em] text-[#b47c88]">
                                     Active Filters
@@ -721,8 +825,8 @@ export function CollectionsView() {
                     )}
                 </div>
 
-                <div className="w-full px-4 md:px-12 py-12 pb-24 grid grid-cols-1 lg:grid-cols-[260px_1fr] gap-12">
-                    <div className="hidden lg:block h-fit sticky top-[148px]">
+                <div className={`${collectionShellClass} grid grid-cols-1 gap-8 py-12 pb-24 lg:grid-cols-[240px_minmax(0,1fr)] xl:gap-10`}>
+                    <div className="hidden lg:block h-fit sticky top-[220px]">
                         <InView
                             variants={{
                                 hidden: { opacity: 0, x: -30 },
@@ -747,7 +851,8 @@ export function CollectionsView() {
                                 <CatalogSidebar
                                     categories={categories}
                                     activeFilter={activeFilter}
-                                    sortBy={sortBy}
+                                    searchQuery={searchQuery}
+                                    onSearchChange={handleSearchChange}
                                     allCount={products.length}
                                     newCount={newArrivalCount}
                                     saleCount={saleCount}
@@ -761,7 +866,6 @@ export function CollectionsView() {
                                     selectedMaxPrice={selectedPriceRange.max}
                                     hasActivePriceFilter={hasActivePriceFilter}
                                     onFilterChange={handleFilterChange}
-                                    onSortChange={handleSortChange}
                                     onPriceRangeChange={handlePriceRangeChange}
                                     onClearPrice={clearPrice}
                                 />
@@ -782,7 +886,7 @@ export function CollectionsView() {
                         </div>
 
                         {loading ? (
-                            <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-5 2xl:grid-cols-6 gap-x-2 sm:gap-x-4 gap-y-4 sm:gap-y-8">
+                            <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-3 2xl:grid-cols-4 gap-x-4 sm:gap-x-5 gap-y-6 sm:gap-y-8">
                                 {Array.from({ length: itemsPerPage }).map((_, i) => (
                                     <div key={i} className="space-y-4">
                                         <Skeleton className="w-full aspect-3/4 rounded-xl" />
@@ -856,7 +960,7 @@ export function CollectionsView() {
                             </div>
                         ) : (
                             <div className="space-y-10">
-                                <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-5 2xl:grid-cols-6 gap-x-2 sm:gap-x-4 gap-y-4 sm:gap-y-8">
+                                <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-3 2xl:grid-cols-4 gap-x-4 sm:gap-x-5 gap-y-6 sm:gap-y-8">
                                     {paginatedProducts.map((product) => (
                                         <ProductCard
                                             key={product.id}

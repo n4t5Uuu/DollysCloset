@@ -76,7 +76,7 @@ const slideVariants = {
   exit: (direction: number) => ({ x: direction > 0 ? "-100%" : "100%", opacity: 0 }),
 };
 
-const ZOOM_FACTOR = 4.0;
+const ZOOM_FACTOR = 1.5;
 const ZOOM_PANEL_SIZE = 300;
 
 export function ProductDetailsView({
