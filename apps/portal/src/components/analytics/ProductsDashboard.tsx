@@ -15,6 +15,7 @@ import {
   AlertTriangle,
   ArrowRight,
   ImageOff,
+  Info,
   Loader2,
   Package,
   Pencil,
@@ -22,7 +23,7 @@ import {
   Tag,
   XCircle,
 } from 'lucide-react';
-import { Button } from '@dollys-closet/ui';
+import { Button, Tooltip as UITooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@dollys-closet/ui';
 import { InventoryCategory, InventoryProduct } from '@dollys-closet/core';
 import AddProduct from '@/components/dialogs/AddProduct';
 import {
@@ -371,6 +372,18 @@ export function ProductsDashboard({
         title: 'Most Edited Products',
         description: `Products with the most logged edits for ${rankingScopeDescription}.`,
         icon: <Pencil className="h-4 w-4" />,
+        headerMeta: (
+          <TooltipProvider delayDuration={200}>
+            <UITooltip>
+              <TooltipTrigger asChild>
+                <Info className="h-3.5 w-3.5 text-gray-400 cursor-default" />
+              </TooltipTrigger>
+              <TooltipContent side="top" className="max-w-[220px] text-center text-xs">
+                Edit counts are based on activity logs. If logs have been purged, counts only reflect the period after the last purge.
+              </TooltipContent>
+            </UITooltip>
+          </TooltipProvider>
+        ),
         contentClassName: 'p-6',
         render: () => (
           <div className="space-y-4">

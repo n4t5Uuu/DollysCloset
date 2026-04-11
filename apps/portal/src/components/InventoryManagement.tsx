@@ -3,6 +3,8 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import { Plus, Archive, RotateCcw, X, Upload, SlidersHorizontal, RefreshCw, BadgePercent, Trash2, CalendarRange } from "lucide-react";
+import { ExportPurgeDialog } from "@/components/dialogs/ExportPurgeDialog";
+import type { ExportPurgeFormat } from "@/components/dialogs/ExportPurgeDialog";
 import { 
   createClient,
   InventoryProduct as Product,
@@ -47,9 +49,19 @@ import { toast } from "sonner";
 
 interface InventoryManagementProps {
   initialAvailabilityFilter?: string;
+  userRole?: string;
 }
 
 type InventoryScope = "active" | "archived";
+type InventorySortOption =
+  | "newest"
+  | "oldest"
+  | "updated"
+  | "least-updated"
+  | "az"
+  | "za"
+  | "price-asc"
+  | "price-desc";
 
 type InventoryDiscount = ProductDiscount & {
   productCount?: number;
@@ -70,13 +82,15 @@ const visibilityLabels: Record<string, string> = {
   "unpublished": "Unpublished",
 };
 
-const sortLabels: Record<string, string> = {
+const sortLabels: Record<InventorySortOption, string> = {
   "newest": "Newest first",
   "oldest": "Oldest first",
   "updated": "Last updated (newest)",
   "least-updated": "Last updated (oldest)",
   "az": "Name: A\u2013Z",
   "za": "Name: Z\u2013A",
+  "price-asc": "Price: Low to High",
+  "price-desc": "Price: High to Low",
 };
 
 const MONTH_OPTIONS = [
@@ -99,7 +113,7 @@ function maxDayInMonth(month: number) {
   return date.getDate();
 }
 
-export default function InventoryManagement({ initialAvailabilityFilter }: InventoryManagementProps) {
+export default function InventoryManagement({ initialAvailabilityFilter, userRole }: InventoryManagementProps) {
   const searchParams = useSearchParams();
   const router = useRouter();
   const pathname = usePathname();
@@ -128,7 +142,7 @@ export default function InventoryManagement({ initialAvailabilityFilter }: Inven
   const [availabilityFilter, setAvailabilityFilter] = useState(initialAvailabilityFilter ?? "all");
   const [saleFilter, setSaleFilter] = useState<"all" | "on-sale">("all");
   const [categoryFilter, setCategoryFilter] = useState("all");
-  const [dateSort, setDateSort] = useState<"newest" | "oldest" | "updated" | "least-updated" | "az" | "za">("newest");
+  const [sortOption, setSortOption] = useState<InventorySortOption>("newest");
   const [selectedProducts, setSelectedProducts] = useState<Set<string>>(new Set());
   const [showFilters, setShowFilters] = useState(false);
   const filtersRef = useRef<HTMLDivElement>(null);
@@ -161,6 +175,8 @@ export default function InventoryManagement({ initialAvailabilityFilter }: Inven
     discount_value: "",
     ends_at: "",
   });
+
+  const [productPurgeOpen, setProductPurgeOpen] = useState(false);
 
   const itemsPerPage = 10;
   const lowStockThreshold = 10;
@@ -278,7 +294,7 @@ export default function InventoryManagement({ initialAvailabilityFilter }: Inven
 
   useEffect(() => {
     router.replace(pathname);
-  }, [searchQuery, visibilityFilter, availabilityFilter, saleFilter, categoryFilter, dateSort, router, pathname]);
+  }, [searchQuery, visibilityFilter, availabilityFilter, saleFilter, categoryFilter, sortOption, router, pathname]);
 
   useEffect(() => {
     setSelectedProducts(new Set());
@@ -388,16 +404,20 @@ export default function InventoryManagement({ initialAvailabilityFilter }: Inven
         const secondCreatedValue = new Date(secondProduct.created_at || 0).getTime();
         const firstUpdatedValue = new Date((firstProduct.updated_at || firstProduct.time_updated || firstProduct.created_at || 0) as string).getTime();
         const secondUpdatedValue = new Date((secondProduct.updated_at || secondProduct.time_updated || secondProduct.created_at || 0) as string).getTime();
+        const firstVisiblePrice = firstProduct.discountedPrice ?? firstProduct.product_price;
+        const secondVisiblePrice = secondProduct.discountedPrice ?? secondProduct.product_price;
         
-        if (dateSort === "oldest") return firstCreatedValue - secondCreatedValue;
-        if (dateSort === "newest") return secondCreatedValue - firstCreatedValue;
-        if (dateSort === "updated") return secondUpdatedValue - firstUpdatedValue;
-        if (dateSort === "least-updated") return firstUpdatedValue - secondUpdatedValue;
-        if (dateSort === "az") return firstProduct.product_name.localeCompare(secondProduct.product_name);
-        if (dateSort === "za") return secondProduct.product_name.localeCompare(firstProduct.product_name);
+        if (sortOption === "oldest") return firstCreatedValue - secondCreatedValue;
+        if (sortOption === "newest") return secondCreatedValue - firstCreatedValue;
+        if (sortOption === "updated") return secondUpdatedValue - firstUpdatedValue;
+        if (sortOption === "least-updated") return firstUpdatedValue - secondUpdatedValue;
+        if (sortOption === "az") return firstProduct.product_name.localeCompare(secondProduct.product_name);
+        if (sortOption === "za") return secondProduct.product_name.localeCompare(firstProduct.product_name);
+        if (sortOption === "price-asc") return firstVisiblePrice - secondVisiblePrice;
+        if (sortOption === "price-desc") return secondVisiblePrice - firstVisiblePrice;
         return 0;
       });
-  }, [products, searchQuery, filteredCategoryIds, availabilityFilter, saleFilter, visibilityFilter, dateSort, lowStockThreshold, buildCategoryPath]);
+  }, [products, searchQuery, filteredCategoryIds, availabilityFilter, saleFilter, visibilityFilter, sortOption, lowStockThreshold, buildCategoryPath]);
 
   const totalPages = Math.max(1, Math.ceil(filteredProducts.length / itemsPerPage));
   const safePage = Math.min(currentPage, totalPages);
@@ -439,11 +459,11 @@ export default function InventoryManagement({ initialAvailabilityFilter }: Inven
       categoryFilter !== "all" && selectedCategoryLabel
         ? { key: "category", label: `Category: ${selectedCategoryLabel}`, onRemove: () => setCategoryFilter("all") }
         : null,
-      dateSort !== "newest"
-        ? { key: "sort", label: `Sort: ${sortLabels[dateSort] ?? dateSort}`, onRemove: () => setDateSort("newest") }
+      sortOption !== "newest"
+        ? { key: "sort", label: `Sort: ${sortLabels[sortOption] ?? sortOption}`, onRemove: () => setSortOption("newest") }
         : null,
     ].filter((chip): chip is { key: string; label: string; onRemove: () => void } => Boolean(chip));
-  }, [availabilityFilter, categoryFilter, dateSort, saleFilter, searchQuery, selectedCategoryLabel, visibilityFilter]);
+  }, [availabilityFilter, categoryFilter, sortOption, saleFilter, searchQuery, selectedCategoryLabel, visibilityFilter]);
 
   const quickFilterCards = useMemo(() => {
     const totalCount = products.length;
@@ -545,7 +565,7 @@ export default function InventoryManagement({ initialAvailabilityFilter }: Inven
     setAvailabilityFilter("all");
     setSaleFilter("all");
     setCategoryFilter("all");
-    setDateSort("newest");
+    setSortOption("newest");
   };
 
   const openAddModal = () => {
@@ -713,6 +733,51 @@ export default function InventoryManagement({ initialAvailabilityFilter }: Inven
     } finally {
       setActionLoading(false);
     }
+  };
+
+  const handleProductsPreview = async (cutoffIso: string) => {
+    const params = new URLSearchParams({ dryRun: "1", before: cutoffIso });
+    const response = await fetch(`/api/admin/products/reset?${params}`, { cache: "no-store" });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.error || "Failed to preview purge");
+    return { count: typeof data.count === "number" ? data.count : 0 };
+  };
+
+  const handleProductsDownload = async (cutoffIso: string, _format: ExportPurgeFormat) => {
+    const params = new URLSearchParams({ before: cutoffIso });
+    const response = await fetch(`/api/admin/products/export?${params}`, { cache: "no-store" });
+    if (!response.ok) {
+      const data = await response.json().catch(() => ({}));
+      throw new Error(data.error || "Failed to export products");
+    }
+    const blob = await response.blob();
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement("a");
+    anchor.href = url;
+    anchor.download = `products-archive-${new Date().toISOString().replace(/[:.]/g, "-")}.zip`;
+    document.body.appendChild(anchor);
+    anchor.click();
+    document.body.removeChild(anchor);
+    URL.revokeObjectURL(url);
+  };
+
+  const handleProductsPurge = async (cutoffIso: string) => {
+    const response = await fetch("/api/admin/products/reset", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ before: cutoffIso, confirm: "DELETE", exportConfirmed: true }),
+    });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.error || "Failed to purge products");
+    return { purged: typeof data.purged === "number" ? data.purged : 0 };
+  };
+
+  const handleProductsPurgeSuccess = (purged: number, label: string) => {
+    setActionNotice({
+      tone: "success",
+      message: `Permanently deleted ${purged} archived product${purged === 1 ? "" : "s"} ${label}.`,
+    });
+    void fetchProducts(true);
   };
 
   const formatDiscountSummary = useCallback((discount: ProductDiscount) => {
@@ -1062,6 +1127,15 @@ export default function InventoryManagement({ initialAvailabilityFilter }: Inven
             <RefreshCw className={`mr-2 h-4 w-4 ${(loading || actionLoading) ? "animate-spin" : ""}`} />
             Refresh
           </Button>
+          {inventoryScope === "archived" && userRole === "admin" && (
+            <button
+              onClick={() => setProductPurgeOpen(true)}
+              className="flex items-center gap-2 px-4 py-2 bg-white border border-red-200 text-red-600 rounded-lg text-sm font-medium transition-all duration-300 shadow-sm hover:shadow-md hover:bg-red-50 hover:border-red-400 hover:scale-105 cursor-pointer"
+            >
+              <Trash2 size={16} />
+              Export &amp; Purge Archived
+            </button>
+          )}
           {inventoryScope === "active" && (
             <div className="flex flex-wrap items-center gap-2">
               <button
@@ -1267,9 +1341,9 @@ export default function InventoryManagement({ initialAvailabilityFilter }: Inven
           onValueChange={(value: string) => setCategoryFilter(value)}
         />
 
-        <Select value={dateSort} onValueChange={(value) => setDateSort(value as "newest" | "oldest" | "updated" | "least-updated" | "az" | "za") }>
+        <Select value={sortOption} onValueChange={(value) => setSortOption(value as InventorySortOption)}>
           <SelectTrigger className="w-[190px] h-9 text-xs text-gray-900 bg-white">
-            <SelectValue placeholder="Sort Date" />
+            <SelectValue placeholder="Sort inventory" />
           </SelectTrigger>
           <SelectContent className="bg-white border-gray-200 text-black">
             <SelectItem value="newest" className="cursor-pointer focus:bg-[#fff5f7] focus:text-[#E7A3B0]">Newest first</SelectItem>
@@ -1278,6 +1352,8 @@ export default function InventoryManagement({ initialAvailabilityFilter }: Inven
             <SelectItem value="least-updated" className="cursor-pointer focus:bg-[#fff5f7] focus:text-[#E7A3B0]">Last updated (oldest)</SelectItem>
             <SelectItem value="az" className="cursor-pointer focus:bg-[#fff5f7] focus:text-[#E7A3B0]">Name: A–Z</SelectItem>
             <SelectItem value="za" className="cursor-pointer focus:bg-[#fff5f7] focus:text-[#E7A3B0]">Name: Z–A</SelectItem>
+            <SelectItem value="price-asc" className="cursor-pointer focus:bg-[#fff5f7] focus:text-[#E7A3B0]">Price: Low to High</SelectItem>
+            <SelectItem value="price-desc" className="cursor-pointer focus:bg-[#fff5f7] focus:text-[#E7A3B0]">Price: High to Low</SelectItem>
           </SelectContent>
         </Select>
 
@@ -1878,6 +1954,21 @@ export default function InventoryManagement({ initialAvailabilityFilter }: Inven
               : "Bulk import finished, but the inventory list did not refresh immediately.",
           });
         }}
+      />
+
+      <ExportPurgeDialog
+        open={productPurgeOpen}
+        onClose={() => setProductPurgeOpen(false)}
+        title="Export & Purge Archived Products"
+        description="Download archived products (with their images) as a ZIP backup, then permanently delete them from the database and storage. This action cannot be undone."
+        entityLabel={{ singular: "product", plural: "products" }}
+        availableFormats={["zip"]}
+        defaultFormat="zip"
+        cutoffFieldLabel="archived before"
+        onPreview={handleProductsPreview}
+        onDownload={handleProductsDownload}
+        onPurge={handleProductsPurge}
+        onPurgeSuccess={handleProductsPurgeSuccess}
       />
     </div>
   );
