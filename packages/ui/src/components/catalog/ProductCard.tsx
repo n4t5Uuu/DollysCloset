@@ -24,10 +24,15 @@ export default function ProductCard({ product, href, onClick, compact }: Product
     const [nextSrc, setNextSrc] = useState("");
     const [phase, setPhase] = useState<AnimPhase>("idle");
 
+    const [activeImageIndex, setActiveImageIndex] = useState(0);
+
     const imageIndexRef = useRef(0);
     const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
     const animTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const rafRef = useRef<number | null>(null);
+    const touchStartXRef = useRef<number | null>(null);
+    const touchStartYRef = useRef<number | null>(null);
+    const animDirRef = useRef<"left" | "right">("left");
 
     // Get centralized metadata
     const {
@@ -123,6 +128,7 @@ export default function ProductCard({ product, href, onClick, compact }: Product
 
     const handleMouseEnter = () => {
         if (validImages.length <= 1) return;
+        if (typeof window !== "undefined" && !window.matchMedia("(hover: hover) and (pointer: fine)").matches) return;
         intervalRef.current = setInterval(() => {
             imageIndexRef.current = (imageIndexRef.current + 1) % validImages.length;
             const newSrc = validImages[imageIndexRef.current];
@@ -151,9 +157,52 @@ export default function ProductCard({ product, href, onClick, compact }: Product
         if (animTimeoutRef.current) clearTimeout(animTimeoutRef.current);
         if (rafRef.current) cancelAnimationFrame(rafRef.current);
         imageIndexRef.current = 0;
+        setActiveImageIndex(0);
         setCurrentSrc(firstSrc);
         setNextSrc("");
         setPhase("idle");
+    };
+
+    const goToImage = (nextIndex: number, direction: "left" | "right") => {
+        if (validImages.length <= 1) return;
+        if (animTimeoutRef.current) clearTimeout(animTimeoutRef.current);
+        if (rafRef.current) cancelAnimationFrame(rafRef.current);
+        animDirRef.current = direction;
+        const newSrc = validImages[nextIndex];
+        imageIndexRef.current = nextIndex;
+        setActiveImageIndex(nextIndex);
+        setNextSrc(newSrc);
+        setPhase("prepare");
+        rafRef.current = requestAnimationFrame(() => {
+            rafRef.current = requestAnimationFrame(() => {
+                setPhase("animating");
+                animTimeoutRef.current = setTimeout(() => {
+                    setCurrentSrc(newSrc);
+                    setNextSrc("");
+                    setPhase("idle");
+                }, 440);
+            });
+        });
+    };
+
+    const handleTouchStart = (e: React.TouchEvent) => {
+        touchStartXRef.current = e.touches[0]?.clientX ?? null;
+        touchStartYRef.current = e.touches[0]?.clientY ?? null;
+    };
+
+    const handleTouchEnd = (e: React.TouchEvent) => {
+        if (touchStartXRef.current === null || touchStartYRef.current === null || validImages.length <= 1) return;
+        const deltaX = (e.changedTouches[0]?.clientX ?? 0) - touchStartXRef.current;
+        const deltaY = (e.changedTouches[0]?.clientY ?? 0) - touchStartYRef.current;
+        touchStartXRef.current = null;
+        touchStartYRef.current = null;
+        // Ignore if swipe is too short or clearly more vertical than horizontal
+        if (Math.abs(deltaX) < 30 || Math.abs(deltaX) < Math.abs(deltaY)) return;
+        const direction = deltaX < 0 ? "left" : "right";
+        const nextIndex = direction === "left"
+            ? (imageIndexRef.current + 1) % validImages.length
+            : (imageIndexRef.current - 1 + validImages.length) % validImages.length;
+        goToImage(nextIndex, direction);
     };
 
     // Keep chip count tight so the card stays compact and scannable.
@@ -174,19 +223,24 @@ export default function ProductCard({ product, href, onClick, compact }: Product
                     "group-hover:-translate-y-1 group-hover:shadow-xl"
                 )}
             >
-                <div className={cn("relative overflow-hidden bg-[#f7eef1]", compact ? "aspect-square sm:aspect-3/4" : "aspect-3/4")}>
+                <div
+                    className={cn("relative overflow-hidden bg-[#f7eef1] select-none", compact ? "aspect-square sm:aspect-3/4" : "aspect-3/4")}
+                    onTouchStart={compact ? undefined : handleTouchStart}
+                    onTouchEnd={compact ? undefined : handleTouchEnd}
+                >
                     <div
                         className={cn(
                             "absolute inset-0",
                             phase === "animating" && "transition-transform duration-420 ease-in-out"
                         )}
-                        style={{ transform: phase === "animating" ? "translateX(-100%)" : "translateX(0)" }}
+                        style={{ transform: phase === "animating" ? `translateX(${animDirRef.current === "left" ? "-100%" : "100%"})` : "translateX(0)" }}
                     >
                         <Image
                             src={currentSrc || fallback}
                             alt={product.name}
                             fill
                             sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 20vw"
+                            draggable={false}
                             className={cn(
                                 "object-cover transition-transform duration-500 group-hover:scale-105",
                                 isSoldOut ? "grayscale-[0.3]" : ""
@@ -200,7 +254,7 @@ export default function ProductCard({ product, href, onClick, compact }: Product
                                 "absolute inset-0",
                                 phase === "animating" && "transition-transform duration-420 ease-in-out"
                             )}
-                            style={{ transform: phase === "animating" ? "translateX(0)" : "translateX(100%)" }}
+                            style={{ transform: phase === "animating" ? "translateX(0)" : `translateX(${animDirRef.current === "left" ? "100%" : "-100%"})` }}
                         >
                             <Image
                                 src={nextSrc}
@@ -227,6 +281,21 @@ export default function ProductCard({ product, href, onClick, compact }: Product
                             >
                                 {ribbon.label}
                             </span>
+                        </div>
+                    )}
+
+                    {/* Dot indicators — collection grid only (not masonry), mobile only */}
+                    {validImages.length > 1 && !compact && (
+                        <div className="absolute bottom-2 left-0 right-0 flex justify-center gap-1 sm:hidden">
+                            {validImages.map((_, i) => (
+                                <div
+                                    key={i}
+                                    className={cn(
+                                        "h-1.5 rounded-full transition-all duration-200",
+                                        i === activeImageIndex ? "w-3 bg-white" : "w-1.5 bg-white/50"
+                                    )}
+                                />
+                            ))}
                         </div>
                     )}
                 </div>
