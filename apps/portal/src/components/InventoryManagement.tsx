@@ -1211,14 +1211,16 @@ export default function InventoryManagement({ initialAvailabilityFilter, userRol
                 className="flex items-center gap-2 px-4 py-2 bg-white border border-[#E7A3B0]/30 text-[#b96d7d] rounded-lg text-sm font-medium transition-all duration-300 shadow-sm hover:shadow-md hover:border-[#E7A3B0] hover:bg-[#fff5f7] hover:scale-105 cursor-pointer"
               >
                 <CalendarRange size={16} />
-                Manage Seasons
+                <span className="sm:hidden">Seasons</span>
+                <span className="hidden sm:inline">Manage Seasons</span>
               </button>
               <button
                 onClick={() => setShowDiscountModal(true)}
                 className="flex items-center gap-2 px-4 py-2 bg-white border border-[#E7A3B0]/30 text-[#b96d7d] rounded-lg text-sm font-medium transition-all duration-300 shadow-sm hover:shadow-md hover:border-[#E7A3B0] hover:bg-[#fff5f7] hover:scale-105 cursor-pointer"
               >
                 <BadgePercent size={16} />
-                Add Discount Code
+                <span className="sm:hidden">Discount</span>
+                <span className="hidden sm:inline">Add Discount Code</span>
               </button>
               <button
                 onClick={openAddModal}
@@ -1282,17 +1284,17 @@ export default function InventoryManagement({ initialAvailabilityFilter, userRol
         ))}
       </div>
 
-      <div className="flex items-center gap-3 flex-wrap">
+      <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center sm:gap-3">
         <AdminSearchInput
           ref={searchInputRef}
           value={searchQuery}
           onChange={setSearchQuery}
           placeholder="search products or product id"
           ariaLabel="Search inventory products"
-          className="min-w-[240px]"
+          className="w-full sm:w-auto sm:min-w-[240px]"
           clearLabel="Clear inventory search"
         />
-
+        <div className="flex items-center gap-2 flex-wrap">
         {/* Filters popover */}
         <div className="relative" ref={filtersRef}>
           <Button
@@ -1310,7 +1312,7 @@ export default function InventoryManagement({ initialAvailabilityFilter, userRol
             )}
           </Button>
           {showFilters && (
-            <div className="absolute left-0 z-20 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg p-4 w-72 space-y-4">
+            <div className="absolute left-0 z-20 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg p-4 w-[min(288px,calc(100vw-1rem))] max-h-[80vh] overflow-y-auto space-y-4">
               {/* Visibility */}
               <div>
                 <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Visibility</p>
@@ -1414,7 +1416,7 @@ export default function InventoryManagement({ initialAvailabilityFilter, userRol
             <SelectItem value="price-desc" className="cursor-pointer focus:bg-[#fff5f7] focus:text-[#E7A3B0]">Price: High to Low</SelectItem>
           </SelectContent>
         </Select>
-
+        </div>
       </div>
 
       {activeFilterChips.length > 0 && (

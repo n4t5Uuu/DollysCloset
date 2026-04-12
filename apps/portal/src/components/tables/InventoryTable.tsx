@@ -251,67 +251,62 @@ export function InventoryTable({
                             <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Select all</span>
                         </div>
                         {currentProducts.map((product) => (
-                            <div key={product.product_id} className="flex items-center gap-3 px-3 py-2.5">
+                            <div key={product.product_id} className="flex items-start gap-2 px-3 py-2">
                                 <Checkbox
+                                    className="mt-1 shrink-0"
                                     checked={selectedProducts.has(product.product_id)}
                                     onCheckedChange={() => toggleSelectProduct(product.product_id)}
                                 />
                                 <div className="flex-1 min-w-0">
-                                     <div className="flex items-center gap-2 min-w-0">
-                                         <button
+                                    {/* Name + status */}
+                                    <div className="flex items-center gap-1.5 min-w-0">
+                                        <button
                                             type="button"
                                             onClick={() => activateRow(product)}
-                                            className="min-w-0 flex-1 truncate text-left font-medium text-sm text-[#121212] transition-colors hover:text-[#E7A3B0]"
+                                            className="min-w-0 flex-1 truncate text-left font-semibold text-sm text-[#121212] transition-colors hover:text-[#E7A3B0]"
                                             title={mode === "active" ? `Edit ${product.product_name}` : product.product_name}
                                         >
                                             {product.product_name}
                                         </button>
                                         {renderCatalogAttributeIcons(product)}
-                                         <span className={`shrink-0 px-1.5 py-0.5 rounded text-[10px] font-medium ${product.show_in_catalog ? "bg-green-100 text-green-800" : "bg-gray-100 text-gray-600"}`}>
-                                             {product.show_in_catalog ? "Listed" : "Hidden"}
-                                         </span>
-                                     </div>
-                                     <div className="flex items-center gap-2 mt-0.5 text-xs text-gray-500">
-                                        <span className="text-[10px] text-gray-400">#{product.product_id}</span>
-                                        <span className="text-gray-300">&middot;</span>
-                                        <span>{getMobileCategory(getCategoryName(product.category_id))}</span>
-                                        <span>&middot;</span>
-                                        <span className={product.product_stock < 10 ? "text-orange-600 font-medium" : ""}>
-                                            {product.product_stock < 10 ? `Low: ${product.product_stock}` : product.product_stock}
+                                        <span className={`shrink-0 px-1.5 py-0.5 rounded text-[10px] font-medium ${product.show_in_catalog ? "bg-green-100 text-green-800" : "bg-gray-100 text-gray-600"}`}>
+                                            {product.show_in_catalog ? "Listed" : "Hidden"}
                                         </span>
-                                        <span>&middot;</span>
-                                        <span className="font-medium text-gray-700">PHP {product.product_price.toFixed(2)}</span>
-                                        {mode === "archived" && product.archived_at && (
-                                            <>
-                                                <span>&middot;</span>
-                                                <span className="text-amber-600 font-medium">Archived {formatPublishedDate(product.archived_at)}</span>
-                                            </>
-                                        )}
                                     </div>
+                                    {/* Meta row */}
+                                    <div className="flex flex-wrap items-center gap-x-1.5 gap-y-0 mt-0.5">
+                                        <span className="text-[10px] text-gray-400">#{product.product_id}</span>
+                                        <span className="text-[10px] text-gray-300">·</span>
+                                        <span className="text-[11px] text-gray-500 max-w-20 truncate">{getMobileCategory(getCategoryName(product.category_id))}</span>
+                                        <span className="text-[10px] text-gray-300">·</span>
+                                        <span className={`text-[11px] font-medium ${product.product_stock < 10 ? "text-orange-600" : "text-gray-500"}`}>
+                                            {product.product_stock < 10 ? `${product.product_stock} low` : product.product_stock}
+                                        </span>
+                                        <span className="text-[10px] text-gray-300">·</span>
+                                        <span className="text-[11px] font-semibold text-gray-700">
+                                            {product.discountedPrice !== null && product.discountedPrice !== undefined
+                                                ? `PHP ${product.discountedPrice.toFixed(2)}`
+                                                : `PHP ${product.product_price.toFixed(2)}`}
+                                        </span>
+                                    </div>
+                                    {mode === "archived" && product.archived_at && (
+                                        <span className="text-[10px] text-amber-600 font-medium mt-0.5 block">
+                                            Archived {formatPublishedDate(product.archived_at)}
+                                        </span>
+                                    )}
                                 </div>
-                                <div className="flex items-center gap-1.5 shrink-0">
+                                {/* Actions — edit button removed (tapping the name opens edit) */}
+                                <div className="flex items-center gap-1 shrink-0 mt-0.5">
                                     <Button
                                         size="icon"
                                         variant="outline"
                                         title="View product"
                                         aria-label={`View ${product.product_name}`}
-                                        className="h-8 w-8 border-pink-200 text-pink-600 bg-pink-50 hover:bg-pink-200"
+                                        className="h-7 w-7 border-pink-200 text-pink-600 bg-pink-50 hover:bg-pink-200"
                                         onClick={() => handleViewProduct(product)}
                                     >
                                         <Eye className="h-3.5 w-3.5" />
                                     </Button>
-                                    {mode === "active" && (
-                                        <Button
-                                            size="icon"
-                                            variant="outline"
-                                            title="Edit product"
-                                            aria-label={`Edit ${product.product_name}`}
-                                            className="h-8 w-8 border-blue-200 text-blue-600 bg-blue-50 hover:bg-blue-200"
-                                            onClick={() => handleEditProduct(product)}
-                                        >
-                                            <Pencil className="h-3.5 w-3.5" />
-                                        </Button>
-                                    )}
                                     <PrimaryActionDialog product={product} />
                                 </div>
                             </div>
