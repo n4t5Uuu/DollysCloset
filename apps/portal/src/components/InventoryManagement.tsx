@@ -12,6 +12,7 @@ import {
   InventoryCategory as Category,
   ProductDiscount,
   Season,
+  safeFetchJson,
 } from "@dollys-closet/core";
 import {
   Button,
@@ -192,11 +193,13 @@ export default function InventoryManagement({ initialAvailabilityFilter, userRol
       }
       setError(null);
 
-      const response = await fetch(`/api/admin/products?scope=${scope}`, { cache: 'no-store' });
-      if (!response.ok) throw new Error('Failed to fetch products');
+      const { data, error, friendlyMessage } = await safeFetchJson<{ data: Product[] }>(`/api/admin/products?scope=${scope}`);
       
-      const result = await response.json();
-      setProducts(result.data || []);
+      if (error) {
+        throw new Error(friendlyMessage || 'Failed to fetch products');
+      }
+
+      setProducts(data?.data || []);
       return true;
     } catch (err: unknown) {
       console.error('Error fetching products:', err);
@@ -209,10 +212,11 @@ export default function InventoryManagement({ initialAvailabilityFilter, userRol
 
   const fetchCategories = useCallback(async () => {
     try {
-      const response = await fetch('/api/admin/categories', { cache: 'no-store' });
-      if (!response.ok) throw new Error('Failed to fetch categories');
-      const result = await response.json();
-      setCategories(result.data || []);
+      const { data, error, friendlyMessage } = await safeFetchJson<{ data: Category[] }>('/api/admin/categories');
+      if (error) {
+        throw new Error(friendlyMessage || 'Failed to fetch categories');
+      }
+      setCategories(data?.data || []);
     } catch (err: unknown) {
       console.error('Error fetching categories:', err);
       setCategories([]);
@@ -223,11 +227,9 @@ export default function InventoryManagement({ initialAvailabilityFilter, userRol
   const fetchDiscounts = useCallback(async () => {
     try {
       setDiscountLoading(true);
-      const response = await fetch('/api/admin/discounts', { cache: 'no-store' });
-      if (!response.ok) throw new Error('Failed to fetch discounts');
-
-      const result = await response.json();
-      setDiscounts(result.data || []);
+      const { data, error } = await safeFetchJson<{ data: InventoryDiscount[] }>('/api/admin/discounts');
+      if (error) throw error;
+      setDiscounts(data?.data || []);
     } catch (err: unknown) {
       console.error('Error fetching discounts:', err);
       setDiscounts([]);
@@ -239,11 +241,9 @@ export default function InventoryManagement({ initialAvailabilityFilter, userRol
   const fetchSeasons = useCallback(async () => {
     try {
       setSeasonsLoading(true);
-      const response = await fetch('/api/admin/seasons', { cache: 'no-store' });
-      if (!response.ok) throw new Error('Failed to fetch seasons');
-
-      const result = await response.json();
-      setSeasons(result.data || []);
+      const { data, error } = await safeFetchJson<{ data: Season[] }>('/api/admin/seasons');
+      if (error) throw error;
+      setSeasons(data?.data || []);
     } catch (err: unknown) {
       console.error('Error fetching seasons:', err);
       setSeasons([]);
@@ -623,17 +623,14 @@ export default function InventoryManagement({ initialAvailabilityFilter, userRol
     setViewProduct(product);
     setSelectedViewImage(null);
     try {
-      const response = await fetch(`/api/admin/images?product_id=${product.product_id}`);
-      if (response.ok) {
-        const result = await response.json();
-        const images: ProductImage[] = result.data || [];
-        setViewImages(images);
-        const primaryImage = images.find((img) => img.is_primary) || images[0];
-        setSelectedViewImage(primaryImage?.image_url || null);
-      } else {
-        setViewImages([]);
-        setSelectedViewImage(null);
-      }
+      const { data, error } = await safeFetchJson<{ data: ProductImage[] }>(`/api/admin/images?product_id=${product.product_id}`);
+      
+      if (error) throw error;
+      
+      const images: ProductImage[] = data?.data || [];
+      setViewImages(images);
+      const primaryImage = images.find((img) => img.is_primary) || images[0];
+      setSelectedViewImage(primaryImage?.image_url || null);
     } catch (err) {
       console.error("Error fetching view images:", err);
       toast.error("Failed to load product images.");
@@ -651,7 +648,7 @@ export default function InventoryManagement({ initialAvailabilityFilter, userRol
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) throw new Error('Not authenticated');
       
-      const response = await fetch('/api/admin/products/archive', {
+      const { error, friendlyMessage } = await safeFetchJson('/api/admin/products/archive', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -659,8 +656,9 @@ export default function InventoryManagement({ initialAvailabilityFilter, userRol
         },
         body: JSON.stringify({ product_id: productId })
       });
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.error || 'Failed to archive product');
+
+      if (error) throw new Error(friendlyMessage || 'Failed to archive product');
+
       setError(null);
       await fetchProducts();
       toast.success("Product archived successfully.");
@@ -683,7 +681,7 @@ export default function InventoryManagement({ initialAvailabilityFilter, userRol
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) throw new Error('Not authenticated');
 
-      const response = await fetch('/api/admin/products/restore', {
+      const { error, friendlyMessage } = await safeFetchJson('/api/admin/products/restore', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -691,8 +689,9 @@ export default function InventoryManagement({ initialAvailabilityFilter, userRol
         },
         body: JSON.stringify({ product_id: productId })
       });
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.error || 'Failed to restore product');
+
+      if (error) throw new Error(friendlyMessage || 'Failed to restore product');
+
       setError(null);
       await fetchProducts();
       toast.success("Product restored successfully.");
@@ -720,7 +719,7 @@ export default function InventoryManagement({ initialAvailabilityFilter, userRol
       if (!session) throw new Error('Not authenticated');
       
       const endpoint = inventoryScope === "active" ? '/api/admin/products/archive' : '/api/admin/products/restore';
-      const response = await fetch(endpoint, {
+      const { error, friendlyMessage } = await safeFetchJson(endpoint, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -728,8 +727,9 @@ export default function InventoryManagement({ initialAvailabilityFilter, userRol
         },
         body: JSON.stringify({ product_ids: Array.from(selectedProducts) })
       });
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.error || (inventoryScope === "active" ? 'Failed to archive products' : 'Failed to restore products'));
+
+      if (error) throw new Error(friendlyMessage || (inventoryScope === "active" ? 'Failed to archive products' : 'Failed to restore products'));
+
       setSelectedProducts(new Set());
       setError(null);
       await fetchProducts();

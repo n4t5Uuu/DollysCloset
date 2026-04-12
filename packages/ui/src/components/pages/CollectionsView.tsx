@@ -19,6 +19,7 @@ import {
   type CatalogCategory, 
     type Product,
     type Season,
+    safeFetchJson,
 } from "@dollys-closet/core";
 import {
     Sheet,
@@ -254,14 +255,14 @@ export function CollectionsView() {
             setLoading(true);
             setError(null);
 
-            const response = await fetch("/api/catalog", { cache: "no-store" });
-            const result = await response.json();
+            const { data, error, friendlyMessage } = await safeFetchJson<{ data: CatalogPayload }>("/api/catalog");
 
-            if (!response.ok) {
-                throw new Error(result.error || "Failed to fetch catalog");
+            if (error) {
+                // Use the user-friendly message for the UI
+                throw new Error(friendlyMessage || "Failed to fetch catalog");
             }
 
-            const payload = (result.data || {}) as Partial<CatalogPayload>;
+            const payload = (data?.data || {}) as Partial<CatalogPayload>;
             setCategories(payload.categories || []);
             setProducts(payload.products || []);
             setFeaturedProducts(payload.featuredProducts || []);
@@ -297,14 +298,11 @@ export function CollectionsView() {
     useEffect(() => {
         const fetchAnnouncement = async () => {
             try {
-                const response = await fetch(`/api/business-details?slug=${ANNOUNCEMENT_SLUG}`, { cache: "no-store" });
-                const result = await response.json();
+                const { data } = await safeFetchJson<{ data: { body: string } }>(
+                    `/api/business-details?slug=${ANNOUNCEMENT_SLUG}`
+                );
 
-                if (!response.ok) {
-                    return;
-                }
-
-                const rawAnnouncement = result?.data?.body;
+                const rawAnnouncement = data?.data?.body;
                 if (typeof rawAnnouncement === "string" && rawAnnouncement.trim()) {
                     setAnnouncementText(rawAnnouncement.trim());
                 }

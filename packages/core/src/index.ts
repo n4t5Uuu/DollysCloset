@@ -39,3 +39,4 @@ export * from "./contexts/UserContext";
 
 export * from "./lib/auth/auth-helper";
 export * from "./lib/auth/logout-intent";
+export * from "./lib/fetch-utils";

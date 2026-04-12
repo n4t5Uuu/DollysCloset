@@ -25,9 +25,12 @@ import {
   cn,
   getContactDetails,
   createClient,
-  sanitizeHtml
+  sanitizeHtml,
+  safeFetchJson,
+  type CatalogApiProduct,
+  type Product,
+  type ContactDetailsPayload,
 } from "@dollys-closet/core";
-import { type CatalogApiProduct, type Product, type ContactDetailsPayload } from "@dollys-closet/core";
 
 function toViewProduct(product: CatalogApiProduct): Product {
   return {
@@ -137,25 +140,21 @@ export function ProductDetailsView({
         setLoading(true);
         setError(null);
 
-        const [productResponse, catalogResponse] = await Promise.all([
-          fetch(`/api/catalog/product/${productId}`, { cache: "no-store" }),
-          fetch("/api/catalog", { cache: "no-store" }),
-        ]);
         const [productResult, catalogResult] = await Promise.all([
-          productResponse.json(),
-          catalogResponse.json(),
+          safeFetchJson<{ data: CatalogApiProduct }>(`/api/catalog/product/${productId}`),
+          safeFetchJson<{ data: { products: CatalogApiProduct[] } }>("/api/catalog"),
         ]);
 
-        if (!productResponse.ok) {
-          throw new Error(productResult.error || "Failed to load product");
+        if (productResult.error) {
+          throw new Error(productResult.friendlyMessage || "Failed to load product");
         }
 
-        if (!catalogResponse.ok) {
-          throw new Error(catalogResult.error || "Failed to load catalog");
+        if (catalogResult.error) {
+          throw new Error(catalogResult.friendlyMessage || "Failed to load catalog");
         }
 
-        setProduct(productResult.data || null);
-        setProducts(catalogResult.data?.products || []);
+        setProduct(productResult.data?.data || null);
+        setProducts(catalogResult.data?.data?.products || []);
       } catch (err: unknown) {
         setError(err instanceof Error ? err.message : "Failed to load product");
         setProduct(null);
@@ -171,14 +170,11 @@ export function ProductDetailsView({
   useEffect(() => {
     const fetchAnnouncement = async () => {
       try {
-        const response = await fetch(`/api/business-details?slug=${ANNOUNCEMENT_SLUG}`, { cache: "no-store" });
-        const result = await response.json();
+        const { data } = await safeFetchJson<{ data: { body: string } }>(
+          `/api/business-details?slug=${ANNOUNCEMENT_SLUG}`
+        );
 
-        if (!response.ok) {
-          return;
-        }
-
-        const rawAnnouncement = result?.data?.body;
+        const rawAnnouncement = data?.data?.body;
         if (typeof rawAnnouncement === "string" && rawAnnouncement.trim()) {
           setAnnouncementText(rawAnnouncement.trim());
         }

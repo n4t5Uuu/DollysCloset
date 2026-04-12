@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { authHelper, createClient } from "@dollys-closet/core";
+import { authHelper, createClient, safeFetchJson } from "@dollys-closet/core";
 import { getAuthReasonCopy, getSafeInternalPath } from "@/lib/auth/auth-routing";
 
 import { Eye, EyeOff } from "lucide-react";
@@ -137,21 +137,18 @@ export default function LoginClient() {
     }
 
     try {
-      const loginResponse = await fetch("/api/auth/login", {
+      const { data: loginResult, error, status, friendlyMessage } = await safeFetchJson<{ error?: string; accessToken?: string }>("/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email: trimmedEmail, password: trimmedPassword }),
       });
 
-      const loginResult = await loginResponse.json();
-
-      if (!loginResponse.ok) {
-        const errorMessage: string = loginResult.error ?? "";
-        if (loginResponse.status === 429) {
-          const retryAfterHeader = Number(loginResponse.headers.get("Retry-After") ?? "0");
-          const retryAfterSeconds = Number.isFinite(retryAfterHeader) && retryAfterHeader > 0
-            ? retryAfterHeader
-            : 15 * 60;
+      if (error) {
+        const errorMessage = loginResult?.error ?? "";
+        if (status === 429) {
+          // Note: In safeFetchJson, we might not have access to original headers easily
+          // but we can fallback to default cooldown
+          const retryAfterSeconds = 15 * 60;
           startCooldown(retryAfterSeconds);
           toast.error(`Too many failed attempts. Try again in ${formatCooldown(retryAfterSeconds)}.`);
         } else if (errorMessage.includes("Invalid login credentials")) {
@@ -159,7 +156,7 @@ export default function LoginClient() {
         } else if (errorMessage.includes("Email not confirmed")) {
           toast.error("Please confirm your email address.");
         } else {
-          toast.error("Unable to log in. Please try again later.");
+          toast.error(friendlyMessage || "Unable to log in. Please try again later.");
         }
         setEmail("");
         setPassword("");
@@ -181,7 +178,7 @@ export default function LoginClient() {
         return;
       }
 
-      const accessToken = browserData?.session?.access_token ?? loginResult.accessToken;
+      const accessToken = browserData?.session?.access_token ?? loginResult?.accessToken;
       if (accessToken) {
         void authHelper.logAuthEvent("login", accessToken);
       }
