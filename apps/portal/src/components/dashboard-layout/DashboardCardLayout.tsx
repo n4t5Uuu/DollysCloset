@@ -654,13 +654,8 @@ export function DashboardCardLayout({
         minimized: currentLayout.minimized.filter((id) => id !== cardId),
       }));
 
-      if (isMobile) {
-        setMobileRailOpen(true);
-      } else {
-        setDesktopRailOpen(true);
-      }
     },
-    [isMobile, updateLayout]
+    [updateLayout]
   );
 
   const restoreCardToMain = useCallback(
@@ -934,7 +929,7 @@ export function DashboardCardLayout({
         </div>
       )}
 
-      {collapsedOrder.length > 0 ? (
+      {!isMobile && collapsedOrder.length > 0 ? (
         <div className="mb-4 w-full max-w-full overflow-hidden rounded-2xl border border-[#E7A3B0]/15 bg-[#fffdfd] px-4 py-4 shadow-sm">
           <div className="flex items-center justify-between gap-3">
             <div>
@@ -968,27 +963,27 @@ export function DashboardCardLayout({
       ) : null}
 
       <DashboardDropZone id={MAIN_CONTAINER_ID} className={cn("w-full max-w-full items-start", gridClassName)}>
-        <SortableContext items={expandedOrder} strategy={rectSwappingStrategy}>
-          {expandedOrder.length === 0 ? (
+        <SortableContext items={isMobile ? mainOrder : expandedOrder} strategy={rectSwappingStrategy}>
+          {(isMobile ? mainOrder : expandedOrder).length === 0 ? (
             <div className="col-span-full rounded-2xl border border-dashed border-[#E7A3B0]/25 bg-[#fff9fb] px-6 py-10 text-center">
               <p className="text-sm font-medium text-[#8a6b73]">
-                {collapsedOrder.length > 0 ? "All visible cards are collapsed" : "All cards are in storage"}
+                {!isMobile && collapsedOrder.length > 0 ? "All visible cards are collapsed" : "All cards are in storage"}
               </p>
               <p className="mt-1 text-xs text-gray-500">
-                {collapsedOrder.length > 0
+                {!isMobile && collapsedOrder.length > 0
                   ? "Expand a collapsed card above or restore one from the stored rail."
                   : "Restore any stored card from the right-side rail to rebuild this dashboard view."}
               </p>
             </div>
           ) : (
-            expandedOrder.map((cardId) => {
+            (isMobile ? mainOrder : expandedOrder).map((cardId) => {
               const card = cardMap.get(cardId);
 
               return card ? (
                 <SortableMainCard
                   key={card.id}
                   card={card}
-                  minimized={false}
+                  minimized={isMobile ? minimizedSet.has(card.id) : false}
                   onToggleMinimized={() => setCardMinimized(card.id)}
                   onMoveToRail={() => moveCardToRail(card.id)}
                 />
