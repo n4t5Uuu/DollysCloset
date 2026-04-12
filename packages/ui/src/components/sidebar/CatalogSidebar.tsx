@@ -9,23 +9,20 @@ import {
     AccordionItem,
     AccordionTrigger
 } from "../ui/accordion";
-import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue
-} from "../ui/select";
 import {cn, type CatalogCategory} from "@dollys-closet/core";
-import { ArrowUpDown, Search, X } from "lucide-react";
-import { Input } from "../ui/input";
+
+import SearchBar from "../general-components/SearchBar";
 
 interface CatalogSidebarProps {
     categories: CatalogCategory[];
     activeFilter: string;
-    sortBy: string;
+    searchQuery?: string;
+    onSearchChange?: (query: string) => void;
     allCount: number;
     newCount: number;
+    saleCount: number;
+    currentSeasonCount: number;
+    currentSeasonLabel: string | null;
     categoryCounts: Record<number, number>;
     rootGroupCounts: Record<string, number>;
     minAvailablePrice: number;
@@ -34,7 +31,6 @@ interface CatalogSidebarProps {
     selectedMaxPrice: number;
     hasActivePriceFilter: boolean;
     onFilterChange: (filter: string) => void;
-    onSortChange: (sort: string) => void;
     onPriceRangeChange: (minPrice: number, maxPrice: number) => void;
     onClearPrice: () => void;
     onInteractionComplete?: () => void;
@@ -43,9 +39,13 @@ interface CatalogSidebarProps {
 export default function CatalogSidebar({
     categories,
     activeFilter,
-    sortBy,
+    searchQuery,
+    onSearchChange,
     allCount,
     newCount,
+    saleCount,
+    currentSeasonCount,
+    currentSeasonLabel,
     categoryCounts,
     rootGroupCounts,
     minAvailablePrice,
@@ -54,7 +54,6 @@ export default function CatalogSidebar({
     selectedMaxPrice,
     hasActivePriceFilter,
     onFilterChange,
-    onSortChange,
     onPriceRangeChange,
     onClearPrice,
     onInteractionComplete,
@@ -69,11 +68,6 @@ export default function CatalogSidebar({
 
     const handleFilterChange = (filter: string) => {
         onFilterChange(filter);
-        onInteractionComplete?.();
-    };
-
-    const handleSortChange = (sort: string) => {
-        onSortChange(sort);
         onInteractionComplete?.();
     };
 
@@ -162,27 +156,12 @@ export default function CatalogSidebar({
     const makeRootFilterValue = (rootNameKey: string) => `root-${rootNameKey}`;
     const getCategoryCount = (categoryId: number) => categoryCounts[categoryId] ?? 0;
     const getRootGroupCount = (rootKey: string) => rootGroupCounts[rootKey] ?? 0;
-    const sortOptions = [
-        { value: "newest", label: "Newest First", hint: "Fresh arrivals first" },
-        { value: "price-low", label: "Price: Low to High", hint: "Budget-friendly first" },
-        { value: "price-high", label: "Price: High to Low", hint: "Premium pieces first" },
-        { value: "az", label: "Name: A to Z", hint: "Alphabetical ascending" },
-        { value: "za", label: "Name: Z to A", hint: "Alphabetical descending" },
-    ] as const;
     const hasPriceData = maxAvailablePrice > 0 || minAvailablePrice > 0;
     const priceSpan = Math.max(1, maxAvailablePrice - minAvailablePrice);
     const draftMinPercent = ((draftMinPrice - minAvailablePrice) / priceSpan) * 100;
     const draftMaxPercent = ((draftMaxPrice - minAvailablePrice) / priceSpan) * 100;
     const isPriceRangeDirty = draftMinPrice !== selectedMinPrice || draftMaxPrice !== selectedMaxPrice;
     const isShowingAllPrices = !hasActivePriceFilter && !isPriceRangeDirty;
-
-    const formatCurrency = (value: number) => {
-        const hasCents = !Number.isInteger(value);
-        return `\u20B1${value.toLocaleString(undefined, {
-            minimumFractionDigits: hasCents ? 2 : 0,
-            maximumFractionDigits: hasCents ? 2 : 0,
-        })}`;
-    };
 
     const clampPrice = (value: number) => {
         if (Number.isNaN(value)) return minAvailablePrice;
@@ -287,42 +266,26 @@ export default function CatalogSidebar({
         if (!isCategoryVisible(categoryId)) return null;
 
         if (!hasChildren) {
+            const isActive = activeFilter === filterValue;
             return (
                 <button
                     key={category.category_id}
                     onClick={() => handleFilterChange(filterValue)}
                     className={cn(
-                        "group w-full cursor-pointer rounded-md px-2.5 text-left font-montserrat transition-colors duration-200",
-                        depth === 0 ? "text-base font-medium tracking-wide py-1.5" : "text-sm py-1.5",
-                        activeFilter === filterValue
-                            ? "bg-[#121212] text-[#E7A3B0] font-semibold"
-                            : "text-gray-600 hover:bg-[#fff5f7] hover:text-[#E7A3B0]"
+                        "w-full flex items-center justify-between rounded-lg px-3 py-1.5 text-left font-montserrat text-sm transition-colors",
+                        isActive
+                            ? "bg-[#E7A3B0] text-white font-semibold"
+                            : "text-[#3f2d31] hover:bg-[#fff5f7] hover:text-[#E7A3B0]"
                     )}
-                    style={{ paddingLeft: `${8 + depth * 14}px` }}
+                    style={{ paddingLeft: `${12 + depth * 12}px` }}
                     title={getCategoryPath(Number(category.category_id))}
                 >
-                    <span className="flex w-full min-w-0 items-start justify-between gap-3">
-                        <span className="flex min-w-0 flex-1 items-start gap-2">
-                            <span
-                                className={cn(
-                                    "h-1.5 w-1.5 shrink-0 rounded-full",
-                                    activeFilter === filterValue ? "bg-[#E7A3B0]" : "bg-gray-300 group-hover:bg-[#E7A3B0]"
-                                )}
-                            />
-                            <span className="min-w-0 flex-1 break-words leading-snug text-left">
-                                {category.category_name}
-                            </span>
-                        </span>
-                        <span
-                            className={cn(
-                                "shrink-0 rounded-full px-2 py-0.5 text-[10px] font-oswald tracking-[0.18em]",
-                                activeFilter === filterValue
-                                    ? "bg-[#2a2a2a] text-[#f6ccd4]"
-                                    : "bg-[#f8f3f4] text-[#8d7078]"
-                            )}
-                        >
-                            {categoryCount}
-                        </span>
+                    <span className="min-w-0 flex-1 truncate">{category.category_name}</span>
+                    <span className={cn(
+                        "ml-2 shrink-0 text-xs font-oswald tracking-[0.12em]",
+                        isActive ? "text-white/80" : "text-[#8d7078]"
+                    )}>
+                        {categoryCount}
                     </span>
                 </button>
             );
@@ -354,7 +317,7 @@ export default function CatalogSidebar({
                         className={cn(
                             "text-left text-sm font-montserrat py-1 transition-colors w-full cursor-pointer rounded-md px-2.5",
                             activeFilter === filterValue
-                                ? "bg-[#121212] text-[#E7A3B0] font-semibold"
+                                ? "bg-[#E7A3B0] text-white font-semibold"
                                 : "text-gray-500 hover:bg-[#fff5f7] hover:text-[#E7A3B0]"
                         )}
                         style={{ paddingLeft: `${8 + (depth + 1) * 12}px` }}
@@ -362,7 +325,12 @@ export default function CatalogSidebar({
                     >
                         <span className="flex items-center justify-between gap-3">
                             <span className="truncate">All {category.category_name}</span>
-                            <span className="rounded-full bg-[#f8f3f4] px-2 py-0.5 text-[10px] font-oswald tracking-[0.18em] text-[#8d7078]">
+                            <span className={cn(
+                                "rounded-full px-2 py-0.5 text-[10px] font-oswald tracking-[0.18em]",
+                                activeFilter === filterValue
+                                    ? "bg-white/20 text-white"
+                                    : "bg-[#f8f3f4] text-[#8d7078]"
+                            )}>
                                 {categoryCount}
                             </span>
                         </span>
@@ -432,13 +400,18 @@ export default function CatalogSidebar({
                         className={cn(
                             "text-left text-sm font-montserrat py-1 transition-colors w-full cursor-pointer rounded-md px-2.5",
                             activeFilter === rootFilterValue
-                                ? "bg-[#121212] text-[#E7A3B0] font-semibold"
+                                ? "bg-[#E7A3B0] text-white font-semibold"
                                 : "text-gray-500 hover:bg-[#fff5f7] hover:text-[#E7A3B0]"
                         )}
                     >
                         <span className="flex items-center justify-between gap-3">
                             <span className="truncate">All {group.label}</span>
-                            <span className="rounded-full bg-[#f8f3f4] px-2 py-0.5 text-[10px] font-oswald tracking-[0.18em] text-[#8d7078]">
+                            <span className={cn(
+                                "rounded-full px-2 py-0.5 text-[10px] font-oswald tracking-[0.18em]",
+                                activeFilter === rootFilterValue
+                                    ? "bg-white/20 text-white"
+                                    : "bg-[#f8f3f4] text-[#8d7078]"
+                            )}>
                                 {getRootGroupCount(group.key)}
                             </span>
                         </span>
@@ -462,257 +435,172 @@ export default function CatalogSidebar({
         );
     };
 
+    const topLevelButtons: Array<{
+        key: string;
+        label: string;
+        count: number;
+        disabled?: boolean;
+        title?: string;
+    }> = [
+        { key: "all", label: "All Products", count: allCount },
+        { key: "new", label: "New Arrivals", count: newCount },
+        { key: "on-sale", label: "On Sale", count: saleCount },
+        {
+            key: "current-season",
+            label: currentSeasonLabel ? "Current Season" : "Current Season (Unavailable)",
+            count: currentSeasonCount,
+            disabled: !currentSeasonLabel,
+            title: currentSeasonLabel ? `Currently active season: ${currentSeasonLabel}` : "No active season set",
+        },
+    ];
+
     return(
-        <aside className="w-full lg:w-64 flex flex-col gap-10 pb-10 pr-2 lg:pr-6">
+        <aside className="flex w-full flex-col gap-6 pb-10 lg:pr-4">
+            {/* Search bar — lives at the top of the filter stack */}
+            {onSearchChange && (
+                <div className="w-full">
+                    <SearchBar onSearch={onSearchChange} initialQuery={searchQuery ?? ""} />
+                </div>
+            )}
+
             <div className="space-y-6">
-                <div className="rounded-2xl border border-[#E7A3B0]/20 bg-linear-to-b from-[#fffafc] to-white shadow-sm overflow-hidden">
-                    <div className="flex items-center justify-between px-4 py-3 border-b border-[#E7A3B0]/12">
-                        <h3 className="font-oswald text-sm font-bold uppercase tracking-[0.2em] text-gray-700">
+                <div className="rounded-xl border border-[#E7A3B0]/20 bg-white p-4 shadow-sm">
+                    <div className="mb-3 flex items-center justify-between">
+                        <h3 className="font-oswald text-sm font-bold uppercase tracking-[0.18em] text-gray-700">
                             Categories
                         </h3>
                         <button
                             type="button"
-                            onClick={() => {
-                                setTreeRenderKey((previous) => previous + 1);
-                                setCategorySearch("");
-                            }}
-                                    className="text-xs text-[#bfa0a8] cursor-pointer hover:text-[#E7A3B0] transition-colors"
+                            onClick={() => setTreeRenderKey((previous) => previous + 1)}
+                            className="text-[11px] text-[#bfa0a8] cursor-pointer hover:text-[#E7A3B0] transition-colors"
                         >
                             Collapse all
                         </button>
                     </div>
 
-                    <div className="px-3 pt-3 pb-1">
-                        <div className="relative group/search">
-                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[#bfa0a8] group-focus-within/search:text-[#E7A3B0] transition-colors" />
-                            <Input
-                                placeholder="Search categories..."
-                                value={categorySearch}
-                                onChange={(e) => setCategorySearch(e.target.value)}
-                                className="pl-9 pr-9 h-10 rounded-xl border-[#E7A3B0]/15 bg-white/50 focus:bg-white focus:border-[#E7A3B0]/40 transition-all font-montserrat text-sm"
-                            />
-                            {categorySearch && (
+                    <div className="flex flex-col gap-1">
+                        {topLevelButtons.map((item) => {
+                            const isActive = activeFilter === item.key;
+                            return (
                                 <button
-                                    onClick={() => setCategorySearch("")}
-                                    className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[#bfa0a8] hover:text-[#E7A3B0] transition-colors cursor-pointer"
-                                    aria-label="Clear category search"
+                                    key={item.key}
+                                    onClick={() => handleFilterChange(item.key)}
+                                    disabled={item.disabled}
+                                    title={item.title}
+                                    className={cn(
+                                        "w-full flex items-center justify-between rounded-lg px-3 py-2 font-montserrat text-sm transition-colors",
+                                        isActive
+                                            ? "bg-[#E7A3B0] text-white font-semibold"
+                                            : "text-[#3f2d31] hover:bg-[#fff5f7] hover:text-[#E7A3B0]",
+                                        item.disabled && "opacity-50 cursor-not-allowed hover:bg-transparent hover:text-[#3f2d31]"
+                                    )}
                                 >
-                                    <X className="h-4 w-4" />
+                                    <span>{item.label}</span>
+                                    <span className={cn(
+                                        "text-xs font-oswald tracking-[0.12em]",
+                                        isActive ? "text-white/80" : "text-[#8d7078]"
+                                    )}>
+                                        {item.count}
+                                    </span>
                                 </button>
-                            )}
+                            );
+                        })}
+
+                        <div className="mt-2 border-t border-[#E7A3B0]/15 pt-2">
+                            <Accordion key={`catalog-tree-${treeRenderKey}`} type="single" collapsible className="w-full">
+                                {rootCategoryGroups.map((rootGroup) => renderRootGroupNode(rootGroup))}
+                            </Accordion>
                         </div>
-                    </div>
-
-                    <div className="flex flex-col gap-1 px-2 py-2">
-                        <button
-                            onClick={() => handleFilterChange("all")}
-                            className={cn(
-                                "text-left cursor-pointer rounded-md px-2.5 py-2 font-montserrat text-sm font-medium transition-colors duration-200 hover:text-[#E7A3B0] hover:bg-[#fff5f7]",
-                                activeFilter === "all" ? "bg-[#121212] text-[#E7A3B0] font-semibold" : "text-gray-600"
-                            )}
-                        >
-                            <span className="flex items-center justify-between gap-3">
-                                <span>All Products</span>
-                                <span className={cn(
-                                    "rounded-full px-2 py-0.5 text-[10px] font-oswald tracking-[0.18em]",
-                                    activeFilter === "all" ? "bg-[#2a2a2a] text-[#f6ccd4]" : "bg-[#f8f3f4] text-[#8d7078]"
-                                )}>
-                                    {allCount}
-                                </span>
-                            </span>
-                        </button>
-
-                        <button
-                            onClick={() => handleFilterChange("new")}
-                            className={cn(
-                                "text-left cursor-pointer rounded-md px-2.5 py-2 font-montserrat text-sm font-medium transition-colors duration-200 hover:text-[#E7A3B0] hover:bg-[#fff5f7]",
-                                activeFilter === "new" ? "bg-[#121212] text-[#E7A3B0] font-semibold" : "text-gray-600"
-                            )}
-                        >
-                            <span className="flex items-center justify-between gap-3">
-                                <span>New Arrivals</span>
-                                <span className={cn(
-                                    "rounded-full px-2 py-0.5 text-[10px] font-oswald tracking-[0.18em]",
-                                    activeFilter === "new" ? "bg-[#2a2a2a] text-[#f6ccd4]" : "bg-[#f8f3f4] text-[#8d7078]"
-                                )}>
-                                    {newCount}
-                                </span>
-                            </span>
-                        </button>
-
-                        {categorySearch ? (
-                            <Accordion 
-                                key={`catalog-tree-search-${treeRenderKey}`}
-                                type="multiple"
-                                className="w-full"
-                                value={Array.from(visibleCategoryIds || []).map(id => `item-${id}`).concat(rootCategoryGroups.map(g => `root-${g.key}`))}
-                            >
-                                {rootCategoryGroups.map((rootGroup) => renderRootGroupNode(rootGroup))}
-                            </Accordion>
-                        ) : (
-                            <Accordion 
-                                key={`catalog-tree-standard-${treeRenderKey}`}
-                                type="single"
-                                collapsible 
-                                className="w-full"
-                            >
-                                {rootCategoryGroups.map((rootGroup) => renderRootGroupNode(rootGroup))}
-                            </Accordion>
-                        )}
                     </div>
                 </div>
 
-                <div className="rounded-2xl border border-[#E7A3B0]/20 bg-linear-to-b from-[#fffafc] to-white shadow-sm overflow-hidden">
-                    <div className="border-b border-[#E7A3B0]/12 px-4 py-3">
-                        <div className="flex items-center justify-between gap-3">
-                            <h3 className="font-oswald text-sm font-bold uppercase tracking-[0.2em] text-gray-700">
-                                Refine Results
-                            </h3>
-                            <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-[#fff0f5] text-[#b47c88]">
-                                <ArrowUpDown className="h-4 w-4" />
-                            </span>
-                        </div>
+                <div className="rounded-xl border border-[#E7A3B0]/20 bg-white p-4 shadow-sm">
+                    <div className="mb-3 flex items-center justify-between gap-3">
+                        <h3 className="font-oswald text-sm font-bold uppercase tracking-[0.18em] text-gray-700">
+                            Price
+                        </h3>
+                        {!isShowingAllPrices && (
+                            <button
+                                type="button"
+                                onClick={resetPriceRange}
+                                className="font-oswald text-[11px] uppercase tracking-[0.2em] text-[#b47c88] transition-colors hover:text-[#8f5f69]"
+                            >
+                                Reset
+                            </button>
+                        )}
                     </div>
 
-                    <div className="space-y-5 px-4 py-4">
-                        <div className="space-y-2">
-                            <div className="flex items-center justify-between gap-3">
-                                <p className="font-oswald text-[10px] uppercase tracking-[0.28em] text-[#b47c88]">
-                                    Sort
-                                </p>
-                                {sortBy !== "newest" && (
-                                    <button
-                                        type="button"
-                                        onClick={() => handleSortChange("newest")}
-                                        className="font-oswald text-[11px] uppercase tracking-[0.2em] text-[#b47c88] transition-colors hover:text-[#8f5f69]"
-                                    >
-                                        Reset
-                                    </button>
-                                )}
-                            </div>
-                            <Select value={sortBy} onValueChange={handleSortChange}>
-                                <SelectTrigger className="h-11 w-full rounded-xl border-[#E7A3B0]/25 bg-white px-4 font-montserrat text-sm text-[#3f2d31] shadow-none transition-colors hover:bg-[#fff8fa] focus-visible:ring-2 focus-visible:ring-[#E7A3B0]/30 focus-visible:ring-offset-0">
-                                    <SelectValue placeholder="Sort option" />
-                                </SelectTrigger>
-                                <SelectContent className="rounded-xl border-[#E7A3B0]/20 bg-white text-black shadow-lg">
-                                    {sortOptions.map((option) => (
-                                        <SelectItem
-                                            key={option.value}
-                                            value={option.value}
-                                            className="font-montserrat text-black focus:bg-[#fff5f7] focus:text-[#E7A3B0] cursor-pointer"
-                                        >
-                                            {option.label}
-                                        </SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
-                        </div>
-
-                        <div className="border-t border-[#E7A3B0]/12 pt-4">
-                            <div className="mb-3">
-                                <p className="font-oswald text-[10px] uppercase tracking-[0.28em] text-[#b47c88]">
-                                    Price
-                                </p>
+                    {hasPriceData ? (
+                        <div className="space-y-4">
+                            <div className="relative px-1 pt-2">
+                                <div className="absolute left-1 right-1 top-[21px] h-1.5 rounded-full bg-[#f4d9df]" />
+                                <div
+                                    className="absolute top-[21px] h-1.5 rounded-full bg-[#E7A3B0]"
+                                    style={{
+                                        left: `calc(${draftMinPercent}% + 0.25rem)`,
+                                        right: `calc(${100 - draftMaxPercent}% + 0.25rem)`,
+                                    }}
+                                />
+                                <input
+                                    type="range"
+                                    min={minAvailablePrice}
+                                    max={maxAvailablePrice}
+                                    step={1}
+                                    value={draftMinPrice}
+                                    onChange={(event) => handleMinSliderChange(Number(event.target.value))}
+                                    className="price-range-input"
+                                    aria-label="Minimum price"
+                                />
+                                <input
+                                    type="range"
+                                    min={minAvailablePrice}
+                                    max={maxAvailablePrice}
+                                    step={1}
+                                    value={draftMaxPrice}
+                                    onChange={(event) => handleMaxSliderChange(Number(event.target.value))}
+                                    className="price-range-input"
+                                    aria-label="Maximum price"
+                                />
                             </div>
 
-                            {hasPriceData ? (
-                                <div className="space-y-4">
-                                    <div className="flex items-center justify-between gap-3 rounded-xl border border-[#E7A3B0]/15 bg-white px-3 py-2.5">
-                                        <span className="font-montserrat text-sm text-[#3f2d31]">
-                                            {isShowingAllPrices ? "All Prices" : "Selected Range"}
-                                        </span>
-                                        <span className="font-oswald text-sm tracking-[0.06em] text-[#b47c88]">
-                                            {isShowingAllPrices
-                                                ? `${formatCurrency(minAvailablePrice)} - ${formatCurrency(maxAvailablePrice)}`
-                                                : `${formatCurrency(draftMinPrice)} - ${formatCurrency(draftMaxPrice)}`}
-                                        </span>
-                                    </div>
-
-                                    <div className="relative px-1 pt-2">
-                                        <div className="absolute left-1 right-1 top-[21px] h-1.5 rounded-full bg-[#f4d9df]" />
-                                        <div
-                                            className="absolute top-[21px] h-1.5 rounded-full bg-[#E7A3B0]"
-                                            style={{
-                                                left: `calc(${draftMinPercent}% + 0.25rem)`,
-                                                right: `calc(${100 - draftMaxPercent}% + 0.25rem)`,
-                                            }}
-                                        />
-                                        <input
-                                            type="range"
-                                            min={minAvailablePrice}
-                                            max={maxAvailablePrice}
-                                            step={1}
-                                            value={draftMinPrice}
-                                            onChange={(event) => handleMinSliderChange(Number(event.target.value))}
-                                            className="price-range-input"
-                                            aria-label="Minimum price"
-                                        />
-                                        <input
-                                            type="range"
-                                            min={minAvailablePrice}
-                                            max={maxAvailablePrice}
-                                            step={1}
-                                            value={draftMaxPrice}
-                                            onChange={(event) => handleMaxSliderChange(Number(event.target.value))}
-                                            className="price-range-input"
-                                            aria-label="Maximum price"
-                                        />
-                                    </div>
-
-                                    <div className="grid grid-cols-2 gap-3">
-                                        <label className="space-y-1.5">
-                                            <span className="font-oswald text-[10px] uppercase tracking-[0.24em] text-[#b47c88]">
-                                                Min
-                                            </span>
-                                            <input
-                                                type="number"
-                                                min={minAvailablePrice}
-                                                value={minPriceInput}
-                                                onChange={(e) => handleMinInputChange(e.target.value)}
-                                                onBlur={handleMinConfirm}
-                                                onKeyDown={(e) => handleInputKeyDown(e, 'min')}
-                                                className="h-11 w-full rounded-xl border border-[#E7A3B0]/20 bg-white px-3 font-montserrat text-sm text-[#3f2d31] focus:outline-none focus:ring-2 focus:ring-[#E7A3B0]/25"
-                                            />
-                                        </label>
-                                        <label className="space-y-1.5">
-                                            <span className="font-oswald text-[10px] uppercase tracking-[0.24em] text-[#b47c88]">
-                                                Max
-                                            </span>
-                                            <input
-                                                type="number"
-                                                max={maxAvailablePrice}
-                                                value={maxPriceInput}
-                                                onChange={(e) => handleMaxInputChange(e.target.value)}
-                                                onBlur={handleMaxConfirm}
-                                                onKeyDown={(e) => handleInputKeyDown(e, 'max')}
-                                                className="h-11 w-full rounded-xl border border-[#E7A3B0]/20 bg-white px-3 font-montserrat text-sm text-[#3f2d31] focus:outline-none focus:ring-2 focus:ring-[#E7A3B0]/25"
-                                            />
-                                        </label>
-                                    </div>
-
-                                    <button
-                                        type="button"
-                                        onClick={resetPriceRange}
-                                        disabled={isShowingAllPrices}
-                                        className={cn(
-                                            "w-full rounded-xl px-4 py-3 font-oswald text-[11px] uppercase tracking-[0.24em] transition-colors",
-                                            isShowingAllPrices
-                                                ? "bg-[#f7edf0] text-[#c7a6af] cursor-not-allowed"
-                                                : "bg-[#121212] text-[#f7d5dc] hover:bg-[#2a2a2a]"
-                                        )}
-                                    >
-                                        Reset Price Filter
-                                    </button>
-                                </div>
-                            ) : (
-                                <div className="rounded-xl border border-dashed border-[#E7A3B0]/20 bg-white px-4 py-4 text-center">
-                                    <p className="font-montserrat text-sm text-[#8d7078]">
-                                        Price filters will appear once products are available.
-                                    </p>
-                                </div>
-                            )}
+                            <div className="grid grid-cols-2 gap-3">
+                                <label className="space-y-1.5">
+                                    <span className="font-oswald text-[10px] uppercase tracking-[0.24em] text-[#b47c88]">
+                                        Min
+                                    </span>
+                                    <input
+                                        type="number"
+                                        min={minAvailablePrice}
+                                        value={minPriceInput}
+                                        onChange={(e) => handleMinInputChange(e.target.value)}
+                                        onBlur={handleMinConfirm}
+                                        onKeyDown={(e) => handleInputKeyDown(e, 'min')}
+                                        className="h-10 w-full rounded-xl border border-[#E7A3B0]/20 bg-white px-3 font-montserrat text-sm text-[#3f2d31] focus:outline-none focus:ring-2 focus:ring-[#E7A3B0]/25"
+                                    />
+                                </label>
+                                <label className="space-y-1.5">
+                                    <span className="font-oswald text-[10px] uppercase tracking-[0.24em] text-[#b47c88]">
+                                        Max
+                                    </span>
+                                    <input
+                                        type="number"
+                                        max={maxAvailablePrice}
+                                        value={maxPriceInput}
+                                        onChange={(e) => handleMaxInputChange(e.target.value)}
+                                        onBlur={handleMaxConfirm}
+                                        onKeyDown={(e) => handleInputKeyDown(e, 'max')}
+                                        className="h-10 w-full rounded-xl border border-[#E7A3B0]/20 bg-white px-3 font-montserrat text-sm text-[#3f2d31] focus:outline-none focus:ring-2 focus:ring-[#E7A3B0]/25"
+                                    />
+                                </label>
+                            </div>
                         </div>
-                    </div>
+                    ) : (
+                        <div className="rounded-xl border border-dashed border-[#E7A3B0]/20 bg-white px-4 py-4 text-center">
+                            <p className="font-montserrat text-sm text-[#8d7078]">
+                                Price filters will appear once products are available.
+                            </p>
+                        </div>
+                    )}
                 </div>
             </div>
         </aside>

@@ -17,19 +17,12 @@ import {
   EmptyHeader,
   EmptyMedia,
   EmptyTitle,
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
 } from "@dollys-closet/ui";
 import AdminSearchInput from "@/components/general-components/AdminSearchInput";
 import { AdminNoticeBanner } from "@/components/ui/admin-notice-banner";
-import { Calendar, ChevronDown, ClipboardList, X, Eye, SlidersHorizontal, RefreshCcw, RefreshCw } from "lucide-react";
+import { Calendar, ChevronDown, ClipboardList, X, Eye, SlidersHorizontal, RefreshCcw, Trash2 } from "lucide-react";
+import { ExportPurgeDialog } from "@/components/dialogs/ExportPurgeDialog";
+import type { ExportPurgeFormat } from "@/components/dialogs/ExportPurgeDialog";
 
 interface ActivityLog {
   log_id: number;
@@ -65,17 +58,32 @@ function getLinkedEntityLabel(log: ActivityLog) {
 const actionLabels: Record<string, string> = {
   create_product: "Created Product",
   edit_product: "Edited Product",
+  archive_product: "Archived Product",
+  restore_product: "Restored Product",
   delete_product: "Deleted Product",
   create_category: "Created Category",
   edit_category: "Edited Category",
   delete_category: "Deleted Category",
   create_employee: "Created Employee",
   edit_employee: "Edited Employee",
+  archive_employee: "Archived Employee",
+  restore_employee: "Restored Employee",
   delete_employee: "Deleted Employee",
   upload_image: "Uploaded Image",
   set_primary_image: "Updated Image",
   delete_image: "Deleted Image",
   reorder_images: "Reordered Images",
+  create_discount: "Created Discount",
+  apply_discount: "Applied Discount",
+  delete_discount: "Deleted Discount",
+  create_faq: "Created FAQ",
+  edit_faq: "Edited FAQ",
+  delete_faq: "Deleted FAQ",
+  create_season: "Created Season",
+  edit_season: "Edited Season",
+  delete_season: "Deleted Season",
+  purge_activity_logs: "Purged Activity Logs",
+  purge_products: "Purged Archived Products",
   edit_contact_details: "Updated Contact Details",
   edit_about_details: "Updated About Details",
   edit_announcement: "Edited Announcement",
@@ -86,17 +94,32 @@ const actionLabels: Record<string, string> = {
 const actionColors: Record<string, string> = {
   create_product: "bg-green-100 text-green-800",
   edit_product: "bg-blue-100 text-blue-800",
+  archive_product: "bg-amber-100 text-amber-800",
+  restore_product: "bg-emerald-100 text-emerald-800",
   delete_product: "bg-red-100 text-red-800",
   create_category: "bg-purple-100 text-purple-800",
   edit_category: "bg-indigo-100 text-indigo-800",
   delete_category: "bg-red-100 text-red-800",
   create_employee: "bg-green-100 text-green-800",
   edit_employee: "bg-blue-100 text-blue-800",
+  archive_employee: "bg-amber-100 text-amber-800",
+  restore_employee: "bg-emerald-100 text-emerald-800",
   delete_employee: "bg-red-100 text-red-800",
   upload_image: "bg-green-100 text-green-800",
   set_primary_image: "bg-blue-100 text-blue-800",
   delete_image: "bg-red-100 text-red-800",
   reorder_images: "bg-indigo-100 text-indigo-800",
+  create_discount: "bg-green-100 text-green-800",
+  apply_discount: "bg-emerald-100 text-emerald-800",
+  delete_discount: "bg-red-100 text-red-800",
+  create_faq: "bg-green-100 text-green-800",
+  edit_faq: "bg-blue-100 text-blue-800",
+  delete_faq: "bg-red-100 text-red-800",
+  create_season: "bg-green-100 text-green-800",
+  edit_season: "bg-blue-100 text-blue-800",
+  delete_season: "bg-red-100 text-red-800",
+  purge_activity_logs: "bg-red-100 text-red-800",
+  purge_products: "bg-red-100 text-red-800",
   edit_contact_details: "bg-amber-100 text-amber-800",
   edit_about_details: "bg-violet-100 text-violet-800",
   edit_announcement: "bg-pink-100 text-pink-800",
@@ -107,16 +130,22 @@ const actionColors: Record<string, string> = {
 const employeeManagementActions = new Set([
   "create_employee",
   "edit_employee",
+  "archive_employee",
+  "restore_employee",
   "delete_employee",
   "login",
   "logout",
 ]);
 
 const actionTypeGroups: Record<string, { label: string; actions: string[] }> = {
-  products:   { label: "Products",   actions: ["create_product", "edit_product", "delete_product"] },
-  employees:  { label: "Employees",  actions: ["create_employee", "edit_employee", "delete_employee"] },
+  products:   { label: "Products",   actions: ["create_product", "edit_product", "archive_product", "restore_product", "delete_product"] },
+  employees:  { label: "Employees",  actions: ["create_employee", "edit_employee", "archive_employee", "restore_employee", "delete_employee"] },
   images:     { label: "Images",     actions: ["upload_image", "set_primary_image", "delete_image", "reorder_images"] },
+  discounts:  { label: "Discounts",  actions: ["create_discount", "apply_discount", "delete_discount"] },
+  seasons:    { label: "Seasons",    actions: ["create_season", "edit_season", "delete_season"] },
+  faqs:       { label: "FAQs",       actions: ["create_faq", "edit_faq", "delete_faq"] },
   content:    { label: "Content",    actions: ["edit_contact_details", "edit_about_details", "edit_announcement"] },
+  system:     { label: "System",     actions: ["purge_activity_logs", "purge_products"] },
   auth:       { label: "Auth",       actions: ["login", "logout"] },
 };
 
@@ -149,6 +178,9 @@ export default function ActivityLogsClient() {
   const [actionTypeFilter, setActionTypeFilter] = useState<Set<string>>(new Set());
   const [showFilters, setShowFilters] = useState(false);
   const [actionNotice, setActionNotice] = useState<ActionNotice | null>(null);
+
+  const [purgeOpen, setPurgeOpen] = useState(false);
+
   const pickerRef = useRef<HTMLDivElement>(null);
   const filtersRef = useRef<HTMLDivElement>(null);
   const searchInputRef = useRef<HTMLInputElement | null>(null);
@@ -398,33 +430,51 @@ export default function ActivityLogsClient() {
     await fetchLogs();
   };
 
-  const handleResetLogs = async () => {
-    try {
-      const response = await fetch('/api/admin/logs/reset', {
-        method: 'POST',
-      });
+  const handleOpenPurge = () => setPurgeOpen(true);
 
-      if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.error || 'Failed to reset logs');
-      }
+  const handleLogsPreview = async (cutoffIso: string) => {
+    const params = new URLSearchParams({ dryRun: "1", before: cutoffIso });
+    const response = await fetch(`/api/admin/logs/reset?${params}`, { cache: "no-store" });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.error || "Failed to preview purge");
+    return { count: typeof data.count === "number" ? data.count : 0 };
+  };
 
-      setLogs([]);
-      setTotalCount(0);
-      setAvailableMonths([]);
-      setSearchQuery("");
-      setDebouncedSearch("");
-      setSelectedMonth(null);
-      setActionTypeFilter(new Set());
-      setShowFilters(false);
-      setShowPicker(false);
-      setActionNotice({
-        type: "success",
-        message: "Activity logs cleared. New activity will appear here as it happens.",
-      });
-    } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Failed to reset logs');
+  const handleLogsDownload = async (cutoffIso: string, format: ExportPurgeFormat) => {
+    const params = new URLSearchParams({ before: cutoffIso, format });
+    const response = await fetch(`/api/admin/logs/export?${params}`, { cache: "no-store" });
+    if (!response.ok) {
+      const data = await response.json().catch(() => ({}));
+      throw new Error(data.error || "Failed to export logs");
     }
+    const blob = await response.blob();
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement("a");
+    anchor.href = url;
+    anchor.download = `activity-logs-export-${new Date().toISOString().replace(/[:.]/g, "-")}.${format}`;
+    document.body.appendChild(anchor);
+    anchor.click();
+    document.body.removeChild(anchor);
+    URL.revokeObjectURL(url);
+  };
+
+  const handleLogsPurge = async (cutoffIso: string) => {
+    const response = await fetch("/api/admin/logs/reset", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ before: cutoffIso, confirm: "DELETE", exportConfirmed: true }),
+    });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.error || "Failed to purge logs");
+    return { purged: typeof data.purged === "number" ? data.purged : 0 };
+  };
+
+  const handleLogsPurgeSuccess = (purged: number, label: string) => {
+    setActionNotice({
+      type: "success",
+      message: `Purged ${purged} activity log${purged === 1 ? "" : "s"} ${label}.`,
+    });
+    void fetchLogs();
   };
 
   return (
@@ -434,7 +484,7 @@ export default function ActivityLogsClient() {
           <h1 className="text-2xl font-bold">Activity Logs</h1>
           <p className="text-gray-500 text-sm">Inventory actions by admin or employee.</p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-3">
           <Button
             type="button"
             variant="outline"
@@ -445,27 +495,15 @@ export default function ActivityLogsClient() {
             <RefreshCcw className={`mr-2 h-4 w-4 ${loading ? "animate-spin" : ""}`} />
             Refresh
           </Button>
-          <AlertDialog>
-            <AlertDialogTrigger asChild>
-              <button
-                className="bg-red-500 hover:bg-red-600 text-white text-sm font-medium px-4 py-2 rounded-lg transition-all duration-300 shadow-md hover:shadow-lg hover:scale-105 cursor-pointer sm:shrink-0"
-              >
-                Reset Logs
-              </button>
-            </AlertDialogTrigger>
-            <AlertDialogContent className="bg-white">
-              <AlertDialogHeader>
-                <AlertDialogTitle className="text-gray-900">Clear Activity Logs</AlertDialogTitle>
-                <AlertDialogDescription>
-                  Delete every saved activity log entry? This cannot be undone and will clear the full activity history.
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel className="border-zinc-300 bg-white text-zinc-700 hover:bg-zinc-50 hover:text-zinc-900">Cancel</AlertDialogCancel>
-                <AlertDialogAction className="bg-red-500 hover:bg-red-600 text-white cursor-pointer" onClick={handleResetLogs}>Reset All</AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={handleOpenPurge}
+            className="h-10 border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700"
+          >
+            <Trash2 className="mr-2 h-4 w-4" />
+            Export &amp; Purge
+          </Button>
         </div>
       </div>
 
@@ -664,17 +702,17 @@ export default function ActivityLogsClient() {
         </div>
       ) : (
         <div className="bg-white rounded-lg border overflow-x-auto">
-          <Table className="w-full table-fixed">
+          <Table className="w-full">
             <TableHeader className="border-b bg-gray-50">
               <TableRow>
-                <TableHead className="p-4 text-left font-bold w-[60px]">Log</TableHead>
-                <TableHead className="p-4 font-bold w-[14%]">Date & Time</TableHead>
-                <TableHead className="p-4 font-bold w-[17%]">Action</TableHead>
-                <TableHead className="p-4 font-bold w-[7%]">Linked ID</TableHead>
-                <TableHead className="p-4 font-bold w-[7%]">User</TableHead>
-                <TableHead className="p-4 font-bold w-[21%]">Description</TableHead>
-                <TableHead className="p-4 font-bold">Editor</TableHead>
-                <TableHead className="p-4 font-bold text-center w-[130px]">Actions</TableHead>
+                <TableHead className="p-4 text-left font-bold min-w-[70px]">Log</TableHead>
+                <TableHead className="p-4 font-bold min-w-[160px]">Date & Time</TableHead>
+                <TableHead className="p-4 font-bold min-w-[150px]">Action</TableHead>
+                <TableHead className="p-4 font-bold min-w-[100px]">Linked ID</TableHead>
+                <TableHead className="p-4 font-bold min-w-[100px]">User</TableHead>
+                <TableHead className="p-4 font-bold min-w-[200px]">Description</TableHead>
+                <TableHead className="p-4 font-bold min-w-[150px]">Editor</TableHead>
+                <TableHead className="p-4 font-bold text-center min-w-[100px]">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -712,7 +750,7 @@ export default function ActivityLogsClient() {
                         {employeeManagementActions.has(log.action_type) ? (log.user_key || log.user_id || "-") : "-"}
                       </div>
                     </TableCell>
-                    <TableCell className="p-4 text-sm text-gray-600 max-w-0 overflow-hidden">
+                    <TableCell className="p-4 text-sm text-gray-600">
                       <div className="line-clamp-2 wrap-anywhere">{log.description || "-"}</div>
                     </TableCell>
                     <TableCell className="p-4 text-sm text-gray-600">
@@ -854,6 +892,21 @@ export default function ActivityLogsClient() {
           onPageChange={handlePageChange}
         />
       )}
+
+      <ExportPurgeDialog
+        open={purgeOpen}
+        onClose={() => setPurgeOpen(false)}
+        title="Export & Purge Activity Logs"
+        description="Download older activity logs as a backup, then permanently delete them to keep the database lean. This action cannot be undone."
+        entityLabel={{ singular: "log", plural: "logs" }}
+        availableFormats={["xlsx", "csv"]}
+        defaultFormat="xlsx"
+        cutoffFieldLabel="created before"
+        onPreview={handleLogsPreview}
+        onDownload={handleLogsDownload}
+        onPurge={handleLogsPurge}
+        onPurgeSuccess={handleLogsPurgeSuccess}
+      />
     </div>
   );
 }

@@ -14,7 +14,7 @@ export function ProductBadge({ label, className, mobileHidden }: ProductBadgePro
     return (
         <span
             className={cn(
-                "rounded-full px-2.5 py-1 font-oswald text-[10px] uppercase tracking-[0.24em] inline-flex items-center justify-center",
+                "inline-flex items-center justify-center rounded-full border border-white/60 px-2.5 py-1 font-oswald text-[10px] uppercase tracking-[0.18em] shadow-sm backdrop-blur-sm transition-transform duration-200",
                 className,
                 mobileHidden && "hidden sm:inline-flex"
             )}

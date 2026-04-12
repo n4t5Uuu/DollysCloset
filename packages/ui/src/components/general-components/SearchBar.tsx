@@ -50,7 +50,7 @@ export default function SearchBar({ onSearch, initialQuery = "" }: SearchBarProp
     return (
         <form
             onSubmit={handleSearch}
-            className="relative w-full md:w-80">
+            className="relative w-full">
                 <label htmlFor="catalog-search" className="sr-only">
                     Search products
                 </label>

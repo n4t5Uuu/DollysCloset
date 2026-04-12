@@ -35,5 +35,10 @@ export default async function InventoryPage({ searchParams }: { searchParams: Pr
         redirect(buildUnauthorizedPath("access-denied"));
     }
 
-    return <InventoryManagement initialAvailabilityFilter={params.availability} />;
+    return (
+      <InventoryManagement
+        initialAvailabilityFilter={params.availability}
+        userRole={authState.role}
+      />
+    );
 }

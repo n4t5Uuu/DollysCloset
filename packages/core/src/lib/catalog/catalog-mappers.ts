@@ -2,6 +2,7 @@ import type { CatalogApiProduct, CatalogCategory } from "../../types/product.typ
 import type { InventoryProduct, InventoryProductImage } from "../../types/inventory.types";
 import { normalizeImageUrl } from "../images/normalize-image-url";
 import { resolveProductPlaceholder } from "../images/product-placeholder";
+import { discountHelper } from "./discount-helper";
 
 export function buildCategoryPath(categoryId: number, categoryMap: Map<number, CatalogCategory>) {
   const category = categoryMap.get(categoryId);
@@ -67,6 +68,12 @@ export function mapCatalogProduct(
     isNewArrival: Boolean(product.created_at && (Date.now() - new Date(product.created_at).getTime()) / (1000 * 60 * 60 * 24) <= 7),
     images: imagesWithFallback,
     createdAt: product.created_at || new Date(0).toISOString(),
+    discount: product.discount || null,
+    discountedPrice: product.discountedPrice ?? (
+      product.discount ? discountHelper.calculateDiscountedPrice(Number(product.product_price || 0), product.discount) : null
+    ),
+    isOnSale: Boolean(product.isOnSale ?? product.discount),
+    seasonId: product.season_id ?? null,
   };
 }
 

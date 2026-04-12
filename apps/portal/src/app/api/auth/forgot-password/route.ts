@@ -24,7 +24,7 @@ export async function POST(request: NextRequest) {
 
     const supabaseAdmin = createAdminClient();
     const { data: userRow, error: lookupError } = await supabaseAdmin
-      .from("tbl_users")
+      .from("active_users")
       .select("user_id")
       .ilike("username", email)
       .maybeSingle();

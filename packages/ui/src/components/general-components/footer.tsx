@@ -71,7 +71,7 @@ export default function Footer() {
     const addressStyle = "text-[#F1F1F1] text-sm md:text-base";
 
     return (
-        <footer className="w-full bg-[#262626] h-auto mt-12 md:mt-[100px] flex items-center justify-center py-12 md:py-16">
+        <footer className="flex h-auto w-full items-center justify-center bg-[#262626] py-12 md:py-16">
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-10 md:gap-4 px-6 md:px-20 w-full max-w-7xl text-center md:text-left">
                 <div className="flex justify-center md:justify-start">
                     <Image

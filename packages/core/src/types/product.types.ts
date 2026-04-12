@@ -1,6 +1,28 @@
 /**
  * Standard baseline structure defining generic product references spanning UI layers strictly.
  */
+export type DiscountType = "flat" | "percent" | "fixed_price";
+
+export interface Season {
+    id: string;
+    name: string;
+    startMonth: number;
+    startDay: number;
+    endMonth: number;
+    endDay: number;
+    isActive?: boolean;
+}
+
+export interface ProductDiscount {
+    id: string;
+    discount_name: string;
+    discount_type: DiscountType;
+    discount_value: number;
+    created_at: string;
+    ends_at: string | null;
+    is_active: boolean;
+}
+
 export interface Product {
     id: string;
     name: string;
@@ -14,6 +36,11 @@ export interface Product {
     stock: number;
     isNewArrival: boolean;
     images: string[];
+    discount?: ProductDiscount | null;
+    discountedPrice?: number | null;
+    isOnSale?: boolean;
+    seasonId?: string | null;
+    seasonName?: string | null;
 }
 
 export type CatalogCategory = {
@@ -37,4 +64,16 @@ export type CatalogApiProduct = {
     isNewArrival: boolean;
     images: string[];
     createdAt: string;
+    discount?: ProductDiscount | null;
+    discountedPrice?: number | null;
+    isOnSale?: boolean;
+    seasonId?: string | null;
+    seasonName?: string | null;
+};
+
+export type CatalogPayload = {
+    categories: CatalogCategory[];
+    products: CatalogApiProduct[];
+    featuredProducts: CatalogApiProduct[];
+    activeSeason: Season | null;
 };

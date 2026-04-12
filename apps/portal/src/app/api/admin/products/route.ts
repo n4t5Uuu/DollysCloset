@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { activityHelper } from "@/lib/activity/activity-helper";
-import { createAdminClient, productHelper } from "@dollys-closet/core";
+import { createAdminClient, discountHelper, productHelper } from "@dollys-closet/core";
 import { requireRequestAuth } from "@/lib/auth/auth-server";
 import {
   sanitizeMultilineText,
@@ -8,6 +8,46 @@ import {
   schemaExactLimits,
   uiContentLimits,
 } from "@dollys-closet/core";
+
+type ProductScope = "active" | "archived" | "all";
+
+function normalizeScope(rawScope: string | null): ProductScope {
+  if (rawScope === "archived" || rawScope === "all") {
+    return rawScope;
+  }
+
+  return "active";
+}
+
+function normalizeSeasonId(value: unknown) {
+  return typeof value === "string" && value.trim() ? value.trim() : null;
+}
+
+async function validateSeasonSelection(
+  body: Record<string, unknown>,
+  seasonId: string | null,
+  supabaseAdmin: ReturnType<typeof createAdminClient>
+) {
+  if (!Object.prototype.hasOwnProperty.call(body, "season_id") || !seasonId) {
+    return null;
+  }
+
+  const { data: seasonRow, error: seasonError } = await supabaseAdmin
+    .from("tbl_season")
+    .select("season_id")
+    .eq("season_id", seasonId)
+    .maybeSingle();
+
+  if (seasonError) {
+    return NextResponse.json({ error: seasonError.message }, { status: 500 });
+  }
+
+  if (!seasonRow) {
+    return NextResponse.json({ error: "Selected season was not found." }, { status: 404 });
+  }
+
+  return null;
+}
 
 export async function GET(request: Request) {
   try {
@@ -20,8 +60,10 @@ export async function GET(request: Request) {
       return authResult.response;
     }
 
+    const { searchParams } = new URL(request.url);
+    const scope = normalizeScope(searchParams.get("scope"));
     const supabaseAdmin = createAdminClient();
-    const { data, error } = await productHelper.getProducts(supabaseAdmin);
+    const { data, error } = await productHelper.getProducts(supabaseAdmin, { scope });
 
     if (error) {
       console.error('Error fetching products:', error)
@@ -55,6 +97,7 @@ export async function POST(request: NextRequest) {
     const { user } = authResult;
     const editor = user.email || user.user_metadata?.username || 'Unknown';
 
+    const body = await request.json() as Record<string, unknown>;
     const {
       product_name,
       category_id,
@@ -66,7 +109,9 @@ export async function POST(request: NextRequest) {
       size_label,
       show_in_catalog,
       image_id,
-    } = await request.json();
+      discount_id,
+      season_id,
+    } = body;
     const normalizedProductName = sanitizeSingleLineText(product_name, schemaExactLimits.productName);
     const normalizedBrand = sanitizeSingleLineText(product_brand, schemaExactLimits.productBrand) || "Dolly's Closet";
     const normalizedDescription = sanitizeMultilineText(product_description, uiContentLimits.productDescription.maxLength);
@@ -94,6 +139,43 @@ export async function POST(request: NextRequest) {
     }
 
     const supabaseAdmin = createAdminClient();
+
+    const normalizedSeasonId = normalizeSeasonId(season_id);
+    const seasonValidationResponse = await validateSeasonSelection(body, normalizedSeasonId, supabaseAdmin);
+    if (seasonValidationResponse) {
+      return seasonValidationResponse;
+    }
+
+    if (Object.prototype.hasOwnProperty.call(body, "discount_id") && discount_id) {
+      const { data: selectedDiscount, error: discountError } = await discountHelper.getDiscountById(discount_id, supabaseAdmin);
+      if (discountError) {
+        return NextResponse.json({ error: discountError.message }, { status: 500 });
+      }
+
+      if (!selectedDiscount) {
+        return NextResponse.json({ error: "Discount not found." }, { status: 404 });
+      }
+
+      if (!selectedDiscount.is_active) {
+        return NextResponse.json({ error: "Selected discount is inactive." }, { status: 400 });
+      }
+
+      if (selectedDiscount.ends_at && new Date(selectedDiscount.ends_at).getTime() <= Date.now()) {
+        return NextResponse.json({ error: "Selected discount has already ended." }, { status: 400 });
+      }
+
+      if (selectedDiscount.discount_type === "fixed_price") {
+        const targetPrice = Math.max(0, Number(selectedDiscount.discount_value) || 0);
+        const productPrice = Math.max(0, Number.parseFloat(String(product_price)) || 0);
+
+        if (productPrice <= targetPrice) {
+          return NextResponse.json({
+            error: `This code sets the final price to ₱${targetPrice.toFixed(2)}, which must be lower than the product price.`,
+          }, { status: 400 });
+        }
+      }
+    }
+
     const { data: product, error: insertError } = await productHelper.createProduct({
       product_name: normalizedProductName,
       category_id,
@@ -104,6 +186,7 @@ export async function POST(request: NextRequest) {
       product_condition: normalizedCondition,
       size_label: normalizedSizeLabel,
       show_in_catalog: finalShowInCatalog,
+      season_id: normalizedSeasonId,
       image_id: image_id || null,
     }, supabaseAdmin);
 
@@ -112,7 +195,19 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: insertError.message }, { status: 500 });
     }
 
-    if (product) {
+    if (product && Object.prototype.hasOwnProperty.call(body, "discount_id")) {
+      if (discount_id) {
+        const { error: applyError } = await discountHelper.assignDiscountToProducts(discount_id, [product.product_id], supabaseAdmin);
+        if (applyError) {
+          return NextResponse.json({ error: applyError.message }, { status: 500 });
+        }
+      } else {
+        const { error: clearError } = await discountHelper.clearDiscountFromProducts([product.product_id], supabaseAdmin);
+        if (clearError) {
+          return NextResponse.json({ error: clearError.message }, { status: 500 });
+        }
+      }
+
       await activityHelper.logActivity({
         actionType: 'create_product',
         productId: product.product_id,
@@ -147,7 +242,8 @@ export async function PUT(request: NextRequest) {
     const { user } = authResult;
     const editor = user.email || user.user_metadata?.username || 'Unknown';
 
-    const { product_id, product_name, category_id, product_price, product_brand, product_description, product_stock, product_condition, size_label, show_in_catalog, image_id } = await request.json();
+    const body = await request.json() as Record<string, unknown>;
+    const { product_id, product_name, category_id, product_price, product_brand, product_description, product_stock, product_condition, size_label, show_in_catalog, image_id, discount_id, season_id } = body;
     const normalizedProductName = sanitizeSingleLineText(product_name, schemaExactLimits.productName);
     const normalizedBrand = sanitizeSingleLineText(product_brand, schemaExactLimits.productBrand) || "Dolly's Closet";
     const normalizedDescription = sanitizeMultilineText(product_description, uiContentLimits.productDescription.maxLength);
@@ -159,7 +255,23 @@ export async function PUT(request: NextRequest) {
     }
 
     const supabaseAdmin = createAdminClient();
-    const { data: currentProduct } = await productHelper.getProductById(product_id, supabaseAdmin);
+    const normalizedSeasonId = normalizeSeasonId(season_id);
+    const seasonValidationResponse = await validateSeasonSelection(body, normalizedSeasonId, supabaseAdmin);
+    if (seasonValidationResponse) {
+      return seasonValidationResponse;
+    }
+
+    const { data: currentProduct } = await productHelper.getProductById(product_id, supabaseAdmin, {
+      includeArchived: true,
+    });
+
+    if (!currentProduct) {
+      return NextResponse.json({ error: 'Product not found' }, { status: 404 });
+    }
+
+    if (currentProduct.archived_at) {
+      return NextResponse.json({ error: 'Archived products must be restored before they can be edited.' }, { status: 409 });
+    }
 
     const parsedStock = parseInt(product_stock) || 0;
     const requestedShowInCatalog = show_in_catalog !== false;
@@ -188,9 +300,41 @@ export async function PUT(request: NextRequest) {
       if (currentProduct.product_condition !== normalizedCondition) changes.push(`condition: ${currentProduct.product_condition} → ${normalizedCondition}`);
       if (currentProduct.size_label !== normalizedSizeLabel) changes.push(`size: ${currentProduct.size_label} → ${normalizedSizeLabel}`);
       if (currentProduct.show_in_catalog !== finalShowInCatalog) changes.push(`visibility: ${currentProduct.show_in_catalog ? 'shown' : 'hidden'} → ${finalShowInCatalog ? 'shown' : 'hidden'}`);
+      if ((currentProduct.season_id || null) !== normalizedSeasonId) changes.push(`season updated`);
     }
 
     let normalizedImageId: string | number | null = null;
+
+    if (Object.prototype.hasOwnProperty.call(body, "discount_id") && discount_id) {
+      const { data: selectedDiscount, error: discountError } = await discountHelper.getDiscountById(discount_id, supabaseAdmin);
+      if (discountError) {
+        return NextResponse.json({ error: discountError.message }, { status: 500 });
+      }
+
+      if (!selectedDiscount) {
+        return NextResponse.json({ error: 'Discount not found.' }, { status: 404 });
+      }
+
+      if (!selectedDiscount.is_active) {
+        return NextResponse.json({ error: 'Selected discount is inactive.' }, { status: 400 });
+      }
+
+      if (selectedDiscount.ends_at && new Date(selectedDiscount.ends_at).getTime() <= Date.now()) {
+        return NextResponse.json({ error: 'Selected discount has already ended.' }, { status: 400 });
+      }
+
+      if (selectedDiscount.discount_type === "fixed_price") {
+        const targetPrice = Math.max(0, Number(selectedDiscount.discount_value) || 0);
+        const productPrice = Math.max(0, Number.parseFloat(String(product_price)) || 0);
+
+        if (productPrice <= targetPrice) {
+          return NextResponse.json({
+            error: `This code sets the final price to ₱${targetPrice.toFixed(2)}, which must be lower than the product price.`,
+          }, { status: 400 });
+        }
+      }
+    }
+
     if (image_id !== null && image_id !== undefined && String(image_id).trim() !== '') {
       const parsedImageId = Number.parseInt(String(image_id), 10);
       const imageIdValue = Number.isNaN(parsedImageId) ? String(image_id).trim() : parsedImageId;
@@ -218,12 +362,31 @@ export async function PUT(request: NextRequest) {
       product_condition: normalizedCondition,
       size_label: normalizedSizeLabel,
       show_in_catalog: finalShowInCatalog,
+      season_id: normalizedSeasonId,
       image_id: normalizedImageId,
     }, supabaseAdmin);
 
     if (updateError) {
       console.error('Update error:', updateError);
       return NextResponse.json({ error: updateError.message }, { status: 500 });
+    }
+
+    if (Object.prototype.hasOwnProperty.call(body, "discount_id")) {
+      if (discount_id) {
+        const { error: applyError } = await discountHelper.assignDiscountToProducts(discount_id, [product_id], supabaseAdmin);
+        if (applyError) {
+          return NextResponse.json({ error: applyError.message }, { status: 500 });
+        }
+
+        changes.push(`discount assigned`);
+      } else {
+        const { error: clearError } = await discountHelper.clearDiscountFromProducts([product_id], supabaseAdmin);
+        if (clearError) {
+          return NextResponse.json({ error: clearError.message }, { status: 500 });
+        }
+
+        changes.push(`discount removed`);
+      }
     }
 
     await activityHelper.logActivity({
@@ -246,92 +409,9 @@ export async function PUT(request: NextRequest) {
   }
 }
 
-export async function DELETE(request: NextRequest) {
-  try {
-    const authResult = await requireRequestAuth(request, {
-      allowedRoles: ["admin", "employee"],
-    });
-
-    if (!authResult.ok) {
-      return authResult.response;
-    }
-
-    const { user } = authResult;
-    const editor = user.email || user.user_metadata?.username || 'Unknown';
-
-    const { product_id } = await request.json();
-
-    if (!product_id) {
-      return NextResponse.json({ error: 'Missing product_id' }, { status: 400 });
-    }
-
-    const productIdValue = Number.parseInt(String(product_id), 10);
-    if (Number.isNaN(productIdValue)) {
-      return NextResponse.json({ error: 'Invalid product_id' }, { status: 400 });
-    }
-
-    const supabaseAdmin = createAdminClient();
-    const { data: images, error: imagesError } = await productHelper.getProductImages(productIdValue, supabaseAdmin);
-
-    if (imagesError) {
-      console.error('Image fetch error:', imagesError);
-      return NextResponse.json({ error: imagesError.message }, { status: 500 });
-    }
-
-    if (images && images.length > 0) {
-      const { error: clearImageReferenceError } = await productHelper.updateProduct(
-        productIdValue,
-        { image_id: null },
-        supabaseAdmin
-      );
-
-      if (clearImageReferenceError) {
-        console.error('Clear image reference error:', clearImageReferenceError);
-        return NextResponse.json({ error: clearImageReferenceError.message }, { status: 500 });
-      }
-
-      const filePaths = images
-        .map((img) => img.image_url?.split('/').slice(-2).join('/'))
-        .filter((path) => path);
-
-      if (filePaths.length > 0) {
-        await supabaseAdmin.storage.from('product-images').remove(filePaths);
-      }
-
-      const { error: imageDeleteError } = await productHelper.deleteProductImageReferences(
-        productIdValue,
-        supabaseAdmin
-      );
-
-      if (imageDeleteError) {
-        console.error('Image delete error:', imageDeleteError);
-        return NextResponse.json({ error: imageDeleteError.message }, { status: 500 });
-      }
-    }
-
-    const { error: deleteError } = await productHelper.deleteProduct(productIdValue, supabaseAdmin);
-
-    if (deleteError) {
-      console.error('Delete error:', deleteError);
-      return NextResponse.json({ error: deleteError.message }, { status: 500 });
-    }
-
-    await activityHelper.logActivity({
-      actionType: 'delete_product',
-      productId: product_id,
-      description: 'Deleted product',
-      editor: editor,
-      user_id: user.id,
-      supabase: supabaseAdmin
-    });
-
-    return NextResponse.json({
-      success: true,
-      message: 'Product deleted successfully'
-    });
-
-  } catch (error: unknown) {
-    console.error('Error deleting product:', error);
-    return NextResponse.json({ error: error instanceof Error ? error.message : 'Internal server error' }, { status: 500 });
-  }
+export async function DELETE() {
+  return NextResponse.json(
+    { error: 'Hard delete is disabled. Archive products instead.' },
+    { status: 405 }
+  );
 }

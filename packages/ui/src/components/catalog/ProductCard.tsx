@@ -4,19 +4,18 @@ import { CardTitle } from "../ui/card"
 import { cn, type Product, resolveProductPlaceholder, useProductMetadata } from "@dollys-closet/core"
 
 import Image from "next/image"
-import { useRef, useState } from "react"
-
-import { ProductBadge } from "./ProductBadge";
+import { useMemo, useRef, useState } from "react"
 
 interface ProductCardProps {
     product?: Product;
     href?: string;
     onClick?: () => void;
+    compact?: boolean;
 }
 
 type AnimPhase = "idle" | "prepare" | "animating";
 
-export default function ProductCard({ product, href, onClick }: ProductCardProps) {
+export default function ProductCard({ product, href, onClick, compact }: ProductCardProps) {
     const validImages = product?.images.filter(Boolean) ?? [];
     const fallback = product ? resolveProductPlaceholder(product.category) : "";
     const firstSrc = validImages[0] || fallback;
@@ -31,14 +30,84 @@ export default function ProductCard({ product, href, onClick }: ProductCardProps
     const rafRef = useRef<number | null>(null);
 
     // Get centralized metadata
-    const { 
-        isSoldOut, 
-        eyebrow, 
-        categoryLabel, 
-        badges, 
-        metadataChips, 
-        formattedPrice 
+    const {
+        isSoldOut,
+        hasLowStock,
+        hasDiscount,
+        eyebrow,
+        categoryLabel,
+        metadataChips,
+        formattedPrice,
+        formattedOriginalPrice,
+        formattedSalePrice,
     } = useProductMetadata(product || {} as Product);
+
+    const discountDisplayInfo = useMemo(() => {
+        if (!hasDiscount || !product?.discount || product.discountedPrice === null || product.discountedPrice === undefined) {
+            return null;
+        }
+
+        const discountType = product.discount.discount_type;
+        const rawValue = Math.max(0, Number(product.discount.discount_value) || 0);
+        const originalPrice = Math.max(0, Number(product.price) || 0);
+        const discountedPrice = Math.max(0, Number(product.discountedPrice) || 0);
+        const amountOff = Math.max(0, originalPrice - discountedPrice);
+        const effectivePercent = originalPrice > 0 ? (amountOff / originalPrice) * 100 : 0;
+
+        const formatNumber = (value: number) => {
+            if (Number.isInteger(value)) return value.toLocaleString();
+            return value.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 });
+        };
+
+        const formatPercent = (value: number) => `${Math.round(value)}%`;
+
+        const topRightLabel = discountType === "percent"
+            ? formatPercent(rawValue)
+            : discountType === "fixed_price"
+                ? formatPercent(effectivePercent)
+                : `-${formatNumber(rawValue)}`;
+
+        const codeDiscountLabel = discountType === "percent"
+            ? formatPercent(rawValue)
+            : formatPercent(effectivePercent);
+
+        return {
+            topRightLabel,
+            codeLabel: product.discount.discount_name
+                ? `${product.discount.discount_name} - ${codeDiscountLabel}`
+                : codeDiscountLabel,
+        };
+    }, [hasDiscount, product]);
+
+    const ribbon = useMemo(() => {
+        if (!product) return null;
+        if (isSoldOut) {
+            return { label: "Sold Out", bg: "#121212", text: "#ffffff" };
+        }
+        if (hasDiscount && discountDisplayInfo) {
+            const raw = discountDisplayInfo.topRightLabel;
+            const label = raw.startsWith("-") ? raw : `-${raw}`;
+            return { label, bg: "#c95f7b", text: "#ffffff" };
+        }
+        if (product.isNewArrival) {
+            return { label: "New", bg: "#E7A3B0", text: "#ffffff" };
+        }
+        return null;
+    }, [product, isSoldOut, hasDiscount, discountDisplayInfo]);
+
+    const overlayChips = useMemo(() => {
+        const chips: { label: string; tone: "neutral" | "info" | "warning" }[] = [];
+        if (product?.seasonName && product.seasonName.trim()) {
+            chips.push({ label: product.seasonName.trim(), tone: "info" });
+        }
+        if (hasLowStock && product) {
+            chips.push({ label: `${product.stock} Left`, tone: "warning" });
+        }
+        for (const chip of metadataChips) {
+            chips.push({ label: chip, tone: "neutral" });
+        }
+        return chips;
+    }, [product, hasLowStock, metadataChips]);
 
     if (!product) {
         return (
@@ -87,6 +156,9 @@ export default function ProductCard({ product, href, onClick }: ProductCardProps
         setPhase("idle");
     };
 
+    // Keep chip count tight so the card stays compact and scannable.
+    const visibleChips = overlayChips.slice(0, 3);
+
     return (
         <a
             href={href}
@@ -94,15 +166,15 @@ export default function ProductCard({ product, href, onClick }: ProductCardProps
             onClick={(e) => { e.preventDefault(); onClick?.(); }}
             onMouseEnter={handleMouseEnter}
             onMouseLeave={handleMouseLeave}
-            className="group block h-full w-full text-left focus-visible:outline-none focus-visible:[&>article]:ring-2 focus-visible:[&>article]:ring-[#E7A3B0] focus-visible:[&>article]:ring-offset-4"
+            className="group block h-full w-full text-left focus-visible:outline-none focus-visible:[&>article]:ring-2 focus-visible:[&>article]:ring-[#E7A3B0] focus-visible:[&>article]:ring-offset-2"
         >
             <article
                 className={cn(
-                    "flex h-full flex-col rounded-[1rem] bg-white p-1.5 shadow-[0_8px_24px_rgba(18,18,18,0.10),0_2px_8px_rgba(231,163,176,0.10)] transition-all duration-300 overflow-hidden",
-                    "group-hover:-translate-y-1 group-hover:shadow-[0_20px_48px_rgba(18,18,18,0.15),0_4px_16px_rgba(231,163,176,0.15)]"
+                    "relative flex h-full flex-col overflow-hidden rounded-xl bg-white shadow-md transition-all duration-300",
+                    "group-hover:-translate-y-1 group-hover:shadow-xl"
                 )}
             >
-                <div className="relative aspect-3/4 overflow-hidden rounded-[0.8rem] bg-[#f7eef1]">
+                <div className={cn("relative overflow-hidden bg-[#f7eef1]", compact ? "aspect-square sm:aspect-3/4" : "aspect-3/4")}>
                     <div
                         className={cn(
                             "absolute inset-0",
@@ -115,7 +187,10 @@ export default function ProductCard({ product, href, onClick }: ProductCardProps
                             alt={product.name}
                             fill
                             sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 20vw"
-                            className={cn("object-cover", isSoldOut ? "grayscale-[0.3]" : "")}
+                            className={cn(
+                                "object-cover transition-transform duration-500 group-hover:scale-105",
+                                isSoldOut ? "grayscale-[0.3]" : ""
+                            )}
                         />
                     </div>
 
@@ -132,74 +207,101 @@ export default function ProductCard({ product, href, onClick }: ProductCardProps
                                 alt={product.name}
                                 fill
                                 sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 20vw"
-                                className={cn("object-cover", isSoldOut ? "grayscale-[0.3]" : "")}
+                                className={cn(
+                                    "object-cover transition-transform duration-500 group-hover:scale-105",
+                                    isSoldOut ? "grayscale-[0.3]" : ""
+                                )}
                             />
                         </div>
                     )}
 
-                    {/* Hover Overlay */}
-                    <div className="absolute inset-0 bg-black/40 opacity-0 transition-all duration-300 group-hover:opacity-100 flex items-center justify-center backdrop-blur-[2px]">
-                        <span className="font-playfair-display text-white text-lg md:text-xl font-medium tracking-wide translate-y-4 transition-transform duration-300 group-hover:translate-y-0 relative">
-                            View Details
-                            <span className="absolute -bottom-1 left-0 w-0 h-[1.5px] bg-white transition-all duration-500 group-hover:w-full" />
-                        </span>
-                    </div>
-
-                    <div className="pointer-events-none absolute inset-x-0 bottom-0 h-24 bg-linear-to-t from-black/25 via-black/0 to-transparent opacity-70" />
-
-                    <div className="absolute inset-x-3 top-3 flex max-w-[calc(100%-1.5rem)] flex-wrap gap-2">
-                        {badges.map((badge) => (
-                            <ProductBadge 
-                                key={badge.label} 
-                                label={badge.label} 
-                                className={badge.className} 
-                                mobileHidden={badge.mobileHidden} 
-                            />
-                        ))}
-                    </div>
+                    {ribbon && (
+                        <div
+                            className="absolute left-0 top-3 z-10 flex items-center justify-center rounded-r-[6px] px-2.5 py-1 shadow-[0_4px_12px_rgba(18,18,18,0.22)]"
+                            style={{ backgroundColor: ribbon.bg }}
+                            aria-label={ribbon.label}
+                        >
+                            <span
+                                className="font-oswald text-[11px] font-semibold uppercase tracking-[0.18em]"
+                                style={{ color: ribbon.text }}
+                            >
+                                {ribbon.label}
+                            </span>
+                        </div>
+                    )}
                 </div>
 
-                <div className="flex flex-1 flex-col gap-2 px-2 pb-1.5 pt-3">
-                    <div className="min-w-0">
-                        <p className="hidden sm:block font-montserrat text-[10px] font-semibold uppercase tracking-[0.16em] text-[#6f5058] truncate">
-                            {categoryLabel}
-                        </p>
-                        <p className="font-oswald text-[11px] uppercase tracking-[0.28em] text-[#b47c88] truncate" title={eyebrow}>
-                            {eyebrow}
-                        </p>
-                        <CardTitle 
-                            className="mt-1 font-playfair-display text-sm sm:text-base leading-snug text-[#121212] line-clamp-3 break-all"
-                            title={product.name}
-                        >
-                            {product.name}
-                        </CardTitle>
+                <div className="flex flex-1 flex-col gap-1 p-2 sm:gap-2 sm:p-4">
+                    {/* Category · Brand line — single compact row */}
+                    <div className="flex items-center gap-2 text-[9px] sm:text-[10px] font-medium uppercase tracking-[0.14em] text-[#8b7580]">
+                        {/* Desktop: category label */}
+                        <span className="hidden sm:inline truncate font-montserrat">{categoryLabel}</span>
+                        {/* Desktop: separator + brand (only if different from category) */}
+                        {eyebrow && eyebrow !== categoryLabel && (
+                            <>
+                                <span className="hidden sm:inline text-[#c0929d]">·</span>
+                                <span className="hidden sm:inline truncate font-montserrat">{eyebrow}</span>
+                            </>
+                        )}
+                        {/* Mobile: brand only */}
+                        {eyebrow && (
+                            <span className="sm:hidden truncate font-montserrat">{eyebrow}</span>
+                        )}
                     </div>
 
-                    {metadataChips.length > 0 && (
-                        <div className="flex flex-wrap gap-1.5">
-                            {metadataChips.map((chip) => (
-                                <span
-                                    key={chip}
-                                    className="rounded-full bg-[#f8f3f4] px-2 py-0.5 font-montserrat text-[9px] sm:text-[10px] font-medium uppercase tracking-[0.12em] text-[#6a5a5f] truncate max-w-full"
-                                >
-                                    {chip}
-                                </span>
-                            ))}
+                    <CardTitle
+                        className="font-playfair-display text-xs sm:text-sm font-semibold leading-tight text-[#121212] truncate"
+                        title={product.name}
+                    >
+                        {product.name}
+                    </CardTitle>
+
+                    {visibleChips.length > 0 && (
+                        <div className="flex flex-wrap gap-1 sm:gap-1.5">
+                            {visibleChips.map((chip) => {
+                                const toneClass =
+                                    chip.tone === "info"
+                                        ? "border-[#b8daf0]/70 bg-[#eef7ff] text-[#2b6b93]"
+                                        : chip.tone === "warning"
+                                            ? "border-[#f2c98a]/60 bg-[#fff8ec] text-[#9a6a17]"
+                                            : "border-[#efdde1] bg-[#fff9fb] text-[#725c62]";
+                                return (
+                                    <span
+                                        key={`${chip.tone}-${chip.label}`}
+                                        className={cn(
+                                            "max-w-full truncate rounded-full border px-1.5 py-px sm:px-2 sm:py-0.5 font-montserrat text-[9px] sm:text-[10px] font-medium",
+                                            chip.tone === "info" && "hidden sm:inline-flex",
+                                            toneClass
+                                        )}
+                                    >
+                                        {chip.label}
+                                    </span>
+                                );
+                            })}
                         </div>
                     )}
 
-                    <div className="mt-auto border-t border-[#E7A3B0]/12 pt-2">
-                        <div>
-                            <p className="font-oswald text-[10px] uppercase tracking-[0.28em] text-[#c0929d]">
-                                {isSoldOut ? "Last Price" : "Price"}
-                            </p>
-                            <p className={cn(
-                                "font-oswald text-xl tracking-[0.04em]",
-                                isSoldOut ? "text-[#8b7580]" : "text-[#E7A3B0]"
-                            )}>
+                    {/* Price — bold + dark, optional strikethrough original */}
+                    <div className="mt-auto flex items-baseline gap-1 sm:gap-2 pt-0 sm:pt-1">
+                        {hasDiscount && !isSoldOut && formattedSalePrice ? (
+                            <>
+                                <span className="font-oswald text-base sm:text-lg font-bold tracking-[0.02em] text-[#1a1a1a]">
+                                    {formattedSalePrice}
+                                </span>
+                                <span className="font-montserrat text-xs text-[#8b7580] line-through">
+                                    {formattedOriginalPrice}
+                                </span>
+                            </>
+                        ) : (
+                            <span
+                                className={cn(
+                                    "font-oswald text-base sm:text-lg font-bold tracking-[0.02em]",
+                                    isSoldOut ? "text-[#8b7580]" : "text-[#1a1a1a]"
+                                )}
+                            >
                                 {formattedPrice}
-                            </p>
-                        </div>
+                            </span>
+                        )}
                     </div>
                 </div>
             </article>

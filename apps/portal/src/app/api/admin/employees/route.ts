@@ -8,6 +8,16 @@ import {
   schemaExactLimits,
 } from "@dollys-closet/core";
 
+type EmployeeScope = "active" | "archived" | "all";
+
+function normalizeScope(rawScope: string | null): EmployeeScope {
+  if (rawScope === "archived" || rawScope === "all") {
+    return rawScope;
+  }
+
+  return "active";
+}
+
 export async function GET(request: Request) {
   try {
     const authResult = await requireRequestAuth(request, {
@@ -19,8 +29,10 @@ export async function GET(request: Request) {
       return authResult.response;
     }
 
+    const { searchParams } = new URL(request.url);
+    const scope = normalizeScope(searchParams.get("scope"));
     const supabaseAdmin = createAdminClient();
-    const { data, error } = await employeeHelper.getUsers(supabaseAdmin);
+    const { data, error } = await employeeHelper.getUsers(supabaseAdmin, { scope });
 
     if (error) {
       console.error('Error fetching employees:', error)
@@ -125,7 +137,17 @@ export async function PUT(request: NextRequest) {
     }
 
     const supabaseAdmin = createAdminClient();
-    const { data: currentEmployee } = await employeeHelper.getUserById(employee_id, supabaseAdmin);
+    const { data: currentEmployee } = await employeeHelper.getUserById(employee_id, supabaseAdmin, {
+      includeArchived: true,
+    });
+
+    if (!currentEmployee) {
+      return NextResponse.json({ error: 'Employee not found' }, { status: 404 });
+    }
+
+    if (currentEmployee.archived_at) {
+      return NextResponse.json({ error: 'Archived employees must be restored before they can be edited.' }, { status: 409 });
+    }
 
     const changes: string[] = [];
     if (currentEmployee) {
@@ -167,51 +189,8 @@ export async function PUT(request: NextRequest) {
 }
 
 export async function DELETE(request: NextRequest) {
-  try {
-    const authResult = await requireRequestAuth(request, {
-      allowedRoles: ["admin"],
-    });
-
-    if (!authResult.ok) {
-      return authResult.response;
-    }
-
-    const { user } = authResult;
-    const editor = user.email || user.user_metadata?.username || 'Unknown';
-
-    const { employee_id } = await request.json();
-
-    if (!employee_id) {
-      return NextResponse.json({ error: 'Missing employee_id' }, { status: 400 });
-    }
-
-    if (employee_id === user.id) {
-      return NextResponse.json({ error: 'You cannot delete your own account.' }, { status: 403 });
-    }
-
-    const supabaseAdmin = createAdminClient();
-    const { error: deleteError } = await employeeHelper.deleteEmployeeAccount(employee_id, supabaseAdmin);
-
-    if (deleteError) {
-      return NextResponse.json({ error: deleteError.message }, { status: 500 });
-    }
-
-    await activityHelper.logActivity({
-      actionType: 'delete_employee',
-      productId: null,
-      description: 'Deleted employee',
-      editor: editor,
-      user_id: user.id,
-      supabase: supabaseAdmin
-    });
-
-    return NextResponse.json({
-      success: true,
-      message: 'Employee deleted successfully'
-    });
-
-  } catch (error: unknown) {
-    console.error('Error deleting employee:', error);
-    return NextResponse.json({ error: error instanceof Error ? error.message : 'Internal server error' }, { status: 500 });
-  }
+  return NextResponse.json(
+    { error: 'Hard delete is disabled. Archive employee accounts instead.' },
+    { status: 405 }
+  );
 }
