@@ -1,5 +1,5 @@
 import { BetaAnalyticsDataClient } from '@google-analytics/data';
-import { createAdminClient, productHelper } from '@dollys-closet/core';
+import { createAdminClient, InventoryProduct, productHelper } from '@dollys-closet/core';
 import { NextResponse } from 'next/server';
 import { activityHelper } from '@/lib/activity/activity-helper';
 import { requireRequestAuth } from '@/lib/auth/auth-server';
@@ -81,7 +81,7 @@ export async function GET(request: Request) {
       activityHelper.fetchLogsByAction('edit_product', sinceDate || undefined, untilDate || undefined, supabaseAdmin),
     ]);
 
-    const products = productsResult.data ?? [];
+    const products = (productsResult.data ?? []) as InventoryProduct[];
     const categories = categoriesResult.data ?? [];
     const editLogs = logsResult.data ?? [];
 

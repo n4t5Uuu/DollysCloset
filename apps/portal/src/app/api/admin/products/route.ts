@@ -112,6 +112,8 @@ export async function POST(request: NextRequest) {
       discount_id,
       season_id,
     } = body;
+    const normalizedDiscountId =
+      typeof discount_id === "string" || typeof discount_id === "number" ? discount_id : null;
     const normalizedProductName = sanitizeSingleLineText(product_name, schemaExactLimits.productName);
     const normalizedBrand = sanitizeSingleLineText(product_brand, schemaExactLimits.productBrand) || "Dolly's Closet";
     const normalizedDescription = sanitizeMultilineText(product_description, uiContentLimits.productDescription.maxLength);
@@ -122,7 +124,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
     }
 
-    const parsedStock = parseInt(product_stock) || 0;
+    const parsedStock = Number.parseInt(String(product_stock), 10) || 0;
     const requestedShowInCatalog = show_in_catalog !== false;
 
     if (parsedStock === 0 && requestedShowInCatalog) {
@@ -146,8 +148,8 @@ export async function POST(request: NextRequest) {
       return seasonValidationResponse;
     }
 
-    if (Object.prototype.hasOwnProperty.call(body, "discount_id") && discount_id) {
-      const { data: selectedDiscount, error: discountError } = await discountHelper.getDiscountById(discount_id, supabaseAdmin);
+    if (Object.prototype.hasOwnProperty.call(body, "discount_id") && normalizedDiscountId) {
+      const { data: selectedDiscount, error: discountError } = await discountHelper.getDiscountById(normalizedDiscountId, supabaseAdmin);
       if (discountError) {
         return NextResponse.json({ error: discountError.message }, { status: 500 });
       }
@@ -179,7 +181,7 @@ export async function POST(request: NextRequest) {
     const { data: product, error: insertError } = await productHelper.createProduct({
       product_name: normalizedProductName,
       category_id,
-      product_price: parseFloat(product_price),
+      product_price: Number.parseFloat(String(product_price)),
       product_brand: normalizedBrand,
       product_description: normalizedDescription,
       product_stock: parsedStock,
@@ -196,8 +198,8 @@ export async function POST(request: NextRequest) {
     }
 
     if (product && Object.prototype.hasOwnProperty.call(body, "discount_id")) {
-      if (discount_id) {
-        const { error: applyError } = await discountHelper.assignDiscountToProducts(discount_id, [product.product_id], supabaseAdmin);
+      if (normalizedDiscountId) {
+        const { error: applyError } = await discountHelper.assignDiscountToProducts(normalizedDiscountId, [product.product_id], supabaseAdmin);
         if (applyError) {
           return NextResponse.json({ error: applyError.message }, { status: 500 });
         }
@@ -244,13 +246,19 @@ export async function PUT(request: NextRequest) {
 
     const body = await request.json() as Record<string, unknown>;
     const { product_id, product_name, category_id, product_price, product_brand, product_description, product_stock, product_condition, size_label, show_in_catalog, image_id, discount_id, season_id } = body;
+    const normalizedProductId =
+      typeof product_id === "string" || typeof product_id === "number" ? product_id : null;
+    const normalizedDiscountId =
+      typeof discount_id === "string" || typeof discount_id === "number" ? discount_id : null;
     const normalizedProductName = sanitizeSingleLineText(product_name, schemaExactLimits.productName);
     const normalizedBrand = sanitizeSingleLineText(product_brand, schemaExactLimits.productBrand) || "Dolly's Closet";
     const normalizedDescription = sanitizeMultilineText(product_description, uiContentLimits.productDescription.maxLength);
     const normalizedCondition = sanitizeSingleLineText(product_condition || 'New', schemaExactLimits.productCondition) || 'New';
     const normalizedSizeLabel = sanitizeSingleLineText(size_label || 'One Size', schemaExactLimits.productSizeLabel) || 'One Size';
+    const parseFloat = (value: unknown) => Number.parseFloat(String(value));
+    const numericProductId = Number.parseInt(String(normalizedProductId), 10);
 
-    if (!product_id || !normalizedProductName || !category_id || product_price === undefined) {
+    if (!normalizedProductId || !normalizedProductName || !category_id || product_price === undefined) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
     }
 
@@ -261,7 +269,7 @@ export async function PUT(request: NextRequest) {
       return seasonValidationResponse;
     }
 
-    const { data: currentProduct } = await productHelper.getProductById(product_id, supabaseAdmin, {
+    const { data: currentProduct } = await productHelper.getProductById(normalizedProductId, supabaseAdmin, {
       includeArchived: true,
     });
 
@@ -273,7 +281,7 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json({ error: 'Archived products must be restored before they can be edited.' }, { status: 409 });
     }
 
-    const parsedStock = parseInt(product_stock) || 0;
+    const parsedStock = Number.parseInt(String(product_stock), 10) || 0;
     const requestedShowInCatalog = show_in_catalog !== false;
 
     if (parsedStock === 0 && requestedShowInCatalog) {
@@ -305,8 +313,8 @@ export async function PUT(request: NextRequest) {
 
     let normalizedImageId: string | number | null = null;
 
-    if (Object.prototype.hasOwnProperty.call(body, "discount_id") && discount_id) {
-      const { data: selectedDiscount, error: discountError } = await discountHelper.getDiscountById(discount_id, supabaseAdmin);
+    if (Object.prototype.hasOwnProperty.call(body, "discount_id") && normalizedDiscountId) {
+      const { data: selectedDiscount, error: discountError } = await discountHelper.getDiscountById(normalizedDiscountId, supabaseAdmin);
       if (discountError) {
         return NextResponse.json({ error: discountError.message }, { status: 500 });
       }
@@ -341,7 +349,7 @@ export async function PUT(request: NextRequest) {
 
       const { data: linkedImage, error: linkedImageError } = await productHelper.verifyProductImage(
         imageIdValue,
-        product_id,
+        normalizedProductId,
         supabaseAdmin
       );
 
@@ -352,10 +360,10 @@ export async function PUT(request: NextRequest) {
       normalizedImageId = linkedImage?.image_id ?? null;
     }
 
-    const { error: updateError } = await productHelper.updateProduct(product_id, {
+    const { error: updateError } = await productHelper.updateProduct(normalizedProductId, {
       product_name: normalizedProductName,
       category_id,
-      product_price: parseFloat(product_price),
+      product_price: Number.parseFloat(String(product_price)),
       product_brand: normalizedBrand,
       product_description: normalizedDescription,
       product_stock: parsedStock,
@@ -372,15 +380,15 @@ export async function PUT(request: NextRequest) {
     }
 
     if (Object.prototype.hasOwnProperty.call(body, "discount_id")) {
-      if (discount_id) {
-        const { error: applyError } = await discountHelper.assignDiscountToProducts(discount_id, [product_id], supabaseAdmin);
+      if (normalizedDiscountId) {
+        const { error: applyError } = await discountHelper.assignDiscountToProducts(normalizedDiscountId, [normalizedProductId], supabaseAdmin);
         if (applyError) {
           return NextResponse.json({ error: applyError.message }, { status: 500 });
         }
 
         changes.push(`discount assigned`);
       } else {
-        const { error: clearError } = await discountHelper.clearDiscountFromProducts([product_id], supabaseAdmin);
+        const { error: clearError } = await discountHelper.clearDiscountFromProducts([normalizedProductId], supabaseAdmin);
         if (clearError) {
           return NextResponse.json({ error: clearError.message }, { status: 500 });
         }
@@ -391,7 +399,7 @@ export async function PUT(request: NextRequest) {
 
     await activityHelper.logActivity({
       actionType: 'edit_product',
-      productId: product_id,
+      productId: Number.isNaN(numericProductId) ? undefined : numericProductId,
       description: changes.length > 0 ? `Updated product "${normalizedProductName}": ${changes.join(', ')}` : `Updated product "${normalizedProductName}"`,
       editor: editor,
       user_id: user.id,

@@ -1,7 +1,8 @@
 import { useEffect } from "react";
 /* eslint-disable @next/next/no-img-element */
-import { InventoryProduct as Product, InventoryProductImage as ProductImage } from "@dollys-closet/core";
-import { X, Eye, EyeOff, Tag, Package, Ruler, BadgePercent, Clock, Calendar } from "lucide-react";
+import { InventoryProduct as Product, InventoryProductImage as ProductImage, Season } from "@dollys-closet/core";
+import { X, Eye, EyeOff, Tag, Package, Ruler, BadgePercent, Clock, Calendar, CalendarRange } from "lucide-react";
+import { getSeasonColor } from "@/components/seasons/SeasonCalendar";
 
 interface ViewProductDialogProps {
   product: Product | null;
@@ -10,6 +11,7 @@ interface ViewProductDialogProps {
   onSelectedImageChange: (url: string | null) => void;
   onClose: () => void;
   getCategoryName: (id: number) => string;
+  seasons?: Season[];
 }
 
 export default function ViewProductDialog({
@@ -18,7 +20,8 @@ export default function ViewProductDialog({
   selectedImage,
   onSelectedImageChange,
   onClose,
-  getCategoryName
+  getCategoryName,
+  seasons = [],
 }: ViewProductDialogProps) {
   useEffect(() => {
     if (!product) return;
@@ -55,6 +58,14 @@ export default function ViewProductDialog({
   };
 
   const lastUpdated = product.updated_at || product.time_updated || null;
+
+  const MONTH_ABBR = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"] as const;
+  const season =
+    product.season_id && seasons.length > 0
+      ? seasons.find((s) => String(s.id) === String(product.season_id)) ?? null
+      : null;
+  const formatSeasonWindow = (s: Season) =>
+    `${MONTH_ABBR[s.startMonth - 1]} ${s.startDay} \u2013 ${MONTH_ABBR[s.endMonth - 1]} ${s.endDay}`;
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={(event) => {
@@ -143,6 +154,23 @@ export default function ViewProductDialog({
           <div className="rounded-2xl border border-[#E7A3B0]/15 bg-[#fffafc] p-4">
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
               <InfoCell icon={<Tag className="h-3.5 w-3.5" />} label="Category" value={getCategoryName(product.category_id)} />
+              <InfoCell
+                icon={<CalendarRange className="h-3.5 w-3.5" />}
+                label="Season"
+                value={
+                  season
+                    ? `${season.name} (${formatSeasonWindow(season)})${season.isActive === false ? " \u2022 inactive" : ""}`
+                    : "-"
+                }
+                ribbon={
+                  season
+                    ? (() => {
+                        const tone = getSeasonColor(season.id, seasons, null);
+                        return { borderColor: tone.border, trackColor: tone.bg };
+                      })()
+                    : undefined
+                }
+              />
               <InfoCell label="Brand" value={product.product_brand || "-"} />
               <InfoCell label="Condition" value={product.product_condition || "-"} />
               <InfoCell icon={<Ruler className="h-3.5 w-3.5" />} label="Size" value={product.size_label || "-"} />
@@ -214,14 +242,38 @@ export default function ViewProductDialog({
   );
 }
 
-function InfoCell({ icon, label, value, highlight, mono }: { icon?: React.ReactNode; label: string; value: string; highlight?: "warning"; mono?: boolean }) {
+function InfoCell({
+  icon,
+  label,
+  value,
+  highlight,
+  mono,
+  ribbon,
+}: {
+  icon?: React.ReactNode;
+  label: string;
+  value: string;
+  highlight?: "warning";
+  mono?: boolean;
+  ribbon?: { borderColor: string; trackColor: string };
+}) {
   return (
     <div className="min-w-0">
       <p className="text-[11px] font-medium text-gray-400 uppercase tracking-wide mb-0.5 flex items-center gap-1">
         {icon}
         {label}
       </p>
-      <p className={`text-sm font-semibold break-words [overflow-wrap:anywhere] ${highlight === "warning" ? "text-orange-600" : "text-gray-900"} ${mono ? "font-mono text-xs" : ""}`}>
+      <p
+        className={`text-sm font-semibold break-words [overflow-wrap:anywhere] ${highlight === "warning" ? "text-orange-600" : "text-gray-900"} ${mono ? "font-mono text-xs" : ""} ${ribbon ? "border-l-[3px] pl-2 py-0.5 -ml-0.5" : ""}`}
+        style={
+          ribbon
+            ? {
+                borderLeftColor: ribbon.borderColor,
+                background: `linear-gradient(90deg, ${ribbon.trackColor} 0%, transparent 80%)`,
+              }
+            : undefined
+        }
+      >
         {value}
         {highlight === "warning" && <span className="ml-1.5 text-[10px] font-medium text-orange-500">Low</span>}
       </p>

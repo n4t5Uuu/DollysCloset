@@ -21,15 +21,22 @@ import {
     AlertDialogHeader,
     AlertDialogTitle,
     AlertDialogTrigger,
+    Tooltip,
+    TooltipContent,
+    TooltipTrigger,
 } from "@dollys-closet/ui";
-import { cn, InventoryProduct as Product } from "@dollys-closet/core";
-import { Eye, Pencil, Archive, RotateCcw, PackageSearch } from "lucide-react";
+import { cn, InventoryProduct as Product, ProductDiscount, Season } from "@dollys-closet/core";
+import { Eye, Pencil, Archive, RotateCcw, PackageSearch, CalendarRange, BadgePercent } from "lucide-react";
+import { getSeasonColor } from "@/components/seasons/SeasonCalendar";
 
 interface InventoryTableProps {
     mode: "active" | "archived";
     currentProducts: Product[];
+    seasons: Season[];
     selectedProducts: Set<string>;
-    toggleSelectAll: () => void;
+    allCurrentProductsSelected: boolean;
+    someCurrentProductsSelected: boolean;
+    toggleSelectAll: (checked: boolean) => void;
     toggleSelectProduct: (productId: string) => void;
     getCategoryName: (id: number) => string;
     handleViewProduct: (product: Product) => void;
@@ -45,7 +52,10 @@ interface InventoryTableProps {
 export function InventoryTable({
     mode,
     currentProducts,
+    seasons,
     selectedProducts,
+    allCurrentProductsSelected,
+    someCurrentProductsSelected,
     toggleSelectAll,
     toggleSelectProduct,
     getCategoryName,
@@ -58,6 +68,9 @@ export function InventoryTable({
     emptyTitle = "No products found",
     emptyDescription = "We couldn't find any products in your inventory matching these filters.",
 }: InventoryTableProps) {
+    const MONTH_ABBR = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"] as const;
+    const seasonById = new Map(seasons.map((season) => [season.id, season]));
+
     const getMobileCategory = (fullPath: string) => {
         const parts = fullPath.split(" > ");
         const leaf = parts[parts.length - 1];
@@ -88,6 +101,89 @@ export function InventoryTable({
         if (mode === "active") {
             handleEditProduct(product);
         }
+    };
+
+    const formatCurrency = (value: number) => `P${value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+
+    const formatDiscountSummary = (discount: ProductDiscount) => {
+        if (discount.discount_type === "percent") {
+            return `${discount.discount_value}% off`;
+        }
+
+        if (discount.discount_type === "fixed_price") {
+            return `Final price ${formatCurrency(Number(discount.discount_value))}`;
+        }
+
+        return `${formatCurrency(Number(discount.discount_value))} off`;
+    };
+
+    const formatSeasonWindow = (season: Season) =>
+        `${MONTH_ABBR[season.startMonth - 1]} ${season.startDay} - ${MONTH_ABBR[season.endMonth - 1]} ${season.endDay}`;
+
+    /** Icons on the title row only — full detail in tooltips (shortest row height). */
+    const renderCatalogAttributeIcons = (product: Product) => {
+        const season = product.season_id ? seasonById.get(String(product.season_id)) ?? null : null;
+        const discount = product.discount ?? null;
+        if (!season && !discount) return null;
+
+        return (
+            <div className="flex shrink-0 items-center gap-0.5" onClick={(e) => e.stopPropagation()}>
+                {season && (
+                    <Tooltip>
+                        <TooltipTrigger asChild>
+                            <button
+                                type="button"
+                                className="inline-flex h-6 w-6 items-center justify-center rounded text-gray-500 hover:bg-gray-100 hover:text-gray-800"
+                                style={{
+                                    color: getSeasonColor(season.id, seasons, null).border,
+                                }}
+                                aria-label={`Season: ${season.name}`}
+                            >
+                                <CalendarRange className="h-3.5 w-3.5" strokeWidth={2.25} />
+                            </button>
+                        </TooltipTrigger>
+                        <TooltipContent className="max-w-[240px] bg-white text-gray-900">
+                            <div className="space-y-1">
+                                <p className="font-semibold">{season.name}</p>
+                                <p className="text-xs text-gray-600">{formatSeasonWindow(season)}</p>
+                                <p className={`text-xs font-medium ${season.isActive === false ? "text-gray-500" : "text-emerald-600"}`}>
+                                    {season.isActive === false ? "Inactive season" : "Active season"}
+                                </p>
+                            </div>
+                        </TooltipContent>
+                    </Tooltip>
+                )}
+                {discount && (
+                    <Tooltip>
+                        <TooltipTrigger asChild>
+                            <button
+                                type="button"
+                                className="inline-flex h-6 w-6 items-center justify-center rounded text-amber-700/90 hover:bg-amber-50 hover:text-amber-900"
+                                aria-label={`Discount: ${discount.discount_name || formatDiscountSummary(discount)}`}
+                            >
+                                <BadgePercent className="h-3.5 w-3.5" strokeWidth={2.25} />
+                            </button>
+                        </TooltipTrigger>
+                        <TooltipContent className="max-w-[260px] bg-white text-gray-900">
+                            <div className="space-y-1">
+                                <p className="font-semibold">{discount.discount_name || "Discount applied"}</p>
+                                <p className="text-xs text-gray-600">{formatDiscountSummary(discount)}</p>
+                                {discount.ends_at ? (
+                                    <p className="text-xs text-gray-600">Ends {new Date(discount.ends_at).toLocaleString()}</p>
+                                ) : (
+                                    <p className="text-xs text-gray-600">No end date</p>
+                                )}
+                                {product.discountedPrice !== null && product.discountedPrice !== undefined && (
+                                    <p className="text-xs font-medium text-[#b96d7d]">
+                                        Sale price {formatCurrency(product.discountedPrice)}
+                                    </p>
+                                )}
+                            </div>
+                        </TooltipContent>
+                    </Tooltip>
+                )}
+            </div>
+        );
     };
 
     const PrimaryActionDialog = ({ product }: { product: Product }) => (
@@ -149,8 +245,8 @@ export function InventoryTable({
                     <>
                         <div className="flex items-center gap-2 px-3 py-2 bg-gray-50 rounded-t-lg">
                             <Checkbox
-                                checked={selectedProducts.size === currentProducts.length && currentProducts.length > 0}
-                                onCheckedChange={toggleSelectAll}
+                                checked={allCurrentProductsSelected ? true : someCurrentProductsSelected ? "indeterminate" : false}
+                                onCheckedChange={(checked) => toggleSelectAll(checked === true)}
                             />
                             <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Select all</span>
                         </div>
@@ -161,20 +257,21 @@ export function InventoryTable({
                                     onCheckedChange={() => toggleSelectProduct(product.product_id)}
                                 />
                                 <div className="flex-1 min-w-0">
-                                    <div className="flex items-center gap-2">
-                                        <button
+                                     <div className="flex items-center gap-2 min-w-0">
+                                         <button
                                             type="button"
                                             onClick={() => activateRow(product)}
-                                            className="truncate text-left font-medium text-sm text-[#121212] transition-colors hover:text-[#E7A3B0]"
+                                            className="min-w-0 flex-1 truncate text-left font-medium text-sm text-[#121212] transition-colors hover:text-[#E7A3B0]"
                                             title={mode === "active" ? `Edit ${product.product_name}` : product.product_name}
                                         >
                                             {product.product_name}
                                         </button>
-                                        <span className={`shrink-0 px-1.5 py-0.5 rounded text-[10px] font-medium ${product.show_in_catalog ? "bg-green-100 text-green-800" : "bg-gray-100 text-gray-600"}`}>
-                                            {product.show_in_catalog ? "Listed" : "Hidden"}
-                                        </span>
-                                    </div>
-                                    <div className="flex items-center gap-2 mt-0.5 text-xs text-gray-500">
+                                        {renderCatalogAttributeIcons(product)}
+                                         <span className={`shrink-0 px-1.5 py-0.5 rounded text-[10px] font-medium ${product.show_in_catalog ? "bg-green-100 text-green-800" : "bg-gray-100 text-gray-600"}`}>
+                                             {product.show_in_catalog ? "Listed" : "Hidden"}
+                                         </span>
+                                     </div>
+                                     <div className="flex items-center gap-2 mt-0.5 text-xs text-gray-500">
                                         <span className="text-[10px] text-gray-400">#{product.product_id}</span>
                                         <span className="text-gray-300">&middot;</span>
                                         <span>{getMobileCategory(getCategoryName(product.category_id))}</span>
@@ -229,8 +326,8 @@ export function InventoryTable({
                         <TableRow>
                             <TableHead className="p-4 text-left w-12">
                                 <Checkbox
-                                    checked={selectedProducts.size === currentProducts.length && currentProducts.length > 0}
-                                    onCheckedChange={toggleSelectAll}
+                                    checked={allCurrentProductsSelected ? true : someCurrentProductsSelected ? "indeterminate" : false}
+                                    onCheckedChange={(checked) => toggleSelectAll(checked === true)}
                                 />
                             </TableHead>
                             <TableHead className="p-4 text-left font-bold w-[110px] min-w-[110px]">ID</TableHead>
@@ -267,16 +364,21 @@ export function InventoryTable({
                                     </TableCell>
 
                                     <TableCell className="p-4 overflow-hidden whitespace-normal">
-                                        <button
-                                            type="button"
-                                            onClick={() => activateRow(product)}
-                                            className="font-medium text-left transition-colors hover:text-[#E7A3B0] break-words [overflow-wrap:anywhere] block max-w-full line-clamp-3"
-                                            title={mode === "active" ? `Edit ${product.product_name}` : product.product_name}
-                                        >
-                                            {product.product_name}
-                                        </button>
-                                        <div className="text-[11px] text-gray-400 mt-1">
-                                            {formatPublishedDate(product.created_at)}
+                                        <div className="flex items-start gap-1.5 min-w-0">
+                                            <div className="min-w-0 flex-1">
+                                                <button
+                                                    type="button"
+                                                    onClick={() => activateRow(product)}
+                                                    className="font-medium text-left transition-colors hover:text-[#E7A3B0] break-words [overflow-wrap:anywhere] block max-w-full line-clamp-3"
+                                                    title={mode === "active" ? `Edit ${product.product_name}` : product.product_name}
+                                                >
+                                                    {product.product_name}
+                                                </button>
+                                                <div className="text-[11px] text-gray-400 mt-0.5">
+                                                    {formatPublishedDate(product.created_at)}
+                                                </div>
+                                            </div>
+                                            {renderCatalogAttributeIcons(product)}
                                         </div>
                                     </TableCell>
                                     <TableCell className="p-4 text-gray-600 overflow-hidden whitespace-normal" title={getCategoryName(product.category_id)}>
@@ -301,7 +403,7 @@ export function InventoryTable({
                                         )}
                                     </TableCell>
                                     <TableCell className="p-4 text-center">
-                                        <span className={`px-3 py-1 rounded text-sm font-medium ${
+                                        <span className={`inline-flex items-center rounded px-2 py-0.5 text-xs font-medium ${
                                             product.show_in_catalog ? "bg-green-100 text-green-800" : "bg-gray-100 text-gray-800"
                                         }`}>
                                             {product.show_in_catalog ? "Listed" : "Hidden"}

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient, productHelper } from "@dollys-closet/core";
 import { requireRequestAuth } from "@/lib/auth/auth-server";
 import { buildProductArchiveZip } from "@/lib/export/zipExport";
+import type { ProductForExport, ProductImageForExport } from "@/lib/export/zipExport";
 
 /**
  * GET /api/admin/products/export?before=<ISO>
@@ -63,8 +64,8 @@ export async function GET(request: NextRequest) {
     }
 
     const zipBuffer = await buildProductArchiveZip(
-      products,
-      images ?? [],
+      products as ProductForExport[],
+      (images ?? []) as ProductImageForExport[],
       supabaseAdmin,
       cutoffIso
     );

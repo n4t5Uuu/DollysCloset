@@ -38,7 +38,7 @@ export default async function InventoryPage({ searchParams }: { searchParams: Pr
     return (
       <InventoryManagement
         initialAvailabilityFilter={params.availability}
-        userRole={authState.role}
+        userRole={authState.role ?? undefined}
       />
     );
 }

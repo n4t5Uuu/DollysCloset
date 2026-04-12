@@ -108,6 +108,8 @@ const MONTH_OPTIONS = [
   { value: 12, label: "December" },
 ];
 
+const CLEAR_SEASON_OPTION = "__clear_season__";
+
 function maxDayInMonth(month: number) {
   const date = new Date(2001, month, 0);
   return date.getDate();
@@ -160,6 +162,8 @@ export default function InventoryManagement({ initialAvailabilityFilter, userRol
   const [seasons, setSeasons] = useState<Season[]>([]);
   const [seasonsLoading, setSeasonsLoading] = useState(false);
   const [showSeasonModal, setShowSeasonModal] = useState(false);
+  const [showBatchSeasonModal, setShowBatchSeasonModal] = useState(false);
+  const [batchSeasonSelection, setBatchSeasonSelection] = useState("");
   const [editingSeasonId, setEditingSeasonId] = useState<string | null>(null);
   const [seasonForm, setSeasonForm] = useState({
     name: "",
@@ -306,6 +310,8 @@ export default function InventoryManagement({ initialAvailabilityFilter, userRol
     setShowBulkImport(false);
     setShowDiscountModal(false);
     setShowSeasonModal(false);
+    setShowBatchSeasonModal(false);
+    setBatchSeasonSelection("");
     setProducts([]);
   }, [inventoryScope]);
 
@@ -424,6 +430,8 @@ export default function InventoryManagement({ initialAvailabilityFilter, userRol
   const startIndex = (safePage - 1) * itemsPerPage;
   const endIndex = startIndex + itemsPerPage;
   const currentProducts = filteredProducts.slice(startIndex, endIndex);
+  const allCurrentProductsSelected = currentProducts.length > 0 && currentProducts.every((product) => selectedProducts.has(product.product_id));
+  const someCurrentProductsSelected = !allCurrentProductsSelected && currentProducts.some((product) => selectedProducts.has(product.product_id));
 
   const getCategoryName = buildCategoryPath;
 
@@ -579,11 +587,17 @@ export default function InventoryManagement({ initialAvailabilityFilter, userRol
   };
 
   const toggleSelectAll = (checked: boolean) => {
-    if (checked) {
-      setSelectedProducts(new Set(currentProducts.map(p => p.product_id)));
-    } else {
-      setSelectedProducts(new Set());
-    }
+    setSelectedProducts((previousSelected) => {
+      const nextSelected = new Set(previousSelected);
+
+      if (checked) {
+        currentProducts.forEach((product) => nextSelected.add(product.product_id));
+      } else {
+        currentProducts.forEach((product) => nextSelected.delete(product.product_id));
+      }
+
+      return nextSelected;
+    });
   };
 
   const toggleSelectProduct = (productId: string) => {
@@ -887,6 +901,50 @@ export default function InventoryManagement({ initialAvailabilityFilter, userRol
       toast.success('Discount applied to selected products.');
     } catch (err: unknown) {
       toast.error(err instanceof Error ? err.message : 'Failed to apply discount');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleApplySeason = async () => {
+    if (selectedProducts.size === 0) {
+      toast.error('Select at least one product first.');
+      return;
+    }
+
+    if (!batchSeasonSelection) {
+      toast.error('Choose a season option first.');
+      return;
+    }
+
+    setActionLoading(true);
+    try {
+      const supabase = createClient();
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error('Not authenticated');
+
+      const response = await fetch('/api/admin/seasons/apply', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({
+          season_id: batchSeasonSelection === CLEAR_SEASON_OPTION ? null : batchSeasonSelection,
+          product_ids: Array.from(selectedProducts),
+        }),
+      });
+
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error || 'Failed to apply season');
+
+      await fetchProducts(false);
+      setSelectedProducts(new Set());
+      setBatchSeasonSelection("");
+      setShowBatchSeasonModal(false);
+      toast.success(result.message || 'Season updated for selected products.');
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : 'Failed to apply season');
     } finally {
       setActionLoading(false);
     }
@@ -1409,6 +1467,21 @@ export default function InventoryManagement({ initialAvailabilityFilter, userRol
               type="button"
               variant="outline"
               size="sm"
+              onClick={() => {
+                setBatchSeasonSelection("");
+                setShowBatchSeasonModal(true);
+              }}
+              className="h-8 border-[#E7A3B0]/35 text-[#b96d7d] hover:bg-[#fff5f7] hover:text-[#b96d7d]"
+            >
+              <CalendarRange className="mr-1.5 h-3.5 w-3.5" />
+              Batch Set Season
+            </Button>
+          )}
+          {selectedProducts.size > 0 && inventoryScope === "active" && (
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
               onClick={() => setShowDiscountModal(true)}
               className="h-8 border-[#E7A3B0]/35 text-[#b96d7d] hover:bg-[#fff5f7] hover:text-[#b96d7d]"
             >
@@ -1479,8 +1552,11 @@ export default function InventoryManagement({ initialAvailabilityFilter, userRol
         <InventoryTable
           mode={inventoryScope}
           currentProducts={currentProducts}
+          seasons={seasons}
           selectedProducts={selectedProducts}
-          toggleSelectAll={() => toggleSelectAll(selectedProducts.size !== currentProducts.length || currentProducts.length === 0)}
+          allCurrentProductsSelected={allCurrentProductsSelected}
+          someCurrentProductsSelected={someCurrentProductsSelected}
+          toggleSelectAll={toggleSelectAll}
           toggleSelectProduct={toggleSelectProduct}
           getCategoryName={getCategoryName}
           handleViewProduct={handleViewProduct}
@@ -1501,6 +1577,97 @@ export default function InventoryManagement({ initialAvailabilityFilter, userRol
           onPageChange={handlePageChange}
         />
       </div>
+
+      {showBatchSeasonModal && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-4"
+          onClick={() => {
+            setShowBatchSeasonModal(false);
+            setBatchSeasonSelection("");
+          }}
+        >
+          <div
+            className="w-full max-w-lg overflow-hidden rounded-3xl border border-[#E7A3B0]/20 bg-white shadow-[0_24px_80px_rgba(17,24,39,0.28)]"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="flex items-start justify-between gap-4 border-b border-[#E7A3B0]/15 bg-[#fffafc] px-6 py-5">
+              <div>
+                <div className="flex items-center gap-2 text-2xl font-semibold text-gray-900">
+                  <CalendarRange className="h-5 w-5 text-[#E7A3B0]" />
+                  Batch Set Season
+                </div>
+                <p className="mt-1 text-sm text-gray-600">
+                  Apply one season to {selectedProducts.size} selected product{selectedProducts.size === 1 ? "" : "s"}.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setShowBatchSeasonModal(false);
+                  setBatchSeasonSelection("");
+                }}
+                className="inline-flex h-9 w-9 items-center justify-center rounded-full text-gray-400 hover:bg-white hover:text-gray-700"
+                aria-label="Close batch season modal"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            <div className="space-y-5 p-6">
+              <div className="rounded-2xl border border-[#E7A3B0]/15 bg-[#fffafc] px-4 py-3 text-sm text-[#6f5058]">
+                Choose an existing season to assign, or select <span className="font-semibold">Clear season assignment</span> to remove the current season from all selected products.
+              </div>
+
+              <div>
+                <label className="mb-2 block text-sm font-medium text-gray-700">Season Option</label>
+                <Select
+                  value={batchSeasonSelection || "__placeholder__"}
+                  onValueChange={(value) => setBatchSeasonSelection(value === "__placeholder__" ? "" : value)}
+                >
+                  <SelectTrigger className="border-gray-300 bg-white text-gray-900">
+                    <SelectValue placeholder="Select a season option" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__placeholder__" disabled>Select a season option</SelectItem>
+                    <SelectItem value={CLEAR_SEASON_OPTION}>Clear season assignment</SelectItem>
+                    {seasons.map((season) => (
+                      <SelectItem key={season.id} value={season.id}>
+                        {season.name}
+                        {season.isActive === false ? " (Inactive)" : ""}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="mt-2 text-xs text-gray-500">
+                  Season colors in the table will match the Manage Seasons palette.
+                </p>
+              </div>
+
+              <div className="flex items-center justify-end gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => {
+                    setShowBatchSeasonModal(false);
+                    setBatchSeasonSelection("");
+                  }}
+                  className="border-zinc-300 bg-white text-zinc-700 hover:bg-zinc-50 hover:text-zinc-900"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="button"
+                  onClick={handleApplySeason}
+                  disabled={actionLoading || !batchSeasonSelection}
+                  className="bg-[#E7A3B0] text-white hover:bg-[#d891a0]"
+                >
+                  {actionLoading ? "Applying..." : "Apply Season"}
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {showDiscountModal && (
         <div
@@ -1916,6 +2083,7 @@ export default function InventoryManagement({ initialAvailabilityFilter, userRol
             setSelectedViewImage(null);
           }}
           getCategoryName={getCategoryName}
+          seasons={seasons}
         />
       )}
 
