@@ -154,7 +154,17 @@ export async function POST(request: NextRequest) {
       otherSessionsRevoked,
     });
   } catch (err) {
-    console.error("Login API error:", err instanceof Error ? err.message : err);
+    const errorMessage = err instanceof Error ? err.message : String(err);
+    console.error("Login API error:", errorMessage);
+
+    // Provide a more descriptive error if it's a configuration issue
+    if (errorMessage.includes("configured correctly")) {
+      return NextResponse.json(
+        { error: `Configuration Error: ${errorMessage}. Check Vercel environment variables.` },
+        { status: 500 }
+      );
+    }
+
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }

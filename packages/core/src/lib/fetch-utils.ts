@@ -45,10 +45,18 @@ export async function safeFetchJson<T>(
           technicalError = new Error(errorData.error || `Server returned ${response.status}`);
           friendlyMessage = errorData.error || friendlyMessage;
         } catch {
-          technicalError = new Error(`HTTP Error ${response.status}`);
+          technicalError = new Error(`HTTP Error ${response.status} (Failed to parse JSON body)`);
         }
       } else {
-        technicalError = new Error(`HTTP Error ${response.status}`);
+        // Not JSON - might be an HTML error page from Next.js/Vercel
+        try {
+          const bodyText = await response.text();
+          // Extract a snippet of the HTML if it looks like one
+          const snippet = bodyText.length > 200 ? bodyText.substring(0, 200) + "..." : bodyText;
+          technicalError = new Error(`HTTP Error ${response.status}: ${snippet}`);
+        } catch {
+          technicalError = new Error(`HTTP Error ${response.status} (No response body)`);
+        }
       }
 
       // In development mode, log the technical error to the console for easier debugging

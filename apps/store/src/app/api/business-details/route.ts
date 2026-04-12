@@ -23,8 +23,19 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({ data: result.data });
   } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    console.error('CRITICAL ERROR in Business Details GET:', errorMessage);
+
+    // Provide a more descriptive error if it's a configuration issue
+    if (errorMessage.includes("configured correctly")) {
+      return NextResponse.json(
+        { error: `Configuration Error: ${errorMessage}. Check Vercel environment variables.` },
+        { status: 500 }
+      );
+    }
+
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Failed to fetch business details" },
+      { error: errorMessage || "Failed to fetch business details" },
       { status: 500 }
     );
   }
