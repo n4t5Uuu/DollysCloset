@@ -7,7 +7,6 @@ import {
 } from "next/font/google";
 import "./globals.css";
 import { Footer, Navbar, Toaster } from "@dollys-closet/ui";
-import { UserProvider } from "@dollys-closet/core";
 
 export const metadata: Metadata = {
   title: {
