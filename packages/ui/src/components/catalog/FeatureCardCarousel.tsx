@@ -1,3 +1,5 @@
+//DEPRECATED: This component is no longer used in the app, but is left here for reference and potential future reuse.
+
 "use client"
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { type Product, resolveProductPlaceholder, cn, useProductMetadata } from "@dollys-closet/core";

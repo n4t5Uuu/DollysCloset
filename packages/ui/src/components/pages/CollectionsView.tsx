@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState, useCallback } from "react";
+import { useEffect, useMemo, useState, useCallback, useRef } from "react";
 import { useSearchParams, useRouter, usePathname } from "next/navigation";
 
 import MasonrySection from "../catalog/MasonrySection";
@@ -142,6 +142,10 @@ export function CollectionsView() {
     const maxPriceParam = parseOptionalNumber(searchParams.get("maxPrice"));
     const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
     const [itemsPerPage, setItemsPerPage] = useState(12);
+    const [mobileVisibleCount, setMobileVisibleCount] = useState(8);
+    const infiniteSentinelRef = useRef<HTMLDivElement | null>(null);
+    // itemsPerPage === 8 means we're below the md breakpoint (< 768px)
+    const isMobile = itemsPerPage === 8;
 
     const updateCollectionParams = useCallback((updates: Record<string, string | null>) => {
         const nextParams = new URLSearchParams(searchParams.toString());
@@ -311,6 +315,30 @@ export function CollectionsView() {
 
         fetchAnnouncement();
     }, []);
+
+    // Reset mobile infinite scroll when filters/search/sort change
+    useEffect(() => {
+        setMobileVisibleCount(8);
+    }, [activeFilter, searchQuery, sortBy, minPriceParam, maxPriceParam]);
+
+    // Keep a live ref so the observer callback never reads a stale hasMoreMobile
+    const hasMoreMobileRef = useRef(false);
+
+    // Infinite scroll observer — only re-runs when the breakpoint changes
+    useEffect(() => {
+        const sentinel = infiniteSentinelRef.current;
+        if (!sentinel || !isMobile) return;
+        const observer = new IntersectionObserver(
+            (entries) => {
+                if (entries[0]?.isIntersecting && hasMoreMobileRef.current) {
+                    setMobileVisibleCount((prev) => prev + 8);
+                }
+            },
+            { threshold: 0 }
+        );
+        observer.observe(sentinel);
+        return () => observer.disconnect();
+    }, [isMobile]); // re-run only when mobile breakpoint changes, not on every count bump
 
     const childrenByParent = useMemo(() => {
         return categories.reduce<Map<number, number[]>>((acc, category) => {
@@ -510,6 +538,10 @@ export function CollectionsView() {
     const visibleItemEnd = filteredProducts.length === 0
         ? 0
         : visibleItemStart + paginatedProducts.length - 1;
+
+    const mobileProducts = filteredProducts.slice(0, mobileVisibleCount);
+    const hasMoreMobile = mobileVisibleCount < filteredProducts.length;
+    hasMoreMobileRef.current = hasMoreMobile;
 
     const isBrowsingFiltered = activeFilter !== "all" || searchQuery.trim() !== "" || sortBy !== "newest" || hasActivePriceFilter;
     const newArrivalCount = useMemo(() => products.filter((product) => product.isNewArrival).length, [products]);
@@ -724,7 +756,7 @@ export function CollectionsView() {
             {/* For the Collections */}
             <div id="collection-grid" className="w-full flex flex-col items-center scroll-mt-24">
                 {/* Minimal title strip + mobile filter trigger + active filter chips */}
-                <div className="sticky top-20 z-40 w-full bg-[#fff5f7]/95 backdrop-blur-md border-b border-[#E7A3B0]/30 shadow-sm py-3 transition-all duration-300">
+                <div className="sticky top-(--navbar-h,80px) z-40 w-full bg-white border-b border-[#E7A3B0]/30 shadow-sm py-3 transition-[top] duration-300">
                     <div className={`${collectionShellClass} flex flex-row items-center justify-between gap-4`}>
                         <h2 className="font-playfair-display text-xl md:text-2xl text-[#121212]">Our Collection</h2>
                         <div className="flex items-center gap-3">
@@ -877,7 +909,10 @@ export function CollectionsView() {
                         <div className="mb-6 flex items-center justify-between">
                             <div className="space-y-2">
                                 <div className="text-xs font-bold tracking-widest text-[#E7A3B0] font-oswald uppercase">
-                                    Showing {visibleItemStart}-{visibleItemEnd} of {filteredProducts.length} {filteredProducts.length === 1 ? "Item" : "Items"}
+                                    {isMobile
+                                        ? `Showing ${mobileProducts.length} of ${filteredProducts.length} ${filteredProducts.length === 1 ? "Item" : "Items"}`
+                                        : `Showing ${visibleItemStart}–${visibleItemEnd} of ${filteredProducts.length} ${filteredProducts.length === 1 ? "Item" : "Items"}`
+                                    }
                                 </div>
                                 <p className="font-montserrat text-sm text-[#8a6b73]">
                                     {browseSummaryMessage}
@@ -961,7 +996,7 @@ export function CollectionsView() {
                         ) : (
                             <div className="space-y-10">
                                 <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-3 2xl:grid-cols-4 gap-x-4 sm:gap-x-5 gap-y-6 sm:gap-y-8">
-                                    {paginatedProducts.map((product) => (
+                                    {(isMobile ? mobileProducts : paginatedProducts).map((product) => (
                                         <ProductCard
                                             key={product.id}
                                             product={toViewProduct(product)}
@@ -971,11 +1006,27 @@ export function CollectionsView() {
                                     ))}
                                 </div>
 
-                                <CustomPagination
-                                    totalPages={totalPages}
-                                    currentPage={safePage}
-                                    onPageChange={handlePageChange}
-                                />
+                                {isMobile ? (
+                                    <>
+                                        {/* Sentinel always in DOM so the observer always has a target */}
+                                        <div ref={infiniteSentinelRef} className="h-1" aria-hidden="true" />
+                                        {hasMoreMobile ? (
+                                            <div className="flex justify-center py-6">
+                                                <div className="h-6 w-6 animate-spin rounded-full border-2 border-[#E7A3B0] border-t-transparent" />
+                                            </div>
+                                        ) : (
+                                            <p className="py-6 text-center font-oswald text-[11px] uppercase tracking-[0.28em] text-[#b47c88]">
+                                                — End of Collection —
+                                            </p>
+                                        )}
+                                    </>
+                                ) : (
+                                    <CustomPagination
+                                        totalPages={totalPages}
+                                        currentPage={safePage}
+                                        onPageChange={handlePageChange}
+                                    />
+                                )}
                             </div>
                         )}
                     </div>
