@@ -67,14 +67,12 @@ export default function RootLayout({
       <body
         className={`${oswald.variable} ${montserrat.variable} ${playfairDisplay.variable} ${greatVibes.variable} antialiased`}
       >
-        <UserProvider>
           <div className="flex min-h-screen w-full flex-col">
             <Navbar navLinks={["Collection", "About", "Contact"]} showLogout={false} />
             {children}
             <Footer />
             <Toaster duration={3000} />
           </div>
-        </UserProvider>
       </body>
     </html>
   );
