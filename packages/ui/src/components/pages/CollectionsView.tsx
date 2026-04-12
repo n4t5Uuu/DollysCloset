@@ -44,7 +44,7 @@ const SORT_OPTIONS = [
     { value: "za", label: "Name: Z to A" },
 ] as const;
 
-const collectionShellClass = "mx-auto w-full max-w-[1500px] px-4 sm:px-6 md:px-8 lg:px-10 xl:px-12";
+const collectionShellClass = "mx-auto w-full max-w-[1500px] px-2 sm:px-6 md:px-8 lg:px-10 xl:px-12";
 
 function toViewProduct(product: CatalogApiProduct): Product {
     return {
@@ -143,7 +143,7 @@ export function CollectionsView() {
     const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
     const [itemsPerPage, setItemsPerPage] = useState(12);
     const [mobileVisibleCount, setMobileVisibleCount] = useState(8);
-    const infiniteSentinelRef = useRef<HTMLDivElement | null>(null);
+    const observerRef = useRef<IntersectionObserver | null>(null);
     // itemsPerPage === 8 means we're below the md breakpoint (< 768px)
     const isMobile = itemsPerPage === 8;
 
@@ -324,11 +324,15 @@ export function CollectionsView() {
     // Keep a live ref so the observer callback never reads a stale hasMoreMobile
     const hasMoreMobileRef = useRef(false);
 
-    // Infinite scroll observer — only re-runs when the breakpoint changes
-    useEffect(() => {
-        const sentinel = infiniteSentinelRef.current;
-        if (!sentinel || !isMobile) return;
-        const observer = new IntersectionObserver(
+    // Callback ref — React calls this the moment the sentinel mounts or unmounts,
+    // so the observer always attaches even if products load after isMobile is set.
+    const attachSentinel = useCallback((node: HTMLDivElement | null) => {
+        if (observerRef.current) {
+            observerRef.current.disconnect();
+            observerRef.current = null;
+        }
+        if (!node || !isMobile) return;
+        observerRef.current = new IntersectionObserver(
             (entries) => {
                 if (entries[0]?.isIntersecting && hasMoreMobileRef.current) {
                     setMobileVisibleCount((prev) => prev + 8);
@@ -336,9 +340,8 @@ export function CollectionsView() {
             },
             { threshold: 0 }
         );
-        observer.observe(sentinel);
-        return () => observer.disconnect();
-    }, [isMobile]); // re-run only when mobile breakpoint changes, not on every count bump
+        observerRef.current.observe(node);
+    }, [isMobile]);
 
     const childrenByParent = useMemo(() => {
         return categories.reduce<Map<number, number[]>>((acc, category) => {
@@ -756,7 +759,7 @@ export function CollectionsView() {
             {/* For the Collections */}
             <div id="collection-grid" className="w-full flex flex-col items-center scroll-mt-24">
                 {/* Minimal title strip + mobile filter trigger + active filter chips */}
-                <div className="sticky top-(--navbar-h,80px) z-40 w-full bg-white border-b border-[#E7A3B0]/30 shadow-sm py-3 transition-[top] duration-300">
+                <div className="sticky top-(--navbar-h,80px) md:top-20 z-40 w-full bg-white border-b border-[#E7A3B0]/30 shadow-sm py-3 transition-[top] duration-300">
                     <div className={`${collectionShellClass} flex flex-row items-center justify-between gap-4`}>
                         <h2 className="font-playfair-display text-xl md:text-2xl text-[#121212]">Our Collection</h2>
                         <div className="flex items-center gap-3">
@@ -857,7 +860,7 @@ export function CollectionsView() {
                     )}
                 </div>
 
-                <div className={`${collectionShellClass} grid grid-cols-1 gap-8 py-12 pb-24 lg:grid-cols-[240px_minmax(0,1fr)] xl:gap-10`}>
+                <div className={`${collectionShellClass} grid grid-cols-1 gap-8 pt-4 pb-16 sm:py-12 sm:pb-24 lg:grid-cols-[240px_minmax(0,1fr)] xl:gap-10`}>
                     <div className="hidden lg:block h-fit sticky top-[220px]">
                         <InView
                             variants={{
@@ -906,22 +909,21 @@ export function CollectionsView() {
                     </div>
                     
                     <div className="w-full">
-                        <div className="mb-6 flex items-center justify-between">
+                        <div className="mb-4 sm:mb-6 flex items-center justify-between">
                             <div className="space-y-2">
-                                <div className="text-xs font-bold tracking-widest text-[#E7A3B0] font-oswald uppercase">
-                                    {isMobile
-                                        ? `Showing ${mobileProducts.length} of ${filteredProducts.length} ${filteredProducts.length === 1 ? "Item" : "Items"}`
-                                        : `Showing ${visibleItemStart}–${visibleItemEnd} of ${filteredProducts.length} ${filteredProducts.length === 1 ? "Item" : "Items"}`
-                                    }
-                                </div>
-                                <p className="font-montserrat text-sm text-[#8a6b73]">
+                                {!isMobile && (
+                                    <div className="text-xs font-bold tracking-widest text-[#E7A3B0] font-oswald uppercase">
+                                        {`Showing ${visibleItemStart}–${visibleItemEnd} of ${filteredProducts.length} ${filteredProducts.length === 1 ? "Item" : "Items"}`}
+                                    </div>
+                                )}
+                                <p className="hidden sm:block font-montserrat text-sm text-[#8a6b73]">
                                     {browseSummaryMessage}
                                 </p>
                             </div>
                         </div>
 
                         {loading ? (
-                            <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-3 2xl:grid-cols-4 gap-x-4 sm:gap-x-5 gap-y-6 sm:gap-y-8">
+                            <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-3 2xl:grid-cols-4 gap-2 sm:gap-x-5 sm:gap-y-8">
                                 {Array.from({ length: itemsPerPage }).map((_, i) => (
                                     <div key={i} className="space-y-4">
                                         <Skeleton className="w-full aspect-3/4 rounded-xl" />
@@ -995,7 +997,7 @@ export function CollectionsView() {
                             </div>
                         ) : (
                             <div className="space-y-10">
-                                <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-3 2xl:grid-cols-4 gap-x-4 sm:gap-x-5 gap-y-6 sm:gap-y-8">
+                                <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-3 2xl:grid-cols-4 gap-2 sm:gap-x-5 sm:gap-y-8">
                                     {(isMobile ? mobileProducts : paginatedProducts).map((product) => (
                                         <ProductCard
                                             key={product.id}
@@ -1008,8 +1010,8 @@ export function CollectionsView() {
 
                                 {isMobile ? (
                                     <>
-                                        {/* Sentinel always in DOM so the observer always has a target */}
-                                        <div ref={infiniteSentinelRef} className="h-1" aria-hidden="true" />
+                                        {/* Sentinel — callback ref attaches the observer the moment this mounts */}
+                                        <div ref={attachSentinel} className="h-1" aria-hidden="true" />
                                         {hasMoreMobile ? (
                                             <div className="flex justify-center py-6">
                                                 <div className="h-6 w-6 animate-spin rounded-full border-2 border-[#E7A3B0] border-t-transparent" />

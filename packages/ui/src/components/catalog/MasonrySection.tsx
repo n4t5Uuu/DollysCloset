@@ -97,10 +97,10 @@ export default function MasonrySection({
     const railId = `carousel-rail-${title.replace(/\s+/g, "-").toLowerCase()}`;
 
     return (
-        <section className="w-full py-8 sm:py-10">
+        <section className="w-full py-2 sm:py-6">
             <div className={shellClass}>
                 {/* Header */}
-                <div className="mb-6 flex items-end justify-between gap-4">
+                <div className="mb-3 sm:mb-6 flex items-end justify-between gap-4">
                     <div className="min-w-0">
                         <span
                             className={`font-oswald text-[10px] font-semibold uppercase tracking-[0.28em] ${accentText}`}
@@ -160,25 +160,26 @@ export default function MasonrySection({
                     <div>
                         <div
                             ref={scrollerRef}
-                            className="flex items-stretch gap-4 overflow-x-auto snap-x snap-mandatory scroll-smooth pb-3 sm:gap-5 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+                            className="flex items-stretch gap-2 overflow-x-auto snap-x snap-mandatory scroll-smooth pb-3 sm:gap-5 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
                         >
                             {products.map((product) => (
                                 <div
                                     key={product.id}
                                     data-carousel-card
-                                    className="shrink-0 grow-0 snap-start w-[205px] min-w-[205px] sm:w-[240px] sm:min-w-[240px] md:w-[265px] md:min-w-[265px] lg:w-[285px] lg:min-w-[285px] xl:w-[300px] xl:min-w-[300px]"
+                                    className="shrink-0 grow-0 snap-start w-[175px] min-w-[175px] sm:w-[205px] sm:min-w-[205px] md:w-[230px] md:min-w-[230px] lg:w-[250px] lg:min-w-[250px] xl:w-[265px] xl:min-w-[265px]"
                                 >
                                     <ProductCard
                                         product={product}
                                         href={`/product/${product.id}`}
                                         onClick={() => onProductClick?.(product)}
+                                        compact
                                     />
                                 </div>
                             ))}
                         </div>
 
                         {products.length > 1 && (
-                            <div className="mt-4">
+                            <div className="hidden sm:block mt-4">
                                 <div
                                     id={railId}
                                     role="presentation"

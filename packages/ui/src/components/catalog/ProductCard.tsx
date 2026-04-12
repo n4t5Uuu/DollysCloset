@@ -10,11 +10,12 @@ interface ProductCardProps {
     product?: Product;
     href?: string;
     onClick?: () => void;
+    compact?: boolean;
 }
 
 type AnimPhase = "idle" | "prepare" | "animating";
 
-export default function ProductCard({ product, href, onClick }: ProductCardProps) {
+export default function ProductCard({ product, href, onClick, compact }: ProductCardProps) {
     const validImages = product?.images.filter(Boolean) ?? [];
     const fallback = product ? resolveProductPlaceholder(product.category) : "";
     const firstSrc = validImages[0] || fallback;
@@ -173,7 +174,7 @@ export default function ProductCard({ product, href, onClick }: ProductCardProps
                     "group-hover:-translate-y-1 group-hover:shadow-xl"
                 )}
             >
-                <div className="relative aspect-[3/4] overflow-hidden bg-[#f7eef1]">
+                <div className={cn("relative overflow-hidden bg-[#f7eef1]", compact ? "aspect-square sm:aspect-3/4" : "aspect-3/4")}>
                     <div
                         className={cn(
                             "absolute inset-0",
@@ -230,27 +231,33 @@ export default function ProductCard({ product, href, onClick }: ProductCardProps
                     )}
                 </div>
 
-                <div className="flex flex-1 flex-col gap-2 p-4">
+                <div className="flex flex-1 flex-col gap-1 p-2 sm:gap-2 sm:p-4">
                     {/* Category · Brand line — single compact row */}
-                    <div className="flex items-center gap-2 text-[10px] font-medium uppercase tracking-[0.14em] text-[#8b7580]">
-                        <span className="truncate font-montserrat">{categoryLabel}</span>
+                    <div className="flex items-center gap-2 text-[9px] sm:text-[10px] font-medium uppercase tracking-[0.14em] text-[#8b7580]">
+                        {/* Desktop: category label */}
+                        <span className="hidden sm:inline truncate font-montserrat">{categoryLabel}</span>
+                        {/* Desktop: separator + brand (only if different from category) */}
                         {eyebrow && eyebrow !== categoryLabel && (
                             <>
-                                <span className="text-[#c0929d]">·</span>
-                                <span className="truncate font-montserrat">{eyebrow}</span>
+                                <span className="hidden sm:inline text-[#c0929d]">·</span>
+                                <span className="hidden sm:inline truncate font-montserrat">{eyebrow}</span>
                             </>
+                        )}
+                        {/* Mobile: brand only */}
+                        {eyebrow && (
+                            <span className="sm:hidden truncate font-montserrat">{eyebrow}</span>
                         )}
                     </div>
 
                     <CardTitle
-                        className="font-playfair-display text-sm font-semibold leading-tight text-[#121212] line-clamp-2 break-words"
+                        className="font-playfair-display text-xs sm:text-sm font-semibold leading-tight text-[#121212] truncate"
                         title={product.name}
                     >
                         {product.name}
                     </CardTitle>
 
                     {visibleChips.length > 0 && (
-                        <div className="flex flex-wrap gap-1.5">
+                        <div className="flex flex-wrap gap-1 sm:gap-1.5">
                             {visibleChips.map((chip) => {
                                 const toneClass =
                                     chip.tone === "info"
@@ -262,7 +269,8 @@ export default function ProductCard({ product, href, onClick }: ProductCardProps
                                     <span
                                         key={`${chip.tone}-${chip.label}`}
                                         className={cn(
-                                            "max-w-full truncate rounded-full border px-2 py-0.5 font-montserrat text-[10px] font-medium",
+                                            "max-w-full truncate rounded-full border px-1.5 py-px sm:px-2 sm:py-0.5 font-montserrat text-[9px] sm:text-[10px] font-medium",
+                                            chip.tone === "info" && "hidden sm:inline-flex",
                                             toneClass
                                         )}
                                     >
@@ -274,10 +282,10 @@ export default function ProductCard({ product, href, onClick }: ProductCardProps
                     )}
 
                     {/* Price — bold + dark, optional strikethrough original */}
-                    <div className="mt-auto flex items-baseline gap-2 pt-1">
+                    <div className="mt-auto flex items-baseline gap-1 sm:gap-2 pt-0 sm:pt-1">
                         {hasDiscount && !isSoldOut && formattedSalePrice ? (
                             <>
-                                <span className="font-oswald text-lg font-bold tracking-[0.02em] text-[#1a1a1a]">
+                                <span className="font-oswald text-base sm:text-lg font-bold tracking-[0.02em] text-[#1a1a1a]">
                                     {formattedSalePrice}
                                 </span>
                                 <span className="font-montserrat text-xs text-[#8b7580] line-through">
@@ -287,7 +295,7 @@ export default function ProductCard({ product, href, onClick }: ProductCardProps
                         ) : (
                             <span
                                 className={cn(
-                                    "font-oswald text-lg font-bold tracking-[0.02em]",
+                                    "font-oswald text-base sm:text-lg font-bold tracking-[0.02em]",
                                     isSoldOut ? "text-[#8b7580]" : "text-[#1a1a1a]"
                                 )}
                             >
