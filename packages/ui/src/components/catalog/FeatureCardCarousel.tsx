@@ -84,7 +84,7 @@ function CardContent({ product, cardImageHeight, cardWidth }: { product: Product
 
         if (discountType === "percent") return formatPercent(rawValue);
         if (discountType === "fixed_price") return formatPercent(effectivePercent);
-        return `-${formatNumber(rawValue)}`;
+        return `-₱${formatNumber(rawValue)}`;
     }, [hasDiscount, product]);
 
     const displayBadges = useMemo(() => {

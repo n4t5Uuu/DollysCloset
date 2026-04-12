@@ -70,7 +70,7 @@ export default function ProductCard({ product, href, onClick, compact }: Product
             ? formatPercent(rawValue)
             : discountType === "fixed_price"
                 ? formatPercent(effectivePercent)
-                : `-${formatNumber(rawValue)}`;
+                : `-₱${formatNumber(rawValue)}`;
 
         const codeDiscountLabel = discountType === "percent"
             ? formatPercent(rawValue)
