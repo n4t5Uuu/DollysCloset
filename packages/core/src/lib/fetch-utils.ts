@@ -31,30 +31,38 @@ export async function safeFetchJson<T>(
 
     // Handle non-2xx statuses
     if (!response.ok) {
+      let technicalError: Error | null = null;
+      let friendlyMessage = "Something went wrong on our end. Please try again later.";
+
+      if (response.status === 404) {
+        friendlyMessage = "The requested service was not found.";
+      }
+
       // Try to parse error message if it is JSON
       if (isJson) {
         try {
           const errorData = await response.json();
-          return {
-            data: null,
-            error: new Error(errorData.error || `Server returned ${response.status}`),
-            friendlyMessage: errorData.error || "The server encountered an issue. Please try again.",
-            status: response.status,
-          };
+          technicalError = new Error(errorData.error || `Server returned ${response.status}`);
+          friendlyMessage = errorData.error || friendlyMessage;
         } catch {
-          // Fall through to generic error
+          technicalError = new Error(`HTTP Error ${response.status}`);
         }
+      } else {
+        technicalError = new Error(`HTTP Error ${response.status}`);
       }
 
-      // If not JSON or parsing failed, provide friendly message based on status
-      const message = response.status === 404 
-        ? "The requested service was not found." 
-        : "Something went wrong on our end. Please try again later.";
-      
+      // In development mode, log the technical error to the console for easier debugging
+      if (typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname.includes('vercel.app'))) {
+        console.group(`🔴 API Error: ${url}`);
+        console.error(`Status: ${response.status}`);
+        console.error(`Technical Error:`, technicalError);
+        console.groupEnd();
+      }
+
       return {
         data: null,
-        error: new Error(`HTTP Error ${response.status}`),
-        friendlyMessage: message,
+        error: technicalError,
+        friendlyMessage: friendlyMessage,
         status: response.status,
       };
     }

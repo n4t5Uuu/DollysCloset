@@ -15,9 +15,19 @@ export async function middleware(request: NextRequest) {
     },
   })
 
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+  if (!supabaseUrl || !supabaseAnonKey) {
+    if (process.env.NODE_ENV === 'development') {
+      console.warn('MISSING SUPABASE ENV VARS: Middleware is skipping auth refresh. Ensure NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY are set.');
+    }
+    return response;
+  }
+
   const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    supabaseUrl,
+    supabaseAnonKey,
     {
       cookies: {
         getAll() {
@@ -36,9 +46,13 @@ export async function middleware(request: NextRequest) {
   )
 
   // Refresh session so server components can access it
-  await supabase.auth.getUser()
+  try {
+    await supabase.auth.getUser();
+  } catch (err) {
+    console.error('Middleware session refresh error:', err);
+  }
 
-  return response
+  return response;
 }
 
 export const config = {
