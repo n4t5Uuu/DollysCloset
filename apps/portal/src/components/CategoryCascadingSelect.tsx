@@ -2,8 +2,9 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { Check, ChevronDown, ChevronRight } from "lucide-react";
+import { Check, ChevronDown, ChevronRight, Search, X } from "lucide-react";
 import { InventoryCategory as Category } from "@dollys-closet/core";
+import { Input } from "@dollys-closet/ui";
 
 interface CategoryCascadingSelectProps {
   categories: Category[];
@@ -31,6 +32,7 @@ export default function CategoryCascadingSelect({
   useEffect(() => { setMounted(true); }, []);
   const [activeRootKey, setActiveRootKey] = useState<string | null>(null);
   const [activeSecondLevelId, setActiveSecondLevelId] = useState<number | null>(null);
+  const [searchTerm, setSearchTerm] = useState("");
   const [dropdownStyle, setDropdownStyle] = useState<React.CSSProperties>({});
 
   const normalizeName = (name: string) => name.trim().toLowerCase();
@@ -186,6 +188,19 @@ export default function CategoryCascadingSelect({
     });
     return combined.sort(sortById);
   }, [activeRootKey, rootGroupByKey, childrenByParent]);
+  
+  const searchResults = useMemo(() => {
+    if (!searchTerm.trim()) return [];
+    const term = searchTerm.toLowerCase().trim();
+    return categories
+      .filter((cat) => cat.category_name.toLowerCase().includes(term))
+      .map((cat) => ({
+        id: Number(cat.category_id),
+        name: cat.category_name,
+        path: getCategoryPath(Number(cat.category_id)),
+      }))
+      .sort((a, b) => a.path.localeCompare(b.path));
+  }, [searchTerm, categories]);
 
   const thirdColumn =
     activeSecondLevelId !== null ? childrenByParent.get(activeSecondLevelId) || [] : [];
@@ -282,8 +297,29 @@ export default function CategoryCascadingSelect({
           <div
             ref={dropdownRef}
             style={dropdownStyle}
-            className="w-[min(90vw,580px)] max-w-[calc(100vw-1rem)] rounded-xl border border-black bg-white p-2.5 shadow-xl"
+            className="w-[min(90vw,580px)] max-w-[calc(100vw-1rem)] rounded-xl border border-black bg-white p-2.5 shadow-xl flex flex-col gap-2.5"
           >
+            {/* Search Bar */}
+            <div className="relative group/search-cat">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-400 group-focus-within/search-cat:text-[#E7A3B0] transition-colors" />
+              <Input
+                autoFocus
+                placeholder="Search categories..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-9 pr-9 h-10 rounded-xl border-zinc-200 bg-zinc-50 focus:bg-white focus:border-[#E7A3B0]/40 transition-all font-montserrat text-sm"
+              />
+              {searchTerm && (
+                <button
+                  onClick={() => setSearchTerm("")}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-400 hover:text-[#E7A3B0] transition-colors cursor-pointer"
+                  aria-label="Clear category search"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              )}
+            </div>
+
             {/* Path bar */}
             <div className="mb-3 px-3 py-1.5 rounded-lg bg-zinc-50 border border-zinc-200 min-h-[28px] flex items-center">
               {pathBarText ? (
@@ -293,31 +329,67 @@ export default function CategoryCascadingSelect({
               )}
             </div>
 
-            <div className="grid grid-cols-3 gap-2">
-              <div className="max-h-72 overflow-y-auto rounded-md border border-zinc-200 p-1">
-                {rootCategoryGroups.length > 0 ? (
-                  rootCategoryGroups.map(renderRootItem)
+            {searchTerm.trim() ? (
+              <div className="max-h-72 overflow-y-auto rounded-md border border-zinc-200 p-1 divide-y divide-zinc-50">
+                {searchResults.length > 0 ? (
+                  searchResults.map((result) => (
+                    <button
+                      key={result.id}
+                      type="button"
+                      onClick={() => {
+                        onValueChange(String(result.id));
+                        setIsOpen(false);
+                        setSearchTerm("");
+                      }}
+                      className="w-full flex flex-col items-start gap-0.5 px-3 py-2.5 text-left transition-colors hover:bg-[#FFF0F3] group cursor-pointer"
+                    >
+                      <span className="text-sm font-medium text-zinc-800 group-hover:text-[#E7A3B0]">
+                        {result.name}
+                      </span>
+                      <span className="text-[10px] uppercase tracking-wider text-zinc-400 group-hover:text-[#E7A3B0]/60">
+                        {result.path}
+                      </span>
+                    </button>
+                  ))
                 ) : (
-                  <div className="px-3 py-2 text-sm text-zinc-400">No categories found</div>
-                )}
-              </div>
-              <div className="max-h-72 overflow-y-auto rounded-md border border-zinc-200 p-1">
-                {secondColumn.length > 0 ? (
-                  secondColumn.map((cat) => renderItem(cat, 2))
-                ) : (
-                  <div className="px-3 py-2 text-sm text-zinc-400">Select a parent category</div>
-                )}
-              </div>
-              <div className="max-h-72 overflow-y-auto rounded-md border border-zinc-200 p-1">
-                {thirdColumn.length > 0 ? (
-                  thirdColumn.map((cat) => renderItem(cat, 3))
-                ) : (
-                  <div className="h-full flex items-center justify-center px-3 py-2 text-xs text-zinc-300 text-center">
-                    No subcategories
+                  <div className="px-3 py-8 text-center">
+                    <p className="text-sm text-zinc-500">No matching categories found</p>
+                    <button 
+                      onClick={() => setSearchTerm("")}
+                      className="mt-2 text-xs text-[#E7A3B0] font-medium hover:underline cursor-pointer"
+                    >
+                      Clear search to browse
+                    </button>
                   </div>
                 )}
               </div>
-            </div>
+            ) : (
+              <div className="grid grid-cols-3 gap-2">
+                <div className="max-h-72 overflow-y-auto rounded-md border border-zinc-200 p-1">
+                  {rootCategoryGroups.length > 0 ? (
+                    rootCategoryGroups.map(renderRootItem)
+                  ) : (
+                    <div className="px-3 py-2 text-sm text-zinc-400">No categories found</div>
+                  )}
+                </div>
+                <div className="max-h-72 overflow-y-auto rounded-md border border-zinc-200 p-1">
+                  {secondColumn.length > 0 ? (
+                    secondColumn.map((cat) => renderItem(cat, 2))
+                  ) : (
+                    <div className="px-3 py-2 text-sm text-zinc-400">Select a parent category</div>
+                  )}
+                </div>
+                <div className="max-h-72 overflow-y-auto rounded-md border border-zinc-200 p-1">
+                  {thirdColumn.length > 0 ? (
+                    thirdColumn.map((cat) => renderItem(cat, 3))
+                  ) : (
+                    <div className="h-full flex items-center justify-center px-3 py-2 text-xs text-zinc-300 text-center">
+                      No subcategories
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
           </div>,
           document.body
         )}

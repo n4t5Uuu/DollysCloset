@@ -950,7 +950,7 @@ export function DashboardCardLayout({
             </span>
           </div>
 
-          <div className="mt-4 flex flex-wrap gap-3">
+          <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
             {collapsedOrder.map((cardId) => {
               const card = cardMap.get(cardId);
 
@@ -999,7 +999,7 @@ export function DashboardCardLayout({
       </DashboardDropZone>
 
       <Sheet open={isMobile && mobileRailOpen} onOpenChange={setMobileRailOpen}>
-        <SheetContent side="right" className="w-full sm:max-w-sm">
+        <SheetContent side="right" className="w-full bg-white/95 backdrop-blur sm:max-w-sm">
           <SheetHeader className="border-b border-gray-100">
             <SheetTitle>Stored Cards</SheetTitle>
             <SheetDescription>

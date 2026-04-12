@@ -1,7 +1,7 @@
 "use client"
 /* eslint-disable react-hooks/set-state-in-effect */
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import {
     Accordion,
@@ -60,6 +60,7 @@ export default function CatalogSidebar({
 }: CatalogSidebarProps) {
     const normalizeName = (categoryName: string) => categoryName.trim().toLowerCase();
     const [treeRenderKey, setTreeRenderKey] = useState(0);
+    const [categorySearch, setCategorySearch] = useState("");
     const [draftMinPrice, setDraftMinPrice] = useState(selectedMinPrice);
     const [draftMaxPrice, setDraftMaxPrice] = useState(selectedMaxPrice);
     const [minPriceInput, setMinPriceInput] = useState(selectedMinPrice.toString());
@@ -94,8 +95,9 @@ export default function CatalogSidebar({
     );
 
     const rootCategoryGroups = rootCategories.reduce<Array<{ key: string; label: string; roots: CatalogCategory[] }>>((acc, rootCategory) => {
-        const key = normalizeName(rootCategory.category_name);
-        const existingGroup = acc.find((group) => group.key === key);
+        const key = normalizeName(rootCategory.category_id.toString()); // Use ID for unique keys if names collide, but keep label
+        const groupKey = normalizeName(rootCategory.category_name);
+        const existingGroup = acc.find((group) => group.key === groupKey);
 
         if (existingGroup) {
             existingGroup.roots.push(rootCategory);
@@ -103,13 +105,52 @@ export default function CatalogSidebar({
         }
 
         acc.push({
-            key,
+            key: groupKey,
             label: rootCategory.category_name,
             roots: [rootCategory],
         });
 
         return acc;
     }, []);
+
+    // Filter logic for category search
+    const visibleCategoryIds = useMemo(() => {
+        if (!categorySearch.trim()) return null;
+        
+        const search = categorySearch.toLowerCase().trim();
+        const matches = new Set<number>();
+        
+        // 1. Find directly matching categories
+        categories.forEach(cat => {
+            if (cat.category_name.toLowerCase().includes(search)) {
+                matches.add(Number(cat.category_id));
+            }
+        });
+        
+        // 2. Add all ancestors of matching categories to keep the tree structure
+        const result = new Set<number>(matches);
+        matches.forEach(id => {
+            let current = categoryById.get(id);
+            while (current?.parent_category !== null && current?.parent_category !== undefined) {
+                const parentId = Number(current.parent_category);
+                if (result.has(parentId)) break;
+                result.add(parentId);
+                current = categoryById.get(parentId);
+            }
+        });
+        
+        return result;
+    }, [categorySearch, categories, categoryById]);
+
+    const isCategoryVisible = (categoryId: number) => {
+        if (!visibleCategoryIds) return true;
+        return visibleCategoryIds.has(categoryId);
+    };
+
+    const isGroupVisible = (group: { key: string, roots: CatalogCategory[] }) => {
+        if (!visibleCategoryIds) return true;
+        return group.roots.some(root => visibleCategoryIds.has(Number(root.category_id)));
+    };
 
     const makeFilterValue = (categoryId: number) => `category-${categoryId}`;
     const makeRootFilterValue = (rootNameKey: string) => `root-${rootNameKey}`;
@@ -220,6 +261,9 @@ export default function CatalogSidebar({
         const filterValue = makeFilterValue(Number(category.category_id));
         const hasChildren = children.length > 0;
         const categoryCount = getCategoryCount(Number(category.category_id));
+        const categoryId = Number(category.category_id);
+
+        if (!isCategoryVisible(categoryId)) return null;
 
         if (!hasChildren) {
             const isActive = activeFilter === filterValue;
@@ -248,7 +292,7 @@ export default function CatalogSidebar({
         }
 
         return (
-            <AccordionItem value={`item-${category.category_id}-${depth}`} key={`${category.category_id}-${depth}`} className="border-none">
+            <AccordionItem value={`item-${category.category_id}`} key={`${category.category_id}-${depth}`} className="border-none">
                 <AccordionTrigger
                     className={cn(
                         "rounded-md px-2.5 font-montserrat cursor-pointer py-2 hover:no-underline text-gray-700 hover:bg-[#fff5f7] hover:text-[#E7A3B0] [&>svg]:text-[#94a3b8] [&>svg]:size-3.5 data-[state=open]:bg-[#fff5f7] data-[state=open]:text-[#E7A3B0]",
@@ -292,15 +336,27 @@ export default function CatalogSidebar({
                         </span>
                     </button>
 
-                    <Accordion type="single" collapsible className="w-full">
-                        {children.map((childCategory) => renderCategoryNode(childCategory, depth + 1))}
-                    </Accordion>
+                    {categorySearch ? (
+                        <Accordion 
+                            type="multiple" 
+                            className="w-full"
+                            value={Array.from(visibleCategoryIds || []).map(id => `item-${id}`)}
+                        >
+                            {children.map((childCategory) => renderCategoryNode(childCategory, depth + 1))}
+                        </Accordion>
+                    ) : (
+                        <Accordion type="single" collapsible className="w-full">
+                            {children.map((childCategory) => renderCategoryNode(childCategory, depth + 1))}
+                        </Accordion>
+                    )}
                 </AccordionContent>
             </AccordionItem>
         );
     };
 
     const renderRootGroupNode = (group: { key: string; label: string; roots: CatalogCategory[] }) => {
+        if (!isGroupVisible(group)) return null;
+
         const rootFilterValue = makeRootFilterValue(group.key);
         const mergedChildren = group.roots
             .flatMap((rootCategory) => childrenByParent.get(Number(rootCategory.category_id)) || [])
@@ -361,9 +417,19 @@ export default function CatalogSidebar({
                         </span>
                     </button>
 
-                    <Accordion type="single" collapsible className="w-full">
-                        {mergedChildren.map((childCategory) => renderCategoryNode(childCategory, 1))}
-                    </Accordion>
+                    {categorySearch ? (
+                        <Accordion 
+                            type="multiple" 
+                            className="w-full"
+                            value={Array.from(visibleCategoryIds || []).map(id => `item-${id}`)}
+                        >
+                            {mergedChildren.map((childCategory) => renderCategoryNode(childCategory, 1))}
+                        </Accordion>
+                    ) : (
+                        <Accordion type="single" collapsible className="w-full">
+                            {mergedChildren.map((childCategory) => renderCategoryNode(childCategory, 1))}
+                        </Accordion>
+                    )}
                 </AccordionContent>
             </AccordionItem>
         );
