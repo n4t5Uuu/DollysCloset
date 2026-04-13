@@ -430,8 +430,9 @@ export default function InventoryManagement({ initialAvailabilityFilter, userRol
   const startIndex = (safePage - 1) * itemsPerPage;
   const endIndex = startIndex + itemsPerPage;
   const currentProducts = filteredProducts.slice(startIndex, endIndex);
-  const allCurrentProductsSelected = currentProducts.length > 0 && currentProducts.every((product) => selectedProducts.has(product.product_id));
-  const someCurrentProductsSelected = !allCurrentProductsSelected && currentProducts.some((product) => selectedProducts.has(product.product_id));
+  const selectedProductIds = useMemo(() => new Set(Array.from(selectedProducts).map(String)), [selectedProducts]);
+  const allCurrentProductsSelected = currentProducts.length > 0 && currentProducts.every((product) => selectedProductIds.has(String(product.product_id)));
+  const someCurrentProductsSelected = !allCurrentProductsSelected && currentProducts.some((product) => selectedProductIds.has(String(product.product_id)));
 
   const getCategoryName = buildCategoryPath;
 
@@ -614,6 +615,13 @@ export default function InventoryManagement({ initialAvailabilityFilter, userRol
     setSelectedProducts(new Set());
   };
 
+  const selectedCatalogState = useMemo((): "publish" | "unpublish" | null => {
+    if (selectedProducts.size === 0) return null;
+    const selected = products.filter((p) => selectedProductIds.has(String(p.product_id)));
+    if (selected.length === 0) return null;
+    return selected.every((p) => p.show_in_catalog) ? "unpublish" : "publish";
+  }, [selectedProductIds, products]);
+
   const handleEditProduct = (product: Product) => {
     setEditingProduct(product);
     setShowAddModal(true);
@@ -742,6 +750,59 @@ export default function InventoryManagement({ initialAvailabilityFilter, userRol
       }
     } catch (err: unknown) {
       const errorMessage = err instanceof Error ? err.message : (inventoryScope === "active" ? 'Failed to archive products' : 'Failed to restore products');
+      setError(errorMessage);
+      toast.error(errorMessage);
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleBulkCatalogToggle = async (publish: boolean) => {
+    if (selectedProducts.size === 0) return;
+    setActionLoading(true);
+    setError(null);
+    setActionNotice(null);
+    try {
+      const supabase = createClient();
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error('Not authenticated');
+
+      const selectedList = products.filter((p) => selectedProductIds.has(String(p.product_id)));
+      const eligible = publish ? selectedList.filter((p) => p.product_stock > 0) : selectedList;
+      const skipped = selectedList.length - eligible.length;
+
+      await Promise.all(eligible.map(async (product) => {
+        const { error, friendlyMessage } = await safeFetchJson('/api/admin/products', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session.access_token}` },
+          body: JSON.stringify({
+            product_id: product.product_id,
+            product_name: product.product_name,
+            category_id: product.category_id,
+            product_price: product.product_price,
+            product_brand: product.product_brand,
+            product_description: product.product_description,
+            product_stock: product.product_stock,
+            product_condition: product.product_condition,
+            size_label: product.size_label,
+            show_in_catalog: publish,
+            image_id: product.image_id,
+            discount_id: product.discount?.id ?? null,
+            season_id: product.season_id,
+          }),
+        });
+        if (error) throw new Error(friendlyMessage || 'Failed to update visibility');
+      }));
+
+      clearSelection();
+      await fetchProducts();
+      if (skipped > 0) {
+        toast.warning(`${eligible.length} product(s) ${publish ? 'published' : 'unpublished'}. ${skipped} skipped (out of stock).`);
+      } else {
+        toast.success(`${eligible.length} product(s) ${publish ? 'published' : 'unpublished'} successfully.`);
+      }
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to update visibility';
       setError(errorMessage);
       toast.error(errorMessage);
     } finally {
@@ -1371,6 +1432,20 @@ export default function InventoryManagement({ initialAvailabilityFilter, userRol
                   }}
                   triggerClassName="w-full"
                 />
+                {categoryFilter !== "all" && selectedCategoryLabel && (
+                  <div className="mt-3 flex flex-wrap items-center gap-2">
+                    <span className="max-w-full truncate rounded-full border border-[#E7A3B0] bg-[#FFF0F3] px-3 py-1 text-xs font-medium text-[#8C414F]">
+                      Category: {selectedCategoryLabel}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setCategoryFilter("all")}
+                      className="text-xs font-semibold text-[#B96D7D] hover:text-[#E7A3B0]"
+                    >
+                      Clear category
+                    </button>
+                  </div>
+                )}
               </div>
               {/* Visibility */}
               <div>
@@ -1548,9 +1623,9 @@ export default function InventoryManagement({ initialAvailabilityFilter, userRol
         <div className="hidden sm:block text-sm text-gray-600">
           Showing {filteredProducts.length > 0 ? startIndex + 1 : 0}-{Math.min(endIndex, filteredProducts.length)} of {filteredProducts.length} items
         </div>
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="hidden sm:flex flex-wrap items-center gap-2">
           {selectedProducts.size > 0 && (
-            <span className="hidden sm:inline rounded-md bg-[#fff0f3] px-2.5 py-1 text-xs font-semibold text-[#b96d7d]">
+            <span className="rounded-md bg-[#fff0f3] px-2.5 py-1 text-xs font-semibold text-[#b96d7d]">
               {selectedProducts.size} selected
             </span>
           )}
@@ -1661,6 +1736,12 @@ export default function InventoryManagement({ initialAvailabilityFilter, userRol
           handleRestoreProduct={handleRestoreProduct}
           onRowActivate={inventoryScope === "active" ? handleEditProduct : undefined}
           actionLoading={actionLoading}
+          onClearSelection={clearSelection}
+          onBatchSeason={() => { setBatchSeasonSelection(""); setShowBatchSeasonModal(true); }}
+          onBatchDiscount={() => setShowDiscountModal(true)}
+          onBulkScopeAction={handleBulkScopeAction}
+          bulkCatalogAction={selectedCatalogState}
+          onBulkCatalogToggle={handleBulkCatalogToggle}
           emptyTitle={inventoryEmptyTitle}
           emptyDescription={inventoryEmptyDescription}
         />

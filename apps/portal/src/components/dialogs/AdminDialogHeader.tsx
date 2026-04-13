@@ -1,5 +1,5 @@
 import { X } from "lucide-react";
-import { CardHeader, CardTitle } from "@dollys-closet/ui";
+import { CardTitle } from "@dollys-closet/ui";
 import { cn } from "@dollys-closet/core";
 
 interface AdminDialogHeaderProps {
@@ -22,16 +22,16 @@ export function AdminDialogHeader({
     className 
 }: AdminDialogHeaderProps) {
     return (
-        <CardHeader className={cn(
-            "flex flex-row items-center justify-between border-b p-6 space-y-0 text-gray-900",
+        <div className={cn(
+            "flex flex-row items-center justify-between border-b p-3 md:p-6 space-y-0 text-gray-900",
             className
         )}>
             <div className="space-y-1">
-                <CardTitle className="font-oswald font-bold tracking-wide uppercase text-xl">
+                <CardTitle className="font-oswald font-bold tracking-wide uppercase text-base md:text-xl">
                     {title}
                 </CardTitle>
                 {description && (
-                    <p className="text-sm text-gray-500 font-montserrat">
+                    <p className="hidden md:block text-sm text-gray-500 font-montserrat">
                         {description}
                     </p>
                 )}
@@ -45,6 +45,6 @@ export function AdminDialogHeader({
             >
                 <X className="w-5 h-5" />
             </button>
-        </CardHeader>
+        </div>
     );
 }
