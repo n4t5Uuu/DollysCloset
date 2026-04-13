@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { useSearchParams, useRouter, usePathname } from "next/navigation";
-import { Plus, Archive, RotateCcw, X, Upload, SlidersHorizontal, RefreshCw, BadgePercent, Trash2, CalendarRange } from "lucide-react";
+import { Plus, Archive, RotateCcw, X, Upload, SlidersHorizontal, RefreshCw, BadgePercent, Trash2, CalendarRange, ArrowUpDown, Info } from "lucide-react";
 import { ExportPurgeDialog } from "@/components/dialogs/ExportPurgeDialog";
 import type { ExportPurgeFormat } from "@/components/dialogs/ExportPurgeDialog";
 import { 
@@ -1134,17 +1134,35 @@ export default function InventoryManagement({ initialAvailabilityFilter, userRol
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-3 sm:space-y-6">
       <div className="space-y-3">
         {/* Top row: Title + scope toggle */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-          <div>
-            <h1 className="text-2xl font-bold">Manage Inventory</h1>
-            <p className="text-gray-500 text-sm">
-              {inventoryScope === "active"
-                ? "Create, update, archive, and organize products and categories."
-                : "Review archived products and restore them when they should return to the active catalog."}
-            </p>
+          <div className="flex items-center sm:block">
+            <div>
+              <div className="flex items-center gap-1.5">
+                <h1 className="text-2xl font-bold">Manage Inventory</h1>
+              </div>
+              <p className="text-gray-500 text-sm sm:hidden">
+                {inventoryScope === "active"
+                  ? "Create, update, archive, and organize products and categories."
+                  : "Review archived products and restore them when they should return to the active catalog."}
+              </p>
+              <p className="hidden sm:block text-gray-500 text-sm">
+                {inventoryScope === "active"
+                  ? "Create, update, archive, and organize products and categories."
+                  : "Review archived products and restore them when they should return to the active catalog."}
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => fetchProducts(true)}
+              disabled={loading || actionLoading}
+              title="Refresh inventory"
+              className="sm:hidden ml-auto p-1.5 text-[#b96d7d] hover:text-[#E7A3B0] disabled:opacity-50 transition-colors"
+            >
+              <RefreshCw className={`h-5 w-5 ${(loading || actionLoading) ? "animate-spin" : ""}`} />
+            </button>
           </div>
           <div className="flex items-center rounded-lg border border-[#E7A3B0]/20 bg-[#fff9fb] p-1 sm:shrink-0">
             <button
@@ -1178,7 +1196,7 @@ export default function InventoryManagement({ initialAvailabilityFilter, userRol
             type="button"
             variant="outline"
             onClick={() => fetchProducts(true)}
-            className="h-9 border-[#E7A3B0]/30 text-[#b96d7d] hover:bg-[#fff5f7] hover:text-[#b96d7d]"
+            className="hidden sm:flex h-9 border-[#E7A3B0]/30 text-[#b96d7d] hover:bg-[#fff5f7] hover:text-[#b96d7d]"
             disabled={loading || actionLoading}
             title="Refresh inventory"
           >
@@ -1195,39 +1213,37 @@ export default function InventoryManagement({ initialAvailabilityFilter, userRol
             </button>
           )}
           {inventoryScope === "active" && (
-            <div className="flex flex-wrap items-center gap-2">
-              <button
-                onClick={() => setShowBulkImport(true)}
-                className="flex items-center gap-2 px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-800 rounded-lg text-sm font-medium transition-all duration-300 shadow-sm hover:shadow-md hover:scale-105 cursor-pointer"
-              >
-                <Upload size={16} />
-                Import
-              </button>
+            <div className="grid grid-cols-4 gap-2 w-full">
               <button
                 onClick={() => {
                   resetSeasonForm();
                   setShowSeasonModal(true);
                 }}
-                className="flex items-center gap-2 px-4 py-2 bg-white border border-[#E7A3B0]/30 text-[#b96d7d] rounded-lg text-sm font-medium transition-all duration-300 shadow-sm hover:shadow-md hover:border-[#E7A3B0] hover:bg-[#fff5f7] hover:scale-105 cursor-pointer"
+                className="flex items-center justify-center gap-1.5 px-2 py-3 h-11 w-full bg-white border border-[#E7A3B0]/30 text-[#b96d7d] rounded-lg text-[11px] sm:text-sm font-medium transition-all duration-300 shadow-sm hover:shadow-md hover:border-[#E7A3B0] hover:bg-[#fff5f7] hover:scale-105 cursor-pointer"
               >
-                <CalendarRange size={16} />
-                <span className="sm:hidden">Seasons</span>
-                <span className="hidden sm:inline">Manage Seasons</span>
+                <CalendarRange size={14} className="shrink-0" />
+                <span className="whitespace-nowrap">Seasons</span>
               </button>
               <button
                 onClick={() => setShowDiscountModal(true)}
-                className="flex items-center gap-2 px-4 py-2 bg-white border border-[#E7A3B0]/30 text-[#b96d7d] rounded-lg text-sm font-medium transition-all duration-300 shadow-sm hover:shadow-md hover:border-[#E7A3B0] hover:bg-[#fff5f7] hover:scale-105 cursor-pointer"
+                className="flex items-center justify-center gap-1.5 px-2 py-3 h-11 w-full bg-white border border-[#E7A3B0]/30 text-[#b96d7d] rounded-lg text-[11px] sm:text-sm font-medium transition-all duration-300 shadow-sm hover:shadow-md hover:border-[#E7A3B0] hover:bg-[#fff5f7] hover:scale-105 cursor-pointer"
               >
-                <BadgePercent size={16} />
-                <span className="sm:hidden">Discount</span>
-                <span className="hidden sm:inline">Add Discount Code</span>
+                <BadgePercent size={14} className="shrink-0" />
+                <span className="whitespace-nowrap">Discount</span>
+              </button>
+              <button
+                onClick={() => setShowBulkImport(true)}
+                className="flex items-center justify-center gap-1.5 px-2 py-3 h-11 w-full bg-gray-100 hover:bg-gray-200 text-gray-800 rounded-lg text-[11px] sm:text-sm font-medium transition-all duration-300 shadow-sm hover:shadow-md hover:scale-105 cursor-pointer"
+              >
+                <Upload size={14} className="shrink-0" />
+                <span className="whitespace-nowrap">Import</span>
               </button>
               <button
                 onClick={openAddModal}
-                className="flex items-center gap-2 px-4 py-2 bg-linear-to-r from-[#E7A3B0] to-[#f0b8c3] hover:from-[#d891a0] hover:to-[#E7A3B0] text-white rounded-lg text-sm font-medium transition-all duration-300 shadow-md hover:shadow-lg hover:scale-105 cursor-pointer"
+                className="flex items-center justify-center gap-1.5 px-2 py-3 h-11 w-full bg-linear-to-r from-[#E7A3B0] to-[#f0b8c3] hover:from-[#d891a0] hover:to-[#E7A3B0] text-white rounded-lg text-[11px] sm:text-sm font-medium transition-all duration-300 shadow-md hover:shadow-lg hover:scale-105 cursor-pointer"
               >
                 <Plus size={16} />
-                Add Product
+                <span className="whitespace-nowrap">Add Product</span>
               </button>
             </div>
           )}
@@ -1262,7 +1278,7 @@ export default function InventoryManagement({ initialAvailabilityFilter, userRol
         />
       )}
 
-      <div className="grid gap-2 grid-cols-3 xl:grid-cols-6">
+      <div className="hidden sm:grid gap-2 grid-cols-3 xl:grid-cols-6">
         {quickFilterCards.map((card) => (
           <button
             key={card.key}
@@ -1284,35 +1300,72 @@ export default function InventoryManagement({ initialAvailabilityFilter, userRol
         ))}
       </div>
 
-      <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center sm:gap-3">
+      {/* Active filter chips — compact strip, mobile only, above search */}
+      {activeFilterChips.length > 0 && (
+        <div className="sm:hidden flex flex-wrap items-center gap-1">
+          {activeFilterChips.map((chip) => (
+            <button
+              key={chip.key}
+              type="button"
+              onClick={chip.onRemove}
+              className="inline-flex items-center gap-1 rounded-full border border-[#E7A3B0]/30 bg-[#fffcfd] px-2 py-0.5 text-[10px] font-medium text-[#6f5058]"
+            >
+              <span className="max-w-[160px] truncate">{chip.label}</span>
+              <X className="h-2.5 w-2.5 text-[#b47c88]" />
+            </button>
+          ))}
+          <button
+            type="button"
+            onClick={clearAllFilters}
+            className="text-[10px] font-semibold text-[#b47c88] px-1"
+          >
+            Clear
+          </button>
+        </div>
+      )}
+
+      <div className="flex items-center gap-2 sm:flex-wrap sm:gap-3">
         <AdminSearchInput
           ref={searchInputRef}
           value={searchQuery}
           onChange={setSearchQuery}
           placeholder="search products or product id"
           ariaLabel="Search inventory products"
-          className="w-full sm:w-auto sm:min-w-[240px]"
+          className="flex-1 min-w-0 sm:min-w-[240px] sm:flex-none"
+          inputClassName="h-8 sm:h-9"
           clearLabel="Clear inventory search"
         />
-        <div className="flex items-center gap-2 flex-wrap">
         {/* Filters popover */}
-        <div className="relative" ref={filtersRef}>
+        <div className="relative shrink-0" ref={filtersRef}>
           <Button
             variant="outline"
             size="sm"
             onClick={() => setShowFilters((p) => !p)}
-            className="flex items-center gap-2 h-9 text-xs hover:bg-[#fff5f7] hover:text-[#E7A3B0] hover:border-[#E7A3B0] hover:scale-105 hover:shadow-md active:scale-95 transition-all duration-300"
+            className="flex items-center gap-1.5 h-8 sm:h-9 sm:gap-2 text-xs hover:bg-[#fff5f7] hover:text-[#E7A3B0] hover:border-[#E7A3B0] hover:scale-105 hover:shadow-md active:scale-95 transition-all duration-300"
           >
             <SlidersHorizontal className="w-3.5 h-3.5" />
-            Filters
+            <span className="hidden sm:inline">Filters</span>
             {[visibilityFilter !== "all", availabilityFilter !== "all", categoryFilter !== "all"].filter(Boolean).length > 0 && (
-              <span className="ml-1 flex h-4 w-4 items-center justify-center rounded-full bg-[#E7A3B0] text-[9px] font-semibold text-white">
+              <span className="flex h-4 w-4 items-center justify-center rounded-full bg-[#E7A3B0] text-[9px] font-semibold text-white">
                 {[visibilityFilter !== "all", availabilityFilter !== "all", categoryFilter !== "all"].filter(Boolean).length}
               </span>
             )}
           </Button>
           {showFilters && (
-            <div className="absolute left-0 z-20 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg p-4 w-[min(288px,calc(100vw-1rem))] max-h-[80vh] overflow-y-auto space-y-4">
+            <div className="absolute right-0 sm:left-0 sm:right-auto z-20 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg p-4 w-[min(288px,calc(100vw-1rem))] max-h-[80vh] overflow-y-auto space-y-4">
+              {/* Category - mobile only; desktop keeps it inline */}
+              <div className="sm:hidden">
+                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Category</p>
+                <CategoryCascadingFilter
+                  categories={categories}
+                  value={categoryFilter}
+                  onValueChange={(value: string) => {
+                    setCategoryFilter(value);
+                    setShowFilters(false);
+                  }}
+                  triggerClassName="w-full"
+                />
+              </div>
               {/* Visibility */}
               <div>
                 <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Visibility</p>
@@ -1394,33 +1447,64 @@ export default function InventoryManagement({ initialAvailabilityFilter, userRol
           )}
         </div>
 
-        {/* Category filter - inline beside the Filters button */}
-        <CategoryCascadingFilter
-          categories={categories}
-          value={categoryFilter}
-          onValueChange={(value: string) => setCategoryFilter(value)}
-        />
+        {/* Category - desktop only; on mobile it lives inside the Filters panel */}
+        <div className="hidden sm:block shrink-0">
+          <CategoryCascadingFilter
+            categories={categories}
+            value={categoryFilter}
+            onValueChange={(value: string) => setCategoryFilter(value)}
+          />
+        </div>
 
-        <Select value={sortOption} onValueChange={(value) => setSortOption(value as InventorySortOption)}>
-          <SelectTrigger className="w-[190px] h-9 text-xs text-gray-900 bg-white">
-            <SelectValue placeholder="Sort inventory" />
-          </SelectTrigger>
-          <SelectContent className="bg-white border-gray-200 text-black">
-            <SelectItem value="newest" className="cursor-pointer focus:bg-[#fff5f7] focus:text-[#E7A3B0]">Newest first</SelectItem>
-            <SelectItem value="oldest" className="cursor-pointer focus:bg-[#fff5f7] focus:text-[#E7A3B0]">Oldest first</SelectItem>
-            <SelectItem value="updated" className="cursor-pointer focus:bg-[#fff5f7] focus:text-[#E7A3B0]">Last updated (newest)</SelectItem>
-            <SelectItem value="least-updated" className="cursor-pointer focus:bg-[#fff5f7] focus:text-[#E7A3B0]">Last updated (oldest)</SelectItem>
-            <SelectItem value="az" className="cursor-pointer focus:bg-[#fff5f7] focus:text-[#E7A3B0]">Name: A–Z</SelectItem>
-            <SelectItem value="za" className="cursor-pointer focus:bg-[#fff5f7] focus:text-[#E7A3B0]">Name: Z–A</SelectItem>
-            <SelectItem value="price-asc" className="cursor-pointer focus:bg-[#fff5f7] focus:text-[#E7A3B0]">Price: Low to High</SelectItem>
-            <SelectItem value="price-desc" className="cursor-pointer focus:bg-[#fff5f7] focus:text-[#E7A3B0]">Price: High to Low</SelectItem>
-          </SelectContent>
-        </Select>
+        {/* Sort - mobile: icon button with native select overlay */}
+        <div className="relative shrink-0 sm:hidden">
+          <button
+            type="button"
+            className={`h-8 w-8 flex items-center justify-center rounded-md border bg-white transition-colors ${sortOption !== "newest" ? "border-[#E7A3B0] text-[#b96d7d]" : "border-gray-200 text-gray-500"}`}
+            title="Sort"
+            tabIndex={-1}
+          >
+            <ArrowUpDown className="h-3.5 w-3.5 pointer-events-none" />
+          </button>
+          <select
+            value={sortOption}
+            onChange={(e) => setSortOption(e.target.value as InventorySortOption)}
+            className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
+            aria-label="Sort inventory"
+          >
+            <option value="newest">Newest first</option>
+            <option value="oldest">Oldest first</option>
+            <option value="updated">Last updated (newest)</option>
+            <option value="least-updated">Last updated (oldest)</option>
+            <option value="az">Name: A–Z</option>
+            <option value="za">Name: Z–A</option>
+            <option value="price-asc">Price: Low to High</option>
+            <option value="price-desc">Price: High to Low</option>
+          </select>
+        </div>
+
+        {/* Sort - desktop: full labeled select */}
+        <div className="hidden sm:block shrink-0">
+          <Select value={sortOption} onValueChange={(value) => setSortOption(value as InventorySortOption)}>
+            <SelectTrigger className="w-[190px] h-9 text-xs text-gray-900 bg-white">
+              <SelectValue placeholder="Sort inventory" />
+            </SelectTrigger>
+            <SelectContent className="bg-white border-gray-200 text-black">
+              <SelectItem value="newest" className="cursor-pointer focus:bg-[#fff5f7] focus:text-[#E7A3B0]">Newest first</SelectItem>
+              <SelectItem value="oldest" className="cursor-pointer focus:bg-[#fff5f7] focus:text-[#E7A3B0]">Oldest first</SelectItem>
+              <SelectItem value="updated" className="cursor-pointer focus:bg-[#fff5f7] focus:text-[#E7A3B0]">Last updated (newest)</SelectItem>
+              <SelectItem value="least-updated" className="cursor-pointer focus:bg-[#fff5f7] focus:text-[#E7A3B0]">Last updated (oldest)</SelectItem>
+              <SelectItem value="az" className="cursor-pointer focus:bg-[#fff5f7] focus:text-[#E7A3B0]">Name: A–Z</SelectItem>
+              <SelectItem value="za" className="cursor-pointer focus:bg-[#fff5f7] focus:text-[#E7A3B0]">Name: Z–A</SelectItem>
+              <SelectItem value="price-asc" className="cursor-pointer focus:bg-[#fff5f7] focus:text-[#E7A3B0]">Price: Low to High</SelectItem>
+              <SelectItem value="price-desc" className="cursor-pointer focus:bg-[#fff5f7] focus:text-[#E7A3B0]">Price: High to Low</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
       </div>
 
       {activeFilterChips.length > 0 && (
-        <div className="flex flex-wrap items-center gap-2 rounded-xl border border-[#E7A3B0]/15 bg-[#fffcfd] px-4 py-3">
+        <div className="hidden sm:flex flex-wrap items-center gap-2 rounded-xl border border-[#E7A3B0]/15 bg-[#fffcfd] px-4 py-3">
           <span className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[#b47c88]">
             Active
           </span>
@@ -1454,13 +1538,13 @@ export default function InventoryManagement({ initialAvailabilityFilter, userRol
         />
       )}
 
-<div className="flex items-center justify-between flex-wrap gap-4 mb-4">
-        <div className="text-sm text-gray-600">
+<div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-4 sm:mb-4">
+        <div className="hidden sm:block text-sm text-gray-600">
           Showing {filteredProducts.length > 0 ? startIndex + 1 : 0}-{Math.min(endIndex, filteredProducts.length)} of {filteredProducts.length} items
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           {selectedProducts.size > 0 && (
-            <span className="rounded-md bg-[#fff0f3] px-2.5 py-1 text-xs font-semibold text-[#b96d7d]">
+            <span className="hidden sm:inline rounded-md bg-[#fff0f3] px-2.5 py-1 text-xs font-semibold text-[#b96d7d]">
               {selectedProducts.size} selected
             </span>
           )}
@@ -1476,7 +1560,7 @@ export default function InventoryManagement({ initialAvailabilityFilter, userRol
               className="h-8 border-[#E7A3B0]/35 text-[#b96d7d] hover:bg-[#fff5f7] hover:text-[#b96d7d]"
             >
               <CalendarRange className="mr-1.5 h-3.5 w-3.5" />
-              Batch Set Season
+              <span className="hidden sm:inline">Batch </span>Set Season
             </Button>
           )}
           {selectedProducts.size > 0 && inventoryScope === "active" && (
@@ -1488,7 +1572,7 @@ export default function InventoryManagement({ initialAvailabilityFilter, userRol
               className="h-8 border-[#E7A3B0]/35 text-[#b96d7d] hover:bg-[#fff5f7] hover:text-[#b96d7d]"
             >
               <BadgePercent className="mr-1.5 h-3.5 w-3.5" />
-              Batch Add Discount
+              <span className="hidden sm:inline">Batch </span>Add Discount
             </Button>
           )}
           {selectedProducts.size > 0 && (
@@ -1499,7 +1583,8 @@ export default function InventoryManagement({ initialAvailabilityFilter, userRol
               onClick={clearSelection}
               className="h-8 border-zinc-200 text-zinc-600 hover:bg-zinc-50 hover:text-zinc-700"
             >
-              Clear selection
+              <span className="hidden sm:inline">Clear selection</span>
+              <span className="sm:hidden">Clear</span>
             </Button>
           )}
           {selectedProducts.size > 0 && (
@@ -1556,6 +1641,9 @@ export default function InventoryManagement({ initialAvailabilityFilter, userRol
           currentProducts={currentProducts}
           seasons={seasons}
           selectedProducts={selectedProducts}
+          totalFilteredCount={filteredProducts.length}
+          showingStart={filteredProducts.length > 0 ? startIndex + 1 : 0}
+          showingEnd={Math.min(endIndex, filteredProducts.length)}
           allCurrentProductsSelected={allCurrentProductsSelected}
           someCurrentProductsSelected={someCurrentProductsSelected}
           toggleSelectAll={toggleSelectAll}
