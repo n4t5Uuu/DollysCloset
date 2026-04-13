@@ -1134,7 +1134,7 @@ export default function InventoryManagement({ initialAvailabilityFilter, userRol
   };
 
   return (
-    <div className="space-y-3 sm:space-y-6">
+    <div className="space-y-1.5 sm:space-y-6">
       <div className="space-y-3">
         {/* Top row: Title + scope toggle */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
@@ -1213,36 +1213,42 @@ export default function InventoryManagement({ initialAvailabilityFilter, userRol
             </button>
           )}
           {inventoryScope === "active" && (
-            <div className="grid grid-cols-4 gap-2 w-full">
+            <div className="grid grid-cols-4 gap-2 w-full sm:flex sm:flex-wrap sm:w-auto sm:items-center sm:gap-2">
               <button
                 onClick={() => {
                   resetSeasonForm();
                   setShowSeasonModal(true);
                 }}
-                className="flex items-center justify-center gap-1.5 px-2 py-3 h-11 w-full bg-white border border-[#E7A3B0]/30 text-[#b96d7d] rounded-lg text-[11px] sm:text-sm font-medium transition-all duration-300 shadow-sm hover:shadow-md hover:border-[#E7A3B0] hover:bg-[#fff5f7] hover:scale-105 cursor-pointer"
+                className="flex items-center justify-center gap-1.5 px-2 py-3 h-11 w-full sm:w-auto sm:h-auto sm:px-4 sm:py-2 bg-white border border-black sm:border-[#E7A3B0]/30 text-[#b96d7d] rounded-lg text-[11px] sm:text-sm font-medium transition-all duration-300 shadow-sm hover:shadow-md hover:border-[#E7A3B0] hover:bg-[#fff5f7] hover:scale-105 cursor-pointer"
               >
-                <CalendarRange size={14} className="shrink-0" />
-                <span className="whitespace-nowrap">Seasons</span>
+                <CalendarRange size={14} className="shrink-0 sm:hidden" />
+                <CalendarRange size={16} className="shrink-0 hidden sm:block" />
+                <span className="whitespace-nowrap sm:hidden">Seasons</span>
+                <span className="whitespace-nowrap hidden sm:inline">Manage Seasons</span>
               </button>
               <button
                 onClick={() => setShowDiscountModal(true)}
-                className="flex items-center justify-center gap-1.5 px-2 py-3 h-11 w-full bg-white border border-[#E7A3B0]/30 text-[#b96d7d] rounded-lg text-[11px] sm:text-sm font-medium transition-all duration-300 shadow-sm hover:shadow-md hover:border-[#E7A3B0] hover:bg-[#fff5f7] hover:scale-105 cursor-pointer"
+                className="flex items-center justify-center gap-1.5 px-2 py-3 h-11 w-full sm:w-auto sm:h-auto sm:px-4 sm:py-2 bg-white border border-black sm:border-[#E7A3B0]/30 text-[#b96d7d] rounded-lg text-[11px] sm:text-sm font-medium transition-all duration-300 shadow-sm hover:shadow-md hover:border-[#E7A3B0] hover:bg-[#fff5f7] hover:scale-105 cursor-pointer"
               >
-                <BadgePercent size={14} className="shrink-0" />
-                <span className="whitespace-nowrap">Discount</span>
+                <BadgePercent size={14} className="shrink-0 sm:hidden" />
+                <BadgePercent size={16} className="shrink-0 hidden sm:block" />
+                <span className="whitespace-nowrap sm:hidden">Discount</span>
+                <span className="whitespace-nowrap hidden sm:inline">Add Discount Code</span>
               </button>
               <button
                 onClick={() => setShowBulkImport(true)}
-                className="flex items-center justify-center gap-1.5 px-2 py-3 h-11 w-full bg-gray-100 hover:bg-gray-200 text-gray-800 rounded-lg text-[11px] sm:text-sm font-medium transition-all duration-300 shadow-sm hover:shadow-md hover:scale-105 cursor-pointer"
+                className="flex items-center justify-center gap-1.5 px-2 py-3 h-11 w-full sm:w-auto sm:h-auto sm:px-4 sm:py-2 bg-gray-100 hover:bg-gray-200 text-gray-800 border border-black sm:border-0 rounded-lg text-[11px] sm:text-sm font-medium transition-all duration-300 shadow-sm hover:shadow-md hover:scale-105 cursor-pointer"
               >
-                <Upload size={14} className="shrink-0" />
+                <Upload size={14} className="shrink-0 sm:hidden" />
+                <Upload size={16} className="shrink-0 hidden sm:block" />
                 <span className="whitespace-nowrap">Import</span>
               </button>
               <button
                 onClick={openAddModal}
-                className="flex items-center justify-center gap-1.5 px-2 py-3 h-11 w-full bg-linear-to-r from-[#E7A3B0] to-[#f0b8c3] hover:from-[#d891a0] hover:to-[#E7A3B0] text-white rounded-lg text-[11px] sm:text-sm font-medium transition-all duration-300 shadow-md hover:shadow-lg hover:scale-105 cursor-pointer"
+                className="flex items-center justify-center gap-1.5 px-2 py-3 h-11 w-full sm:w-auto sm:h-auto sm:px-5 sm:py-2 bg-linear-to-r from-[#E7A3B0] to-[#f0b8c3] hover:from-[#d891a0] hover:to-[#E7A3B0] text-white rounded-lg text-[11px] sm:text-sm font-medium transition-all duration-300 shadow-md hover:shadow-lg hover:scale-105 cursor-pointer"
               >
-                <Plus size={16} />
+                <Plus size={14} className="sm:hidden" />
+                <Plus size={18} className="hidden sm:block" />
                 <span className="whitespace-nowrap">Add Product</span>
               </button>
             </div>
@@ -1324,15 +1330,15 @@ export default function InventoryManagement({ initialAvailabilityFilter, userRol
         </div>
       )}
 
-      <div className="flex items-center gap-2 sm:flex-wrap sm:gap-3">
+      <div className="flex items-center gap-2 sm:flex-wrap sm:gap-3 pt-2 sm:pt-0">
         <AdminSearchInput
           ref={searchInputRef}
           value={searchQuery}
           onChange={setSearchQuery}
           placeholder="search products or product id"
           ariaLabel="Search inventory products"
-          className="flex-1 min-w-0 sm:min-w-[240px] sm:flex-none"
-          inputClassName="h-8 sm:h-9"
+          className="flex-1 min-w-0 sm:min-w-[240px]"
+          inputClassName="h-8 sm:h-10"
           clearLabel="Clear inventory search"
         />
         {/* Filters popover */}
@@ -1788,9 +1794,9 @@ export default function InventoryManagement({ initialAvailabilityFilter, userRol
               </button>
             </div>
 
-            <div className="grid max-h-[calc(90vh-5.5rem)] gap-6 overflow-y-auto p-6 lg:grid-cols-[1.05fr_0.95fr]">
-              <div className="rounded-2xl border border-[#E7A3B0]/15 bg-[#fffafc] p-5 shadow-sm lg:sticky lg:top-0 lg:self-start">
-                <div className="space-y-4">
+            <div className="grid max-h-[calc(90vh-5.5rem)] gap-6 overflow-y-auto p-6 pb-8 sm:pb-6 lg:grid-cols-[1.05fr_0.95fr]">
+              <div className="rounded-2xl border border-[#E7A3B0]/15 bg-[#fffafc] p-3 sm:p-5 shadow-sm lg:sticky lg:top-0 lg:self-start">
+                <div className="space-y-3 sm:space-y-4">
                   <div>
                     <label className="mb-2 block text-sm font-medium text-gray-700">Discount Name</label>
                     <Input
@@ -1851,11 +1857,33 @@ export default function InventoryManagement({ initialAvailabilityFilter, userRol
 
                   <div>
                     <label className="mb-2 block text-sm font-medium text-gray-700">Ends At</label>
+                    {/* Mobile: split date + time side by side */}
+                    <div className="flex gap-2 sm:hidden">
+                      <Input
+                        type="date"
+                        value={discountForm.ends_at ? discountForm.ends_at.split("T")[0] : ""}
+                        onChange={(e) => {
+                          const time = discountForm.ends_at?.split("T")[1]?.substring(0, 5) || "00:00";
+                          setDiscountForm((prev) => ({ ...prev, ends_at: e.target.value ? `${e.target.value}T${time}` : "" }));
+                        }}
+                        className="border-gray-300 bg-white text-gray-900 flex-1 text-xs h-9"
+                      />
+                      <Input
+                        type="time"
+                        value={discountForm.ends_at ? discountForm.ends_at.split("T")[1]?.substring(0, 5) || "" : ""}
+                        onChange={(e) => {
+                          const date = discountForm.ends_at?.split("T")[0] || "";
+                          if (date) setDiscountForm((prev) => ({ ...prev, ends_at: `${date}T${e.target.value}` }));
+                        }}
+                        className="border-gray-300 bg-white text-gray-900 w-24 text-xs h-9"
+                      />
+                    </div>
+                    {/* Desktop: single datetime-local */}
                     <Input
                       type="datetime-local"
                       value={discountForm.ends_at}
                       onChange={(event) => setDiscountForm((prev) => ({ ...prev, ends_at: event.target.value }))}
-                      className="border-gray-300 bg-white text-gray-900"
+                      className="hidden sm:block border-gray-300 bg-white text-gray-900"
                     />
                   </div>
 
@@ -1888,7 +1916,11 @@ export default function InventoryManagement({ initialAvailabilityFilter, userRol
                   </div>
                 ) : (
                   <div className="space-y-3">
-                    {discounts.map((discount) => {
+                    {discounts.slice().sort((a, b) => {
+                      const aExpired = Boolean(a.ends_at && new Date(a.ends_at).getTime() <= Date.now());
+                      const bExpired = Boolean(b.ends_at && new Date(b.ends_at).getTime() <= Date.now());
+                      return Number(aExpired) - Number(bExpired);
+                    }).map((discount) => {
                       const isExpired = Boolean(discount.ends_at && new Date(discount.ends_at).getTime() <= Date.now());
                       return (
                         <div key={discount.id} className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
@@ -1910,7 +1942,7 @@ export default function InventoryManagement({ initialAvailabilityFilter, userRol
                                 size="sm"
                                 onClick={() => void handleApplyDiscount(String(discount.id))}
                                 disabled={actionLoading || selectedProducts.size === 0}
-                                className="bg-[#121212] text-white hover:bg-[#2a2a2a]"
+                                className="hidden sm:inline-flex bg-[#121212] text-white hover:bg-[#2a2a2a]"
                               >
                                 Apply to selected
                               </Button>
@@ -1987,7 +2019,7 @@ export default function InventoryManagement({ initialAvailabilityFilter, userRol
               </button>
             </div>
 
-            <div className="grid max-h-[calc(90vh-5.5rem)] gap-5 overflow-y-auto p-6 lg:grid-cols-[3fr_2fr]">
+            <div className="grid max-h-[calc(90vh-5.5rem)] gap-5 overflow-y-auto p-6 pb-8 sm:pb-6 lg:grid-cols-[3fr_2fr]">
               {/* LEFT — calendar */}
               <div className="lg:sticky lg:top-0 lg:self-start">
                 <SeasonCalendar

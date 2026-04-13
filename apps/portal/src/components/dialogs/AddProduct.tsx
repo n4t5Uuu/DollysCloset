@@ -102,6 +102,9 @@ export default function AddProduct({ isOpen, onClose, categories, productToEdit,
     const conditionDropdownRef = useRef<HTMLDivElement>(null);
     const [discountEnabled, setDiscountEnabled] = useState(false);
     const [selectedDiscountId, setSelectedDiscountId] = useState("");
+    const [discountSearch, setDiscountSearch] = useState("");
+    const [discountDropdownOpen, setDiscountDropdownOpen] = useState(false);
+    const discountDropdownRef = useRef<HTMLDivElement>(null);
     const [seasons, setSeasons] = useState<Season[]>([]);
     const [loadingSeasons, setLoadingSeasons] = useState(false);
 
@@ -123,6 +126,11 @@ export default function AddProduct({ isOpen, onClose, categories, productToEdit,
     const selectedDiscount = useMemo(
         () => discounts.find((discount) => String(discount.id) === selectedDiscountId) || null,
         [discounts, selectedDiscountId]
+    );
+
+    const filteredDiscounts = useMemo(
+        () => discounts.filter((d) => d.discount_name.toLowerCase().includes(discountSearch.toLowerCase())),
+        [discounts, discountSearch]
     );
 
     useEffect(() => {
@@ -147,6 +155,18 @@ export default function AddProduct({ isOpen, onClose, categories, productToEdit,
         return () => document.removeEventListener("mousedown", handleOutsideClick);
     }, [conditionDropdownOpen]);
 
+    useEffect(() => {
+        if (!discountDropdownOpen) return;
+        const handleOutsideClick = (e: MouseEvent) => {
+            if (discountDropdownRef.current && !discountDropdownRef.current.contains(e.target as Node)) {
+                setDiscountDropdownOpen(false);
+                setDiscountSearch("");
+            }
+        };
+        document.addEventListener("mousedown", handleOutsideClick);
+        return () => document.removeEventListener("mousedown", handleOutsideClick);
+    }, [discountDropdownOpen]);
+
     /**
      * Determines if the user has modified any form fields compared to the 
      * initial state or the loaded product data.
@@ -162,8 +182,8 @@ export default function AddProduct({ isOpen, onClose, categories, productToEdit,
                 formData.product_brand !== normalizeString(productToEdit.product_brand) ||
                 formData.product_description !== normalizeString(productToEdit.product_description) ||
                 formData.product_stock !== productToEdit.product_stock.toString() ||
-                formData.product_condition !== sanitizeSingleLineInput(productToEdit.product_condition || "New", schemaExactLimits.productCondition) ||
-                formData.size_label !== sanitizeSingleLineInput(productToEdit.size_label || "One Size", schemaExactLimits.productSizeLabel) ||
+                formData.product_condition !== sanitizeSingleLineInput(productToEdit.product_condition || "", schemaExactLimits.productCondition) ||
+                formData.size_label !== sanitizeSingleLineInput(productToEdit.size_label || "", schemaExactLimits.productSizeLabel) ||
                 formData.show_in_catalog !== productToEdit.show_in_catalog ||
                 discountEnabled !== Boolean(productToEdit.discount) ||
                 selectedDiscountId !== String(productToEdit.discount?.id || "") ||
@@ -331,6 +351,7 @@ export default function AddProduct({ isOpen, onClose, categories, productToEdit,
         });
         setDiscountEnabled(false);
         setSelectedDiscountId("");
+        setDiscountSearch("");
         setStagedFiles([]);
         setProductImages([]);
         setError(null);
@@ -622,6 +643,35 @@ export default function AddProduct({ isOpen, onClose, categories, productToEdit,
                                 </p>
                             </div>
 
+                            {/* Mobile-only: Product Images between Price and Season */}
+                            <div className="md:hidden col-span-full">
+                                {!productToEdit ? (
+                                    <div className="space-y-2">
+                                        <ImageSelector
+                                            stagedFiles={stagedFiles}
+                                            onFilesAdd={addStagedFiles}
+                                            onFileRemove={removeStagedFile}
+                                            onReorder={setStagedFiles}
+                                        />
+                                        <p className="text-xs text-gray-500">
+                                            You can add up to 5 images. The first uploaded image becomes the primary one.
+                                        </p>
+                                    </div>
+                                ) : (
+                                    <div className="space-y-2">
+                                        <ProductImageUpload
+                                            productId={productToEdit?.product_id || null}
+                                            images={productImages}
+                                            onImagesChange={setProductImages}
+                                            loading={actionLoading}
+                                        />
+                                        <p className="text-xs text-gray-500">
+                                            Reorder images to control which photo appears first in the catalog.
+                                        </p>
+                                    </div>
+                                )}
+                            </div>
+
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-2">Season</label>
                                 <Select
@@ -653,6 +703,8 @@ export default function AddProduct({ isOpen, onClose, categories, productToEdit,
                                         setDiscountEnabled(nextEnabled);
                                         if (!nextEnabled) {
                                             setSelectedDiscountId("");
+                                            setDiscountSearch("");
+                                            setDiscountDropdownOpen(false);
                                         }
                                     }}
                                     className="!border-gray-600"
@@ -669,18 +721,49 @@ export default function AddProduct({ isOpen, onClose, categories, productToEdit,
                                 <div className="space-y-3 pl-7">
                                     <div>
                                         <label className="block text-sm font-medium text-gray-700 mb-2">Discount Code</label>
-                                        <Select value={selectedDiscountId} onValueChange={setSelectedDiscountId}>
-                                            <SelectTrigger className="border-gray-300 bg-white text-gray-900">
-                                                <SelectValue placeholder={discounts.length > 0 ? "Select a discount" : "No discounts created yet"} />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                                {discounts.map((discount) => (
-                                                    <SelectItem key={discount.id} value={String(discount.id)}>
-                                                        {discount.discount_name}
-                                                    </SelectItem>
-                                                ))}
-                                            </SelectContent>
-                                        </Select>
+                                        <div className="relative" ref={discountDropdownRef}>
+                                            <div className="flex items-center border border-gray-300 rounded-md bg-white overflow-hidden focus-within:ring-2 focus-within:ring-pink-300 focus-within:border-pink-300">
+                                                <input
+                                                    type="text"
+                                                    value={discountDropdownOpen ? discountSearch : (selectedDiscount?.discount_name || "")}
+                                                    placeholder={discounts.length > 0 ? "Search discount..." : "No discounts created yet"}
+                                                    onChange={(e) => { setDiscountSearch(e.target.value); setDiscountDropdownOpen(true); }}
+                                                    onFocus={() => { setDiscountDropdownOpen(true); setDiscountSearch(""); }}
+                                                    className="flex-1 min-w-0 px-3 py-2 text-base md:text-sm text-gray-900 bg-transparent outline-none placeholder:text-gray-400"
+                                                />
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setDiscountDropdownOpen((prev) => !prev)}
+                                                    className="shrink-0 px-2 py-2 hover:bg-gray-50 transition-colors"
+                                                    aria-label="Toggle discount dropdown"
+                                                >
+                                                    <ChevronDown className={`w-4 h-4 text-gray-500 transition-transform ${discountDropdownOpen ? "rotate-180" : ""}`} />
+                                                </button>
+                                            </div>
+                                            {discountDropdownOpen && (
+                                                <div className="absolute z-20 w-full mt-1 bg-white border border-gray-200 rounded-md shadow-lg max-h-48 overflow-y-auto">
+                                                    {filteredDiscounts.length > 0 ? filteredDiscounts.map((discount) => (
+                                                        <button
+                                                            key={discount.id}
+                                                            type="button"
+                                                            onMouseDown={(e) => {
+                                                                e.preventDefault();
+                                                                setSelectedDiscountId(String(discount.id));
+                                                                setDiscountDropdownOpen(false);
+                                                                setDiscountSearch("");
+                                                            }}
+                                                            className={`w-full text-left px-3 py-2 text-sm hover:bg-pink-50 hover:text-[#E7A3B0] transition-colors ${selectedDiscountId === String(discount.id) ? "bg-pink-50 text-[#E7A3B0] font-medium" : "text-gray-700"}`}
+                                                        >
+                                                            {discount.discount_name}
+                                                        </button>
+                                                    )) : (
+                                                        <p className="px-3 py-2 text-sm text-gray-500">
+                                                            {discounts.length === 0 ? "No discounts created yet" : "No matches found"}
+                                                        </p>
+                                                    )}
+                                                </div>
+                                            )}
+                                        </div>
                                     </div>
 
                                     {selectedDiscount && (
@@ -857,6 +940,8 @@ export default function AddProduct({ isOpen, onClose, categories, productToEdit,
                             </div>
                         </div>
 
+                        {/* Desktop-only: Product Images in original position */}
+                        <div className="hidden md:block">
                         {!productToEdit ? (
                             <div className="space-y-2">
                                 <ImageSelector
@@ -882,6 +967,7 @@ export default function AddProduct({ isOpen, onClose, categories, productToEdit,
                                 </p>
                             </div>
                         )}
+                        </div>
 
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-2">Description</label>
