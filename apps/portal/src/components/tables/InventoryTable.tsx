@@ -26,7 +26,8 @@ import {
     TooltipTrigger,
 } from "@dollys-closet/ui";
 import { cn, InventoryProduct as Product, ProductDiscount, Season } from "@dollys-closet/core";
-import { Eye, Pencil, Archive, RotateCcw, PackageSearch, CalendarRange, BadgePercent } from "lucide-react";
+import { Eye, Pencil, Archive, RotateCcw, PackageSearch, CalendarRange, BadgePercent, MoreHorizontal } from "lucide-react";
+import { useState } from "react";
 import { getSeasonColor } from "@/components/seasons/SeasonCalendar";
 
 interface InventoryTableProps {
@@ -34,6 +35,9 @@ interface InventoryTableProps {
     currentProducts: Product[];
     seasons: Season[];
     selectedProducts: Set<string>;
+    totalFilteredCount: number;
+    showingStart: number;
+    showingEnd: number;
     allCurrentProductsSelected: boolean;
     someCurrentProductsSelected: boolean;
     toggleSelectAll: (checked: boolean) => void;
@@ -54,6 +58,9 @@ export function InventoryTable({
     currentProducts,
     seasons,
     selectedProducts,
+    totalFilteredCount,
+    showingStart,
+    showingEnd,
     allCurrentProductsSelected,
     someCurrentProductsSelected,
     toggleSelectAll,
@@ -68,6 +75,8 @@ export function InventoryTable({
     emptyTitle = "No products found",
     emptyDescription = "We couldn't find any products in your inventory matching these filters.",
 }: InventoryTableProps) {
+    const [moreMenuId, setMoreMenuId] = useState<string | null>(null);
+
     const MONTH_ABBR = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"] as const;
     const seasonById = new Map(seasons.map((season) => [season.id, season]));
 
@@ -244,11 +253,22 @@ export function InventoryTable({
                 {currentProducts.length > 0 ? (
                     <>
                         <div className="flex items-center gap-2 px-3 py-2 bg-gray-50 rounded-t-lg">
-                            <Checkbox
-                                checked={allCurrentProductsSelected ? true : someCurrentProductsSelected ? "indeterminate" : false}
-                                onCheckedChange={(checked) => toggleSelectAll(checked === true)}
-                            />
-                            <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Select all</span>
+                            {selectedProducts.size > 0 ? (
+                                <span className="text-[11px] text-gray-400">
+                                    {selectedProducts.size}/{totalFilteredCount} selected
+                                </span>
+                            ) : (
+                                <span className="text-[11px] text-gray-400">
+                                    Showing {showingStart}–{showingEnd} of {totalFilteredCount}
+                                </span>
+                            )}
+                            <div className="ml-auto flex items-center gap-1.5">
+                                <span className="text-[10px] font-medium text-gray-400 uppercase tracking-wide">Select all</span>
+                                <Checkbox
+                                    checked={allCurrentProductsSelected}
+                                    onCheckedChange={(checked) => toggleSelectAll(checked === true)}
+                                />
+                            </div>
                         </div>
                         {currentProducts.map((product) => (
                             <div key={product.product_id} className="flex items-start gap-2 px-3 py-2">
@@ -295,19 +315,83 @@ export function InventoryTable({
                                         </span>
                                     )}
                                 </div>
-                                {/* Actions — edit button removed (tapping the name opens edit) */}
+                                {/* Actions */}
                                 <div className="flex items-center gap-1 shrink-0 mt-0.5">
-                                    <Button
-                                        size="icon"
-                                        variant="outline"
-                                        title="View product"
-                                        aria-label={`View ${product.product_name}`}
-                                        className="h-7 w-7 border-pink-200 text-pink-600 bg-pink-50 hover:bg-pink-200"
-                                        onClick={() => handleViewProduct(product)}
-                                    >
-                                        <Eye className="h-3.5 w-3.5" />
-                                    </Button>
-                                    <PrimaryActionDialog product={product} />
+                                    {mode === "active" && (
+                                        <Button
+                                            size="icon"
+                                            variant="outline"
+                                            title="Edit product"
+                                            aria-label={`Edit ${product.product_name}`}
+                                            className="h-7 w-7 border-blue-200 text-blue-600 bg-blue-50 hover:bg-blue-200"
+                                            onClick={() => handleEditProduct(product)}
+                                        >
+                                            <Pencil className="h-3.5 w-3.5" />
+                                        </Button>
+                                    )}
+                                    <div className="relative">
+                                        <Button
+                                            size="icon"
+                                            variant="outline"
+                                            title="More actions"
+                                            aria-label={`More actions for ${product.product_name}`}
+                                            className="h-7 w-7 border-gray-200 text-gray-500 bg-white hover:bg-gray-100"
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                setMoreMenuId(moreMenuId === product.product_id ? null : product.product_id);
+                                            }}
+                                        >
+                                            <MoreHorizontal className="h-3.5 w-3.5" />
+                                        </Button>
+                                        {moreMenuId === product.product_id && (
+                                            <>
+                                                <div className="fixed inset-0 z-20" onClick={() => setMoreMenuId(null)} />
+                                                <div className="absolute right-0 bottom-full mb-1 z-30 bg-white border border-gray-200 rounded-lg shadow-lg py-1 min-w-[120px]">
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => { handleViewProduct(product); setMoreMenuId(null); }}
+                                                        className="w-full flex items-center gap-2 px-3 py-2 text-xs text-gray-700 hover:bg-gray-50"
+                                                    >
+                                                        <Eye className="h-3.5 w-3.5 text-pink-500" />
+                                                        View
+                                                    </button>
+                                                    <AlertDialog>
+                                                        <AlertDialogTrigger asChild>
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => setMoreMenuId(null)}
+                                                                className={`w-full flex items-center gap-2 px-3 py-2 text-xs hover:bg-gray-50 ${mode === "active" ? "text-amber-700" : "text-emerald-700"}`}
+                                                            >
+                                                                {mode === "active" ? <Archive className="h-3.5 w-3.5" /> : <RotateCcw className="h-3.5 w-3.5" />}
+                                                                {mode === "active" ? "Archive" : "Restore"}
+                                                            </button>
+                                                        </AlertDialogTrigger>
+                                                        <AlertDialogContent className="bg-white">
+                                                            <AlertDialogHeader>
+                                                                <AlertDialogTitle className="text-gray-900">
+                                                                    {mode === "active" ? "Archive Product" : "Restore Product"}
+                                                                </AlertDialogTitle>
+                                                                <AlertDialogDescription>
+                                                                    {mode === "active"
+                                                                        ? <>Archive <span className="font-semibold">{product.product_name}</span>? Archived products are removed from active dashboards until they are restored.</>
+                                                                        : <>Restore <span className="font-semibold">{product.product_name}</span> to the active inventory list?</>}
+                                                                </AlertDialogDescription>
+                                                            </AlertDialogHeader>
+                                                            <AlertDialogFooter>
+                                                                <AlertDialogCancel className="border-zinc-300 bg-white text-zinc-700 hover:bg-zinc-50 hover:text-zinc-900">Cancel</AlertDialogCancel>
+                                                                <AlertDialogAction
+                                                                    className={`${mode === "active" ? "bg-amber-500 hover:bg-amber-600" : "bg-emerald-600 hover:bg-emerald-700"} text-white cursor-pointer`}
+                                                                    onClick={() => mode === "active" ? handleArchiveProduct(product.product_id) : handleRestoreProduct(product.product_id)}
+                                                                >
+                                                                    {mode === "active" ? "Archive" : "Restore"}
+                                                                </AlertDialogAction>
+                                                            </AlertDialogFooter>
+                                                        </AlertDialogContent>
+                                                    </AlertDialog>
+                                                </div>
+                                            </>
+                                        )}
+                                    </div>
                                 </div>
                             </div>
                         ))}

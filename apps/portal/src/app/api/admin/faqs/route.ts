@@ -32,7 +32,8 @@ export async function GET(request: NextRequest) {
     const auth = await validateAdmin(request);
     if (!auth.ok) return auth.response;
 
-    const faqs = await getAllFAQs(auth.supabaseAdmin);
+    const { data: faqs, error: faqError } = await getAllFaqs(auth.supabaseAdmin);
+    if (faqError) return NextResponse.json({ error: faqError }, { status: 500 });
     return NextResponse.json({ data: faqs });
   } catch (error: unknown) {
     return NextResponse.json({ error: error instanceof Error ? error.message : "Failed to fetch FAQs" }, { status: 500 });
@@ -64,12 +65,13 @@ export async function POST(request: NextRequest) {
       display_order,
     });
 
-    if (!created) {
-      return NextResponse.json({ error: "Failed to create FAQ" }, { status: 500 });
+    if (createError || !created) {
+      return NextResponse.json({ error: createError || "Failed to create FAQ" }, { status: 500 });
     }
 
     await activityHelper.logActivity({
       actionType: "create_faq",
+      faqId: created.id,
       productId: null,
       businessDetailsId: null,
       description: `Created FAQ: "${question.slice(0, 60)}"`,

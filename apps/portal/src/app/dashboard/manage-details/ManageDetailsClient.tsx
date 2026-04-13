@@ -109,7 +109,7 @@ export default function ManageDetailsClient({ role }: ManageDetailsClientProps) 
   const [addingFaq, setAddingFaq] = useState(false);
   const [faqForm, setFaqForm] = useState<{ question: string; answer: string; category: FAQCategory }>(EMPTY_FAQ_FORM);
   const [savingFaq, setSavingFaq] = useState(false);
-  const [deletingFaqId, setDeletingFaqId] = useState<string | null>(null);
+  const [deletingFaqId, setDeletingFaqId] = useState<number | null>(null);
 
   const [loadingAnnouncement, setLoadingAnnouncement] = useState(false);
   const [hasLoadedAnnouncement, setHasLoadedAnnouncement] = useState(false);
@@ -434,7 +434,7 @@ export default function ManageDetailsClient({ role }: ManageDetailsClientProps) 
     }
   }
 
-  async function handleDeleteFaq(id: string) {
+  async function handleDeleteFaq(id: number) {
     try {
       setDeletingFaqId(id);
       setError(null);

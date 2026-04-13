@@ -10,6 +10,7 @@ interface CategoryCascadingFilterProps {
   value: string;
   onValueChange: (value: string) => void;
   className?: string;
+  triggerClassName?: string;
 }
 
 function sortById(firstCategory: Category, secondCategory: Category) {
@@ -21,6 +22,7 @@ export default function CategoryCascadingFilter({
   value,
   onValueChange,
   className = "",
+  triggerClassName,
 }: CategoryCascadingFilterProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const [isOpen, setIsOpen] = useState(false);
@@ -323,7 +325,7 @@ export default function CategoryCascadingFilter({
       <button
         type="button"
         onClick={() => setIsOpen((previous) => !previous)}
-        className="w-[180px] h-9 px-3 border border-input rounded-md bg-white text-sm text-gray-900 flex items-center justify-between"
+        className={`h-9 px-3 border border-input rounded-md bg-white text-sm text-gray-900 flex items-center justify-between ${triggerClassName ?? "w-[180px]"}`}
         aria-haspopup="dialog"
         aria-expanded={isOpen}
         title={selectedLabel}

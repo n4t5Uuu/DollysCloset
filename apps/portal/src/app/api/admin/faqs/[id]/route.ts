@@ -61,12 +61,13 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
       ...(body.display_order !== undefined && { display_order: body.display_order }),
     });
 
-    if (!updated) {
-      return NextResponse.json({ error: "Failed to update FAQ" }, { status: 500 });
+    if (updateError || !updated) {
+      return NextResponse.json({ error: updateError || "Failed to update FAQ" }, { status: 500 });
     }
 
     await activityHelper.logActivity({
       actionType: "edit_faq",
+      faqId: faqId,
       productId: null,
       businessDetailsId: null,
       description: `Updated FAQ: "${updated.question.slice(0, 60)}"`,
@@ -87,14 +88,20 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
     if (!auth.ok) return auth.response;
 
     const { id } = await params;
-    const success = await deleteFAQ(auth.supabaseAdmin, id);
+    const faqId = Number(id);
+    if (!Number.isFinite(faqId)) {
+      return NextResponse.json({ error: "Invalid FAQ ID" }, { status: 400 });
+    }
+
+    const { success, error: deleteError } = await deleteFaq(auth.supabaseAdmin, faqId);
 
     if (!success) {
-      return NextResponse.json({ error: "Failed to delete FAQ" }, { status: 500 });
+      return NextResponse.json({ error: deleteError || "Failed to delete FAQ" }, { status: 500 });
     }
 
     await activityHelper.logActivity({
       actionType: "delete_faq",
+      faqId: faqId,
       productId: null,
       businessDetailsId: null,
       description: `Deleted FAQ item`,
