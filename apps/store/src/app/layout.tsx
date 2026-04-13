@@ -7,7 +7,6 @@ import {
 } from "next/font/google";
 import "./globals.css";
 import { Footer, Navbar, Toaster } from "@dollys-closet/ui";
-import { UserProvider } from "@dollys-closet/core";
 
 export const metadata: Metadata = {
   title: {
@@ -68,14 +67,12 @@ export default function RootLayout({
       <body
         className={`${oswald.variable} ${montserrat.variable} ${playfairDisplay.variable} ${greatVibes.variable} antialiased`}
       >
-        <UserProvider>
           <div className="flex min-h-screen w-full flex-col">
             <Navbar navLinks={["Collection", "About", "Contact"]} showLogout={false} />
             {children}
             <Footer />
             <Toaster duration={3000} />
           </div>
-        </UserProvider>
       </body>
     </html>
   );

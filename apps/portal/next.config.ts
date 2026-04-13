@@ -6,6 +6,7 @@ const supabaseHostname = supabaseUrl ? new URL(supabaseUrl).hostname : "";
 const nextConfig: NextConfig = {
   allowedDevOrigins: ['192.168.1.17', '192.168.100.35'],
   images: {
+    unoptimized: true,
     remotePatterns: [
       {
         protocol: "https",
