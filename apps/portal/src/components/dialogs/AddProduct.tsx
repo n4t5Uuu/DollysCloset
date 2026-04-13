@@ -105,6 +105,7 @@ export default function AddProduct({ isOpen, onClose, categories, productToEdit,
     const [discountSearch, setDiscountSearch] = useState("");
     const [discountDropdownOpen, setDiscountDropdownOpen] = useState(false);
     const discountDropdownRef = useRef<HTMLDivElement>(null);
+    const discountDropdownMobileRef = useRef<HTMLDivElement>(null);
     const [seasons, setSeasons] = useState<Season[]>([]);
     const [loadingSeasons, setLoadingSeasons] = useState(false);
 
@@ -158,7 +159,9 @@ export default function AddProduct({ isOpen, onClose, categories, productToEdit,
     useEffect(() => {
         if (!discountDropdownOpen) return;
         const handleOutsideClick = (e: MouseEvent) => {
-            if (discountDropdownRef.current && !discountDropdownRef.current.contains(e.target as Node)) {
+            const inDesktop = discountDropdownRef.current?.contains(e.target as Node);
+            const inMobile = discountDropdownMobileRef.current?.contains(e.target as Node);
+            if (!inDesktop && !inMobile) {
                 setDiscountDropdownOpen(false);
                 setDiscountSearch("");
             }
@@ -336,9 +339,12 @@ export default function AddProduct({ isOpen, onClose, categories, productToEdit,
     }, [productImages, productToEdit]);
 
     const resetForm = () => {
+        const lastCategoryId = existingProducts.length > 0
+            ? normalizeCategoryId(existingProducts[0].category_id)
+            : "";
         setFormData({
             product_name: "",
-            category_id: "",
+            category_id: lastCategoryId,
             product_price: "",
             product_brand: "",
             product_description: "",
@@ -564,7 +570,7 @@ export default function AddProduct({ isOpen, onClose, categories, productToEdit,
                 handleClose();
             }
         }}>
-            <Card className="bg-white w-full max-w-2xl max-h-[90vh] flex flex-col overflow-hidden p-0" onClick={(event) => event.stopPropagation()}>
+            <Card className="bg-white w-full max-w-2xl max-h-[90vh] flex flex-col overflow-hidden p-0 gap-0 md:gap-6" onClick={(event) => event.stopPropagation()}>
                 <AdminDialogHeader 
                     title={productToEdit ? "Edit Product" : "Add New Product"}
                     description={productToEdit ? "Update details for this curated piece." : "Add a new curator pick to your boutique's collection."}
@@ -575,8 +581,8 @@ export default function AddProduct({ isOpen, onClose, categories, productToEdit,
                 <form onSubmit={handleSaveProduct} className="flex min-h-0 flex-1 flex-col overflow-hidden">
                     <div className="min-h-0 flex-1 overflow-y-auto">
                     <fieldset disabled={actionLoading} className={`m-0 border-none p-0 ${actionLoading ? "pointer-events-none opacity-75" : ""}`}>
-                        <CardContent className="space-y-5 pt-2 px-6 pb-6">
-                            <FormNotice>
+                        <CardContent className="space-y-3 md:space-y-5 pt-2 px-4 md:px-6 pb-4 md:pb-6">
+                            <FormNotice className="hidden md:block">
                                 {formStatusMessage}
                             </FormNotice>
                         {error && (
@@ -596,7 +602,7 @@ export default function AddProduct({ isOpen, onClose, categories, productToEdit,
                                 className="border-gray-300 text-gray-900 bg-white placeholder:text-gray-400"
                             />
                             <p className="mt-1 flex items-center justify-between gap-3 text-xs text-gray-500">
-                                <span>Use the name shoppers should recognize in the catalog.</span>
+                                <span className="hidden md:inline">Use the name shoppers should recognize in the catalog.</span>
                                 <span>{renderLengthMeta(formData.product_name, schemaExactLimits.productName)}</span>
                             </p>
                         </div>
@@ -610,12 +616,13 @@ export default function AddProduct({ isOpen, onClose, categories, productToEdit,
                                     onValueChange={(value) => setFormData({ ...formData, category_id: normalizeCategoryId(value) })}
                                     placeholder="Select category"
                                 />
-                                <p className="mt-1 text-xs text-gray-500">
+                                <p className="hidden md:block mt-1 text-xs text-gray-500">
                                     Choose the most specific category available so filtering works well.
                                 </p>
                             </div>
 
-                            <div>
+                            {/* Desktop-only: Price next to Category */}
+                            <div className="hidden md:block">
                                 <label className="block text-sm font-medium text-gray-700 mb-2">Price <span className="text-red-500">*</span></label>
                                 <Input
                                     type="number"
@@ -638,12 +645,66 @@ export default function AddProduct({ isOpen, onClose, categories, productToEdit,
                                     aria-invalid={hasInvalidPrice || !trimmedPrice}
                                     className="border-gray-300 text-gray-900 bg-white placeholder:text-gray-400"
                                 />
-                                <p className="mt-1 text-xs text-gray-500">
+                                <p className="hidden md:block mt-1 text-xs text-gray-500">
                                     Enter the selling price in Philippine pesos.
                                 </p>
                             </div>
 
-                            {/* Mobile-only: Product Images between Price and Season */}
+                            {/* Mobile-only: Price + Stock side by side */}
+                            <div className="col-span-full md:hidden grid grid-cols-2 gap-3">
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">Price <span className="text-red-500">*</span></label>
+                                    <Input
+                                        type="number"
+                                        min="0"
+                                        step="0.01"
+                                        placeholder="0.00"
+                                        value={formData.product_price}
+                                        onChange={(e) => {
+                                            const val = e.target.value;
+                                            if (val === "" || Number(val) >= 0) {
+                                                setFormData({ ...formData, product_price: val });
+                                            }
+                                        }}
+                                        onKeyDown={(e) => {
+                                            if (['-', '+', 'e', 'E'].includes(e.key)) {
+                                                e.preventDefault();
+                                            }
+                                        }}
+                                        aria-invalid={hasInvalidPrice || !trimmedPrice}
+                                        className="border-gray-300 text-gray-900 bg-white placeholder:text-gray-400"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">Stock</label>
+                                    <Input
+                                        type="number"
+                                        min="0"
+                                        placeholder="0"
+                                        value={formData.product_stock}
+                                        onChange={(e) => {
+                                            const val = e.target.value;
+                                            if (val === "" || Number(val) >= 0) {
+                                                const isZeroStock = val === "0" || val === "";
+                                                setFormData({
+                                                    ...formData,
+                                                    product_stock: val,
+                                                    show_in_catalog: isZeroStock ? false : formData.show_in_catalog,
+                                                });
+                                            }
+                                        }}
+                                        onKeyDown={(e) => {
+                                            if (['-', '+', 'e', 'E', '.'].includes(e.key)) {
+                                                e.preventDefault();
+                                            }
+                                        }}
+                                        aria-invalid={hasInvalidStock}
+                                        className="border-gray-300 text-gray-900 bg-white placeholder:text-gray-400"
+                                    />
+                                </div>
+                            </div>
+
+                            {/* Mobile-only: Product Images */}
                             <div className="md:hidden col-span-full">
                                 {!productToEdit ? (
                                     <div className="space-y-2">
@@ -653,9 +714,6 @@ export default function AddProduct({ isOpen, onClose, categories, productToEdit,
                                             onFileRemove={removeStagedFile}
                                             onReorder={setStagedFiles}
                                         />
-                                        <p className="text-xs text-gray-500">
-                                            You can add up to 5 images. The first uploaded image becomes the primary one.
-                                        </p>
                                     </div>
                                 ) : (
                                     <div className="space-y-2">
@@ -665,14 +723,12 @@ export default function AddProduct({ isOpen, onClose, categories, productToEdit,
                                             onImagesChange={setProductImages}
                                             loading={actionLoading}
                                         />
-                                        <p className="text-xs text-gray-500">
-                                            Reorder images to control which photo appears first in the catalog.
-                                        </p>
                                     </div>
                                 )}
                             </div>
 
-                            <div>
+                            {/* Desktop-only: Season (on mobile it moves to the bottom) */}
+                            <div className="hidden md:block">
                                 <label className="block text-sm font-medium text-gray-700 mb-2">Season</label>
                                 <Select
                                     value={formData.season_id || "none"}
@@ -688,13 +744,13 @@ export default function AddProduct({ isOpen, onClose, categories, productToEdit,
                                         ))}
                                     </SelectContent>
                                 </Select>
-                                <p className="mt-1 text-xs text-gray-500">
+                                <p className="hidden md:block mt-1 text-xs text-gray-500">
                                     Optional. Leave empty if this item is not seasonal.
                                 </p>
                             </div>
                         </div>
 
-                        <div className="rounded-xl border border-gray-200 bg-white p-4 space-y-4">
+                        <div className="hidden md:block rounded-xl border border-gray-200 bg-white p-4 space-y-4">
                             <div className="flex items-start gap-3">
                                 <Checkbox
                                     checked={discountEnabled}
@@ -711,7 +767,7 @@ export default function AddProduct({ isOpen, onClose, categories, productToEdit,
                                 />
                                 <div className="space-y-1">
                                     <p className="text-sm font-semibold text-gray-900">Apply discount code</p>
-                                    <p className="text-xs text-gray-500">
+                                    <p className="hidden md:block text-xs text-gray-500">
                                         Pick an active sale code to attach to this product.
                                     </p>
                                 </div>
@@ -803,7 +859,7 @@ export default function AddProduct({ isOpen, onClose, categories, productToEdit,
                                 </p>
                             </div>
 
-                            <div>
+                            <div className="hidden md:block">
                                 <label className="block text-sm font-medium text-gray-700 mb-2">Stock</label>
                                 <Input
                                     type="number"
@@ -829,7 +885,7 @@ export default function AddProduct({ isOpen, onClose, categories, productToEdit,
                                     aria-invalid={hasInvalidStock}
                                     className="border-gray-300 text-gray-900 bg-white placeholder:text-gray-400"
                                 />
-                                <p className="mt-1 text-xs text-gray-500">
+                                <p className="hidden md:block mt-1 text-xs text-gray-500">
                                     Use <span className="font-medium">0</span> for sold out items.
                                 </p>
                             </div>
@@ -996,9 +1052,118 @@ export default function AddProduct({ isOpen, onClose, categories, productToEdit,
                                     Show in Catalog
                                 </label>
                             </div>
-                            <p className="text-xs text-gray-500">
+                            <p className="hidden md:block text-xs text-gray-500">
                                 Turn this off if the item should stay in inventory but remain hidden from customers.
                             </p>
+                        </div>
+
+                        {/* Mobile-only: Season at bottom */}
+                        <div className="md:hidden">
+                            <label className="block text-sm font-medium text-gray-700 mb-2">Season</label>
+                            <Select
+                                value={formData.season_id || "none"}
+                                onValueChange={(value) => setFormData({ ...formData, season_id: value === "none" ? "" : value })}
+                            >
+                                <SelectTrigger className="border-gray-300 bg-white text-gray-900">
+                                    <SelectValue placeholder={loadingSeasons ? "Loading seasons..." : "No season"} />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="none">No season</SelectItem>
+                                    {seasons.map((season) => (
+                                        <SelectItem key={season.id} value={season.id}>{season.name}</SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        </div>
+
+                        {/* Mobile-only: Discount at bottom */}
+                        <div className="md:hidden rounded-xl border border-gray-200 bg-white p-4 space-y-4">
+                            <div className="flex items-start gap-3">
+                                <Checkbox
+                                    checked={discountEnabled}
+                                    onCheckedChange={(checked) => {
+                                        const nextEnabled = Boolean(checked);
+                                        setDiscountEnabled(nextEnabled);
+                                        if (!nextEnabled) {
+                                            setSelectedDiscountId("");
+                                            setDiscountSearch("");
+                                            setDiscountDropdownOpen(false);
+                                        }
+                                    }}
+                                    className="!border-gray-600"
+                                />
+                                <p className="text-sm font-semibold text-gray-900">Apply discount code</p>
+                            </div>
+
+                            {discountEnabled && (
+                                <div className="space-y-3 pl-7">
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-2">Discount Code</label>
+                                        <div className="relative" ref={discountDropdownMobileRef}>
+                                            <div className="flex items-center border border-gray-300 rounded-md bg-white overflow-hidden focus-within:ring-2 focus-within:ring-pink-300 focus-within:border-pink-300">
+                                                <input
+                                                    type="text"
+                                                    value={discountDropdownOpen ? discountSearch : (selectedDiscount?.discount_name || "")}
+                                                    placeholder={discounts.length > 0 ? "Search discount..." : "No discounts created yet"}
+                                                    onChange={(e) => { setDiscountSearch(e.target.value); setDiscountDropdownOpen(true); }}
+                                                    onFocus={() => { setDiscountDropdownOpen(true); setDiscountSearch(""); }}
+                                                    className="flex-1 min-w-0 px-3 py-2 text-base text-gray-900 bg-transparent outline-none placeholder:text-gray-400"
+                                                />
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setDiscountDropdownOpen((prev) => !prev)}
+                                                    className="shrink-0 px-2 py-2 hover:bg-gray-50 transition-colors"
+                                                    aria-label="Toggle discount dropdown"
+                                                >
+                                                    <ChevronDown className={`w-4 h-4 text-gray-500 transition-transform ${discountDropdownOpen ? "rotate-180" : ""}`} />
+                                                </button>
+                                            </div>
+                                            {discountDropdownOpen && (
+                                                <div className="absolute z-20 w-full mt-1 bg-white border border-gray-200 rounded-md shadow-lg max-h-48 overflow-y-auto">
+                                                    {filteredDiscounts.length > 0 ? filteredDiscounts.map((discount) => (
+                                                        <button
+                                                            key={discount.id}
+                                                            type="button"
+                                                            onMouseDown={(e) => {
+                                                                e.preventDefault();
+                                                                setSelectedDiscountId(String(discount.id));
+                                                                setDiscountDropdownOpen(false);
+                                                                setDiscountSearch("");
+                                                            }}
+                                                            className={`w-full text-left px-3 py-2 text-sm hover:bg-pink-50 hover:text-[#E7A3B0] transition-colors ${selectedDiscountId === String(discount.id) ? "bg-pink-50 text-[#E7A3B0] font-medium" : "text-gray-700"}`}
+                                                        >
+                                                            {discount.discount_name}
+                                                        </button>
+                                                    )) : (
+                                                        <p className="px-3 py-2 text-sm text-gray-500">
+                                                            {discounts.length === 0 ? "No discounts created yet" : "No matches found"}
+                                                        </p>
+                                                    )}
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+
+                                    {selectedDiscount && (
+                                        <div className="rounded-lg border border-[#E7A3B0]/15 bg-white px-3 py-2 text-sm text-gray-700">
+                                            <p className="font-semibold text-gray-900">{selectedDiscount.discount_name}</p>
+                                            <p className="text-xs text-gray-500">
+                                                {selectedDiscount.discount_type === "percent"
+                                                    ? `${selectedDiscount.discount_value}% off`
+                                                    : selectedDiscount.discount_type === "fixed_price"
+                                                        ? `Final price ₱${selectedDiscount.discount_value.toFixed(2)}`
+                                                        : `₱${selectedDiscount.discount_value.toFixed(2)} off`}
+                                                {selectedDiscount.ends_at ? ` • Ends ${new Date(selectedDiscount.ends_at).toLocaleString()}` : ""}
+                                            </p>
+                                            {previewDiscountedPrice !== null && (
+                                                <p className="mt-1 text-xs font-medium text-[#b96d7d]">
+                                                    Sale preview: ₱{previewDiscountedPrice.toFixed(2)}
+                                                </p>
+                                            )}
+                                        </div>
+                                    )}
+                                </div>
+                            )}
                         </div>
                         </CardContent>
                     </fieldset>
