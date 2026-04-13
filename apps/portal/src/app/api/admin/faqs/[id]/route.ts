@@ -2,8 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import {
   createAdminClient,
   authHelper,
-  updateFAQ,
-  deleteFAQ,
+  updateFaq,
+  deleteFaq,
   FAQCategory,
   sanitizeSingleLineText,
   sanitizeMultilineText,
@@ -33,6 +33,11 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     if (!auth.ok) return auth.response;
 
     const { id } = await params;
+    const faqId = Number(id);
+    if (!Number.isFinite(faqId)) {
+      return NextResponse.json({ error: "Invalid FAQ ID" }, { status: 400 });
+    }
+
     const body = (await request.json()) as { question?: string; answer?: string; category?: FAQCategory; is_active?: boolean; display_order?: number };
     const nextQuestion = body.question !== undefined
       ? sanitizeSingleLineText(body.question, uiContentLimits.faqQuestion.maxLength)
@@ -53,7 +58,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
       return NextResponse.json({ error: "Answer is required" }, { status: 400 });
     }
 
-    const updated = await updateFAQ(auth.supabaseAdmin, id, {
+    const { data: updated, error: updateError } = await updateFaq(auth.supabaseAdmin, faqId, {
       ...(nextQuestion !== undefined && { question: nextQuestion }),
       ...(nextAnswer !== undefined && { answer: nextAnswer }),
       ...(body.category !== undefined && { category: body.category }),
@@ -67,7 +72,6 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
 
     await activityHelper.logActivity({
       actionType: "edit_faq",
-      faqId: faqId,
       productId: null,
       businessDetailsId: null,
       description: `Updated FAQ: "${updated.question.slice(0, 60)}"`,
@@ -101,7 +105,6 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
 
     await activityHelper.logActivity({
       actionType: "delete_faq",
-      faqId: faqId,
       productId: null,
       businessDetailsId: null,
       description: `Deleted FAQ item`,

@@ -81,6 +81,7 @@ type ManageDetailsClientProps = {
 };
 
 const FAQ_CATEGORIES: FAQCategory[] = ["General", "Ordering", "Shipping", "Returns", "Products"];
+const MAX_FAQ_ITEMS = 8;
 const EMPTY_FAQ_FORM: { question: string; answer: string; category: FAQCategory } = {
   question: "",
   answer: "",
@@ -170,6 +171,7 @@ export default function ManageDetailsClient({ role }: ManageDetailsClientProps) 
       || faqNormalizedForm.answer !== faqBaseline.answer
       || faqNormalizedForm.category !== faqBaseline.category
     : faqForm.question.length > 0 || faqForm.answer.length > 0 || faqForm.category !== EMPTY_FAQ_FORM.category;
+  const hasReachedFaqLimit = faqs.length >= MAX_FAQ_ITEMS;
 
   const fetchContactDetails = useCallback(async () => {
     try {
@@ -463,6 +465,13 @@ export default function ManageDetailsClient({ role }: ManageDetailsClientProps) 
   }
 
   function startAddFaq() {
+    if (hasReachedFaqLimit) {
+      const message = `You can only have up to ${MAX_FAQ_ITEMS} FAQs.`;
+      setError(message);
+      toast.error(message);
+      return;
+    }
+
     setAddingFaq(true);
     setEditingFaq(null);
     setFaqForm(EMPTY_FAQ_FORM);
@@ -908,6 +917,7 @@ export default function ManageDetailsClient({ role }: ManageDetailsClientProps) 
                 <Button
                   type="button"
                   onClick={startAddFaq}
+                  disabled={hasReachedFaqLimit}
                   className="bg-[#cc7f8f] text-white hover:bg-[#b96f80] gap-2"
                 >
                   <Plus className="h-4 w-4" />
@@ -925,6 +935,12 @@ export default function ManageDetailsClient({ role }: ManageDetailsClientProps) 
               </div>
             ) : (
               <>
+                {hasReachedFaqLimit && !addingFaq && (
+                  <div className="rounded-xl border border-[#E7A3B0]/30 bg-[#fff9fb] px-4 py-3 text-sm text-[#8a6b73]">
+                    You can only have up to {MAX_FAQ_ITEMS} FAQs. Delete an existing item before adding a new one.
+                  </div>
+                )}
+
                 {(addingFaq || editingFaq) && (
                   <div
                     className={`rounded-xl border p-4 ${

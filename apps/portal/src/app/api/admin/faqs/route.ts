@@ -2,8 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import {
   createAdminClient,
   authHelper,
-  getAllFAQs,
-  createFAQ,
+  getAllFaqs,
+  createFaq,
   FAQCategory,
   sanitizeSingleLineText,
   sanitizeMultilineText,
@@ -13,6 +13,7 @@ import { createServerSupabase } from "@dollys-closet/core/lib/supabase/server";
 import { activityHelper } from "@/lib/activity/activity-helper";
 
 const FAQ_CATEGORIES: FAQCategory[] = ["General", "Ordering", "Shipping", "Returns", "Products"];
+const MAX_FAQ_ITEMS = 8;
 
 async function validateAdmin(request: NextRequest) {
   const supabase = await createServerSupabase();
@@ -45,6 +46,15 @@ export async function POST(request: NextRequest) {
     const auth = await validateAdmin(request);
     if (!auth.ok) return auth.response;
 
+    const { data: existingFaqs, error: faqError } = await getAllFaqs(auth.supabaseAdmin);
+    if (faqError) {
+      return NextResponse.json({ error: faqError }, { status: 500 });
+    }
+
+    if (existingFaqs.length >= MAX_FAQ_ITEMS) {
+      return NextResponse.json({ error: `You can only have up to ${MAX_FAQ_ITEMS} FAQs.` }, { status: 400 });
+    }
+
     const body = (await request.json()) as { question?: string; answer?: string; category?: FAQCategory; display_order?: number };
     const { category = "General", display_order = 0 } = body;
     const question = sanitizeSingleLineText(body.question, uiContentLimits.faqQuestion.maxLength);
@@ -58,7 +68,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Question and answer are required" }, { status: 400 });
     }
 
-    const created = await createFAQ(auth.supabaseAdmin, {
+    const { data: created, error: createError } = await createFaq(auth.supabaseAdmin, {
       question,
       answer,
       category,
@@ -71,7 +81,6 @@ export async function POST(request: NextRequest) {
 
     await activityHelper.logActivity({
       actionType: "create_faq",
-      faqId: created.id,
       productId: null,
       businessDetailsId: null,
       description: `Created FAQ: "${question.slice(0, 60)}"`,
