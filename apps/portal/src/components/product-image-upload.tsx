@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Upload, X, Star, GripVertical } from "lucide-react";
+import { Upload, X, Star } from "lucide-react";
 import { compressImage } from "@dollys-closet/core";
 import { InventoryProductImage as ProductImage, createClient } from "@dollys-closet/core";
 import { toast } from "sonner";
@@ -85,45 +85,37 @@ function SortableImageItem({
     <div
       ref={setNodeRef}
       style={style}
+      {...attributes}
+      {...listeners}
       className={`relative group border rounded-lg overflow-hidden bg-gray-100 ${
         isDragging ? "border-pink-400 shadow-lg ring-2 ring-pink-300" : "border-gray-200"
-      }`}
+      } cursor-grab active:cursor-grabbing`}
     >
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
         src={image.image_url}
         alt={`Product image ${index + 1}`}
-        className="w-full h-32 object-cover"
+        className="w-full h-20 md:h-32 object-cover"
       />
 
       {/* Overlay */}
       <div className="absolute inset-0 bg-black/0 group-hover:bg-black/35 transition" />
-
-      {/* Drag Handle */}
-      <button
-        type="button"
-        {...attributes}
-        {...listeners}
-        title="Drag to reorder"
-        className="absolute bottom-2 left-2 p-1.5 bg-white/90 hover:bg-white text-gray-600 rounded shadow-sm cursor-grab active:cursor-grabbing opacity-0 group-hover:opacity-100 transition-opacity"
-      >
-        <GripVertical className="w-4 h-4" />
-      </button>
 
       {/* Delete Button */}
       <button
         type="button"
         onClick={() => onDelete(image.image_id)}
         title="Delete image"
-        className="absolute top-2 right-2 p-2 bg-red-500/95 hover:bg-red-600 text-white rounded transition opacity-90 group-hover:opacity-100 shadow-sm cursor-pointer"
+        className="absolute top-2 right-2 p-1.5 bg-red-500/95 hover:bg-red-600 text-white rounded transition opacity-90 group-hover:opacity-100 shadow-sm cursor-pointer"
       >
-        <X className="w-4 h-4" />
+        <X className="w-3 h-3" />
       </button>
 
       {/* Primary Badge */}
       {isPrimary && (
-        <div className="absolute top-2 left-2 bg-yellow-500 text-white px-2 py-1 rounded text-xs font-semibold flex items-center gap-1">
-          <Star className="w-3 h-3" /> Primary
+        <div className="absolute top-2 left-2 bg-yellow-500 text-white rounded-full p-1 shadow-sm flex items-center gap-1">
+          <Star className="w-3 h-3" />
+          <span className="hidden md:inline text-[10px] font-semibold">Primary</span>
         </div>
       )}
 
@@ -525,7 +517,7 @@ export default function ProductImageUpload({
               items={sortedImages.map((img) => img.image_id)}
               strategy={rectSortingStrategy}
             >
-              <div className={`grid grid-cols-2 sm:grid-cols-3 gap-3 ${reordering ? "opacity-60 pointer-events-none" : ""}`}>
+              <div className={`grid grid-cols-5 md:grid-cols-3 gap-2 ${reordering ? "opacity-60 pointer-events-none" : ""}`}>
                 {sortedImages.map((image, index) => (
                   <SortableImageItem
                     key={image.image_id}

@@ -565,12 +565,12 @@ export default function AddProduct({ isOpen, onClose, categories, productToEdit,
     if (!isOpen) return null;
 
     return (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={(event) => {
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-0 sm:p-4" onClick={(event) => {
             if (event.target === event.currentTarget && !actionLoading) {
                 handleClose();
             }
         }}>
-            <Card className="bg-white w-full max-w-2xl max-h-[90vh] flex flex-col overflow-hidden p-0 gap-0 md:gap-6" onClick={(event) => event.stopPropagation()}>
+            <Card className="bg-white w-full h-full max-h-full rounded-none shadow-none flex flex-col overflow-hidden p-0 gap-0 sm:max-w-2xl sm:max-h-[90vh] sm:rounded-2xl sm:shadow-2xl md:gap-6" onClick={(event) => event.stopPropagation()}>
                 <AdminDialogHeader 
                     title={productToEdit ? "Edit Product" : "Add New Product"}
                     description={productToEdit ? "Update details for this curated piece." : "Add a new curator pick to your boutique's collection."}
@@ -590,6 +590,29 @@ export default function AddProduct({ isOpen, onClose, categories, productToEdit,
                                 {error}
                             </div>
                         )}
+
+                        <div className="md:hidden col-span-full">
+                            {!productToEdit ? (
+                                <div className="space-y-2">
+                                    <ImageSelector
+                                        stagedFiles={stagedFiles}
+                                        onFilesAdd={addStagedFiles}
+                                        onFileRemove={removeStagedFile}
+                                        onReorder={setStagedFiles}
+                                    />
+                                </div>
+                            ) : (
+                                <div className="space-y-2">
+                                    <ProductImageUpload
+                                        productId={productToEdit?.product_id || null}
+                                        images={productImages}
+                                        onImagesChange={setProductImages}
+                                        loading={actionLoading}
+                                    />
+                                </div>
+                            )}
+                        </div>
+
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-2">Product Name <span className="text-red-500">*</span></label>
                             <Input
@@ -604,6 +627,20 @@ export default function AddProduct({ isOpen, onClose, categories, productToEdit,
                             <p className="mt-1 flex items-center justify-between gap-3 text-xs text-gray-500">
                                 <span className="hidden md:inline">Use the name shoppers should recognize in the catalog.</span>
                                 <span>{renderLengthMeta(formData.product_name, schemaExactLimits.productName)}</span>
+                            </p>
+                        </div>
+
+                        <div className="hidden md:block">
+                            <label className="block text-sm font-medium text-gray-700 mb-2">Brand</label>
+                            <Input
+                                placeholder="e.g., Gucci"
+                                value={formData.product_brand}
+                                onChange={(e) => setFormData({ ...formData, product_brand: sanitizeSingleLineInput(e.target.value, schemaExactLimits.productBrand) })}
+                                maxLength={schemaExactLimits.productBrand}
+                                className="border-gray-300 text-gray-900 bg-white placeholder:text-gray-400"
+                            />
+                            <p className="mt-1 text-right text-xs text-gray-500">
+                                {renderLengthMeta(formData.product_brand, schemaExactLimits.productBrand)}
                             </p>
                         </div>
 
@@ -704,27 +741,123 @@ export default function AddProduct({ isOpen, onClose, categories, productToEdit,
                                 </div>
                             </div>
 
-                            {/* Mobile-only: Product Images */}
-                            <div className="md:hidden col-span-full">
-                                {!productToEdit ? (
-                                    <div className="space-y-2">
-                                        <ImageSelector
-                                            stagedFiles={stagedFiles}
-                                            onFilesAdd={addStagedFiles}
-                                            onFileRemove={removeStagedFile}
-                                            onReorder={setStagedFiles}
-                                        />
+                            <div className="grid grid-cols-2 gap-3">
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">Size Label</label>
+                                    <div className="relative" ref={sizeDropdownRef}>
+                                        <div className="flex h-9 w-full rounded-md bg-white" style={{ border: '1px solid #101722' }}>
+                                            <input
+                                                value={formData.size_label}
+                                                onChange={(e) => {
+                                                    setFormData({
+                                                        ...formData,
+                                                        size_label: sanitizeSingleLineInput(e.target.value, schemaExactLimits.productSizeLabel),
+                                                    });
+                                                    setSizeDropdownOpen(true);
+                                                }}
+                                                onFocus={() => setSizeDropdownOpen(true)}
+                                                placeholder="e.g., M, L, One Size"
+                                                maxLength={schemaExactLimits.productSizeLabel}
+                                                className="flex-1 min-w-0 rounded-l-md px-3 text-sm text-gray-900 bg-transparent placeholder:text-gray-400 outline-none"
+                                            />
+                                            <button
+                                                type="button"
+                                                onClick={() => setSizeDropdownOpen((prev) => !prev)}
+                                                className="shrink-0 px-2 rounded-r-md bg-white hover:bg-gray-50 transition-colors"
+                                                aria-label="Show size presets"
+                                            >
+                                                <ChevronDown className={`w-4 h-4 text-gray-500 transition-transform ${sizeDropdownOpen ? "rotate-180" : ""}`} />
+                                            </button>
+                                        </div>
+                                        {sizeDropdownOpen && (
+                                            <div className="absolute z-20 w-full mt-1 bg-white border border-gray-200 rounded-md shadow-lg overflow-hidden">
+                                                {filteredSizeOptions.length > 0 ? filteredSizeOptions.map((size) => (
+                                                    <button
+                                                        key={size}
+                                                        type="button"
+                                                        onMouseDown={(e) => {
+                                                            e.preventDefault();
+                                                            setFormData({ ...formData, size_label: size });
+                                                            setSizeDropdownOpen(false);
+                                                        }}
+                                                        className={`w-full text-left px-3 py-2 text-sm hover:bg-pink-50 hover:text-[#E7A3B0] transition-colors ${formData.size_label === size ? "bg-pink-50 text-[#E7A3B0] font-medium" : "text-gray-700"}`}
+                                                    >
+                                                        {size}
+                                                    </button>
+                                                )) : (
+                                                    <p className="px-3 py-2 text-sm text-gray-500">No matching presets</p>
+                                                )}
+                                            </div>
+                                        )}
                                     </div>
-                                ) : (
-                                    <div className="space-y-2">
-                                        <ProductImageUpload
-                                            productId={productToEdit?.product_id || null}
-                                            images={productImages}
-                                            onImagesChange={setProductImages}
-                                            loading={actionLoading}
-                                        />
+                                    <p className="mt-1 text-right text-xs text-gray-500">
+                                        {renderLengthMeta(formData.size_label, schemaExactLimits.productSizeLabel)}
+                                    </p>
+                                </div>
+
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">Condition</label>
+                                    <div className="relative" ref={conditionDropdownRef}>
+                                        <div className="flex h-9 w-full rounded-md bg-white" style={{ border: '1px solid #101722' }}>
+                                            <input
+                                                value={formData.product_condition}
+                                                onChange={(e) => {
+                                                    setFormData({ ...formData, product_condition: sanitizeSingleLineInput(e.target.value, schemaExactLimits.productCondition) });
+                                                    setConditionDropdownOpen(true);
+                                                }}
+                                                onFocus={() => setConditionDropdownOpen(true)}
+                                                placeholder="e.g., New, Good, Used"
+                                                maxLength={schemaExactLimits.productCondition}
+                                                className="flex-1 min-w-0 rounded-l-md px-3 text-sm text-gray-900 bg-transparent placeholder:text-gray-400 outline-none"
+                                            />
+                                            <button
+                                                type="button"
+                                                onClick={() => setConditionDropdownOpen((prev) => !prev)}
+                                                className="shrink-0 px-2 rounded-r-md bg-white hover:bg-gray-50 transition-colors"
+                                                aria-label="Show condition presets"
+                                            >
+                                                <ChevronDown className={`w-4 h-4 text-gray-500 transition-transform ${conditionDropdownOpen ? "rotate-180" : ""}`} />
+                                            </button>
+                                        </div>
+                                        {conditionDropdownOpen && (
+                                            <div className="absolute z-20 w-full mt-1 bg-white border border-gray-200 rounded-md shadow-lg overflow-hidden">
+                                                {filteredConditionOptions.length > 0 ? filteredConditionOptions.map((cond) => (
+                                                    <button
+                                                        key={cond}
+                                                        type="button"
+                                                        onMouseDown={(e) => {
+                                                            e.preventDefault();
+                                                            setFormData({ ...formData, product_condition: cond });
+                                                            setConditionDropdownOpen(false);
+                                                        }}
+                                                        className={`w-full text-left px-3 py-2 text-sm hover:bg-pink-50 hover:text-[#E7A3B0] transition-colors ${formData.product_condition === cond ? "bg-pink-50 text-[#E7A3B0] font-medium" : "text-gray-700"}`}
+                                                    >
+                                                        {cond}
+                                                    </button>
+                                                )) : (
+                                                    <p className="px-3 py-2 text-sm text-gray-500">No matching presets</p>
+                                                )}
+                                            </div>
+                                        )}
                                     </div>
-                                )}
+                                    <p className="mt-1 text-right text-xs text-gray-500">
+                                        {renderLengthMeta(formData.product_condition, schemaExactLimits.productCondition)}
+                                    </p>
+                                </div>
+                            </div>
+
+                            <div className="md:hidden">
+                                <label className="block text-sm font-medium text-gray-700 mb-2">Brand</label>
+                                <Input
+                                    placeholder="e.g., Gucci"
+                                    value={formData.product_brand}
+                                    onChange={(e) => setFormData({ ...formData, product_brand: sanitizeSingleLineInput(e.target.value, schemaExactLimits.productBrand) })}
+                                    maxLength={schemaExactLimits.productBrand}
+                                    className="border-gray-300 text-gray-900 bg-white placeholder:text-gray-400"
+                                />
+                                <p className="mt-1 text-right text-xs text-gray-500">
+                                    {renderLengthMeta(formData.product_brand, schemaExactLimits.productBrand)}
+                                </p>
                             </div>
 
                             {/* Desktop-only: Season (on mobile it moves to the bottom) */}
@@ -844,156 +977,35 @@ export default function AddProduct({ isOpen, onClose, categories, productToEdit,
                             )}
                         </div>
 
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-2">Brand</label>
-                                <Input
-                                    placeholder="e.g., Gucci"
-                                    value={formData.product_brand}
-                                    onChange={(e) => setFormData({ ...formData, product_brand: sanitizeSingleLineInput(e.target.value, schemaExactLimits.productBrand) })}
-                                    maxLength={schemaExactLimits.productBrand}
-                                    className="border-gray-300 text-gray-900 bg-white placeholder:text-gray-400"
-                                />
-                                <p className="mt-1 text-right text-xs text-gray-500">
-                                    {renderLengthMeta(formData.product_brand, schemaExactLimits.productBrand)}
-                                </p>
-                            </div>
-
-                            <div className="hidden md:block">
-                                <label className="block text-sm font-medium text-gray-700 mb-2">Stock</label>
-                                <Input
-                                    type="number"
-                                    min="0"
-                                    placeholder="0"
-                                    value={formData.product_stock}
-                                    onChange={(e) => {
-                                        const val = e.target.value;
-                                        if (val === "" || Number(val) >= 0) {
-                                            const isZeroStock = val === "0" || val === "";
-                                            setFormData({
-                                                ...formData,
-                                                product_stock: val,
-                                                show_in_catalog: isZeroStock ? false : formData.show_in_catalog,
-                                            });
-                                        }
-                                    }}
-                                    onKeyDown={(e) => {
-                                        if (['-', '+', 'e', 'E', '.'].includes(e.key)) {
-                                            e.preventDefault();
-                                        }
-                                    }}
-                                    aria-invalid={hasInvalidStock}
-                                    className="border-gray-300 text-gray-900 bg-white placeholder:text-gray-400"
-                                />
-                                <p className="hidden md:block mt-1 text-xs text-gray-500">
-                                    Use <span className="font-medium">0</span> for sold out items.
-                                </p>
-                            </div>
-                        </div>
-
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-2">Size Label</label>
-                                <div className="relative" ref={sizeDropdownRef}>
-                                    <div className="flex h-9 w-full rounded-md bg-white" style={{ border: '1px solid #101722' }}> 
-                                        <input
-                                            value={formData.size_label}
-                                            onChange={(e) => {
-                                                setFormData({
-                                                    ...formData,
-                                                    size_label: sanitizeSingleLineInput(e.target.value, schemaExactLimits.productSizeLabel),
-                                                });
-                                                setSizeDropdownOpen(true);
-                                            }}
-                                            onFocus={() => setSizeDropdownOpen(true)}
-                                            placeholder="e.g., M, L, One Size"
-                                            maxLength={schemaExactLimits.productSizeLabel}
-                                            className="flex-1 min-w-0 rounded-l-md px-3 text-sm text-gray-900 bg-transparent placeholder:text-gray-400 outline-none"
-                                        />
-                                        <button
-                                            type="button"
-                                            onClick={() => setSizeDropdownOpen((prev) => !prev)}
-                                            className="shrink-0 px-2 rounded-r-md bg-white hover:bg-gray-50 transition-colors"
-                                            aria-label="Show size presets"
-                                        >
-                                            <ChevronDown className={`w-4 h-4 text-gray-500 transition-transform ${sizeDropdownOpen ? "rotate-180" : ""}`} />
-                                        </button>
-                                    </div>
-                                    {sizeDropdownOpen && (
-                                        <div className="absolute z-20 w-full mt-1 bg-white border border-gray-200 rounded-md shadow-lg overflow-hidden">
-                                            {filteredSizeOptions.length > 0 ? filteredSizeOptions.map((size) => (
-                                                <button
-                                                    key={size}
-                                                    type="button"
-                                                    onMouseDown={(e) => {
-                                                        e.preventDefault();
-                                                        setFormData({ ...formData, size_label: size });
-                                                        setSizeDropdownOpen(false);
-                                                    }}
-                                                    className={`w-full text-left px-3 py-2 text-sm hover:bg-pink-50 hover:text-[#E7A3B0] transition-colors ${formData.size_label === size ? "bg-pink-50 text-[#E7A3B0] font-medium" : "text-gray-700"}`}
-                                                >
-                                                    {size}
-                                                </button>
-                                            )) : (
-                                                <p className="px-3 py-2 text-sm text-gray-500">No matching presets</p>
-                                            )}
-                                        </div>
-                                    )}
-                                </div>
-                                <p className="mt-1 text-right text-xs text-gray-500">
-                                    {renderLengthMeta(formData.size_label, schemaExactLimits.productSizeLabel)}
-                                </p>
-                            </div>
-
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-2">Condition</label>
-                                <div className="relative" ref={conditionDropdownRef}>
-                                    <div className="flex h-9 w-full rounded-md bg-white" style={{ border: '1px solid #101722' }}>
-                                        <input
-                                            value={formData.product_condition}
-                                            onChange={(e) => {
-                                                setFormData({ ...formData, product_condition: sanitizeSingleLineInput(e.target.value, schemaExactLimits.productCondition) });
-                                                setConditionDropdownOpen(true);
-                                            }}
-                                            onFocus={() => setConditionDropdownOpen(true)}
-                                            placeholder="e.g., New, Good, Used"
-                                            maxLength={schemaExactLimits.productCondition}
-                                            className="flex-1 min-w-0 rounded-l-md px-3 text-sm text-gray-900 bg-transparent placeholder:text-gray-400 outline-none"
-                                        />
-                                        <button
-                                            type="button"
-                                            onClick={() => setConditionDropdownOpen((prev) => !prev)}
-                                            className="shrink-0 px-2 rounded-r-md bg-white hover:bg-gray-50 transition-colors"
-                                            aria-label="Show condition presets"
-                                        >
-                                            <ChevronDown className={`w-4 h-4 text-gray-500 transition-transform ${conditionDropdownOpen ? "rotate-180" : ""}`} />
-                                        </button>
-                                    </div>
-                                    {conditionDropdownOpen && (
-                                        <div className="absolute z-20 w-full mt-1 bg-white border border-gray-200 rounded-md shadow-lg overflow-hidden">
-                                            {filteredConditionOptions.length > 0 ? filteredConditionOptions.map((cond) => (
-                                                <button
-                                                    key={cond}
-                                                    type="button"
-                                                    onMouseDown={(e) => {
-                                                        e.preventDefault();
-                                                        setFormData({ ...formData, product_condition: cond });
-                                                        setConditionDropdownOpen(false);
-                                                    }}
-                                                    className={`w-full text-left px-3 py-2 text-sm hover:bg-pink-50 hover:text-[#E7A3B0] transition-colors ${formData.product_condition === cond ? "bg-pink-50 text-[#E7A3B0] font-medium" : "text-gray-700"}`}
-                                                >
-                                                    {cond}
-                                                </button>
-                                            )) : (
-                                                <p className="px-3 py-2 text-sm text-gray-500">No matching presets</p>
-                                            )}
-                                        </div>
-                                    )}
-                                </div>
-                                <p className="mt-1 text-right text-xs text-gray-500">
-                                    {renderLengthMeta(formData.product_condition, schemaExactLimits.productCondition)}
-                                </p>
-                            </div>
+                        <div className="hidden md:block">
+                            <label className="block text-sm font-medium text-gray-700 mb-2">Stock</label>
+                            <Input
+                                type="number"
+                                min="0"
+                                placeholder="0"
+                                value={formData.product_stock}
+                                onChange={(e) => {
+                                    const val = e.target.value;
+                                    if (val === "" || Number(val) >= 0) {
+                                        const isZeroStock = val === "0" || val === "";
+                                        setFormData({
+                                            ...formData,
+                                            product_stock: val,
+                                            show_in_catalog: isZeroStock ? false : formData.show_in_catalog,
+                                        });
+                                    }
+                                }}
+                                onKeyDown={(e) => {
+                                    if (['-', '+', 'e', 'E', '.'].includes(e.key)) {
+                                        e.preventDefault();
+                                    }
+                                }}
+                                aria-invalid={hasInvalidStock}
+                                className="border-gray-300 text-gray-900 bg-white placeholder:text-gray-400"
+                            />
+                            <p className="hidden md:block mt-1 text-xs text-gray-500">
+                                Use <span className="font-medium">0</span> for sold out items.
+                            </p>
                         </div>
 
                         {/* Desktop-only: Product Images in original position */}
