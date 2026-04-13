@@ -32,7 +32,7 @@ export const uiContentLimits = {
   aboutBody: { maxLength: 900, recommendedLength: "350-700" },
   historyBody: { maxLength: 900, recommendedLength: "350-700" },
   faqQuestion: { maxLength: 90, recommendedLength: "35-70" },
-  faqAnswer: { maxLength: 280, recommendedLength: "80-220" },
+  faqAnswer: { maxLength: 400, recommendedLength: "400" },
   publicLabel: { maxLength: 50 },
   publicLink: { maxLength: 255 },
   email: { maxLength: 320 },
