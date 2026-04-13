@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Upload, X, Loader2, GripVertical } from "lucide-react";
+import { Upload, X, Loader2 } from "lucide-react";
 import { compressImage } from "@dollys-closet/core";
 import {
   DndContext,
@@ -67,38 +67,29 @@ function SortableStagedImageItem({
     <div
       ref={setNodeRef}
       style={style}
+      {...attributes}
+      {...listeners}
       className={`relative group border border-black rounded-lg overflow-hidden bg-gray-100 ${
         isDragging ? "ring-2 ring-pink-400 shadow-lg" : ""
-      }`}
+      } cursor-grab active:cursor-grabbing`}
     >
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
         src={URL.createObjectURL(file)}
         alt={`Staged image ${index + 1}`}
-        className="w-full h-32 object-cover"
+        className="w-full h-20 md:h-32 object-cover"
       />
 
       <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition" />
-
-      {/* Drag Handle */}
-      <button
-        type="button"
-        {...attributes}
-        {...listeners}
-        title="Drag to reorder"
-        className="absolute bottom-2 left-2 p-1.5 bg-white/90 hover:bg-white text-gray-600 rounded shadow-sm cursor-grab active:cursor-grabbing opacity-0 group-hover:opacity-100 transition-opacity"
-      >
-        <GripVertical className="w-4 h-4" />
-      </button>
 
       <div className="absolute top-2 right-2 flex items-center justify-center">
         <button
           type="button"
           onClick={() => onRemove(index)}
-          className="p-2 bg-red-500 hover:bg-red-600 text-white rounded cursor-pointer opacity-90 group-hover:opacity-100 shadow-sm transition-opacity"
+          className="p-1.5 bg-red-500 hover:bg-red-600 text-white rounded cursor-pointer opacity-90 group-hover:opacity-100 shadow-sm transition-opacity"
           title="Remove image"
         >
-          <X className="w-4 h-4" />
+          <X className="w-3 h-3" />
         </button>
       </div>
 
@@ -320,7 +311,7 @@ export default function ImageSelector({
           onDragLeave={handleDrag}
           onDragOver={handleDrag}
           onDrop={handleDrop}
-          className="border-2 border-black rounded-lg p-6 text-center cursor-pointer transition bg-gray-50 hover:border-pink-500 hover:bg-pink-50"
+          className="border-2 border-black rounded-lg p-4 sm:p-6 text-center cursor-pointer transition bg-gray-50 hover:border-pink-500 hover:bg-pink-50"
         >
           <input
             type="file"
@@ -332,9 +323,9 @@ export default function ImageSelector({
           />
           <label htmlFor="image-input-add" className={`block ${isCompressing ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'}`}>
             {isCompressing ? (
-              <Loader2 className="w-8 h-8 mx-auto mb-2 text-pink-500 animate-spin" />
+              <Loader2 className="w-6 h-6 sm:w-8 sm:h-8 mx-auto mb-2 text-pink-500 animate-spin" />
             ) : (
-              <Upload className="w-8 h-8 mx-auto mb-2 text-gray-400" />
+              <Upload className="w-6 h-6 sm:w-8 sm:h-8 mx-auto mb-2 text-gray-400" />
             )}
             <p className="text-sm text-gray-600">
               {isCompressing 
@@ -356,7 +347,7 @@ export default function ImageSelector({
             items={stagedFiles.map((file) => `${file.name}-${file.size}-${file.lastModified}`)}
             strategy={rectSortingStrategy}
           >
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 overflow-hidden">
+            <div className="grid grid-cols-5 md:grid-cols-3 gap-2 overflow-hidden">
               {stagedFiles.map((file, index) => (
                 <SortableStagedImageItem
                   key={`${file.name}-${file.size}-${file.lastModified}`}

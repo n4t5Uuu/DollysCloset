@@ -430,8 +430,9 @@ export default function InventoryManagement({ initialAvailabilityFilter, userRol
   const startIndex = (safePage - 1) * itemsPerPage;
   const endIndex = startIndex + itemsPerPage;
   const currentProducts = filteredProducts.slice(startIndex, endIndex);
-  const allCurrentProductsSelected = currentProducts.length > 0 && currentProducts.every((product) => selectedProducts.has(product.product_id));
-  const someCurrentProductsSelected = !allCurrentProductsSelected && currentProducts.some((product) => selectedProducts.has(product.product_id));
+  const selectedProductIds = useMemo(() => new Set(Array.from(selectedProducts).map(String)), [selectedProducts]);
+  const allCurrentProductsSelected = currentProducts.length > 0 && currentProducts.every((product) => selectedProductIds.has(String(product.product_id)));
+  const someCurrentProductsSelected = !allCurrentProductsSelected && currentProducts.some((product) => selectedProductIds.has(String(product.product_id)));
 
   const getCategoryName = buildCategoryPath;
 
@@ -591,9 +592,9 @@ export default function InventoryManagement({ initialAvailabilityFilter, userRol
       const nextSelected = new Set(previousSelected);
 
       if (checked) {
-        currentProducts.forEach((product) => nextSelected.add(product.product_id));
+        currentProducts.forEach((product) => nextSelected.add(String(product.product_id)));
       } else {
-        currentProducts.forEach((product) => nextSelected.delete(product.product_id));
+        currentProducts.forEach((product) => nextSelected.delete(String(product.product_id)));
       }
 
       return nextSelected;
@@ -601,11 +602,12 @@ export default function InventoryManagement({ initialAvailabilityFilter, userRol
   };
 
   const toggleSelectProduct = (productId: string) => {
+    const id = String(productId);
     const newSelected = new Set(selectedProducts);
-    if (newSelected.has(productId)) {
-      newSelected.delete(productId);
+    if (newSelected.has(id)) {
+      newSelected.delete(id);
     } else {
-      newSelected.add(productId);
+      newSelected.add(id);
     }
     setSelectedProducts(newSelected);
   };
@@ -613,6 +615,13 @@ export default function InventoryManagement({ initialAvailabilityFilter, userRol
   const clearSelection = () => {
     setSelectedProducts(new Set());
   };
+
+  const selectedCatalogState = useMemo((): "publish" | "unpublish" | null => {
+    if (selectedProducts.size === 0) return null;
+    const selected = products.filter((p) => selectedProductIds.has(String(p.product_id)));
+    if (selected.length === 0) return null;
+    return selected.every((p) => p.show_in_catalog) ? "unpublish" : "publish";
+  }, [selectedProductIds, products]);
 
   const handleEditProduct = (product: Product) => {
     setEditingProduct(product);
@@ -742,6 +751,59 @@ export default function InventoryManagement({ initialAvailabilityFilter, userRol
       }
     } catch (err: unknown) {
       const errorMessage = err instanceof Error ? err.message : (inventoryScope === "active" ? 'Failed to archive products' : 'Failed to restore products');
+      setError(errorMessage);
+      toast.error(errorMessage);
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleBulkCatalogToggle = async (publish: boolean) => {
+    if (selectedProducts.size === 0) return;
+    setActionLoading(true);
+    setError(null);
+    setActionNotice(null);
+    try {
+      const supabase = createClient();
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error('Not authenticated');
+
+      const selectedList = products.filter((p) => selectedProductIds.has(String(p.product_id)));
+      const eligible = publish ? selectedList.filter((p) => p.product_stock > 0) : selectedList;
+      const skipped = selectedList.length - eligible.length;
+
+      await Promise.all(eligible.map(async (product) => {
+        const { error, friendlyMessage } = await safeFetchJson('/api/admin/products', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session.access_token}` },
+          body: JSON.stringify({
+            product_id: product.product_id,
+            product_name: product.product_name,
+            category_id: product.category_id,
+            product_price: product.product_price,
+            product_brand: product.product_brand,
+            product_description: product.product_description,
+            product_stock: product.product_stock,
+            product_condition: product.product_condition,
+            size_label: product.size_label,
+            show_in_catalog: publish,
+            image_id: product.image_id,
+            discount_id: product.discount?.id ?? null,
+            season_id: product.season_id,
+          }),
+        });
+        if (error) throw new Error(friendlyMessage || 'Failed to update visibility');
+      }));
+
+      clearSelection();
+      await fetchProducts();
+      if (skipped > 0) {
+        toast.warning(`${eligible.length} product(s) ${publish ? 'published' : 'unpublished'}. ${skipped} skipped (out of stock).`);
+      } else {
+        toast.success(`${eligible.length} product(s) ${publish ? 'published' : 'unpublished'} successfully.`);
+      }
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to update visibility';
       setError(errorMessage);
       toast.error(errorMessage);
     } finally {
@@ -945,43 +1007,6 @@ export default function InventoryManagement({ initialAvailabilityFilter, userRol
       toast.success(result.message || 'Season updated for selected products.');
     } catch (err: unknown) {
       toast.error(err instanceof Error ? err.message : 'Failed to apply season');
-    } finally {
-      setActionLoading(false);
-    }
-  };
-
-  const handleBatchVisibility = async (visible: boolean) => {
-    if (selectedProducts.size === 0) {
-      toast.error('Select at least one product first.');
-      return;
-    }
-
-    setActionLoading(true);
-    try {
-      const supabase = createClient();
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) throw new Error('Not authenticated');
-
-      const response = await fetch('/api/admin/products/visibility', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${session.access_token}`,
-        },
-        body: JSON.stringify({
-          visible,
-          product_ids: Array.from(selectedProducts),
-        }),
-      });
-
-      const result = await response.json();
-      if (!response.ok) throw new Error(result.error || 'Failed to update visibility');
-
-      await fetchProducts(false);
-      setSelectedProducts(new Set());
-      toast.success(result.message || `Products successfully ${visible ? 'published' : 'hidden'}.`);
-    } catch (err: unknown) {
-      toast.error(err instanceof Error ? err.message : 'Failed to update visibility');
     } finally {
       setActionLoading(false);
     }
@@ -1250,6 +1275,70 @@ export default function InventoryManagement({ initialAvailabilityFilter, userRol
         </div>
       )}
 
+      {inventoryScope === "active" && (
+        <div className="grid grid-cols-4 gap-2 w-full sm:flex sm:flex-wrap sm:w-auto sm:items-center sm:gap-2">
+          <button
+            onClick={() => {
+              resetSeasonForm();
+              setShowSeasonModal(true);
+            }}
+            className="flex items-center justify-center gap-1.5 px-2 py-3 h-11 w-full sm:w-auto sm:h-auto sm:px-4 sm:py-2 bg-white border border-black sm:border-[#E7A3B0]/30 text-[#b96d7d] rounded-lg text-[11px] sm:text-sm font-medium transition-all duration-300 shadow-sm hover:shadow-md hover:border-[#E7A3B0] hover:bg-[#fff5f7] hover:scale-105 cursor-pointer"
+          >
+            <CalendarRange size={14} className="shrink-0 sm:hidden" />
+            <CalendarRange size={16} className="shrink-0 hidden sm:block" />
+            <span className="whitespace-nowrap sm:hidden">Seasons</span>
+            <span className="whitespace-nowrap hidden sm:inline">Manage Seasons</span>
+          </button>
+          <button
+            onClick={() => setShowDiscountModal(true)}
+            className="flex items-center justify-center gap-1.5 px-2 py-3 h-11 w-full sm:w-auto sm:h-auto sm:px-4 sm:py-2 bg-white border border-black sm:border-[#E7A3B0]/30 text-[#b96d7d] rounded-lg text-[11px] sm:text-sm font-medium transition-all duration-300 shadow-sm hover:shadow-md hover:border-[#E7A3B0] hover:bg-[#fff5f7] hover:scale-105 cursor-pointer"
+          >
+            <BadgePercent size={14} className="shrink-0 sm:hidden" />
+            <BadgePercent size={16} className="shrink-0 hidden sm:block" />
+            <span className="whitespace-nowrap sm:hidden">Discount</span>
+            <span className="whitespace-nowrap hidden sm:inline">Add Discount Code</span>
+          </button>
+          <button
+            onClick={() => setShowBulkImport(true)}
+            className="flex items-center justify-center gap-1.5 px-2 py-3 h-11 w-full sm:w-auto sm:h-auto sm:px-4 sm:py-2 bg-gray-100 hover:bg-gray-200 text-gray-800 border border-black sm:border-0 rounded-lg text-[11px] sm:text-sm font-medium transition-all duration-300 shadow-sm hover:shadow-md hover:scale-105 cursor-pointer"
+          >
+            <Upload size={14} className="shrink-0 sm:hidden" />
+            <Upload size={16} className="shrink-0 hidden sm:block" />
+            <span className="whitespace-nowrap">Import</span>
+          </button>
+          <button
+            onClick={openAddModal}
+            className="flex items-center justify-center gap-1.5 px-2 py-3 h-11 w-full sm:w-auto sm:h-auto sm:px-5 sm:py-2 bg-linear-to-r from-[#E7A3B0] to-[#f0b8c3] hover:from-[#d891a0] hover:to-[#E7A3B0] text-white rounded-lg text-[11px] sm:text-sm font-medium transition-all duration-300 shadow-md hover:shadow-lg hover:scale-105 cursor-pointer"
+          >
+            <Plus size={14} className="sm:hidden" />
+            <Plus size={18} className="hidden sm:block" />
+            <span className="whitespace-nowrap">Add Product</span>
+          </button>
+        </div>
+      )}
+
+      <div className="hidden sm:grid gap-2 grid-cols-3 xl:grid-cols-6">
+        {quickFilterCards.map((card) => (
+          <button
+            key={card.key}
+            type="button"
+            onClick={card.onClick}
+            className={`rounded-xl border px-3 py-3 text-left transition-all ${
+              card.active
+                ? "border-[#E7A3B0] bg-[#fff5f7] shadow-sm"
+                : "border-gray-200 bg-white hover:border-[#E7A3B0]/40 hover:bg-[#fffafb]"
+            }`}
+          >
+            <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[#b47c88] truncate">
+              {card.label}
+            </p>
+            <p className="mt-1 text-xl font-bold text-[#121212]">
+              {card.count}
+            </p>
+          </button>
+        ))}
+      </div>
+
       <div className="flex items-center gap-2 sm:flex-wrap sm:gap-3 pt-2 sm:pt-0">
         <AdminSearchInput
           ref={searchInputRef}
@@ -1291,6 +1380,20 @@ export default function InventoryManagement({ initialAvailabilityFilter, userRol
                   }}
                   triggerClassName="w-full"
                 />
+                {categoryFilter !== "all" && selectedCategoryLabel && (
+                  <div className="mt-3 flex flex-wrap items-center gap-2">
+                    <span className="max-w-full truncate rounded-full border border-[#E7A3B0] bg-[#FFF0F3] px-3 py-1 text-xs font-medium text-[#8C414F]">
+                      Category: {selectedCategoryLabel}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setCategoryFilter("all")}
+                      className="text-xs font-semibold text-[#B96D7D] hover:text-[#E7A3B0]"
+                    >
+                      Clear category
+                    </button>
+                  </div>
+                )}
               </div>
               {/* Visibility */}
               <div>
@@ -1429,70 +1532,6 @@ export default function InventoryManagement({ initialAvailabilityFilter, userRol
         </div>
       </div>
 
-      {inventoryScope === "active" && (
-        <div className="grid grid-cols-4 gap-2 w-full sm:flex sm:flex-wrap sm:w-auto sm:items-center sm:gap-2">
-          <button
-            onClick={() => {
-              resetSeasonForm();
-              setShowSeasonModal(true);
-            }}
-            className="flex items-center justify-center gap-1.5 px-2 py-3 h-11 w-full sm:w-auto sm:h-auto sm:px-4 sm:py-2 bg-white border border-black sm:border-[#E7A3B0]/30 text-[#b96d7d] rounded-lg text-[11px] sm:text-sm font-medium transition-all duration-300 shadow-sm hover:shadow-md hover:border-[#E7A3B0] hover:bg-[#fff5f7] hover:scale-105 cursor-pointer"
-          >
-            <CalendarRange size={14} className="shrink-0 sm:hidden" />
-            <CalendarRange size={16} className="shrink-0 hidden sm:block" />
-            <span className="whitespace-nowrap sm:hidden">Seasons</span>
-            <span className="whitespace-nowrap hidden sm:inline">Manage Seasons</span>
-          </button>
-          <button
-            onClick={() => setShowDiscountModal(true)}
-            className="flex items-center justify-center gap-1.5 px-2 py-3 h-11 w-full sm:w-auto sm:h-auto sm:px-4 sm:py-2 bg-white border border-black sm:border-[#E7A3B0]/30 text-[#b96d7d] rounded-lg text-[11px] sm:text-sm font-medium transition-all duration-300 shadow-sm hover:shadow-md hover:border-[#E7A3B0] hover:bg-[#fff5f7] hover:scale-105 cursor-pointer"
-          >
-            <BadgePercent size={14} className="shrink-0 sm:hidden" />
-            <BadgePercent size={16} className="shrink-0 hidden sm:block" />
-            <span className="whitespace-nowrap sm:hidden">Discount</span>
-            <span className="whitespace-nowrap hidden sm:inline">Add Discount Code</span>
-          </button>
-          <button
-            onClick={() => setShowBulkImport(true)}
-            className="flex items-center justify-center gap-1.5 px-2 py-3 h-11 w-full sm:w-auto sm:h-auto sm:px-4 sm:py-2 bg-gray-100 hover:bg-gray-200 text-gray-800 border border-black sm:border-0 rounded-lg text-[11px] sm:text-sm font-medium transition-all duration-300 shadow-sm hover:shadow-md hover:scale-105 cursor-pointer"
-          >
-            <Upload size={14} className="shrink-0 sm:hidden" />
-            <Upload size={16} className="shrink-0 hidden sm:block" />
-            <span className="whitespace-nowrap">Import</span>
-          </button>
-          <button
-            onClick={openAddModal}
-            className="flex items-center justify-center gap-1.5 px-2 py-3 h-11 w-full sm:w-auto sm:h-auto sm:px-5 sm:py-2 bg-linear-to-r from-[#E7A3B0] to-[#f0b8c3] hover:from-[#d891a0] hover:to-[#E7A3B0] text-white rounded-lg text-[11px] sm:text-sm font-medium transition-all duration-300 shadow-md hover:shadow-lg hover:scale-105 cursor-pointer"
-          >
-            <Plus size={14} className="sm:hidden" />
-            <Plus size={18} className="hidden sm:block" />
-            <span className="whitespace-nowrap">Add Product</span>
-          </button>
-        </div>
-      )}
-
-      <div className="hidden sm:grid gap-2 grid-cols-3 xl:grid-cols-6">
-        {quickFilterCards.map((card) => (
-          <button
-            key={card.key}
-            type="button"
-            onClick={card.onClick}
-            className={`rounded-xl border px-3 py-3 text-left transition-all ${
-              card.active
-                ? "border-[#E7A3B0] bg-[#fff5f7] shadow-sm"
-                : "border-gray-200 bg-white hover:border-[#E7A3B0]/40 hover:bg-[#fffafb]"
-            }`}
-          >
-            <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[#b47c88] truncate">
-              {card.label}
-            </p>
-            <p className="mt-1 text-xl font-bold text-[#121212]">
-              {card.count}
-            </p>
-          </button>
-        ))}
-      </div>
-
       {activeFilterChips.length > 0 && (
         <div className="hidden sm:flex flex-wrap items-center gap-2 rounded-xl border border-[#E7A3B0]/15 bg-[#fffcfd] px-4 py-3">
           <span className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[#b47c88]">
@@ -1535,42 +1574,38 @@ export default function InventoryManagement({ initialAvailabilityFilter, userRol
         <div className="text-sm text-gray-600">
           Showing {filteredProducts.length > 0 ? startIndex + 1 : 0}-{Math.min(endIndex, filteredProducts.length)} of {filteredProducts.length} items
         </div>
-        {selectedProducts.size > 0 && (
-          <span className="rounded-md bg-[#fff0f3] px-2.5 py-1 text-xs font-semibold text-[#b96d7d]">
-            {selectedProducts.size} selected
-          </span>
-        )}
-      </div>
-
-      {selectedProducts.size > 0 && (
-        <div className="flex flex-col sm:flex-row sm:flex-wrap gap-2">
-          {/* Row 1: Season & Discount (Active scope only) */}
-          {inventoryScope === "active" && (
-            <div className="flex items-center gap-2 w-full sm:w-auto">
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() => {
-                  setBatchSeasonSelection("");
-                  setShowBatchSeasonModal(true);
-                }}
-                className="flex-1 sm:flex-none h-8 border-[#E7A3B0]/35 text-[#b96d7d] hover:bg-[#fff5f7] hover:text-[#b96d7d]"
-              >
-                <CalendarRange className="mr-1.5 h-3.5 w-3.5" />
-                <span>Set Season</span>
-              </Button>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() => setShowDiscountModal(true)}
-                className="flex-1 sm:flex-none h-8 border-[#E7A3B0]/35 text-[#b96d7d] hover:bg-[#fff5f7] hover:text-[#b96d7d]"
-              >
-                <BadgePercent className="mr-1.5 h-3.5 w-3.5" />
-                <span>Add Discount</span>
-              </Button>
-            </div>
+        <div className="flex flex-wrap items-center gap-2">
+          {selectedProducts.size > 0 && (
+            <span className="hidden sm:inline rounded-md bg-[#fff0f3] px-2.5 py-1 text-xs font-semibold text-[#b96d7d]">
+              {selectedProducts.size} selected
+            </span>
+          )}
+          {selectedProducts.size > 0 && inventoryScope === "active" && (
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                setBatchSeasonSelection("");
+                setShowBatchSeasonModal(true);
+              }}
+              className="h-8 border-[#E7A3B0]/35 text-[#b96d7d] hover:bg-[#fff5f7] hover:text-[#b96d7d]"
+            >
+              <CalendarRange className="mr-1.5 h-3.5 w-3.5" />
+              <span className="hidden sm:inline">Batch </span>Set Season
+            </Button>
+          )}
+          {selectedProducts.size > 0 && inventoryScope === "active" && (
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => setShowDiscountModal(true)}
+              className="h-8 border-[#E7A3B0]/35 text-[#b96d7d] hover:bg-[#fff5f7] hover:text-[#b96d7d]"
+            >
+              <BadgePercent className="mr-1.5 h-3.5 w-3.5" />
+              <span className="hidden sm:inline">Batch </span>Add Discount
+            </Button>
           )}
 
           {/* Row 2: Show & Hide (Active scope only) */}
@@ -1580,7 +1615,7 @@ export default function InventoryManagement({ initialAvailabilityFilter, userRol
                 type="button"
                 variant="outline"
                 size="sm"
-                onClick={() => handleBatchVisibility(true)}
+                onClick={() => handleBulkCatalogToggle(true)}
                 className="flex-1 sm:flex-none h-8 border-[#E7A3B0]/35 text-[#b96d7d] hover:bg-[#fff5f7] hover:text-[#b96d7d]"
                 disabled={actionLoading}
               >
@@ -1591,7 +1626,7 @@ export default function InventoryManagement({ initialAvailabilityFilter, userRol
                 type="button"
                 variant="outline"
                 size="sm"
-                onClick={() => handleBatchVisibility(false)}
+                onClick={() => handleBulkCatalogToggle(false)}
                 className="flex-1 sm:flex-none h-8 border-[#E7A3B0]/35 text-[#b96d7d] hover:bg-[#fff5f7] hover:text-[#b96d7d]"
                 disabled={actionLoading}
               >
@@ -1647,7 +1682,7 @@ export default function InventoryManagement({ initialAvailabilityFilter, userRol
             </AlertDialog>
           </div>
         </div>
-      )}
+      </div>
     </div>
 
 
@@ -1678,6 +1713,12 @@ export default function InventoryManagement({ initialAvailabilityFilter, userRol
           handleRestoreProduct={handleRestoreProduct}
           onRowActivate={inventoryScope === "active" ? handleEditProduct : undefined}
           actionLoading={actionLoading}
+          onClearSelection={clearSelection}
+          onBatchSeason={() => { setBatchSeasonSelection(""); setShowBatchSeasonModal(true); }}
+          onBatchDiscount={() => setShowDiscountModal(true)}
+          onBulkScopeAction={handleBulkScopeAction}
+          bulkCatalogAction={selectedCatalogState}
+          onBulkCatalogToggle={handleBulkCatalogToggle}
           emptyTitle={inventoryEmptyTitle}
           emptyDescription={inventoryEmptyDescription}
         />

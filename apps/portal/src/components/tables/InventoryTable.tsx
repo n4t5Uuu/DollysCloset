@@ -26,7 +26,7 @@ import {
     TooltipTrigger,
 } from "@dollys-closet/ui";
 import { cn, InventoryProduct as Product, ProductDiscount, Season } from "@dollys-closet/core";
-import { Eye, Pencil, Archive, RotateCcw, PackageSearch, CalendarRange, BadgePercent, MoreHorizontal } from "lucide-react";
+import { Eye, EyeOff, Pencil, Archive, RotateCcw, PackageSearch, CalendarRange, BadgePercent, MoreHorizontal, X } from "lucide-react";
 import { useState } from "react";
 import { getSeasonColor } from "@/components/seasons/SeasonCalendar";
 
@@ -49,6 +49,12 @@ interface InventoryTableProps {
     handleRestoreProduct: (productId: string) => void;
     onRowActivate?: (product: Product) => void;
     actionLoading?: boolean;
+    onClearSelection?: () => void;
+    onBatchSeason?: () => void;
+    onBatchDiscount?: () => void;
+    onBulkScopeAction?: () => void;
+    bulkCatalogAction?: "publish" | "unpublish" | null;
+    onBulkCatalogToggle?: (publish: boolean) => void;
     emptyTitle?: string;
     emptyDescription?: string;
 }
@@ -72,6 +78,12 @@ export function InventoryTable({
     handleRestoreProduct,
     onRowActivate,
     actionLoading = false,
+    onClearSelection,
+    onBatchSeason,
+    onBatchDiscount,
+    onBulkScopeAction,
+    bulkCatalogAction,
+    onBulkCatalogToggle,
     emptyTitle = "No products found",
     emptyDescription = "We couldn't find any products in your inventory matching these filters.",
 }: InventoryTableProps) {
@@ -330,6 +342,69 @@ export function InventoryTable({
                                 </span>
                             )}
                             <div className="ml-auto flex items-center gap-1.5">
+                                {selectedProducts.size > 0 && (
+                                    <>
+                                        {mode === "active" && onBatchSeason && (
+                                            <Button type="button" variant="outline" size="sm" onClick={onBatchSeason} className="h-6 w-6 p-0 border-[#E7A3B0]/50 text-[#b96d7d] hover:bg-[#fff5f7]" aria-label="Set Season">
+                                                <CalendarRange className="h-3.5 w-3.5" />
+                                            </Button>
+                                        )}
+                                        {mode === "active" && onBatchDiscount && (
+                                            <Button type="button" variant="outline" size="sm" onClick={onBatchDiscount} className="h-6 w-6 p-0 border-[#E7A3B0]/50 text-[#b96d7d] hover:bg-[#fff5f7]" aria-label="Add Discount">
+                                                <BadgePercent className="h-3.5 w-3.5" />
+                                            </Button>
+                                        )}
+                                        {bulkCatalogAction && onBulkCatalogToggle && (
+                                            <Button
+                                                type="button"
+                                                variant="outline"
+                                                size="sm"
+                                                onClick={() => onBulkCatalogToggle(bulkCatalogAction === "publish")}
+                                                disabled={actionLoading}
+                                                className={`h-6 w-6 p-0 ${bulkCatalogAction === "publish" ? "border-emerald-200 text-emerald-600 hover:bg-emerald-50" : "border-zinc-200 text-zinc-500 hover:bg-zinc-50"}`}
+                                                aria-label={bulkCatalogAction === "publish" ? "Publish" : "Unpublish"}
+                                            >
+                                                {bulkCatalogAction === "publish" ? <Eye className="h-3.5 w-3.5" /> : <EyeOff className="h-3.5 w-3.5" />}
+                                            </Button>
+                                        )}
+                                        {onBulkScopeAction && (
+                                            <AlertDialog>
+                                                <AlertDialogTrigger asChild>
+                                                    <Button type="button" variant="outline" size="sm" disabled={actionLoading} className={`h-6 w-6 p-0 ${mode === "active" ? "border-amber-200 text-amber-500 hover:bg-amber-50" : "border-emerald-200 text-emerald-600 hover:bg-emerald-50"}`} aria-label={mode === "active" ? "Archive" : "Restore"}>
+                                                        {mode === "active" ? <Archive className="h-3.5 w-3.5" /> : <RotateCcw className="h-3.5 w-3.5" />}
+                                                    </Button>
+                                                </AlertDialogTrigger>
+                                                <AlertDialogContent className="bg-white">
+                                                    <AlertDialogHeader>
+                                                        <AlertDialogTitle className="text-gray-900">
+                                                            {mode === "active"
+                                                                ? selectedProducts.size === 1 ? "Archive Product" : "Archive Multiple Products"
+                                                                : selectedProducts.size === 1 ? "Restore Product" : "Restore Multiple Products"}
+                                                        </AlertDialogTitle>
+                                                        <AlertDialogDescription>
+                                                            {mode === "active"
+                                                                ? <>Archive <span className="font-semibold">{selectedProducts.size}</span> {selectedProducts.size === 1 ? "product" : "products"}? They can be restored later.</>
+                                                                : <>Restore <span className="font-semibold">{selectedProducts.size}</span> {selectedProducts.size === 1 ? "product" : "products"} to active inventory?</>}
+                                                        </AlertDialogDescription>
+                                                    </AlertDialogHeader>
+                                                    <AlertDialogFooter>
+                                                        <AlertDialogCancel className="border-zinc-300 bg-white text-zinc-700 hover:bg-zinc-50">Cancel</AlertDialogCancel>
+                                                        <AlertDialogAction className={`${mode === "active" ? "bg-amber-500 hover:bg-amber-600" : "bg-emerald-600 hover:bg-emerald-700"} text-white cursor-pointer`} onClick={onBulkScopeAction}>
+                                                            {mode === "active"
+                                                                ? selectedProducts.size === 1 ? "Archive" : "Archive All"
+                                                                : selectedProducts.size === 1 ? "Restore" : "Restore All"}
+                                                        </AlertDialogAction>
+                                                    </AlertDialogFooter>
+                                                </AlertDialogContent>
+                                            </AlertDialog>
+                                        )}
+                                        {onClearSelection && (
+                                            <Button type="button" variant="outline" size="sm" onClick={onClearSelection} className="h-6 w-6 p-0 border-zinc-200 text-zinc-400 hover:bg-zinc-50" aria-label="Clear selection">
+                                                <X className="h-3.5 w-3.5" />
+                                            </Button>
+                                        )}
+                                    </>
+                                )}
                                 <span className="text-[10px] font-medium text-gray-400 uppercase tracking-wide">Select all</span>
                                 <Checkbox
                                     checked={allCurrentProductsSelected}
@@ -341,7 +416,7 @@ export function InventoryTable({
                             <div key={product.product_id} className="flex items-start gap-2 px-3 py-2">
                                 <Checkbox
                                     className="mt-1 shrink-0"
-                                    checked={selectedProducts.has(product.product_id)}
+                                    checked={selectedProducts.has(String(product.product_id))}
                                     onCheckedChange={() => toggleSelectProduct(product.product_id)}
                                 />
                                 <div className="flex-1 min-w-0">
@@ -368,7 +443,7 @@ export function InventoryTable({
                                             {product.product_stock}
                                         </span>
                                         <span className="text-[11px] font-semibold text-gray-700 text-right truncate">
-                                            PHP {(product.discountedPrice ?? product.product_price).toFixed(2)}
+                                            ₱{(product.discountedPrice ?? product.product_price).toFixed(2)}
                                         </span>
                                     </div>
                                     {mode === "archived" && product.archived_at && (
@@ -473,7 +548,7 @@ export function InventoryTable({
                         <TableRow>
                             <TableHead className="p-4 text-left w-12">
                                 <Checkbox
-                                    checked={allCurrentProductsSelected ? true : someCurrentProductsSelected ? "indeterminate" : false}
+                                    checked={allCurrentProductsSelected}
                                     onCheckedChange={(checked) => toggleSelectAll(checked === true)}
                                 />
                             </TableHead>
@@ -497,12 +572,12 @@ export function InventoryTable({
                             currentProducts.map((product) => (
                                 <TableRow
                                     key={product.product_id}
-                                    className={cn("border-b hover:bg-gray-50", selectedProducts.has(product.product_id) && "bg-[#E7A3B0]/5")}
+                                    className={cn("border-b hover:bg-gray-50", selectedProducts.has(String(product.product_id)) && "bg-[#E7A3B0]/5")}
                                     onDoubleClick={() => activateRow(product)}
                                 >
                                     <TableCell className="p-4">
                                         <Checkbox
-                                            checked={selectedProducts.has(product.product_id)}
+                                            checked={selectedProducts.has(String(product.product_id))}
                                             onCheckedChange={() => toggleSelectProduct(product.product_id)}
                                         />
                                     </TableCell>
@@ -542,11 +617,11 @@ export function InventoryTable({
                                     <TableCell className="p-4 text-right font-medium">
                                         {product.discountedPrice !== null && product.discountedPrice !== undefined ? (
                                             <div className="flex flex-col items-end gap-0.5">
-                                                <span className="text-xs text-gray-400 line-through">PHP {product.product_price.toFixed(2)}</span>
-                                                <span className="font-semibold text-[#b96d7d]">PHP {product.discountedPrice.toFixed(2)}</span>
+                                                <span className="text-xs text-gray-400 line-through">₱ {product.product_price.toFixed(2)}</span>
+                                                <span className="font-semibold text-[#b96d7d]">₱ {product.discountedPrice.toFixed(2)}</span>
                                             </div>
                                         ) : (
-                                            <>PHP {product.product_price.toFixed(2)}</>
+                                            <>₱ {product.product_price.toFixed(2)}</>
                                         )}
                                     </TableCell>
                                     <TableCell className="p-4 text-center">
