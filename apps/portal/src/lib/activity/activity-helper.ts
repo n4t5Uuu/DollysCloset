@@ -351,12 +351,13 @@ export const activityHelper = {
     /**
      * Logs user activity such as modifying a product or performing an administrative action.
      */
-    async logActivity({ actionType, productId = null, businessDetailsId = null, description = "", editor = null, user_id = null, supabase = null }: LogActivityProps) {
+    async logActivity({ actionType, productId = null, businessDetailsId = null, faqId = null, description = "", editor = null, user_id = null, supabase = null }: LogActivityProps) {
         const client = supabase || await createServerSupabase();
         const payload = {
             action_type: sanitizeSingleLineText(actionType, schemaExactLimits.activityActionType),
             product_id: productId,
             business_details: businessDetailsId,
+            faq_id: faqId,
             description: sanitizeSingleLineText(description, schemaExactLimits.activityDescription),
             editor: sanitizeSingleLineText(editor, 255),
             user_id: user_id,

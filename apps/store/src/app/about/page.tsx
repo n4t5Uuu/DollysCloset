@@ -1,4 +1,4 @@
-import { createAdminClient, getAboutDetails, getFAQs } from "@dollys-closet/core";
+import { createAdminClient, getAboutDetails, getActiveFaqs } from "@dollys-closet/core";
 import type { Metadata } from "next";
 import AboutClient from "./AboutClient";
 
@@ -11,10 +11,10 @@ export const metadata: Metadata = {
 
 export default async function AboutPage() {
   const supabase = createAdminClient();
-  const [aboutDetails, faqs] = await Promise.all([
+  const [aboutDetails, faqResult] = await Promise.all([
     getAboutDetails(supabase),
-    getFAQs(supabase),
+    getActiveFaqs(supabase),
   ]);
 
-  return <AboutClient aboutDetails={aboutDetails} initialFaqs={faqs} />;
+  return <AboutClient aboutDetails={aboutDetails} initialFaqs={faqResult.data} />;
 }

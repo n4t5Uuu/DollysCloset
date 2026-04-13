@@ -18,6 +18,7 @@ export type ActivityLog = {
     action_type: string;
     product_id: number | string | null;
     business_details: number | string | null;
+    faq_id: number | null;
     description: string;
     editor: string | null;
     user_id: string | number | null;
@@ -43,6 +44,7 @@ export interface LogActivityProps {
     actionType: string;
     productId?: number | null;
     businessDetailsId?: number | null;
+    faqId?: number | null;
     description?: string;
     editor?: string | null;
     user_id?: string | number | null;

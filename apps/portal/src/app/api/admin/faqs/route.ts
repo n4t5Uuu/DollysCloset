@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createAdminClient, authHelper, getAllFAQs, createFAQ, FAQCategory } from "@dollys-closet/core";
+import { createAdminClient, authHelper, getAllFaqs, createFaq, FAQCategory } from "@dollys-closet/core";
 import { createServerSupabase } from "@dollys-closet/core/lib/supabase/server";
 import { activityHelper } from "@/lib/activity/activity-helper";
 
@@ -21,7 +21,8 @@ export async function GET(request: NextRequest) {
     const auth = await validateAdmin(request);
     if (!auth.ok) return auth.response;
 
-    const faqs = await getAllFAQs(auth.supabaseAdmin);
+    const { data: faqs, error: faqError } = await getAllFaqs(auth.supabaseAdmin);
+    if (faqError) return NextResponse.json({ error: faqError }, { status: 500 });
     return NextResponse.json({ data: faqs });
   } catch (error: unknown) {
     return NextResponse.json({ error: error instanceof Error ? error.message : "Failed to fetch FAQs" }, { status: 500 });
@@ -40,19 +41,20 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Question and answer are required" }, { status: 400 });
     }
 
-    const created = await createFAQ(auth.supabaseAdmin, {
+    const { data: created, error: createError } = await createFaq(auth.supabaseAdmin, {
       question: question.trim(),
       answer: answer.trim(),
       category,
       display_order,
     });
 
-    if (!created) {
-      return NextResponse.json({ error: "Failed to create FAQ" }, { status: 500 });
+    if (createError || !created) {
+      return NextResponse.json({ error: createError || "Failed to create FAQ" }, { status: 500 });
     }
 
     await activityHelper.logActivity({
       actionType: "create_faq",
+      faqId: created.id,
       productId: null,
       businessDetailsId: null,
       description: `Created FAQ: "${question.trim().slice(0, 60)}"`,

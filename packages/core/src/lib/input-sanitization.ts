@@ -20,6 +20,7 @@ export const schemaExactLimits = {
   userUsername: 50,
   userFirstName: 50,
   userLastName: 50,
+  faqCategory: 50,
 } as const;
 
 export const uiContentLimits = {
@@ -329,4 +330,32 @@ export function parseNonNegativeInteger(value: unknown) {
 export function parseNonNegativeNumber(value: unknown) {
   const parsed = Number.parseFloat(String(value ?? "").trim());
   return Number.isFinite(parsed) && parsed >= 0 ? parsed : null;
+}
+
+// --------------- FAQ (tbl_faqs) sanitization ---------------
+
+const VALID_FAQ_CATEGORIES = ["Ordering", "Shipping", "Returns", "Products", "General"] as const;
+
+export function sanitizeFaqQuestion(value: unknown) {
+  return sanitizeSingleLineText(value, uiContentLimits.faqQuestion.maxLength);
+}
+
+export function sanitizeFaqAnswer(value: unknown) {
+  return sanitizeMultilineText(value, uiContentLimits.faqAnswer.maxLength);
+}
+
+export function sanitizeFaqCategory(value: unknown): typeof VALID_FAQ_CATEGORIES[number] {
+  const cleaned = sanitizeSingleLineText(value, schemaExactLimits.faqCategory);
+  if (VALID_FAQ_CATEGORIES.includes(cleaned as typeof VALID_FAQ_CATEGORIES[number])) {
+    return cleaned as typeof VALID_FAQ_CATEGORIES[number];
+  }
+  return "General";
+}
+
+export function sanitizeFaqPayload(payload: { question?: unknown; answer?: unknown; category?: unknown }) {
+  return {
+    question: sanitizeFaqQuestion(payload.question),
+    answer: sanitizeFaqAnswer(payload.answer),
+    category: sanitizeFaqCategory(payload.category),
+  };
 }
