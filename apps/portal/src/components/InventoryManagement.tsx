@@ -430,8 +430,9 @@ export default function InventoryManagement({ initialAvailabilityFilter, userRol
   const startIndex = (safePage - 1) * itemsPerPage;
   const endIndex = startIndex + itemsPerPage;
   const currentProducts = filteredProducts.slice(startIndex, endIndex);
-  const allCurrentProductsSelected = currentProducts.length > 0 && currentProducts.every((product) => selectedProducts.has(product.product_id));
-  const someCurrentProductsSelected = !allCurrentProductsSelected && currentProducts.some((product) => selectedProducts.has(product.product_id));
+  const selectedProductIds = useMemo(() => new Set(Array.from(selectedProducts).map(String)), [selectedProducts]);
+  const allCurrentProductsSelected = currentProducts.length > 0 && currentProducts.every((product) => selectedProductIds.has(String(product.product_id)));
+  const someCurrentProductsSelected = !allCurrentProductsSelected && currentProducts.some((product) => selectedProductIds.has(String(product.product_id)));
 
   const getCategoryName = buildCategoryPath;
 
@@ -614,6 +615,13 @@ export default function InventoryManagement({ initialAvailabilityFilter, userRol
     setSelectedProducts(new Set());
   };
 
+  const selectedCatalogState = useMemo((): "publish" | "unpublish" | null => {
+    if (selectedProducts.size === 0) return null;
+    const selected = products.filter((p) => selectedProductIds.has(String(p.product_id)));
+    if (selected.length === 0) return null;
+    return selected.every((p) => p.show_in_catalog) ? "unpublish" : "publish";
+  }, [selectedProductIds, products]);
+
   const handleEditProduct = (product: Product) => {
     setEditingProduct(product);
     setShowAddModal(true);
@@ -742,6 +750,59 @@ export default function InventoryManagement({ initialAvailabilityFilter, userRol
       }
     } catch (err: unknown) {
       const errorMessage = err instanceof Error ? err.message : (inventoryScope === "active" ? 'Failed to archive products' : 'Failed to restore products');
+      setError(errorMessage);
+      toast.error(errorMessage);
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleBulkCatalogToggle = async (publish: boolean) => {
+    if (selectedProducts.size === 0) return;
+    setActionLoading(true);
+    setError(null);
+    setActionNotice(null);
+    try {
+      const supabase = createClient();
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error('Not authenticated');
+
+      const selectedList = products.filter((p) => selectedProductIds.has(String(p.product_id)));
+      const eligible = publish ? selectedList.filter((p) => p.product_stock > 0) : selectedList;
+      const skipped = selectedList.length - eligible.length;
+
+      await Promise.all(eligible.map(async (product) => {
+        const { error, friendlyMessage } = await safeFetchJson('/api/admin/products', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session.access_token}` },
+          body: JSON.stringify({
+            product_id: product.product_id,
+            product_name: product.product_name,
+            category_id: product.category_id,
+            product_price: product.product_price,
+            product_brand: product.product_brand,
+            product_description: product.product_description,
+            product_stock: product.product_stock,
+            product_condition: product.product_condition,
+            size_label: product.size_label,
+            show_in_catalog: publish,
+            image_id: product.image_id,
+            discount_id: product.discount?.id ?? null,
+            season_id: product.season_id,
+          }),
+        });
+        if (error) throw new Error(friendlyMessage || 'Failed to update visibility');
+      }));
+
+      clearSelection();
+      await fetchProducts();
+      if (skipped > 0) {
+        toast.warning(`${eligible.length} product(s) ${publish ? 'published' : 'unpublished'}. ${skipped} skipped (out of stock).`);
+      } else {
+        toast.success(`${eligible.length} product(s) ${publish ? 'published' : 'unpublished'} successfully.`);
+      }
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to update visibility';
       setError(errorMessage);
       toast.error(errorMessage);
     } finally {
@@ -1648,90 +1709,6 @@ export default function InventoryManagement({ initialAvailabilityFilter, userRol
         </div>
       </div>
 
-      {/* Mobile-only: Fixed bottom toolbar when items are selected */}
-      {selectedProducts.size > 0 && (
-        <div className="sm:hidden fixed bottom-0 left-0 right-0 z-40 bg-white border-t border-gray-200 shadow-[0_-4px_12px_rgba(0,0,0,0.08)] px-4 py-3">
-          <div className="flex items-center justify-between gap-2">
-            <span className="rounded-md bg-[#fff0f3] px-2.5 py-1.5 text-xs font-semibold text-[#b96d7d] shrink-0">
-              {selectedProducts.size} selected
-            </span>
-            <div className="flex items-center gap-2">
-              {inventoryScope === "active" && (
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() => { setBatchSeasonSelection(""); setShowBatchSeasonModal(true); }}
-                  className="h-9 px-2.5 border-[#E7A3B0]/35 text-[#b96d7d] hover:bg-[#fff5f7]"
-                  aria-label="Set Season"
-                >
-                  <CalendarRange className="h-4 w-4" />
-                </Button>
-              )}
-              {inventoryScope === "active" && (
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setShowDiscountModal(true)}
-                  className="h-9 px-2.5 border-[#E7A3B0]/35 text-[#b96d7d] hover:bg-[#fff5f7]"
-                  aria-label="Add Discount"
-                >
-                  <BadgePercent className="h-4 w-4" />
-                </Button>
-              )}
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={clearSelection}
-                className="h-9 px-2.5 border-zinc-200 text-zinc-600 hover:bg-zinc-50"
-                aria-label="Clear selection"
-              >
-                <X className="h-4 w-4" />
-              </Button>
-              <AlertDialog>
-                <AlertDialogTrigger asChild>
-                  <Button
-                    size="sm"
-                    className={`h-9 ${inventoryScope === "active" ? "bg-amber-500 hover:bg-amber-600 text-white" : "bg-emerald-600 hover:bg-emerald-700 text-white"}`}
-                    disabled={actionLoading}
-                  >
-                    {inventoryScope === "active" ? <Archive className="h-4 w-4 mr-1.5" /> : <RotateCcw className="h-4 w-4 mr-1.5" />}
-                    {inventoryScope === "active" ? "Archive" : "Restore"}
-                  </Button>
-                </AlertDialogTrigger>
-                <AlertDialogContent className="bg-white">
-                  <AlertDialogHeader>
-                    <AlertDialogTitle className="text-gray-900">
-                      {inventoryScope === "active"
-                        ? selectedProducts.size === 1 ? "Archive Product" : "Archive Multiple Products"
-                        : selectedProducts.size === 1 ? "Restore Product" : "Restore Multiple Products"}
-                    </AlertDialogTitle>
-                    <AlertDialogDescription>
-                      {inventoryScope === "active"
-                        ? <>Archive <span className="font-semibold">{selectedProducts.size}</span> {selectedProducts.size === 1 ? "product" : "products"}? Archived products are hidden from active dashboards and can be restored later.</>
-                        : <>Restore <span className="font-semibold">{selectedProducts.size}</span> {selectedProducts.size === 1 ? "product" : "products"} to the active inventory list?</>}
-                    </AlertDialogDescription>
-                  </AlertDialogHeader>
-                  <AlertDialogFooter>
-                    <AlertDialogCancel className="border-zinc-300 bg-white text-zinc-700 hover:bg-zinc-50 hover:text-zinc-900">Cancel</AlertDialogCancel>
-                    <AlertDialogAction
-                      className={`${inventoryScope === "active" ? "bg-amber-500 hover:bg-amber-600" : "bg-emerald-600 hover:bg-emerald-700"} text-white cursor-pointer`}
-                      onClick={handleBulkScopeAction}
-                    >
-                      {inventoryScope === "active"
-                        ? selectedProducts.size === 1 ? "Archive" : "Archive All"
-                        : selectedProducts.size === 1 ? "Restore" : "Restore All"}
-                    </AlertDialogAction>
-                  </AlertDialogFooter>
-                </AlertDialogContent>
-              </AlertDialog>
-            </div>
-          </div>
-        </div>
-      )}
-
       {loading ? (
         <div className="bg-white rounded-lg border p-4 space-y-4">
           <Skeleton className="h-10 w-full rounded-md" />
@@ -1759,6 +1736,12 @@ export default function InventoryManagement({ initialAvailabilityFilter, userRol
           handleRestoreProduct={handleRestoreProduct}
           onRowActivate={inventoryScope === "active" ? handleEditProduct : undefined}
           actionLoading={actionLoading}
+          onClearSelection={clearSelection}
+          onBatchSeason={() => { setBatchSeasonSelection(""); setShowBatchSeasonModal(true); }}
+          onBatchDiscount={() => setShowDiscountModal(true)}
+          onBulkScopeAction={handleBulkScopeAction}
+          bulkCatalogAction={selectedCatalogState}
+          onBulkCatalogToggle={handleBulkCatalogToggle}
           emptyTitle={inventoryEmptyTitle}
           emptyDescription={inventoryEmptyDescription}
         />
