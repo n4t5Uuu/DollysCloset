@@ -1794,9 +1794,9 @@ export default function InventoryManagement({ initialAvailabilityFilter, userRol
               </button>
             </div>
 
-            <div className="grid max-h-[calc(90vh-5.5rem)] gap-6 overflow-y-auto p-6 lg:grid-cols-[1.05fr_0.95fr]">
-              <div className="rounded-2xl border border-[#E7A3B0]/15 bg-[#fffafc] p-5 shadow-sm lg:sticky lg:top-0 lg:self-start">
-                <div className="space-y-4">
+            <div className="grid max-h-[calc(90vh-5.5rem)] gap-6 overflow-y-auto p-6 pb-8 sm:pb-6 lg:grid-cols-[1.05fr_0.95fr]">
+              <div className="rounded-2xl border border-[#E7A3B0]/15 bg-[#fffafc] p-3 sm:p-5 shadow-sm lg:sticky lg:top-0 lg:self-start">
+                <div className="space-y-3 sm:space-y-4">
                   <div>
                     <label className="mb-2 block text-sm font-medium text-gray-700">Discount Name</label>
                     <Input
@@ -1857,11 +1857,33 @@ export default function InventoryManagement({ initialAvailabilityFilter, userRol
 
                   <div>
                     <label className="mb-2 block text-sm font-medium text-gray-700">Ends At</label>
+                    {/* Mobile: split date + time side by side */}
+                    <div className="flex gap-2 sm:hidden">
+                      <Input
+                        type="date"
+                        value={discountForm.ends_at ? discountForm.ends_at.split("T")[0] : ""}
+                        onChange={(e) => {
+                          const time = discountForm.ends_at?.split("T")[1]?.substring(0, 5) || "00:00";
+                          setDiscountForm((prev) => ({ ...prev, ends_at: e.target.value ? `${e.target.value}T${time}` : "" }));
+                        }}
+                        className="border-gray-300 bg-white text-gray-900 flex-1 text-xs h-9"
+                      />
+                      <Input
+                        type="time"
+                        value={discountForm.ends_at ? discountForm.ends_at.split("T")[1]?.substring(0, 5) || "" : ""}
+                        onChange={(e) => {
+                          const date = discountForm.ends_at?.split("T")[0] || "";
+                          if (date) setDiscountForm((prev) => ({ ...prev, ends_at: `${date}T${e.target.value}` }));
+                        }}
+                        className="border-gray-300 bg-white text-gray-900 w-24 text-xs h-9"
+                      />
+                    </div>
+                    {/* Desktop: single datetime-local */}
                     <Input
                       type="datetime-local"
                       value={discountForm.ends_at}
                       onChange={(event) => setDiscountForm((prev) => ({ ...prev, ends_at: event.target.value }))}
-                      className="border-gray-300 bg-white text-gray-900"
+                      className="hidden sm:block border-gray-300 bg-white text-gray-900"
                     />
                   </div>
 
@@ -1894,7 +1916,11 @@ export default function InventoryManagement({ initialAvailabilityFilter, userRol
                   </div>
                 ) : (
                   <div className="space-y-3">
-                    {discounts.map((discount) => {
+                    {discounts.slice().sort((a, b) => {
+                      const aExpired = Boolean(a.ends_at && new Date(a.ends_at).getTime() <= Date.now());
+                      const bExpired = Boolean(b.ends_at && new Date(b.ends_at).getTime() <= Date.now());
+                      return Number(aExpired) - Number(bExpired);
+                    }).map((discount) => {
                       const isExpired = Boolean(discount.ends_at && new Date(discount.ends_at).getTime() <= Date.now());
                       return (
                         <div key={discount.id} className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
@@ -1916,7 +1942,7 @@ export default function InventoryManagement({ initialAvailabilityFilter, userRol
                                 size="sm"
                                 onClick={() => void handleApplyDiscount(String(discount.id))}
                                 disabled={actionLoading || selectedProducts.size === 0}
-                                className="bg-[#121212] text-white hover:bg-[#2a2a2a]"
+                                className="hidden sm:inline-flex bg-[#121212] text-white hover:bg-[#2a2a2a]"
                               >
                                 Apply to selected
                               </Button>
@@ -1993,7 +2019,7 @@ export default function InventoryManagement({ initialAvailabilityFilter, userRol
               </button>
             </div>
 
-            <div className="grid max-h-[calc(90vh-5.5rem)] gap-5 overflow-y-auto p-6 lg:grid-cols-[3fr_2fr]">
+            <div className="grid max-h-[calc(90vh-5.5rem)] gap-5 overflow-y-auto p-6 pb-8 sm:pb-6 lg:grid-cols-[3fr_2fr]">
               {/* LEFT — calendar */}
               <div className="lg:sticky lg:top-0 lg:self-start">
                 <SeasonCalendar
