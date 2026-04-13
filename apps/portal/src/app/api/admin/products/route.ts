@@ -3,6 +3,8 @@ import { activityHelper } from "@/lib/activity/activity-helper";
 import { createAdminClient, discountHelper, productHelper } from "@dollys-closet/core";
 import { requireRequestAuth } from "@/lib/auth/auth-server";
 import {
+  numericLimits,
+  parseProductPrice,
   sanitizeMultilineText,
   sanitizeSingleLineText,
   schemaExactLimits,
@@ -124,6 +126,14 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
     }
 
+    const parsedProductPrice = parseProductPrice(product_price);
+    if (parsedProductPrice === null) {
+      return NextResponse.json(
+        { error: `Price must be between 0 and ₱${numericLimits.productPrice.max.toLocaleString()}.` },
+        { status: 400 }
+      );
+    }
+
     const parsedStock = Number.parseInt(String(product_stock), 10) || 0;
     const requestedShowInCatalog = show_in_catalog !== false;
 
@@ -168,7 +178,7 @@ export async function POST(request: NextRequest) {
 
       if (selectedDiscount.discount_type === "fixed_price") {
         const targetPrice = Math.max(0, Number(selectedDiscount.discount_value) || 0);
-        const productPrice = Math.max(0, Number.parseFloat(String(product_price)) || 0);
+        const productPrice = parsedProductPrice;
 
         if (productPrice <= targetPrice) {
           return NextResponse.json({
@@ -181,7 +191,7 @@ export async function POST(request: NextRequest) {
     const { data: product, error: insertError } = await productHelper.createProduct({
       product_name: normalizedProductName,
       category_id,
-      product_price: Number.parseFloat(String(product_price)),
+      product_price: parsedProductPrice,
       product_brand: normalizedBrand,
       product_description: normalizedDescription,
       product_stock: parsedStock,
@@ -255,11 +265,18 @@ export async function PUT(request: NextRequest) {
     const normalizedDescription = sanitizeMultilineText(product_description, uiContentLimits.productDescription.maxLength);
     const normalizedCondition = sanitizeSingleLineText(product_condition || 'New', schemaExactLimits.productCondition) || 'New';
     const normalizedSizeLabel = sanitizeSingleLineText(size_label || 'One Size', schemaExactLimits.productSizeLabel) || 'One Size';
-    const parseFloat = (value: unknown) => Number.parseFloat(String(value));
     const numericProductId = Number.parseInt(String(normalizedProductId), 10);
 
     if (!normalizedProductId || !normalizedProductName || !category_id || product_price === undefined) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
+    }
+
+    const parsedProductPrice = parseProductPrice(product_price);
+    if (parsedProductPrice === null) {
+      return NextResponse.json(
+        { error: `Price must be between 0 and ₱${numericLimits.productPrice.max.toLocaleString()}.` },
+        { status: 400 }
+      );
     }
 
     const supabaseAdmin = createAdminClient();
@@ -301,7 +318,7 @@ export async function PUT(request: NextRequest) {
     if (currentProduct) {
       if (currentProduct.product_name !== product_name) changes.push(`name: ${currentProduct.product_name} → ${product_name}`);
       if (currentProduct.category_id !== category_id) changes.push(`category: ${currentProduct.category_id} → ${category_id}`);
-      if (currentProduct.product_price !== parseFloat(product_price)) changes.push(`price: ${currentProduct.product_price} → ${product_price}`);
+      if (currentProduct.product_price !== parsedProductPrice) changes.push(`price: ${currentProduct.product_price} → ${parsedProductPrice}`);
       if (currentProduct.product_brand !== (product_brand || 'Dolly\'s Closet')) changes.push(`brand: ${currentProduct.product_brand} → ${product_brand || 'Dolly\'s Closet'}`);
       if (currentProduct.product_description !== (product_description || '')) changes.push(`description updated`);
       if (currentProduct.product_stock !== parsedStock) changes.push(`stock: ${currentProduct.product_stock} → ${parsedStock}`);
@@ -333,7 +350,7 @@ export async function PUT(request: NextRequest) {
 
       if (selectedDiscount.discount_type === "fixed_price") {
         const targetPrice = Math.max(0, Number(selectedDiscount.discount_value) || 0);
-        const productPrice = Math.max(0, Number.parseFloat(String(product_price)) || 0);
+        const productPrice = parsedProductPrice;
 
         if (productPrice <= targetPrice) {
           return NextResponse.json({
@@ -363,7 +380,7 @@ export async function PUT(request: NextRequest) {
     const { error: updateError } = await productHelper.updateProduct(normalizedProductId, {
       product_name: normalizedProductName,
       category_id,
-      product_price: Number.parseFloat(String(product_price)),
+      product_price: parsedProductPrice,
       product_brand: normalizedBrand,
       product_description: normalizedDescription,
       product_stock: parsedStock,

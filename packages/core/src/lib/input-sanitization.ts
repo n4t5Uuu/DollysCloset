@@ -39,6 +39,10 @@ export const uiContentLimits = {
   email: { maxLength: 320 },
 } as const;
 
+export const numericLimits = {
+  productPrice: { min: 0, max: 100000 },
+} as const;
+
 export const contactFieldLimits: Record<
   ContactFieldKey,
   { maxLength: number; multiline: boolean; recommendedLength?: string }
@@ -330,6 +334,16 @@ export function parseNonNegativeInteger(value: unknown) {
 export function parseNonNegativeNumber(value: unknown) {
   const parsed = Number.parseFloat(String(value ?? "").trim());
   return Number.isFinite(parsed) && parsed >= 0 ? parsed : null;
+}
+
+export function parseProductPrice(value: unknown) {
+  const parsed = parseNonNegativeNumber(value);
+
+  if (parsed === null) {
+    return null;
+  }
+
+  return parsed <= numericLimits.productPrice.max ? parsed : null;
 }
 
 // --------------- FAQ (tbl_faqs) sanitization ---------------

@@ -16,6 +16,8 @@ import * as XLSX from "xlsx";
 import {
   createClient,
   compressImage,
+  numericLimits,
+  parseProductPrice,
   uploadProductImageFile,
   type InventoryProduct as Product,
 } from "@dollys-closet/core";
@@ -167,10 +169,15 @@ function validateRows(rows: ParsedRow[], existingProducts: Product[] = []): Vali
     const hasInvalidPriceCharacters = Boolean(
       originalPrice && normalizedRow.product_price === "0" && originalPrice !== "0",
     );
-    const price = Number(priceStr);
-    if (hasInvalidPriceCharacters || !priceStr || Number.isNaN(price) || price < 0) {
+    const numericPrice = Number(priceStr);
+    const price = parseProductPrice(priceStr);
+    if (hasInvalidPriceCharacters || !priceStr || Number.isNaN(numericPrice) || numericPrice < 0) {
       errors.push(
         `product_price "${originalPrice || "empty"}" must be a plain number with no letters or symbols (e.g. 150 or 150.00) - this row will be skipped`,
+      );
+    } else if (price === null) {
+      errors.push(
+        `product_price "${originalPrice}" must not exceed ${numericLimits.productPrice.max} - this row will be skipped`,
       );
     }
 
