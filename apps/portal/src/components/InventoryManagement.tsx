@@ -1134,7 +1134,7 @@ export default function InventoryManagement({ initialAvailabilityFilter, userRol
   };
 
   return (
-    <div className="space-y-3 sm:space-y-6">
+    <div className="space-y-1.5 sm:space-y-6">
       <div className="space-y-3">
         {/* Top row: Title + scope toggle */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
@@ -1219,21 +1219,21 @@ export default function InventoryManagement({ initialAvailabilityFilter, userRol
                   resetSeasonForm();
                   setShowSeasonModal(true);
                 }}
-                className="flex items-center justify-center gap-1.5 px-2 py-3 h-11 w-full bg-white border border-[#E7A3B0]/30 text-[#b96d7d] rounded-lg text-[11px] sm:text-sm font-medium transition-all duration-300 shadow-sm hover:shadow-md hover:border-[#E7A3B0] hover:bg-[#fff5f7] hover:scale-105 cursor-pointer"
+                className="flex items-center justify-center gap-1.5 px-2 py-3 h-11 w-full bg-white border border-black sm:border-[#E7A3B0] text-[#b96d7d] rounded-lg text-[11px] sm:text-sm font-medium transition-all duration-300 shadow-sm hover:shadow-md hover:border-[#E7A3B0] hover:bg-[#fff5f7] hover:scale-105 cursor-pointer"
               >
                 <CalendarRange size={14} className="shrink-0" />
                 <span className="whitespace-nowrap">Seasons</span>
               </button>
               <button
                 onClick={() => setShowDiscountModal(true)}
-                className="flex items-center justify-center gap-1.5 px-2 py-3 h-11 w-full bg-white border border-[#E7A3B0]/30 text-[#b96d7d] rounded-lg text-[11px] sm:text-sm font-medium transition-all duration-300 shadow-sm hover:shadow-md hover:border-[#E7A3B0] hover:bg-[#fff5f7] hover:scale-105 cursor-pointer"
+                className="flex items-center justify-center gap-1.5 px-2 py-3 h-11 w-full bg-white border border-black sm:border-[#E7A3B0] text-[#b96d7d] rounded-lg text-[11px] sm:text-sm font-medium transition-all duration-300 shadow-sm hover:shadow-md hover:border-[#E7A3B0] hover:bg-[#fff5f7] hover:scale-105 cursor-pointer"
               >
                 <BadgePercent size={14} className="shrink-0" />
                 <span className="whitespace-nowrap">Discount</span>
               </button>
               <button
                 onClick={() => setShowBulkImport(true)}
-                className="flex items-center justify-center gap-1.5 px-2 py-3 h-11 w-full bg-gray-100 hover:bg-gray-200 text-gray-800 rounded-lg text-[11px] sm:text-sm font-medium transition-all duration-300 shadow-sm hover:shadow-md hover:scale-105 cursor-pointer"
+                className="flex items-center justify-center gap-1.5 px-2 py-3 h-11 w-full bg-gray-100 hover:bg-gray-200 text-gray-800 border border-black sm:border-0 rounded-lg text-[11px] sm:text-sm font-medium transition-all duration-300 shadow-sm hover:shadow-md hover:scale-105 cursor-pointer"
               >
                 <Upload size={14} className="shrink-0" />
                 <span className="whitespace-nowrap">Import</span>
@@ -1324,7 +1324,7 @@ export default function InventoryManagement({ initialAvailabilityFilter, userRol
         </div>
       )}
 
-      <div className="flex items-center gap-2 sm:flex-wrap sm:gap-3">
+      <div className="flex items-center gap-2 sm:flex-wrap sm:gap-3 pt-2 sm:pt-0">
         <AdminSearchInput
           ref={searchInputRef}
           value={searchQuery}
