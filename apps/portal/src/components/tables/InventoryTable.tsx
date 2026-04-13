@@ -368,7 +368,7 @@ export function InventoryTable({
                                             {product.product_stock}
                                         </span>
                                         <span className="text-[11px] font-semibold text-gray-700 text-right truncate">
-                                            PHP {(product.discountedPrice ?? product.product_price).toFixed(2)}
+                                            ₱{(product.discountedPrice ?? product.product_price).toFixed(2)}
                                         </span>
                                     </div>
                                     {mode === "archived" && product.archived_at && (
@@ -542,11 +542,11 @@ export function InventoryTable({
                                     <TableCell className="p-4 text-right font-medium">
                                         {product.discountedPrice !== null && product.discountedPrice !== undefined ? (
                                             <div className="flex flex-col items-end gap-0.5">
-                                                <span className="text-xs text-gray-400 line-through">PHP {product.product_price.toFixed(2)}</span>
-                                                <span className="font-semibold text-[#b96d7d]">PHP {product.discountedPrice.toFixed(2)}</span>
+                                                <span className="text-xs text-gray-400 line-through">₱ {product.product_price.toFixed(2)}</span>
+                                                <span className="font-semibold text-[#b96d7d]">₱ {product.discountedPrice.toFixed(2)}</span>
                                             </div>
                                         ) : (
-                                            <>PHP {product.product_price.toFixed(2)}</>
+                                            <>₱ {product.product_price.toFixed(2)}</>
                                         )}
                                     </TableCell>
                                     <TableCell className="p-4 text-center">

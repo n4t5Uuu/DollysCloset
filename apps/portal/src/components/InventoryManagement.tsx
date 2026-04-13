@@ -1371,6 +1371,20 @@ export default function InventoryManagement({ initialAvailabilityFilter, userRol
                   }}
                   triggerClassName="w-full"
                 />
+                {categoryFilter !== "all" && selectedCategoryLabel && (
+                  <div className="mt-3 flex flex-wrap items-center gap-2">
+                    <span className="max-w-full truncate rounded-full border border-[#E7A3B0] bg-[#FFF0F3] px-3 py-1 text-xs font-medium text-[#8C414F]">
+                      Category: {selectedCategoryLabel}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setCategoryFilter("all")}
+                      className="text-xs font-semibold text-[#B96D7D] hover:text-[#E7A3B0]"
+                    >
+                      Clear category
+                    </button>
+                  </div>
+                )}
               </div>
               {/* Visibility */}
               <div>

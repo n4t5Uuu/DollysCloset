@@ -267,6 +267,13 @@ export default function AddProduct({ isOpen, onClose, categories, productToEdit,
                     ? "Review your updates, then save when you're ready."
                     : "Required fields are complete. You can save this product now.";
 
+    const handleMobileEnter = (event: React.KeyboardEvent<HTMLInputElement>) => {
+        if (event.key === "Enter") {
+            event.preventDefault();
+            event.currentTarget.blur();
+        }
+    };
+
     useEffect(() => {
         if (!isOpen) return;
 
@@ -622,6 +629,8 @@ export default function AddProduct({ isOpen, onClose, categories, productToEdit,
                                 maxLength={schemaExactLimits.productName}
                                 required
                                 aria-invalid={!trimmedProductName}
+                                enterKeyHint="next"
+                                onKeyDown={handleMobileEnter}
                                 className="border-gray-300 text-gray-900 bg-white placeholder:text-gray-400"
                             />
                             <p className="mt-1 flex items-center justify-between gap-3 text-xs text-gray-500">
@@ -637,6 +646,8 @@ export default function AddProduct({ isOpen, onClose, categories, productToEdit,
                                 value={formData.product_brand}
                                 onChange={(e) => setFormData({ ...formData, product_brand: sanitizeSingleLineInput(e.target.value, schemaExactLimits.productBrand) })}
                                 maxLength={schemaExactLimits.productBrand}
+                                enterKeyHint="next"
+                                onKeyDown={handleMobileEnter}
                                 className="border-gray-300 text-gray-900 bg-white placeholder:text-gray-400"
                             />
                             <p className="mt-1 text-right text-xs text-gray-500">
@@ -758,7 +769,9 @@ export default function AddProduct({ isOpen, onClose, categories, productToEdit,
                                                 onFocus={() => setSizeDropdownOpen(true)}
                                                 placeholder="e.g., M, L, One Size"
                                                 maxLength={schemaExactLimits.productSizeLabel}
-                                                className="flex-1 min-w-0 rounded-l-md px-3 text-sm text-gray-900 bg-transparent placeholder:text-gray-400 outline-none"
+                                                enterKeyHint="done"
+                                                onKeyDown={handleMobileEnter}
+                                                className="flex-1 min-w-0 rounded-l-md px-3 text-base md:text-sm text-gray-900 bg-transparent placeholder:text-gray-400 outline-none"
                                             />
                                             <button
                                                 type="button"
@@ -808,7 +821,9 @@ export default function AddProduct({ isOpen, onClose, categories, productToEdit,
                                                 onFocus={() => setConditionDropdownOpen(true)}
                                                 placeholder="e.g., New, Good, Used"
                                                 maxLength={schemaExactLimits.productCondition}
-                                                className="flex-1 min-w-0 rounded-l-md px-3 text-sm text-gray-900 bg-transparent placeholder:text-gray-400 outline-none"
+                                                enterKeyHint="done"
+                                                onKeyDown={handleMobileEnter}
+                                                className="flex-1 min-w-0 rounded-l-md px-3 text-base md:text-sm text-gray-900 bg-transparent placeholder:text-gray-400 outline-none"
                                             />
                                             <button
                                                 type="button"
@@ -853,6 +868,8 @@ export default function AddProduct({ isOpen, onClose, categories, productToEdit,
                                     value={formData.product_brand}
                                     onChange={(e) => setFormData({ ...formData, product_brand: sanitizeSingleLineInput(e.target.value, schemaExactLimits.productBrand) })}
                                     maxLength={schemaExactLimits.productBrand}
+                                    enterKeyHint="next"
+                                    onKeyDown={handleMobileEnter}
                                     className="border-gray-300 text-gray-900 bg-white placeholder:text-gray-400"
                                 />
                                 <p className="mt-1 text-right text-xs text-gray-500">
