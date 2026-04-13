@@ -1562,9 +1562,9 @@ export default function InventoryManagement({ initialAvailabilityFilter, userRol
         <div className="hidden sm:block text-sm text-gray-600">
           Showing {filteredProducts.length > 0 ? startIndex + 1 : 0}-{Math.min(endIndex, filteredProducts.length)} of {filteredProducts.length} items
         </div>
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="hidden sm:flex flex-wrap items-center gap-2">
           {selectedProducts.size > 0 && (
-            <span className="hidden sm:inline rounded-md bg-[#fff0f3] px-2.5 py-1 text-xs font-semibold text-[#b96d7d]">
+            <span className="rounded-md bg-[#fff0f3] px-2.5 py-1 text-xs font-semibold text-[#b96d7d]">
               {selectedProducts.size} selected
             </span>
           )}
@@ -1647,6 +1647,90 @@ export default function InventoryManagement({ initialAvailabilityFilter, userRol
           )}
         </div>
       </div>
+
+      {/* Mobile-only: Fixed bottom toolbar when items are selected */}
+      {selectedProducts.size > 0 && (
+        <div className="sm:hidden fixed bottom-0 left-0 right-0 z-40 bg-white border-t border-gray-200 shadow-[0_-4px_12px_rgba(0,0,0,0.08)] px-4 py-3">
+          <div className="flex items-center justify-between gap-2">
+            <span className="rounded-md bg-[#fff0f3] px-2.5 py-1.5 text-xs font-semibold text-[#b96d7d] shrink-0">
+              {selectedProducts.size} selected
+            </span>
+            <div className="flex items-center gap-2">
+              {inventoryScope === "active" && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => { setBatchSeasonSelection(""); setShowBatchSeasonModal(true); }}
+                  className="h-9 px-2.5 border-[#E7A3B0]/35 text-[#b96d7d] hover:bg-[#fff5f7]"
+                  aria-label="Set Season"
+                >
+                  <CalendarRange className="h-4 w-4" />
+                </Button>
+              )}
+              {inventoryScope === "active" && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowDiscountModal(true)}
+                  className="h-9 px-2.5 border-[#E7A3B0]/35 text-[#b96d7d] hover:bg-[#fff5f7]"
+                  aria-label="Add Discount"
+                >
+                  <BadgePercent className="h-4 w-4" />
+                </Button>
+              )}
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={clearSelection}
+                className="h-9 px-2.5 border-zinc-200 text-zinc-600 hover:bg-zinc-50"
+                aria-label="Clear selection"
+              >
+                <X className="h-4 w-4" />
+              </Button>
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button
+                    size="sm"
+                    className={`h-9 ${inventoryScope === "active" ? "bg-amber-500 hover:bg-amber-600 text-white" : "bg-emerald-600 hover:bg-emerald-700 text-white"}`}
+                    disabled={actionLoading}
+                  >
+                    {inventoryScope === "active" ? <Archive className="h-4 w-4 mr-1.5" /> : <RotateCcw className="h-4 w-4 mr-1.5" />}
+                    {inventoryScope === "active" ? "Archive" : "Restore"}
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent className="bg-white">
+                  <AlertDialogHeader>
+                    <AlertDialogTitle className="text-gray-900">
+                      {inventoryScope === "active"
+                        ? selectedProducts.size === 1 ? "Archive Product" : "Archive Multiple Products"
+                        : selectedProducts.size === 1 ? "Restore Product" : "Restore Multiple Products"}
+                    </AlertDialogTitle>
+                    <AlertDialogDescription>
+                      {inventoryScope === "active"
+                        ? <>Archive <span className="font-semibold">{selectedProducts.size}</span> {selectedProducts.size === 1 ? "product" : "products"}? Archived products are hidden from active dashboards and can be restored later.</>
+                        : <>Restore <span className="font-semibold">{selectedProducts.size}</span> {selectedProducts.size === 1 ? "product" : "products"} to the active inventory list?</>}
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel className="border-zinc-300 bg-white text-zinc-700 hover:bg-zinc-50 hover:text-zinc-900">Cancel</AlertDialogCancel>
+                    <AlertDialogAction
+                      className={`${inventoryScope === "active" ? "bg-amber-500 hover:bg-amber-600" : "bg-emerald-600 hover:bg-emerald-700"} text-white cursor-pointer`}
+                      onClick={handleBulkScopeAction}
+                    >
+                      {inventoryScope === "active"
+                        ? selectedProducts.size === 1 ? "Archive" : "Archive All"
+                        : selectedProducts.size === 1 ? "Restore" : "Restore All"}
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            </div>
+          </div>
+        </div>
+      )}
 
       {loading ? (
         <div className="bg-white rounded-lg border p-4 space-y-4">
