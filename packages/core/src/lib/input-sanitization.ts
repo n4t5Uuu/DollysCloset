@@ -33,10 +33,14 @@ export const uiContentLimits = {
   aboutBody: { maxLength: 900, recommendedLength: "350-700" },
   historyBody: { maxLength: 900, recommendedLength: "350-700" },
   faqQuestion: { maxLength: 90, recommendedLength: "35-70" },
-  faqAnswer: { maxLength: 280, recommendedLength: "80-220" },
+  faqAnswer: { maxLength: 400, recommendedLength: "400" },
   publicLabel: { maxLength: 50 },
   publicLink: { maxLength: 255 },
   email: { maxLength: 320 },
+} as const;
+
+export const numericLimits = {
+  productPrice: { min: 0, max: 100000 },
 } as const;
 
 export const contactFieldLimits: Record<
@@ -330,6 +334,16 @@ export function parseNonNegativeInteger(value: unknown) {
 export function parseNonNegativeNumber(value: unknown) {
   const parsed = Number.parseFloat(String(value ?? "").trim());
   return Number.isFinite(parsed) && parsed >= 0 ? parsed : null;
+}
+
+export function parseProductPrice(value: unknown) {
+  const parsed = parseNonNegativeNumber(value);
+
+  if (parsed === null) {
+    return null;
+  }
+
+  return parsed <= numericLimits.productPrice.max ? parsed : null;
 }
 
 // --------------- FAQ (tbl_faqs) sanitization ---------------

@@ -32,21 +32,6 @@ export default function SearchBar({ onSearch, initialQuery = "" }: SearchBarProp
         clearAndNotify();
     }
 
-    const [placeholder, setPlaceholder] = useState("Search Products");
-
-    useEffect(() => {
-        if (typeof window !== "undefined") {
-            setPlaceholder(window.innerWidth < 380 ? "Search..." : "Search Products");
-
-            const handleResize = () => {
-                setPlaceholder(window.innerWidth < 380 ? "Search..." : "Search Products");
-            };
-
-            window.addEventListener("resize", handleResize);
-            return () => window.removeEventListener("resize", handleResize);
-        }
-    }, []);
-
     return (
         <form
             onSubmit={handleSearch}
@@ -57,7 +42,7 @@ export default function SearchBar({ onSearch, initialQuery = "" }: SearchBarProp
                 <Input
                     id="catalog-search"
                     type="text"
-                    placeholder={placeholder}
+                    placeholder="Search"
                     className="w-full h-9 pl-4 pr-20 rounded-2xl border-black bg-white placeholder:text-black placeholder:font-montserrat"
                     value={query}
                     onChange={(e) => setQuery(e.target.value)}

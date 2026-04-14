@@ -6,12 +6,13 @@ import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import MasonrySection from "../catalog/MasonrySection";
 import ProductCard from "../catalog/ProductCard";
 import CustomPagination from "../general-components/CustomPagination";
+import SearchBar from "../general-components/SearchBar";
 import CatalogSidebar from "../sidebar/CatalogSidebar";
 import { InfiniteSlider } from "../motion-primitives/infinite-slider";
 import { InView } from "../motion-primitives/in-view";
 import { Button } from "../ui/button";
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "../ui/empty";
-import { PackageSearch, Filter, RefreshCw, X } from "lucide-react";
+import { PackageSearch, Filter, RefreshCw } from "lucide-react";
 import { 
   ANNOUNCEMENT_SLUG,
     type CatalogPayload,
@@ -28,22 +29,7 @@ import {
     SheetTitle,
     SheetTrigger,
 } from "../ui/sheet";
-import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from "../ui/select";
 import { Skeleton } from "../ui/skeleton";
-
-const SORT_OPTIONS = [
-    { value: "newest", label: "Newest First" },
-    { value: "price-low", label: "Price: Low to High" },
-    { value: "price-high", label: "Price: High to Low" },
-    { value: "az", label: "Name: A to Z" },
-    { value: "za", label: "Name: Z to A" },
-] as const;
 
 const collectionShellClass = "mx-auto w-full max-w-[1500px] px-2 sm:px-6 md:px-8 lg:px-10 xl:px-12";
 
@@ -145,6 +131,8 @@ export function CollectionsView() {
     const [itemsPerPage, setItemsPerPage] = useState(12);
     const [mobileVisibleCount, setMobileVisibleCount] = useState(8);
     const observerRef = useRef<IntersectionObserver | null>(null);
+    const sentinelNodeRef = useRef<HTMLDivElement | null>(null);
+    const hasMountedRef = useRef(false);
     // itemsPerPage === 8 means we're below the md breakpoint (< 768px)
     const isMobile = itemsPerPage === 8;
 
@@ -314,6 +302,26 @@ export function CollectionsView() {
         fetchAnnouncement();
     }, []);
 
+    // When browse state changes, return focus to "Our Collection".
+    // (We skip the first mount so initial page loads don't jump.)
+    useEffect(() => {
+        if (!hasMountedRef.current) {
+            hasMountedRef.current = true;
+            return;
+        }
+
+        if (typeof document === "undefined") return;
+        const el = document.getElementById("collection-grid");
+        if (!el) return;
+
+        // Defer to let layout settle (chips/sidebar/price bounds).
+        const id = window.setTimeout(() => {
+            el.scrollIntoView({ behavior: "smooth", block: "start" });
+        }, 0);
+
+        return () => window.clearTimeout(id);
+    }, [activeFilter, searchQuery, sortBy, minPriceParam, maxPriceParam, currentPage]);
+
     // Reset mobile infinite scroll when filters/search/sort change
     useEffect(() => {
         setMobileVisibleCount(8);
@@ -321,6 +329,8 @@ export function CollectionsView() {
 
     // Keep a live ref so the observer callback never reads a stale hasMoreMobile
     const hasMoreMobileRef = useRef(false);
+    const isSentinelIntersectingRef = useRef(false);
+    const filteredCountRef = useRef(0);
 
     // Callback ref — React calls this the moment the sentinel mounts or unmounts,
     // so the observer always attaches even if products load after isMobile is set.
@@ -329,11 +339,14 @@ export function CollectionsView() {
             observerRef.current.disconnect();
             observerRef.current = null;
         }
+        sentinelNodeRef.current = node;
         if (!node || !isMobile) return;
         observerRef.current = new IntersectionObserver(
             (entries) => {
-                if (entries[0]?.isIntersecting && hasMoreMobileRef.current) {
-                    setMobileVisibleCount((prev) => prev + 8);
+                const entry = entries[0];
+                isSentinelIntersectingRef.current = Boolean(entry?.isIntersecting);
+                if (entry?.isIntersecting && hasMoreMobileRef.current) {
+                    setMobileVisibleCount((prev) => Math.min(prev + 8, filteredCountRef.current));
                 }
             },
             { threshold: 0 }
@@ -391,7 +404,14 @@ export function CollectionsView() {
             return { min: 0, max: 0 };
         }
 
-        const prices = products.map((product) => product.price);
+        // Keep bounds aligned with the price filter/sort "effective price"
+        // (discountedPrice when present, otherwise regular price).
+        const effectivePrice = (product: { price: number; discountedPrice?: number | null }) =>
+            product.discountedPrice !== null && product.discountedPrice !== undefined
+                ? product.discountedPrice
+                : product.price;
+
+        const prices = products.map((product) => effectivePrice(product));
         return {
             min: Math.floor(Math.min(...prices)),
             max: Math.ceil(Math.max(...prices)),
@@ -543,6 +563,24 @@ export function CollectionsView() {
     const mobileProducts = filteredProducts.slice(0, mobileVisibleCount);
     const hasMoreMobile = mobileVisibleCount < filteredProducts.length;
     hasMoreMobileRef.current = hasMoreMobile;
+    filteredCountRef.current = filteredProducts.length;
+
+    // If the sentinel stays visible after adding items (common when the list is short),
+    // IntersectionObserver may not fire again. This ensures we load until either
+    // we have everything or the sentinel scrolls out of view.
+    useEffect(() => {
+        if (!isMobile) return;
+        if (!hasMoreMobile) return;
+        if (!isSentinelIntersectingRef.current) return;
+
+        const id = window.setTimeout(() => {
+            if (hasMoreMobileRef.current && isSentinelIntersectingRef.current) {
+                setMobileVisibleCount((prev) => Math.min(prev + 8, filteredCountRef.current));
+            }
+        }, 0);
+
+        return () => window.clearTimeout(id);
+    }, [hasMoreMobile, isMobile, mobileVisibleCount]);
 
     const isBrowsingFiltered = activeFilter !== "all" || searchQuery.trim() !== "" || sortBy !== "newest" || hasActivePriceFilter;
     const newArrivalCount = useMemo(() => products.filter((product) => product.isNewArrival).length, [products]);
@@ -758,29 +796,11 @@ export function CollectionsView() {
             <div id="collection-grid" className="w-full flex flex-col items-center scroll-mt-24">
                 {/* Minimal title strip + mobile filter trigger + active filter chips */}
                 <div className="sticky top-(--navbar-h,80px) md:top-20 z-40 w-full bg-white border-b border-[#E7A3B0]/30 shadow-sm py-3 transition-[top] duration-300">
-                    <div className={`${collectionShellClass} flex flex-row items-center justify-between gap-4`}>
+                    <div className={`${collectionShellClass} flex flex-wrap items-center justify-between gap-3 md:gap-4`}>
                         <h2 className="font-playfair-display text-xl md:text-2xl text-[#121212]">Our Collection</h2>
-                        <div className="flex items-center gap-3">
-                            <div className="hidden sm:flex items-center gap-2">
-                                <span className="font-oswald text-[11px] uppercase tracking-[0.22em] text-[#b47c88]">
-                                    Sort
-                                </span>
-                                <Select value={sortBy} onValueChange={handleSortChange}>
-                                    <SelectTrigger className="h-10 w-[180px] rounded-xl border-[#E7A3B0]/40 bg-white px-4 font-montserrat text-sm text-[#3f2d31] shadow-none transition-colors hover:bg-[#fff8fa] focus-visible:ring-2 focus-visible:ring-[#E7A3B0]/30 focus-visible:ring-offset-0">
-                                        <SelectValue placeholder="Sort option" />
-                                    </SelectTrigger>
-                                    <SelectContent className="rounded-xl border-[#E7A3B0]/20 bg-white text-black shadow-lg">
-                                        {SORT_OPTIONS.map((option) => (
-                                            <SelectItem
-                                                key={option.value}
-                                                value={option.value}
-                                                className="font-montserrat text-black focus:bg-[#fff5f7] focus:text-[#E7A3B0] cursor-pointer"
-                                            >
-                                                {option.label}
-                                            </SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
+                        <div className="flex w-full items-center gap-3 sm:w-auto sm:flex-1 sm:justify-end">
+                            <div className="min-w-0 flex-1 sm:max-w-[280px]">
+                                <SearchBar onSearch={handleSearchChange} initialQuery={searchQuery} />
                             </div>
                             <div className="lg:hidden shrink-0">
                             <Sheet open={mobileFiltersOpen} onOpenChange={setMobileFiltersOpen}>
@@ -795,7 +815,7 @@ export function CollectionsView() {
                                         )}
                                     </Button>
                                 </SheetTrigger>
-                                <SheetContent side="left" className="w-[300px] overflow-y-auto sm:w-[400px] bg-white text-black p-0 border-r border-[#E7A3B0]/20">
+                                <SheetContent side="left" className="dc-scrollbar w-[300px] overflow-y-auto sm:w-[400px] bg-white text-black p-0 border-r border-[#E7A3B0]/20">
                                     <div className="p-6">
                                         <SheetHeader className="mb-6">
                                             <SheetTitle className="font-playfair-display text-2xl text-left text-black">Filter Collection</SheetTitle>
@@ -803,8 +823,8 @@ export function CollectionsView() {
                                         <CatalogSidebar
                                             categories={categories}
                                             activeFilter={activeFilter}
-                                            searchQuery={searchQuery}
-                                            onSearchChange={handleSearchChange}
+                                            sortBy={sortBy}
+                                            onSortChange={handleSortChange}
                                             allCount={products.length}
                                             newCount={newArrivalCount}
                                             saleCount={saleCount}
@@ -820,6 +840,8 @@ export function CollectionsView() {
                                             onFilterChange={handleFilterChange}
                                             onPriceRangeChange={handlePriceRangeChange}
                                             onClearPrice={clearPrice}
+                                            activeChips={activeBrowseChips}
+                                            onClearAllFilters={clearBrowseState}
                                             onInteractionComplete={() => setMobileFiltersOpen(false)}
                                         />
                                     </div>
@@ -829,37 +851,10 @@ export function CollectionsView() {
                         </div>
                     </div>
 
-                    {activeBrowseCount > 0 && (
-                        <div className={`${collectionShellClass} pt-1`}>
-                            <div className="flex flex-wrap items-center gap-2 border-t border-[#E7A3B0]/15 pt-3">
-                                <span className="font-oswald text-[11px] uppercase tracking-[0.28em] text-[#b47c88]">
-                                    Active Filters
-                                </span>
-                                {activeBrowseChips.map((chip) => (
-                                    <button
-                                        key={chip.key}
-                                        type="button"
-                                        onClick={chip.onRemove}
-                                        className="inline-flex items-center gap-2 rounded-full border border-[#E7A3B0]/25 bg-white px-3 py-1.5 font-montserrat text-xs font-medium text-[#6f5058] transition-colors hover:bg-[#fff5f7]"
-                                    >
-                                        <span>{chip.label}</span>
-                                        <X className="h-3.5 w-3.5 text-[#b47c88]" />
-                                    </button>
-                                ))}
-                                <button
-                                    type="button"
-                                    onClick={clearBrowseState}
-                                    className="inline-flex items-center rounded-full px-3 py-1.5 font-oswald text-[11px] uppercase tracking-[0.24em] text-[#b47c88] transition-colors hover:text-[#8f5f69]"
-                                >
-                                    Clear all
-                                </button>
-                            </div>
-                        </div>
-                    )}
                 </div>
 
                 <div className={`${collectionShellClass} grid grid-cols-1 gap-8 pt-4 pb-16 sm:py-12 sm:pb-24 lg:grid-cols-[240px_minmax(0,1fr)] xl:gap-10`}>
-                    <div className="hidden lg:block h-fit sticky top-[220px]">
+                    <div className="dc-scrollbar hidden lg:block sticky top-[220px] max-h-[calc(100vh-220px)] overflow-y-auto overscroll-contain pr-2">
                         <InView
                             variants={{
                                 hidden: { opacity: 0, x: -30 },
@@ -884,8 +879,8 @@ export function CollectionsView() {
                                 <CatalogSidebar
                                     categories={categories}
                                     activeFilter={activeFilter}
-                                    searchQuery={searchQuery}
-                                    onSearchChange={handleSearchChange}
+                                    sortBy={sortBy}
+                                    onSortChange={handleSortChange}
                                     allCount={products.length}
                                     newCount={newArrivalCount}
                                     saleCount={saleCount}
@@ -901,6 +896,8 @@ export function CollectionsView() {
                                     onFilterChange={handleFilterChange}
                                     onPriceRangeChange={handlePriceRangeChange}
                                     onClearPrice={clearPrice}
+                                    activeChips={activeBrowseChips}
+                                    onClearAllFilters={clearBrowseState}
                                 />
                             )}
                         </InView>

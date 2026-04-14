@@ -10,6 +10,8 @@ import {
     ProductDiscount,
     Season,
     discountHelper,
+    numericLimits,
+    parseProductPrice,
     sanitizeMultilineInput,
     sanitizeMultilineText,
     sanitizeSingleLineInput,
@@ -60,6 +62,7 @@ interface SessionWithAccessToken {
 }
 
 const PRODUCT_DESCRIPTION_LIMIT = uiContentLimits.productDescription.maxLength;
+const PRODUCT_PRICE_LIMIT = numericLimits.productPrice.max;
 
 const renderLengthMeta = (value: string, maxLength: number, recommendedLength?: string) =>
     recommendedLength
@@ -223,7 +226,7 @@ export default function AddProduct({ isOpen, onClose, categories, productToEdit,
     const trimmedCategoryId = formData.category_id.trim();
     const trimmedPrice = formData.product_price.trim();
     const trimmedStock = formData.product_stock.trim();
-    const parsedPricePreview = trimmedPrice === "" ? null : Number.parseFloat(trimmedPrice);
+    const parsedPricePreview = trimmedPrice === "" ? null : parseProductPrice(trimmedPrice);
     const parsedStockPreview = trimmedStock === "" ? 0 : Number.parseInt(trimmedStock, 10);
     const previewDiscountedPrice = useMemo(() => {
         if (!selectedDiscount || !trimmedPrice) return null;
@@ -243,7 +246,7 @@ export default function AddProduct({ isOpen, onClose, categories, productToEdit,
         return missingFields;
     }, [trimmedCategoryId, trimmedPrice, trimmedProductName]);
 
-    const hasInvalidPrice = trimmedPrice !== "" && (!Number.isFinite(parsedPricePreview) || (parsedPricePreview ?? 0) < 0);
+    const hasInvalidPrice = trimmedPrice !== "" && parsedPricePreview === null;
     const hasInvalidStock = trimmedStock !== "" && (!Number.isInteger(parsedStockPreview) || parsedStockPreview < 0);
     const isSaveBlocked = actionLoading || missingRequiredFields.length > 0 || hasInvalidPrice || hasInvalidStock;
     const filteredSizeOptions = useMemo(() => {
@@ -260,7 +263,7 @@ export default function AddProduct({ isOpen, onClose, categories, productToEdit,
     const formStatusMessage = missingRequiredFields.length > 0
         ? `Add ${missingRequiredFields.join(", ")} to continue.`
         : hasInvalidPrice
-            ? "Enter a valid price of 0 or higher."
+            ? `Enter a valid price between 0 and ₱${PRODUCT_PRICE_LIMIT.toLocaleString()}.`
             : hasInvalidStock
                 ? "Stock must be a whole number of 0 or higher."
                 : productToEdit
@@ -491,11 +494,11 @@ export default function AddProduct({ isOpen, onClose, categories, productToEdit,
                 throw new Error('Please enter a product name.');
             }
 
-            const parsedPrice = Number.parseFloat(formData.product_price);
+            const parsedPrice = parseProductPrice(formData.product_price);
             const parsedStock = Number.parseInt(formData.product_stock || "0", 10);
 
-            if (Number.isNaN(parsedPrice) || parsedPrice < 0) {
-                throw new Error('Invalid price. Please enter a valid amount.');
+            if (parsedPrice === null) {
+                throw new Error(`Invalid price. Enter an amount between 0 and ₱${PRODUCT_PRICE_LIMIT.toLocaleString()}.`);
             }
 
             if (Number.isNaN(parsedStock) || parsedStock < 0) {
@@ -675,12 +678,13 @@ export default function AddProduct({ isOpen, onClose, categories, productToEdit,
                                 <Input
                                     type="number"
                                     min="0"
+                                    max={String(PRODUCT_PRICE_LIMIT)}
                                     step="0.01"
                                     placeholder="0.00"
                                     value={formData.product_price}
                                     onChange={(e) => {
                                         const val = e.target.value;
-                                        if (val === "" || Number(val) >= 0) {
+                                        if (val === "" || (Number(val) >= 0 && Number(val) <= PRODUCT_PRICE_LIMIT)) {
                                             setFormData({ ...formData, product_price: val });
                                         }
                                     }}
@@ -693,8 +697,8 @@ export default function AddProduct({ isOpen, onClose, categories, productToEdit,
                                     aria-invalid={hasInvalidPrice || !trimmedPrice}
                                     className="border-gray-300 text-gray-900 bg-white placeholder:text-gray-400"
                                 />
-                                <p className="hidden md:block mt-1 text-xs text-gray-500">
-                                    Enter the selling price in Philippine pesos.
+                                <p className="mt-1 text-xs text-gray-500">
+                                    Enter the selling price in Philippine pesos. Maximum ₱{PRODUCT_PRICE_LIMIT.toLocaleString()}.
                                 </p>
                             </div>
 

@@ -233,6 +233,35 @@ h1, h2, h3, h4, h5, h6 {
     -moz-appearance: textfield;
   }
 
+  .catalog-sidebar {
+    --catalog-tree-offset: 0.75rem;
+    --catalog-tree-padding: 0.5rem;
+    --catalog-trigger-indent-base: 0.5rem;
+    --catalog-trigger-indent-step: 0.875rem;
+    --catalog-leaf-indent-base: 0.75rem;
+    --catalog-leaf-indent-step: 0.75rem;
+    --catalog-all-indent-base: 0.5rem;
+    --catalog-all-indent-step: 0.75rem;
+  }
+
+  .catalog-sidebar-branch {
+    margin-left: var(--catalog-tree-offset);
+    padding-left: var(--catalog-tree-padding);
+  }
+
+  @media (min-width: 1024px) {
+    .catalog-sidebar {
+      --catalog-tree-offset: 0.5rem;
+      --catalog-tree-padding: 0.375rem;
+      --catalog-trigger-indent-base: 0.375rem;
+      --catalog-trigger-indent-step: 0.625rem;
+      --catalog-leaf-indent-base: 0.625rem;
+      --catalog-leaf-indent-step: 0.625rem;
+      --catalog-all-indent-base: 0.375rem;
+      --catalog-all-indent-step: 0.625rem;
+    }
+  }
+
   .price-range-input {
     @apply pointer-events-none absolute left-0 top-0 h-10 w-full appearance-none bg-transparent;
   }
@@ -266,5 +295,30 @@ h1, h2, h3, h4, h5, h6 {
     background: #ffffff;
     border: 2px solid #e7a3b0;
     box-shadow: 0 6px 16px rgba(18, 18, 18, 0.14);
+  }
+
+  .dc-scrollbar {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(231, 163, 176, 0.8) rgba(231, 163, 176, 0.14);
+    scrollbar-gutter: stable;
+  }
+
+  .dc-scrollbar::-webkit-scrollbar {
+    width: 10px;
+  }
+
+  .dc-scrollbar::-webkit-scrollbar-track {
+    background: rgba(231, 163, 176, 0.12);
+    border-radius: 9999px;
+  }
+
+  .dc-scrollbar::-webkit-scrollbar-thumb {
+    background: linear-gradient(180deg, rgba(231, 163, 176, 0.95), rgba(183, 124, 136, 0.9));
+    border-radius: 9999px;
+    border: 3px solid rgba(255, 255, 255, 0.85);
+  }
+
+  .dc-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: linear-gradient(180deg, rgba(231, 163, 176, 1), rgba(160, 92, 105, 0.95));
   }
 }

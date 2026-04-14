@@ -1,7 +1,18 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createAdminClient, authHelper, updateFaq, deleteFaq, FAQCategory } from "@dollys-closet/core";
+import {
+  createAdminClient,
+  authHelper,
+  updateFaq,
+  deleteFaq,
+  FAQCategory,
+  sanitizeSingleLineText,
+  sanitizeMultilineText,
+  uiContentLimits,
+} from "@dollys-closet/core";
 import { createServerSupabase } from "@dollys-closet/core/lib/supabase/server";
 import { activityHelper } from "@/lib/activity/activity-helper";
+
+const FAQ_CATEGORIES: FAQCategory[] = ["General", "Ordering", "Shipping", "Returns", "Products"];
 
 async function validateAdmin(request: NextRequest) {
   const supabase = await createServerSupabase();
@@ -22,16 +33,34 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     if (!auth.ok) return auth.response;
 
     const { id } = await params;
-    const body = (await request.json()) as { question?: string; answer?: string; category?: FAQCategory; is_active?: boolean; display_order?: number };
-
     const faqId = Number(id);
     if (!Number.isFinite(faqId)) {
       return NextResponse.json({ error: "Invalid FAQ ID" }, { status: 400 });
     }
 
+    const body = (await request.json()) as { question?: string; answer?: string; category?: FAQCategory; is_active?: boolean; display_order?: number };
+    const nextQuestion = body.question !== undefined
+      ? sanitizeSingleLineText(body.question, uiContentLimits.faqQuestion.maxLength)
+      : undefined;
+    const nextAnswer = body.answer !== undefined
+      ? sanitizeMultilineText(body.answer, uiContentLimits.faqAnswer.maxLength)
+      : undefined;
+
+    if (body.category !== undefined && !FAQ_CATEGORIES.includes(body.category)) {
+      return NextResponse.json({ error: "Invalid FAQ category" }, { status: 400 });
+    }
+
+    if (body.question !== undefined && !nextQuestion) {
+      return NextResponse.json({ error: "Question is required" }, { status: 400 });
+    }
+
+    if (body.answer !== undefined && !nextAnswer) {
+      return NextResponse.json({ error: "Answer is required" }, { status: 400 });
+    }
+
     const { data: updated, error: updateError } = await updateFaq(auth.supabaseAdmin, faqId, {
-      ...(body.question !== undefined && { question: body.question.trim() }),
-      ...(body.answer !== undefined && { answer: body.answer.trim() }),
+      ...(nextQuestion !== undefined && { question: nextQuestion }),
+      ...(nextAnswer !== undefined && { answer: nextAnswer }),
       ...(body.category !== undefined && { category: body.category }),
       ...(body.is_active !== undefined && { is_active: body.is_active }),
       ...(body.display_order !== undefined && { display_order: body.display_order }),
@@ -43,7 +72,6 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
 
     await activityHelper.logActivity({
       actionType: "edit_faq",
-      faqId: faqId,
       productId: null,
       businessDetailsId: null,
       description: `Updated FAQ: "${updated.question.slice(0, 60)}"`,
@@ -77,7 +105,6 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
 
     await activityHelper.logActivity({
       actionType: "delete_faq",
-      faqId: faqId,
       productId: null,
       businessDetailsId: null,
       description: `Deleted FAQ item`,

@@ -54,6 +54,10 @@ import {
   sanitizeContactDetailInput,
   sanitizeContactDetailsPayload,
   sanitizeContactDetailText,
+  sanitizeMultilineInput,
+  sanitizeMultilineText,
+  sanitizeSingleLineInput,
+  sanitizeSingleLineText,
   uiContentLimits,
   FAQRow,
   FAQCategory,
@@ -76,6 +80,14 @@ type ManageDetailsClientProps = {
   role: "admin" | "employee";
 };
 
+const FAQ_CATEGORIES: FAQCategory[] = ["General", "Ordering", "Shipping", "Returns", "Products"];
+const MAX_FAQ_ITEMS = 8;
+const EMPTY_FAQ_FORM: { question: string; answer: string; category: FAQCategory } = {
+  question: "",
+  answer: "",
+  category: "General",
+};
+
 export default function ManageDetailsClient({ role }: ManageDetailsClientProps) {
   const isAdmin = role === "admin";
   const inputClassName = "border-gray-200 bg-white text-gray-900 placeholder:text-gray-400 focus-visible:border-[#E7A3B0] focus-visible:ring-[#E7A3B0]";
@@ -96,7 +108,7 @@ export default function ManageDetailsClient({ role }: ManageDetailsClientProps) 
   const [hasLoadedFaqs, setHasLoadedFaqs] = useState(false);
   const [editingFaq, setEditingFaq] = useState<FAQRow | null>(null);
   const [addingFaq, setAddingFaq] = useState(false);
-  const [faqForm, setFaqForm] = useState<{ question: string; answer: string; category: FAQCategory }>({ question: "", answer: "", category: "General" });
+  const [faqForm, setFaqForm] = useState<{ question: string; answer: string; category: FAQCategory }>(EMPTY_FAQ_FORM);
   const [savingFaq, setSavingFaq] = useState(false);
   const [deletingFaqId, setDeletingFaqId] = useState<number | null>(null);
 
@@ -120,6 +132,46 @@ export default function ManageDetailsClient({ role }: ManageDetailsClientProps) 
       ? `${value.length}/${maxLength} characters. Recommended ${recommendedLength}.`
       : `${value.length}/${maxLength} characters.`;
   }, []);
+  const sanitizeFaqQuestionInput = useCallback((value: string) => {
+    return sanitizeSingleLineInput(value, uiContentLimits.faqQuestion.maxLength);
+  }, []);
+  const sanitizeFaqAnswerInput = useCallback((value: string) => {
+    return sanitizeMultilineInput(value, uiContentLimits.faqAnswer.maxLength);
+  }, []);
+  const normalizeFaqQuestion = useCallback((value: string) => {
+    return sanitizeSingleLineText(value, uiContentLimits.faqQuestion.maxLength);
+  }, []);
+  const normalizeFaqAnswer = useCallback((value: string) => {
+    return sanitizeMultilineText(value, uiContentLimits.faqAnswer.maxLength);
+  }, []);
+
+  const faqBaseline = useMemo(() => {
+    if (!editingFaq) {
+      return EMPTY_FAQ_FORM;
+    }
+
+    return {
+      question: normalizeFaqQuestion(editingFaq.question),
+      answer: normalizeFaqAnswer(editingFaq.answer),
+      category: editingFaq.category,
+    };
+  }, [editingFaq, normalizeFaqAnswer, normalizeFaqQuestion]);
+
+  const faqNormalizedForm = useMemo(() => {
+    return {
+      question: normalizeFaqQuestion(faqForm.question),
+      answer: normalizeFaqAnswer(faqForm.answer),
+      category: faqForm.category,
+    };
+  }, [faqForm, normalizeFaqAnswer, normalizeFaqQuestion]);
+
+  const faqHasRequiredValues = faqNormalizedForm.question.length > 0 && faqNormalizedForm.answer.length > 0;
+  const faqFormDirty = editingFaq
+    ? faqNormalizedForm.question !== faqBaseline.question
+      || faqNormalizedForm.answer !== faqBaseline.answer
+      || faqNormalizedForm.category !== faqBaseline.category
+    : faqForm.question.length > 0 || faqForm.answer.length > 0 || faqForm.category !== EMPTY_FAQ_FORM.category;
+  const hasReachedFaqLimit = faqs.length >= MAX_FAQ_ITEMS;
 
   const fetchContactDetails = useCallback(async () => {
     try {
@@ -340,7 +392,14 @@ export default function ManageDetailsClient({ role }: ManageDetailsClientProps) 
   };
 
   async function handleSaveFaq() {
-    if (!faqForm.question.trim() || !faqForm.answer.trim()) return;
+    if (!faqHasRequiredValues) return;
+
+    const payload = {
+      question: faqNormalizedForm.question,
+      answer: faqNormalizedForm.answer,
+      category: faqNormalizedForm.category,
+    };
+
     try {
       setSavingFaq(true);
       setError(null);
@@ -348,7 +407,7 @@ export default function ManageDetailsClient({ role }: ManageDetailsClientProps) 
         const response = await fetch(`/api/admin/faqs/${editingFaq.id}`, {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(faqForm),
+          body: JSON.stringify(payload),
         });
         const result = await response.json();
         if (!response.ok) throw new Error(result.error || "Failed to update FAQ");
@@ -359,7 +418,7 @@ export default function ManageDetailsClient({ role }: ManageDetailsClientProps) 
         const response = await fetch("/api/admin/faqs", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(faqForm),
+          body: JSON.stringify(payload),
         });
         const result = await response.json();
         if (!response.ok) throw new Error(result.error || "Failed to create FAQ");
@@ -367,7 +426,7 @@ export default function ManageDetailsClient({ role }: ManageDetailsClientProps) 
         toast.success("FAQ created.");
         setAddingFaq(false);
       }
-      setFaqForm({ question: "", answer: "", category: "General" });
+      setFaqForm(EMPTY_FAQ_FORM);
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Failed to save FAQ";
       setError(msg);
@@ -397,20 +456,31 @@ export default function ManageDetailsClient({ role }: ManageDetailsClientProps) 
 
   function startEditFaq(faq: FAQRow) {
     setEditingFaq(faq);
-    setFaqForm({ question: faq.question, answer: faq.answer, category: faq.category });
+    setFaqForm({
+      question: sanitizeFaqQuestionInput(faq.question),
+      answer: sanitizeFaqAnswerInput(faq.answer),
+      category: faq.category,
+    });
     setAddingFaq(false);
   }
 
   function startAddFaq() {
+    if (hasReachedFaqLimit) {
+      const message = `You can only have up to ${MAX_FAQ_ITEMS} FAQs.`;
+      setError(message);
+      toast.error(message);
+      return;
+    }
+
     setAddingFaq(true);
     setEditingFaq(null);
-    setFaqForm({ question: "", answer: "", category: "General" });
+    setFaqForm(EMPTY_FAQ_FORM);
   }
 
   function cancelFaqForm() {
     setAddingFaq(false);
     setEditingFaq(null);
-    setFaqForm({ question: "", answer: "", category: "General" });
+    setFaqForm(EMPTY_FAQ_FORM);
   }
 
   const handleRefreshCurrentSection = async () => {
@@ -847,6 +917,7 @@ export default function ManageDetailsClient({ role }: ManageDetailsClientProps) 
                 <Button
                   type="button"
                   onClick={startAddFaq}
+                  disabled={hasReachedFaqLimit}
                   className="bg-[#cc7f8f] text-white hover:bg-[#b96f80] gap-2"
                 >
                   <Plus className="h-4 w-4" />
@@ -864,73 +935,136 @@ export default function ManageDetailsClient({ role }: ManageDetailsClientProps) 
               </div>
             ) : (
               <>
+                {hasReachedFaqLimit && !addingFaq && (
+                  <div className="rounded-xl border border-[#E7A3B0]/30 bg-[#fff9fb] px-4 py-3 text-sm text-[#8a6b73]">
+                    You can only have up to {MAX_FAQ_ITEMS} FAQs. Delete an existing item before adding a new one.
+                  </div>
+                )}
+
                 {(addingFaq || editingFaq) && (
-                  <div className="rounded-xl border border-[#E7A3B0]/40 bg-[#fffafb] p-4 space-y-4">
-                    <div className="flex items-center justify-between">
-                      <p className="text-sm font-semibold text-gray-900">
-                        {editingFaq ? "Edit FAQ" : "New FAQ"}
-                      </p>
-                      <button type="button" onClick={cancelFaqForm} className="text-gray-400 hover:text-gray-600">
-                        <X className="h-4 w-4" />
-                      </button>
-                    </div>
-                    <div className="space-y-3">
+                  <div
+                    className={`rounded-xl border p-4 ${
+                      faqFormDirty ? "border-[#E7A3B0]/40 bg-[#fffafb]" : "border-gray-200 bg-gray-50/50"
+                    }`}
+                  >
+                    <div className="mb-4 flex items-start justify-between gap-3">
                       <div>
-                        <p className="text-xs font-medium text-gray-700 mb-1">Question</p>
+                        <p className="text-sm font-semibold text-gray-900">
+                          {editingFaq ? "Edit FAQ" : "New FAQ"}
+                        </p>
+                        <p className="text-xs text-gray-500">
+                          Questions should stay concise for the customer accordion, and answers should match the About page FAQ tone.
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span
+                          className={`rounded-full px-2.5 py-1 text-[10px] font-semibold ${
+                            faqFormDirty ? "bg-[#E7A3B0] text-white" : "border border-gray-200 bg-white text-gray-500"
+                          }`}
+                        >
+                          {faqFormDirty ? "Unsaved" : editingFaq ? "Saved" : "Draft"}
+                        </span>
+                        <button type="button" onClick={cancelFaqForm} className="text-gray-400 hover:text-gray-600">
+                          <X className="h-4 w-4" />
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 gap-4">
+                      <div className="rounded-xl border border-gray-200 bg-white p-4 md:col-span-2">
+                        <div className="mb-3">
+                          <p className="text-sm font-semibold text-gray-900">Question</p>
+                          <p className="text-xs text-gray-500">
+                            Single-line question shown as the clickable prompt on the customer FAQ.
+                          </p>
+                        </div>
                         <Input
                           value={faqForm.question}
-                          onChange={(e) => setFaqForm((prev) => ({ ...prev, question: e.target.value }))}
-                          maxLength={300}
+                          onChange={(e) => setFaqForm((prev) => ({ ...prev, question: sanitizeFaqQuestionInput(e.target.value) }))}
+                          maxLength={uiContentLimits.faqQuestion.maxLength}
                           placeholder="e.g. What is your return policy?"
                           className={inputClassName}
                         />
-                        <p className="text-xs text-gray-400 mt-1">{faqForm.question.length}/300</p>
+                        <div className="mt-2 text-xs text-gray-500">
+                          {formatLongFormMeta(
+                            faqForm.question,
+                            uiContentLimits.faqQuestion.maxLength,
+                            uiContentLimits.faqQuestion.recommendedLength
+                          )}
+                        </div>
                       </div>
-                      <div>
-                        <p className="text-xs font-medium text-gray-700 mb-1">Answer</p>
+
+                      <div className="rounded-xl border border-gray-200 bg-white p-4 md:col-span-2">
+                        <div className="mb-3">
+                          <p className="text-sm font-semibold text-gray-900">Answer</p>
+                          <p className="text-xs text-gray-500">
+                            Keep the answer clear and customer-facing. Save after checking readability and line breaks.
+                          </p>
+                        </div>
                         <Textarea
                           value={faqForm.answer}
-                          onChange={(e) => setFaqForm((prev) => ({ ...prev, answer: e.target.value }))}
-                          maxLength={1000}
+                          onChange={(e) => setFaqForm((prev) => ({ ...prev, answer: sanitizeFaqAnswerInput(e.target.value) }))}
+                          maxLength={uiContentLimits.faqAnswer.maxLength}
                           placeholder="Write a clear, concise answer..."
-                          className={`min-h-[100px] ${textareaClassName}`}
+                          className={`min-h-[120px] ${textareaClassName}`}
                         />
-                        <p className="text-xs text-gray-400 mt-1">{faqForm.answer.length}/1000</p>
-                      </div>
-                      <div>
-                        <p className="text-xs font-medium text-gray-700 mb-1">Category</p>
-                        <Select
-                          value={faqForm.category}
-                          onValueChange={(val) => setFaqForm((prev) => ({ ...prev, category: val as FAQCategory }))}
-                        >
-                          <SelectTrigger className={inputClassName}>
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {(["General", "Ordering", "Shipping", "Returns", "Products"] as FAQCategory[]).map((cat) => (
-                              <SelectItem key={cat} value={cat}>{cat}</SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
+                        <div className="mt-2 text-xs text-gray-500">
+                          {formatLongFormMeta(
+                            faqForm.answer,
+                            uiContentLimits.faqAnswer.maxLength,
+                            uiContentLimits.faqAnswer.recommendedLength
+                          )}
+                        </div>
+                        <div className="mt-3 flex items-center gap-2">
+                          <span className="text-xs font-medium text-gray-500">Category</span>
+                          <Select
+                            value={faqForm.category}
+                            onValueChange={(val) => setFaqForm((prev) => ({ ...prev, category: val as FAQCategory }))}
+                          >
+                            <SelectTrigger className={`h-9 w-[150px] ${inputClassName}`}>
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {FAQ_CATEGORIES.map((cat) => (
+                                <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
                       </div>
                     </div>
-                    <div className="flex justify-end gap-2">
-                      <Button type="button" variant="outline" onClick={cancelFaqForm} className="border-gray-200">
-                        Cancel
-                      </Button>
-                      <Button
-                        type="button"
-                        onClick={handleSaveFaq}
-                        disabled={savingFaq || !faqForm.question.trim() || !faqForm.answer.trim()}
-                        className="bg-[#cc7f8f] text-white hover:bg-[#b96f80]"
-                      >
-                        {savingFaq ? (
-                          <span className="inline-flex items-center gap-2">
-                            <Loader2 className="h-4 w-4 animate-spin" />
-                            Saving
-                          </span>
-                        ) : editingFaq ? "Save changes" : "Create FAQ"}
-                      </Button>
+
+                    <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                      <p className="text-xs text-gray-500">
+                        {faqHasRequiredValues
+                          ? faqFormDirty
+                            ? "This FAQ has unsaved edits."
+                            : "No pending changes."
+                          : "Question and answer are required before saving."}
+                      </p>
+                      <div className="flex flex-col items-stretch gap-2 sm:flex-row sm:items-center sm:justify-end">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={cancelFaqForm}
+                          className="border-gray-200 text-gray-700 hover:text-gray-900"
+                        >
+                          Cancel
+                        </Button>
+                        <Button
+                          type="button"
+                          onClick={handleSaveFaq}
+                          disabled={savingFaq || !faqHasRequiredValues || (!!editingFaq && !faqFormDirty)}
+                          className="bg-[#cc7f8f] text-white hover:bg-[#b96f80]"
+                        >
+                          {savingFaq ? (
+                            <span className="inline-flex items-center gap-2">
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                              Saving
+                            </span>
+                          ) : editingFaq ? "Save changes" : "Create FAQ"}
+                        </Button>
+                      </div>
                     </div>
                   </div>
                 )}

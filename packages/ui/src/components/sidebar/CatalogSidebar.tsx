@@ -2,6 +2,7 @@
 /* eslint-disable react-hooks/set-state-in-effect */
 
 import { useEffect, useMemo, useState } from "react";
+import { X } from "lucide-react";
 
 import {
     Accordion,
@@ -9,15 +10,34 @@ import {
     AccordionItem,
     AccordionTrigger
 } from "../ui/accordion";
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "../ui/select";
 import {cn, type CatalogCategory} from "@dollys-closet/core";
 
-import SearchBar from "../general-components/SearchBar";
+type ActiveChip = {
+    key: string;
+    label: string;
+    onRemove: () => void;
+};
+
+const SORT_OPTIONS = [
+    { value: "newest", label: "Newest First" },
+    { value: "price-low", label: "Price: Low to High" },
+    { value: "price-high", label: "Price: High to Low" },
+    { value: "az", label: "Name: A to Z" },
+    { value: "za", label: "Name: Z to A" },
+] as const;
 
 interface CatalogSidebarProps {
     categories: CatalogCategory[];
     activeFilter: string;
-    searchQuery?: string;
-    onSearchChange?: (query: string) => void;
+    sortBy?: string;
+    onSortChange?: (sort: string) => void;
     allCount: number;
     newCount: number;
     saleCount: number;
@@ -33,14 +53,16 @@ interface CatalogSidebarProps {
     onFilterChange: (filter: string) => void;
     onPriceRangeChange: (minPrice: number, maxPrice: number) => void;
     onClearPrice: () => void;
+    activeChips?: ActiveChip[];
+    onClearAllFilters?: () => void;
     onInteractionComplete?: () => void;
 }
 
 export default function CatalogSidebar({
     categories,
     activeFilter,
-    searchQuery,
-    onSearchChange,
+    sortBy = "newest",
+    onSortChange,
     allCount,
     newCount,
     saleCount,
@@ -56,6 +78,8 @@ export default function CatalogSidebar({
     onFilterChange,
     onPriceRangeChange,
     onClearPrice,
+    activeChips,
+    onClearAllFilters,
     onInteractionComplete,
 }: CatalogSidebarProps) {
     const normalizeName = (categoryName: string) => categoryName.trim().toLowerCase();
@@ -253,6 +277,15 @@ export default function CatalogSidebar({
         return path.join(" > ");
     };
 
+    const getCategoryLeafLabel = (category: CatalogCategory) => {
+        const raw = category.category_name ?? "";
+        if (raw.includes(">")) {
+            const parts = raw.split(">").map((part) => part.trim()).filter(Boolean);
+            return parts.at(-1) || raw;
+        }
+        return raw;
+    };
+
     const renderCategoryNode = (category: CatalogCategory, depth = 0) => {
         const children = [...(childrenByParent.get(Number(category.category_id)) || [])].sort(
             (a, b) => Number(a.category_id) - Number(b.category_id)
@@ -272,17 +305,19 @@ export default function CatalogSidebar({
                     key={category.category_id}
                     onClick={() => handleFilterChange(filterValue)}
                     className={cn(
-                        "w-full flex items-center justify-between rounded-lg px-3 py-1.5 text-left font-montserrat text-sm transition-colors",
+                        "grid w-full grid-cols-[minmax(0,1fr)_auto] items-start gap-3 rounded-lg px-3 py-1.5 text-left font-montserrat text-sm transition-colors lg:px-2.5",
                         isActive
                             ? "bg-[#E7A3B0] text-white font-semibold"
                             : "text-[#3f2d31] hover:bg-[#fff5f7] hover:text-[#E7A3B0]"
                     )}
-                    style={{ paddingLeft: `${12 + depth * 12}px` }}
+                    style={{
+                        paddingLeft: `calc(var(--catalog-leaf-indent-base) + ${depth} * var(--catalog-leaf-indent-step))`,
+                    }}
                     title={getCategoryPath(Number(category.category_id))}
                 >
-                    <span className="min-w-0 flex-1 truncate">{category.category_name}</span>
+                    <span className="min-w-0 flex-1 line-clamp-2 break-words leading-snug">{getCategoryLeafLabel(category)}</span>
                     <span className={cn(
-                        "ml-2 shrink-0 text-xs font-oswald tracking-[0.12em]",
+                        "min-w-[1.75rem] shrink-0 pt-0.5 text-right text-xs font-oswald tracking-[0.12em]",
                         isActive ? "text-white/80" : "text-[#8d7078]"
                     )}>
                         {categoryCount}
@@ -295,10 +330,12 @@ export default function CatalogSidebar({
             <AccordionItem value={`item-${category.category_id}`} key={`${category.category_id}-${depth}`} className="border-none">
                 <AccordionTrigger
                     className={cn(
-                        "rounded-md px-2.5 font-montserrat cursor-pointer py-2 hover:no-underline text-gray-700 hover:bg-[#fff5f7] hover:text-[#E7A3B0] [&>svg]:text-[#94a3b8] [&>svg]:size-3.5 data-[state=open]:bg-[#fff5f7] data-[state=open]:text-[#E7A3B0]",
+                        "min-w-0 rounded-md px-2.5 font-montserrat cursor-pointer py-2 hover:no-underline text-gray-700 hover:bg-[#fff5f7] hover:text-[#E7A3B0] [&>svg]:text-[#94a3b8] [&>svg]:size-3.5 data-[state=open]:bg-[#fff5f7] data-[state=open]:text-[#E7A3B0]",
                         depth === 0 ? "text-base font-medium tracking-wide" : "text-sm"
                     )}
-                    style={{ paddingLeft: `${8 + depth * 14}px` }}
+                    style={{
+                        paddingLeft: `calc(var(--catalog-trigger-indent-base) + ${depth} * var(--catalog-trigger-indent-step))`,
+                    }}
                 >
                     <span className="flex min-w-0 flex-1 items-start gap-2">
                         <span
@@ -307,11 +344,11 @@ export default function CatalogSidebar({
                                 activeFilter === filterValue ? "bg-[#E7A3B0]" : "bg-gray-300"
                             )}
                         />
-                        <span className="min-w-0 break-words leading-snug">{category.category_name}</span>
+                        <span className="min-w-0 line-clamp-2 break-words leading-snug">{getCategoryLeafLabel(category)}</span>
                     </span>
                 </AccordionTrigger>
 
-                <AccordionContent className="ml-3 border-l border-gray-200 pl-2 flex flex-col gap-1 pt-1 pb-2">
+                <AccordionContent className="catalog-sidebar-branch min-w-0 border-l border-gray-200 flex flex-col gap-1 pt-1 pb-2">
                     <button
                         onClick={() => handleFilterChange(filterValue)}
                         className={cn(
@@ -320,11 +357,15 @@ export default function CatalogSidebar({
                                 ? "bg-[#E7A3B0] text-white font-semibold"
                                 : "text-gray-500 hover:bg-[#fff5f7] hover:text-[#E7A3B0]"
                         )}
-                        style={{ paddingLeft: `${8 + (depth + 1) * 12}px` }}
+                        style={{
+                            paddingLeft: `calc(var(--catalog-all-indent-base) + ${depth + 1} * var(--catalog-all-indent-step))`,
+                        }}
                         title={getCategoryPath(Number(category.category_id))}
                     >
                         <span className="flex items-center justify-between gap-3">
-                            <span className="truncate">All {category.category_name}</span>
+                            <span className="min-w-0 flex-1 line-clamp-2 break-words leading-snug">
+                                All {getCategoryLeafLabel(category)}
+                            </span>
                             <span className={cn(
                                 "rounded-full px-2 py-0.5 text-[10px] font-oswald tracking-[0.18em]",
                                 activeFilter === filterValue
@@ -339,13 +380,13 @@ export default function CatalogSidebar({
                     {categorySearch ? (
                         <Accordion 
                             type="multiple" 
-                            className="w-full"
+                            className="w-full min-w-0"
                             value={Array.from(visibleCategoryIds || []).map(id => `item-${id}`)}
                         >
                             {children.map((childCategory) => renderCategoryNode(childCategory, depth + 1))}
                         </Accordion>
                     ) : (
-                        <Accordion type="single" collapsible className="w-full">
+                        <Accordion type="single" collapsible className="w-full min-w-0">
                             {children.map((childCategory) => renderCategoryNode(childCategory, depth + 1))}
                         </Accordion>
                     )}
@@ -369,32 +410,34 @@ export default function CatalogSidebar({
             <AccordionItem value={`root-${group.key}`} key={`root-${group.key}`} className="border-none">
                 <AccordionTrigger
                     className={cn(
-                        "rounded-md px-2.5 font-montserrat cursor-pointer py-2 hover:no-underline text-gray-700 hover:bg-[#fff5f7] hover:text-[#E7A3B0] text-base font-semibold tracking-wide [&>svg]:text-[#94a3b8] [&>svg]:size-3.5 data-[state=open]:bg-[#fff5f7] data-[state=open]:text-[#E7A3B0]",
+                        "min-w-0 gap-2 rounded-md px-2.5 font-montserrat cursor-pointer py-2 hover:no-underline text-gray-700 hover:bg-[#fff5f7] hover:text-[#E7A3B0] text-base font-semibold tracking-wide [&>svg]:ml-1 [&>svg]:text-[#94a3b8] [&>svg]:size-3.5 data-[state=open]:bg-[#fff5f7] data-[state=open]:text-[#E7A3B0]",
                         activeFilter === rootFilterValue ? "text-[#E7A3B0] font-bold" : ""
                     )}
                 >
-                    <span className="flex min-w-0 items-center gap-2">
+                    <span className="grid min-w-0 flex-1 grid-cols-[minmax(0,1fr)_auto] items-center gap-2 overflow-hidden">
+                        <span className="flex min-w-0 items-center gap-2 overflow-hidden">
+                            <span
+                                className={cn(
+                                    "h-1.5 w-1.5 shrink-0 rounded-full",
+                                    activeFilter === rootFilterValue ? "bg-[#E7A3B0]" : "bg-gray-300"
+                                )}
+                            />
+                            <span className="min-w-0 truncate">{group.label}</span>
+                        </span>
                         <span
                             className={cn(
-                                "h-1.5 w-1.5 shrink-0 rounded-full",
-                                activeFilter === rootFilterValue ? "bg-[#E7A3B0]" : "bg-gray-300"
+                                "min-w-[1.75rem] rounded-full px-2 py-0.5 text-center text-[10px] font-oswald tracking-[0.18em]",
+                                activeFilter === rootFilterValue
+                                    ? "bg-[#fff0f5] text-[#b47c88]"
+                                    : "bg-[#f8f3f4] text-[#8d7078]"
                             )}
-                        />
-                        <span className="truncate">{group.label}</span>
-                    </span>
-                    <span
-                        className={cn(
-                            "ml-3 rounded-full px-2 py-0.5 text-[10px] font-oswald tracking-[0.18em]",
-                            activeFilter === rootFilterValue
-                                ? "bg-[#fff0f5] text-[#b47c88]"
-                                : "bg-[#f8f3f4] text-[#8d7078]"
-                        )}
-                    >
-                        {getRootGroupCount(group.key)}
+                        >
+                            {getRootGroupCount(group.key)}
+                        </span>
                     </span>
                 </AccordionTrigger>
 
-                <AccordionContent className="ml-3 border-l border-gray-200 pl-2 flex flex-col gap-1 pt-1 pb-2">
+                <AccordionContent className="catalog-sidebar-branch min-w-0 border-l border-gray-200 flex flex-col gap-1 pt-1 pb-2">
                     <button
                         onClick={() => handleFilterChange(rootFilterValue)}
                         className={cn(
@@ -420,13 +463,13 @@ export default function CatalogSidebar({
                     {categorySearch ? (
                         <Accordion 
                             type="multiple" 
-                            className="w-full"
+                            className="w-full min-w-0"
                             value={Array.from(visibleCategoryIds || []).map(id => `item-${id}`)}
                         >
                             {mergedChildren.map((childCategory) => renderCategoryNode(childCategory, 1))}
                         </Accordion>
                     ) : (
-                        <Accordion type="single" collapsible className="w-full">
+                        <Accordion type="single" collapsible className="w-full min-w-0">
                             {mergedChildren.map((childCategory) => renderCategoryNode(childCategory, 1))}
                         </Accordion>
                     )}
@@ -447,7 +490,7 @@ export default function CatalogSidebar({
         { key: "on-sale", label: "On Sale", count: saleCount },
         {
             key: "current-season",
-            label: currentSeasonLabel ? "Current Season" : "Current Season (Unavailable)",
+            label: currentSeasonLabel ?? "Current Season (Unavailable)",
             count: currentSeasonCount,
             disabled: !currentSeasonLabel,
             title: currentSeasonLabel ? `Currently active season: ${currentSeasonLabel}` : "No active season set",
@@ -455,15 +498,71 @@ export default function CatalogSidebar({
     ];
 
     return(
-        <aside className="flex w-full flex-col gap-6 pb-10 lg:pr-4">
-            {/* Search bar — lives at the top of the filter stack */}
-            {onSearchChange && (
-                <div className="w-full">
-                    <SearchBar onSearch={onSearchChange} initialQuery={searchQuery ?? ""} />
+        <aside className="catalog-sidebar flex w-full flex-col gap-6 pb-10 lg:pr-4">
+            {onSortChange && (
+                <div className="rounded-xl border border-[#E7A3B0]/20 bg-white p-4 shadow-sm">
+                    <div className="mb-3 flex items-center justify-between gap-3">
+                        <h3 className="font-oswald text-sm font-bold uppercase tracking-[0.18em] text-gray-700">
+                            Sort
+                        </h3>
+                    </div>
+                    <Select value={sortBy} onValueChange={onSortChange}>
+                        <SelectTrigger className="h-10 w-full rounded-xl border-[#E7A3B0]/40 bg-white px-4 font-montserrat text-sm text-[#3f2d31] shadow-none transition-colors hover:bg-[#fff8fa] focus-visible:ring-2 focus-visible:ring-[#E7A3B0]/30 focus-visible:ring-offset-0">
+                            <SelectValue placeholder="Sort option" />
+                        </SelectTrigger>
+                        <SelectContent className="rounded-xl border-[#E7A3B0]/20 bg-white text-black shadow-lg">
+                            {SORT_OPTIONS.map((option) => (
+                                <SelectItem
+                                    key={option.value}
+                                    value={option.value}
+                                    className="font-montserrat text-black focus:bg-[#fff5f7] focus:text-[#E7A3B0] cursor-pointer"
+                                >
+                                    {option.label}
+                                </SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
                 </div>
             )}
 
             <div className="space-y-6">
+                {!!activeChips?.length && (
+                    <div className="rounded-xl border border-[#E7A3B0]/20 bg-white p-4 shadow-sm">
+                        <div className="mb-3 flex items-center justify-between gap-3">
+                            <h3 className="font-oswald text-sm font-bold uppercase tracking-[0.18em] text-gray-700">
+                                Active Filters
+                            </h3>
+                            {onClearAllFilters && (
+                                <button
+                                    type="button"
+                                    onClick={onClearAllFilters}
+                                    className="font-oswald text-[11px] uppercase tracking-[0.2em] text-[#b47c88] transition-colors hover:text-[#8f5f69]"
+                                >
+                                    Clear all
+                                </button>
+                            )}
+                        </div>
+                        <div className="flex flex-wrap gap-2">
+                            {activeChips.map((chip) => (
+                                <button
+                                    key={chip.key}
+                                    type="button"
+                                    onClick={() => {
+                                        chip.onRemove();
+                                        onInteractionComplete?.();
+                                    }}
+                                    className="inline-flex max-w-full items-start gap-2 rounded-xl border border-[#E7A3B0]/25 bg-white px-3 py-2 text-left font-montserrat text-xs font-medium leading-snug text-[#6f5058] transition-colors hover:bg-[#fff5f7]"
+                                >
+                                    <span className="min-w-0 whitespace-normal break-words">
+                                        {chip.label}
+                                    </span>
+                                    <X className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[#b47c88]" />
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+                )}
+
                 <div className="rounded-xl border border-[#E7A3B0]/20 bg-white p-4 shadow-sm">
                     <div className="mb-3 flex items-center justify-between">
                         <h3 className="font-oswald text-sm font-bold uppercase tracking-[0.18em] text-gray-700">
@@ -488,16 +587,16 @@ export default function CatalogSidebar({
                                     disabled={item.disabled}
                                     title={item.title}
                                     className={cn(
-                                        "w-full flex items-center justify-between rounded-lg px-3 py-2 font-montserrat text-sm transition-colors",
+                                        "grid w-full grid-cols-[minmax(0,1fr)_auto] items-start gap-3 rounded-lg px-3 py-2 text-left font-montserrat text-sm leading-snug transition-colors lg:px-2.5 lg:py-1.5",
                                         isActive
                                             ? "bg-[#E7A3B0] text-white font-semibold"
                                             : "text-[#3f2d31] hover:bg-[#fff5f7] hover:text-[#E7A3B0]",
                                         item.disabled && "opacity-50 cursor-not-allowed hover:bg-transparent hover:text-[#3f2d31]"
                                     )}
                                 >
-                                    <span>{item.label}</span>
+                                    <span className="min-w-0 truncate">{item.label}</span>
                                     <span className={cn(
-                                        "text-xs font-oswald tracking-[0.12em]",
+                                        "min-w-[1.75rem] text-right text-xs font-oswald tracking-[0.12em]",
                                         isActive ? "text-white/80" : "text-[#8d7078]"
                                     )}>
                                         {item.count}
@@ -507,7 +606,7 @@ export default function CatalogSidebar({
                         })}
 
                         <div className="mt-2 border-t border-[#E7A3B0]/15 pt-2">
-                            <Accordion key={`catalog-tree-${treeRenderKey}`} type="single" collapsible className="w-full">
+                            <Accordion key={`catalog-tree-${treeRenderKey}`} type="single" collapsible className="w-full min-w-0">
                                 {rootCategoryGroups.map((rootGroup) => renderRootGroupNode(rootGroup))}
                             </Accordion>
                         </div>
