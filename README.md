@@ -1,41 +1,57 @@
-# Dolly's Closet - Admin & Employee Portal
+# 👗 Dolly's Closet — Monorepo
 
-Welcome to the internal management system for **Dolly's Closet**. This portal is designed to streamline operations, manage inventory, and provide actionable insights through advanced analytics.
+Welcome to the unified codebase for **Dolly's Closet**, a high-performance fashion management ecosystem. This repository utilizes a modern **Turborepo** monorepo architecture to manage multiple applications and shared packages with speed and efficiency.
 
-Built with **Next.js 16**, **React 19**, and **Tailwind CSS v4** for a high-performance, premium administrative experience.
+Built with **Next.js 16**, **React 19**, and **Tailwind CSS v4** for a premium, state-of-the-art web experience.
 
 ---
 
-## ✨ Key Features
+## 🏗️ Monorepo Architecture
 
-- **📊 Comprehensive Dashboard**: Real-time business overview with Google Analytics 4 integration and interactive charts.
-- **📦 Product Management**: Full CRUD operations for the product catalog, including support for bulk Excel/CSV imports and exports.
-- **👥 Employee Ecosystem**: Automated invitation system and role-based access control to ensure secure internal operations.
-- **🔐 Secure Authentication**: Multi-layer security powered by Supabase Auth (Login, Session management, Link-based setup).
-- **📝 Activity Tracking**: Granular logging of system activities to maintain operational transparency.
-- **🌗 Premium UI/UX**: Fully responsive, dark-mode-ready interface utilizing Radix UI primitives and Motion animations.
+This project is organized into modular applications and shared packages, ensuring consistency and reusability across the entire ecosystem.
+
+### 📱 Applications (`/apps`)
+- **[Portal](./apps/portal)**: The internal administrative and employee management system. Features include inventory control, employee roles, advanced analytics (GA4), and bulk data operations.
+- **[Store](./apps/store)**: The customer-facing storefront (under development), designed for a seamless and premium shopping experience.
+
+### 📦 Shared Packages (`/packages`)
+- **[@dollys-closet/core](./packages/core)**: The engine of the application. Contains shared business logic, Supabase clients, reusable hooks, and TypeScript schemas.
+- **[@dollys-closet/ui](./packages/ui)**: A centralized design system built with Radix UI and Tailwind CSS, ensuring a consistent brand identity across all apps.
+- **[@dollys-closet/config](./packages/config)**: Shared configurations for ESLint, TypeScript, and Tailwind to maintain code quality and build standards.
+
+---
+
+## ✨ Primary Features
+
+| Feature | Description |
+| :--- | :--- |
+| **📊 Analytics Engine** | Real-time business insights integrated with Google Analytics 4. |
+| **📦 Smart Inventory** | Full CRUD with Excel/CSV bulk import/export capabilities. |
+| **👥 RBAC Ecosystem** | Role-based access control with secure invitation flows. |
+| **🔐 Multi-Layer Auth** | Secure session management powered by Supabase Auth & SSR. |
+| **📝 Audit Logging** | Comprehensive activity tracking for operational transparency. |
+| **🌗 Premium UI/UX** | Dark-mode native interface with smooth Motion animations. |
 
 ---
 
 ## 🛠️ Tech Stack
 
+- **Monorepo Management**: [Turborepo](https://turbo.build/)
 - **Framework**: [Next.js 16](https://nextjs.org/) (App Router, React 19)
 - **Database & Auth**: [Supabase](https://supabase.com/)
 - **Styling**: [Tailwind CSS v4](https://tailwindcss.com/)
-- **UI Components**: [Radix UI](https://www.radix-ui.com/) & [Lucide Icons](https://lucide.dev/)
-- **Animations**: [Motion](https://motion.dev/) (Framer Motion)
-- **Data Viz**: [Recharts](https://recharts.org/)
-- **Analytics**: Google Analytics 4 (Data API)
-- **Utilities**: `jspdf` (Reports), `xlsx` (Bulk Data), `sonner` (Toasts)
+- **UI Primitives**: [Radix UI](https://www.radix-ui.com/)
+- **Animations**: [Motion](https://motion.dev/)
+- **Charts**: [Recharts](https://recharts.org/)
+- **Data Sharing**: [SheetJS](https://sheetjs.com/) (Pro/Bulk Operations)
 
 ---
 
 ## 🚀 Getting Started
 
 ### Prerequisites
-
-- **Node.js**: v18 or higher (v20+ recommended).
-- **npm** or **yarn**: Package manager.
+- **Node.js**: v20 or higher (recommended).
+- **Package Manager**: npm v10+.
 
 ### Installation
 
@@ -51,71 +67,55 @@ Built with **Next.js 16**, **React 19**, and **Tailwind CSS v4** for a high-perf
     ```
 
 3.  **Configure Environment Variables**:
-    Create a `.env.local` file in the root directory and add the following keys:
+    Create a `.env.local` file in the root directory. You can use the standard keys required by both apps:
     ```env
     NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
     NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
     SUPABASE_SERVICE_ROLE_KEY=your_service_role_key
 
-    # Google Analytics
+    # Google Analytics (Portal specific)
     GA_PROPERTY_ID=your_ga_property_id
     GOOGLE_APPLICATION_CREDENTIALS=path_to_your_json_credentials
     ```
 
-### Running Locally
+### Development
 
+Run all applications and packages in development mode:
 ```bash
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) to access the portal.
+To work on a specific application using Turborepo filters:
+```bash
+npx turbo dev --filter=@dollys-closet/portal
+```
 
 ---
 
-## 🎨 Design System
+## 🎨 Design System (OKLCH)
 
-### Typography
+We use a high-precision OKLCH-based color system for optimal perceptual uniformity.
 
-- **Headings**: `Oswald` — *Usage: `font-heading` for section headers and titles.*
-- **Body Text**: `Montserrat` — *Usage: `font-body` for standard text, descriptions, and UI.*
-- **Accents**: `Playfair Display` & `Great Vibes` — *Usage: Selective decorative elements.*
-
-### Colors (OKLCH System)
-
-The portal uses a dynamic, OKLCH-based color system for precise control over perception and accessibility.
-
-| Token | Light Mode (OKLCH) | Dark Mode (OKLCH) | Usage |
-| :--- | :--- | :--- | :--- |
-| **Primary** | `0.205 0 0` (Dark) | `0.922 0 0` (Light) | Interactive elements, branding |
-| **Background**| `1 0 0` (White) | `0.145 0 0` (Grey) | Main page surface |
-| **Card** | `1 0 0` | `0.205 0 0` | UI containers and surfaces |
-| **Accent** | `0.97 0 0` | `0.269 0 0` | Hover states and highlights |
-| **Destructive**| `0.577 0.245 27.325` | `0.704 0.191 22.216` | Errors, deletions, alerts |
+| Token | Dark Mode (OKLCH) | Usage |
+| :--- | :--- | :--- |
+| **Primary** | `0.922 0 0` | Branding & Interactive |
+| **Background**| `0.145 0 0` | Main Surfaces |
+| **Card** | `0.205 0 0` | UI Containers |
+| **Accent** | `0.269 0 0` | Hover States |
+| **Destructive**| `0.704 0.191 22.216` | Error states |
 
 ---
 
-## 📁 Project Structure
+## 📁 Developer Reference
 
-- `/src/types`: TypeScript definitions and schemas.
-- `/docs`: High-level architecture and developer guides.
+For deep technical insights, review our **[Architecture Guide](./docs/ARCHITECTURE.md)**.
+
+### Common CLI Tasks
+- `npm run build`: Build all apps for production.
+- `npm run lint`: Run linting across the entire monorepo.
+- `npm run format`: Prettify the entire codebase.
 
 ---
 
-## 🛠️ Developer Reference
-
-For a deep dive into the application's design patterns, authentication flow, and state management, see the **[Architecture Guide](./docs/ARCHITECTURE.md)**.
-
-### Common Tasks
-
-*   **Adding a Protected Route**: Add the new path to the `matcher` in `middleware.ts`.
-*   **Enforcing Unsaved Change Warnings**:
-    1. Import `useUnsavedChanges` from `@/contexts/UnsavedChangesContext`.
-    2. Use `setIsDirty(true)` when form fields are modified.
-    3. Use `setUnsavedMessage("Your custom message")` to provide context to the user.
-
-### Debugging Tips
-
-*   **Auth Issues**: Check the browser console and the `middleware.ts` logs. Authentication is session-persistent but requires valid cookies.
-*   **Navigation Blocks**: If a link isn't navigating, ensure the `isDirty` state is being cleared after a successful save.
-*   **Environment Variables**: Ensure all keys in `.env.local` are correct. Missing Supabase keys will cause app-wide failures.
-
+> [!NOTE]
+> This project is currently in active development. Security audits and feature expansions are ongoing.
