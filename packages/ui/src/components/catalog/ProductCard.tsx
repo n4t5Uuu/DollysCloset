@@ -351,20 +351,20 @@ export default function ProductCard({ product, href, onClick, compact }: Product
                     )}
 
                     {/* Price — bold + dark, optional strikethrough original */}
-                    <div className="mt-auto flex items-baseline gap-1 sm:gap-2 pt-0 sm:pt-1">
+                    <div className="mt-auto flex flex-wrap items-baseline gap-1 sm:gap-2 pt-0 sm:pt-1">
                         {hasDiscount && !isSoldOut && formattedSalePrice ? (
                             <>
-                                <span className="font-oswald text-base sm:text-lg font-bold tracking-[0.02em] text-[#1a1a1a]">
+                                <span className="font-oswald text-base sm:text-lg font-bold tracking-[0.02em] text-[#1a1a1a] break-all">
                                     {formattedSalePrice}
                                 </span>
-                                <span className="font-montserrat text-xs text-[#8b7580] line-through">
+                                <span className="font-montserrat text-xs text-[#8b7580] line-through break-all">
                                     {formattedOriginalPrice}
                                 </span>
                             </>
                         ) : (
                             <span
                                 className={cn(
-                                    "font-oswald text-base sm:text-lg font-bold tracking-[0.02em]",
+                                    "font-oswald text-base sm:text-lg font-bold tracking-[0.02em] break-all",
                                     isSoldOut ? "text-[#8b7580]" : "text-[#1a1a1a]"
                                 )}
                             >

@@ -416,7 +416,7 @@ export function InventoryTable({
                             <div key={product.product_id} className="flex items-start gap-2 px-3 py-2">
                                 <Checkbox
                                     className="mt-1 shrink-0"
-                                    checked={selectedProducts.has(product.product_id)}
+                                    checked={selectedProducts.has(String(product.product_id))}
                                     onCheckedChange={() => toggleSelectProduct(product.product_id)}
                                 />
                                 <div className="flex-1 min-w-0">
@@ -548,7 +548,7 @@ export function InventoryTable({
                         <TableRow>
                             <TableHead className="p-4 text-left w-12">
                                 <Checkbox
-                                    checked={allCurrentProductsSelected ? true : someCurrentProductsSelected ? "indeterminate" : false}
+                                    checked={allCurrentProductsSelected}
                                     onCheckedChange={(checked) => toggleSelectAll(checked === true)}
                                 />
                             </TableHead>
