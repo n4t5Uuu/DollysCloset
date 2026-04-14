@@ -32,6 +32,7 @@ export default function CategoryCascadingFilter({
   const [isMobileView, setIsMobileView] = useState(false);
   const isMobileViewRef = useRef(false);
   const [drillPath, setDrillPath] = useState<Array<string | number>>([]);
+  const [searchQuery, setSearchQuery] = useState("");
 
   const normalizeName = (categoryName: string) => categoryName.trim().toLowerCase();
 
@@ -226,7 +227,36 @@ export default function CategoryCascadingFilter({
   useEffect(() => {
     if (!isOpen || !isMobileViewRef.current) return;
     setDrillPath([]);
+    setSearchQuery("");
   }, [isOpen]);
+
+  const normalizedSearchQuery = searchQuery.trim().toLowerCase();
+  const hasSearchQuery = normalizedSearchQuery.length > 0;
+
+  const matchesSearch = (categoryName: string) => categoryName.toLowerCase().includes(normalizedSearchQuery);
+
+  const filteredRootGroups = useMemo(() => {
+    if (!hasSearchQuery) {
+      return rootCategoryGroups;
+    }
+
+    return rootCategoryGroups.filter((rootGroup) => {
+      if (matchesSearch(rootGroup.label)) return true;
+
+      return rootGroup.rootIds.some((rootId) => {
+        const rootCategory = categoryById.get(rootId);
+        if (rootCategory && matchesSearch(rootCategory.category_name)) return true;
+
+        const secondLevel = childrenByParent.get(rootId) || [];
+        if (secondLevel.some((child) => matchesSearch(child.category_name))) return true;
+
+        return secondLevel.some((child) => {
+          const grandchildren = childrenByParent.get(Number(child.category_id)) || [];
+          return grandchildren.some((grandchild) => matchesSearch(grandchild.category_name));
+        });
+      });
+    });
+  }, [hasSearchQuery, normalizedSearchQuery, rootCategoryGroups, categoryById, childrenByParent]);
 
   const firstColumn = rootCategoryGroups;
 
@@ -249,10 +279,21 @@ export default function CategoryCascadingFilter({
       });
     });
 
-    return combinedChildren.sort(sortById);
-  }, [activeRootKey, rootGroupByKey, childrenByParent]);
+    const sorted = combinedChildren.sort(sortById);
+    if (!hasSearchQuery) return sorted;
 
-  const thirdColumn = activeSecondLevelId !== null ? childrenByParent.get(activeSecondLevelId) || [] : [];
+    return sorted.filter((category) => {
+      if (matchesSearch(category.category_name)) return true;
+      if (!hasChildren(Number(category.category_id))) return false;
+      return (childrenByParent.get(Number(category.category_id)) || []).some((child) => matchesSearch(child.category_name));
+    });
+  }, [activeRootKey, rootGroupByKey, childrenByParent, hasSearchQuery, normalizedSearchQuery, hasChildren]);
+
+  const thirdColumn = useMemo(() => {
+    const items = activeSecondLevelId !== null ? childrenByParent.get(activeSecondLevelId) || [] : [];
+    if (!hasSearchQuery) return items;
+    return items.filter((category) => matchesSearch(category.category_name));
+  }, [activeSecondLevelId, childrenByParent, hasSearchQuery, normalizedSearchQuery]);
 
   const renderItem = (category: Category, level: 2 | 3) => {
     const categoryId = Number(category.category_id);
@@ -364,6 +405,33 @@ export default function CategoryCascadingFilter({
                 <X className="h-4 w-4 text-zinc-500" />
               </button>
             </div>
+            <div className="border-b border-zinc-100 px-3 py-3 space-y-3">
+              <div className="flex items-center justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">Category</p>
+                  <p className="truncate text-sm font-medium text-zinc-900">{value === "all" ? "All Categories" : selectedLabel}</p>
+                </div>
+                {value !== "all" && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      onValueChange("all");
+                      setIsOpen(false);
+                    }}
+                    className="text-xs font-semibold text-[#b96d7d] hover:text-[#E7A3B0]"
+                  >
+                    Clear
+                  </button>
+                )}
+              </div>
+              <input
+                value={searchQuery}
+                onChange={(event) => setSearchQuery(event.target.value)}
+                placeholder="Search categories"
+                aria-label="Search categories"
+                className="w-full rounded-md border border-gray-200 bg-zinc-50 px-3 py-2 text-sm text-gray-900 outline-none focus:border-[#E7A3B0] focus:ring-1 focus:ring-[#E7A3B0]"
+              />
+            </div>
             <div className="overflow-y-auto flex-1 p-2 space-y-0.5">
               {drillPath.length === 0 && (
                 <>
@@ -377,7 +445,7 @@ export default function CategoryCascadingFilter({
                     <span className="flex-1">All Categories</span>
                     {value === "all" && <Check className="h-4 w-4 shrink-0" />}
                   </button>
-                  {firstColumn.map((rootGroup) => {
+                  {(hasSearchQuery ? filteredRootGroups : firstColumn).map((rootGroup) => {
                     const hasAny = rootGroup.rootIds.some((id) => hasChildren(id));
                     const isSelected = selectedRootGroupKey === rootGroup.key;
                     return (
@@ -409,15 +477,7 @@ export default function CategoryCascadingFilter({
                 const group = rootGroupByKey.get(rootKey);
                 if (!group) return null;
                 const isRootSelected = selectedRootGroupKey === rootKey;
-                const level2Items: Category[] = [];
-                const seen = new Set<number>();
-                group.rootIds.forEach((rootId) => {
-                  (childrenByParent.get(rootId) || []).forEach((cat) => {
-                    const id = Number(cat.category_id);
-                    if (!seen.has(id)) { seen.add(id); level2Items.push(cat); }
-                  });
-                });
-                level2Items.sort(sortById);
+                const level2Items = secondColumn;
                 return (
                   <>
                     <button
@@ -463,7 +523,7 @@ export default function CategoryCascadingFilter({
               {drillPath.length === 2 && (() => {
                 const secondId = drillPath[1] as number;
                 const parentCat = categoryById.get(secondId);
-                const level3Items = childrenByParent.get(secondId) || [];
+                const level3Items = thirdColumn;
                 const isParentSelected = selectedCategoryId === secondId;
                 return (
                   <>

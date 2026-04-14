@@ -488,14 +488,14 @@ export function ProductDetailsView({
                 <h1 className="text-4xl leading-tight text-gray-900 md:text-5xl break-words">
                   {decodeHtmlEntities(product.name)}
                 </h1>
-                <div className="flex items-baseline space-x-4">
+                <div className="flex flex-wrap items-baseline space-x-4">
                   {product.discountedPrice !== null && product.discountedPrice !== undefined ? (
                     <>
-                      <span className="text-3xl font-medium text-gray-900">{formatPrice(product.discountedPrice)}</span>
-                      <span className="text-lg font-medium text-gray-400 line-through">{formatPrice(product.price)}</span>
+                      <span className="text-3xl font-medium text-gray-900 break-all">{formatPrice(product.discountedPrice)}</span>
+                      <span className="text-lg font-medium text-gray-400 line-through break-all">{formatPrice(product.price)}</span>
                     </>
                   ) : (
-                    <span className="text-3xl font-medium text-gray-900">{formatPrice(product.price)}</span>
+                    <span className="text-3xl font-medium text-gray-900 break-all">{formatPrice(product.price)}</span>
                   )}
                   {product.stock <= 5 && product.stock > 0 && (
                     <span className="animate-pulse text-sm font-semibold text-rose-600">
@@ -576,7 +576,7 @@ export function ProductDetailsView({
               </div>
             </div>
 
-            <div className="grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-4">
+            <div className="grid grid-cols-2 gap-4 sm:grid-cols-2 lg:grid-cols-4">
               {relatedProducts.map((item) => (
                 <ProductCard
                   key={item.id}

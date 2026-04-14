@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { useSearchParams, useRouter, usePathname } from "next/navigation";
-import { Plus, Archive, RotateCcw, X, Upload, SlidersHorizontal, RefreshCw, BadgePercent, Trash2, CalendarRange, ArrowUpDown, Info } from "lucide-react";
+import { Plus, Archive, RotateCcw, X, Upload, SlidersHorizontal, RefreshCw, BadgePercent, Trash2, CalendarRange, ArrowUpDown, Info, Eye, EyeOff } from "lucide-react";
 import { ExportPurgeDialog } from "@/components/dialogs/ExportPurgeDialog";
 import type { ExportPurgeFormat } from "@/components/dialogs/ExportPurgeDialog";
 import { 
@@ -430,8 +430,9 @@ export default function InventoryManagement({ initialAvailabilityFilter, userRol
   const startIndex = (safePage - 1) * itemsPerPage;
   const endIndex = startIndex + itemsPerPage;
   const currentProducts = filteredProducts.slice(startIndex, endIndex);
-  const allCurrentProductsSelected = currentProducts.length > 0 && currentProducts.every((product) => selectedProducts.has(product.product_id));
-  const someCurrentProductsSelected = !allCurrentProductsSelected && currentProducts.some((product) => selectedProducts.has(product.product_id));
+  const selectedProductIds = useMemo(() => new Set(Array.from(selectedProducts).map(String)), [selectedProducts]);
+  const allCurrentProductsSelected = currentProducts.length > 0 && currentProducts.every((product) => selectedProductIds.has(String(product.product_id)));
+  const someCurrentProductsSelected = !allCurrentProductsSelected && currentProducts.some((product) => selectedProductIds.has(String(product.product_id)));
 
   const getCategoryName = buildCategoryPath;
 
@@ -591,9 +592,9 @@ export default function InventoryManagement({ initialAvailabilityFilter, userRol
       const nextSelected = new Set(previousSelected);
 
       if (checked) {
-        currentProducts.forEach((product) => nextSelected.add(product.product_id));
+        currentProducts.forEach((product) => nextSelected.add(String(product.product_id)));
       } else {
-        currentProducts.forEach((product) => nextSelected.delete(product.product_id));
+        currentProducts.forEach((product) => nextSelected.delete(String(product.product_id)));
       }
 
       return nextSelected;
@@ -601,11 +602,12 @@ export default function InventoryManagement({ initialAvailabilityFilter, userRol
   };
 
   const toggleSelectProduct = (productId: string) => {
+    const id = String(productId);
     const newSelected = new Set(selectedProducts);
-    if (newSelected.has(productId)) {
-      newSelected.delete(productId);
+    if (newSelected.has(id)) {
+      newSelected.delete(id);
     } else {
-      newSelected.add(productId);
+      newSelected.add(id);
     }
     setSelectedProducts(newSelected);
   };
@@ -613,6 +615,13 @@ export default function InventoryManagement({ initialAvailabilityFilter, userRol
   const clearSelection = () => {
     setSelectedProducts(new Set());
   };
+
+  const selectedCatalogState = useMemo((): "publish" | "unpublish" | null => {
+    if (selectedProducts.size === 0) return null;
+    const selected = products.filter((p) => selectedProductIds.has(String(p.product_id)));
+    if (selected.length === 0) return null;
+    return selected.every((p) => p.show_in_catalog) ? "unpublish" : "publish";
+  }, [selectedProductIds, products]);
 
   const handleEditProduct = (product: Product) => {
     setEditingProduct(product);
@@ -742,6 +751,59 @@ export default function InventoryManagement({ initialAvailabilityFilter, userRol
       }
     } catch (err: unknown) {
       const errorMessage = err instanceof Error ? err.message : (inventoryScope === "active" ? 'Failed to archive products' : 'Failed to restore products');
+      setError(errorMessage);
+      toast.error(errorMessage);
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleBulkCatalogToggle = async (publish: boolean) => {
+    if (selectedProducts.size === 0) return;
+    setActionLoading(true);
+    setError(null);
+    setActionNotice(null);
+    try {
+      const supabase = createClient();
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error('Not authenticated');
+
+      const selectedList = products.filter((p) => selectedProductIds.has(String(p.product_id)));
+      const eligible = publish ? selectedList.filter((p) => p.product_stock > 0) : selectedList;
+      const skipped = selectedList.length - eligible.length;
+
+      await Promise.all(eligible.map(async (product) => {
+        const { error, friendlyMessage } = await safeFetchJson('/api/admin/products', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session.access_token}` },
+          body: JSON.stringify({
+            product_id: product.product_id,
+            product_name: product.product_name,
+            category_id: product.category_id,
+            product_price: product.product_price,
+            product_brand: product.product_brand,
+            product_description: product.product_description,
+            product_stock: product.product_stock,
+            product_condition: product.product_condition,
+            size_label: product.size_label,
+            show_in_catalog: publish,
+            image_id: product.image_id,
+            discount_id: product.discount?.id ?? null,
+            season_id: product.season_id,
+          }),
+        });
+        if (error) throw new Error(friendlyMessage || 'Failed to update visibility');
+      }));
+
+      clearSelection();
+      await fetchProducts();
+      if (skipped > 0) {
+        toast.warning(`${eligible.length} product(s) ${publish ? 'published' : 'unpublished'}. ${skipped} skipped (out of stock).`);
+      } else {
+        toast.success(`${eligible.length} product(s) ${publish ? 'published' : 'unpublished'} successfully.`);
+      }
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to update visibility';
       setError(errorMessage);
       toast.error(errorMessage);
     } finally {
@@ -1164,7 +1226,7 @@ export default function InventoryManagement({ initialAvailabilityFilter, userRol
               <RefreshCw className={`h-5 w-5 ${(loading || actionLoading) ? "animate-spin" : ""}`} />
             </button>
           </div>
-          <div className="flex items-center rounded-lg border border-[#E7A3B0]/20 bg-[#fff9fb] p-1 sm:shrink-0">
+          <div className="flex items-center w-fit rounded-lg border border-[#E7A3B0]/20 bg-[#fff9fb] p-1 sm:shrink-0">
             <button
               type="button"
               onClick={() => { setProducts([]); setInventoryScope("active"); }}
@@ -1190,98 +1252,69 @@ export default function InventoryManagement({ initialAvailabilityFilter, userRol
           </div>
         </div>
 
-        {/* Bottom row: Refresh left, action buttons right */}
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <Button
-            type="button"
-            variant="outline"
-            onClick={() => fetchProducts(true)}
-            className="hidden sm:flex h-9 border-[#E7A3B0]/30 text-[#b96d7d] hover:bg-[#fff5f7] hover:text-[#b96d7d]"
-            disabled={loading || actionLoading}
-            title="Refresh inventory"
-          >
-            <RefreshCw className={`mr-2 h-4 w-4 ${(loading || actionLoading) ? "animate-spin" : ""}`} />
-            Refresh
-          </Button>
-          {inventoryScope === "archived" && userRole === "admin" && (
+      {activeFilterChips.length > 0 && (
+        <div className="sm:hidden flex flex-wrap items-center gap-1">
+          {activeFilterChips.map((chip) => (
             <button
-              onClick={() => setProductPurgeOpen(true)}
-              className="flex items-center gap-2 px-4 py-2 bg-white border border-red-200 text-red-600 rounded-lg text-sm font-medium transition-all duration-300 shadow-sm hover:shadow-md hover:bg-red-50 hover:border-red-400 hover:scale-105 cursor-pointer"
+              key={chip.key}
+              type="button"
+              onClick={chip.onRemove}
+              className="inline-flex items-center gap-1 rounded-full border border-[#E7A3B0]/30 bg-[#fffcfd] px-2 py-0.5 text-[10px] font-medium text-[#6f5058]"
             >
-              <Trash2 size={16} />
-              Export &amp; Purge Archived
+              <span className="max-w-[160px] truncate">{chip.label}</span>
+              <X className="h-2.5 w-2.5 text-[#b47c88]" />
             </button>
-          )}
-          {inventoryScope === "active" && (
-            <div className="grid grid-cols-4 gap-2 w-full sm:flex sm:flex-wrap sm:w-auto sm:items-center sm:gap-2">
-              <button
-                onClick={() => {
-                  resetSeasonForm();
-                  setShowSeasonModal(true);
-                }}
-                className="flex items-center justify-center gap-1.5 px-2 py-3 h-11 w-full sm:w-auto sm:h-auto sm:px-4 sm:py-2 bg-white border border-black sm:border-[#E7A3B0]/30 text-[#b96d7d] rounded-lg text-[11px] sm:text-sm font-medium transition-all duration-300 shadow-sm hover:shadow-md hover:border-[#E7A3B0] hover:bg-[#fff5f7] hover:scale-105 cursor-pointer"
-              >
-                <CalendarRange size={14} className="shrink-0 sm:hidden" />
-                <CalendarRange size={16} className="shrink-0 hidden sm:block" />
-                <span className="whitespace-nowrap sm:hidden">Seasons</span>
-                <span className="whitespace-nowrap hidden sm:inline">Manage Seasons</span>
-              </button>
-              <button
-                onClick={() => setShowDiscountModal(true)}
-                className="flex items-center justify-center gap-1.5 px-2 py-3 h-11 w-full sm:w-auto sm:h-auto sm:px-4 sm:py-2 bg-white border border-black sm:border-[#E7A3B0]/30 text-[#b96d7d] rounded-lg text-[11px] sm:text-sm font-medium transition-all duration-300 shadow-sm hover:shadow-md hover:border-[#E7A3B0] hover:bg-[#fff5f7] hover:scale-105 cursor-pointer"
-              >
-                <BadgePercent size={14} className="shrink-0 sm:hidden" />
-                <BadgePercent size={16} className="shrink-0 hidden sm:block" />
-                <span className="whitespace-nowrap sm:hidden">Discount</span>
-                <span className="whitespace-nowrap hidden sm:inline">Add Discount Code</span>
-              </button>
-              <button
-                onClick={() => setShowBulkImport(true)}
-                className="flex items-center justify-center gap-1.5 px-2 py-3 h-11 w-full sm:w-auto sm:h-auto sm:px-4 sm:py-2 bg-gray-100 hover:bg-gray-200 text-gray-800 border border-black sm:border-0 rounded-lg text-[11px] sm:text-sm font-medium transition-all duration-300 shadow-sm hover:shadow-md hover:scale-105 cursor-pointer"
-              >
-                <Upload size={14} className="shrink-0 sm:hidden" />
-                <Upload size={16} className="shrink-0 hidden sm:block" />
-                <span className="whitespace-nowrap">Import</span>
-              </button>
-              <button
-                onClick={openAddModal}
-                className="flex items-center justify-center gap-1.5 px-2 py-3 h-11 w-full sm:w-auto sm:h-auto sm:px-5 sm:py-2 bg-linear-to-r from-[#E7A3B0] to-[#f0b8c3] hover:from-[#d891a0] hover:to-[#E7A3B0] text-white rounded-lg text-[11px] sm:text-sm font-medium transition-all duration-300 shadow-md hover:shadow-lg hover:scale-105 cursor-pointer"
-              >
-                <Plus size={14} className="sm:hidden" />
-                <Plus size={18} className="hidden sm:block" />
-                <span className="whitespace-nowrap">Add Product</span>
-              </button>
-            </div>
-          )}
+          ))}
+          <button
+            type="button"
+            onClick={clearAllFilters}
+            className="text-[10px] font-semibold text-[#b47c88] px-1"
+          >
+            Clear
+          </button>
         </div>
-      </div>
-
-      {error && (
-        <AdminNoticeBanner
-          tone="error"
-          title="Unable to load inventory"
-          message={error}
-          onDismiss={() => setError(null)}
-          actionLabel="Try again"
-          onAction={() => {
-            void fetchProducts(true);
-            void fetchCategories();
-          }}
-        />
       )}
 
-      {outOfStockActiveCount > 0 && (
-        <AdminNoticeBanner
-          tone="info"
-          title="Out-of-stock products detected"
-          message={`${outOfStockActiveCount} product${outOfStockActiveCount === 1 ? " is" : "s are"} currently out of stock. Consider archiving ${outOfStockActiveCount === 1 ? "it" : "them"} to keep your active inventory clean.`}
-          onDismiss={() => {}}
-          actionLabel="View out-of-stock"
-          onAction={() => {
-            setAvailabilityFilter("out-of-stock");
-            setVisibilityFilter("all");
-          }}
-        />
+      {inventoryScope === "active" && (
+        <div className="grid grid-cols-4 gap-2 w-full sm:flex sm:flex-wrap sm:w-auto sm:items-center sm:gap-2">
+          <button
+            onClick={() => {
+              resetSeasonForm();
+              setShowSeasonModal(true);
+            }}
+            className="flex items-center justify-center gap-1.5 px-2 py-3 h-11 w-full sm:w-auto sm:h-auto sm:px-4 sm:py-2 bg-white border border-black sm:border-[#E7A3B0]/30 text-[#b96d7d] rounded-lg text-[11px] sm:text-sm font-medium transition-all duration-300 shadow-sm hover:shadow-md hover:border-[#E7A3B0] hover:bg-[#fff5f7] hover:scale-105 cursor-pointer"
+          >
+            <CalendarRange size={14} className="shrink-0 sm:hidden" />
+            <CalendarRange size={16} className="shrink-0 hidden sm:block" />
+            <span className="whitespace-nowrap sm:hidden">Seasons</span>
+            <span className="whitespace-nowrap hidden sm:inline">Manage Seasons</span>
+          </button>
+          <button
+            onClick={() => setShowDiscountModal(true)}
+            className="flex items-center justify-center gap-1.5 px-2 py-3 h-11 w-full sm:w-auto sm:h-auto sm:px-4 sm:py-2 bg-white border border-black sm:border-[#E7A3B0]/30 text-[#b96d7d] rounded-lg text-[11px] sm:text-sm font-medium transition-all duration-300 shadow-sm hover:shadow-md hover:border-[#E7A3B0] hover:bg-[#fff5f7] hover:scale-105 cursor-pointer"
+          >
+            <BadgePercent size={14} className="shrink-0 sm:hidden" />
+            <BadgePercent size={16} className="shrink-0 hidden sm:block" />
+            <span className="whitespace-nowrap sm:hidden">Discount</span>
+            <span className="whitespace-nowrap hidden sm:inline">Add Discount Code</span>
+          </button>
+          <button
+            onClick={() => setShowBulkImport(true)}
+            className="flex items-center justify-center gap-1.5 px-2 py-3 h-11 w-full sm:w-auto sm:h-auto sm:px-4 sm:py-2 bg-gray-100 hover:bg-gray-200 text-gray-800 border border-black sm:border-0 rounded-lg text-[11px] sm:text-sm font-medium transition-all duration-300 shadow-sm hover:shadow-md hover:scale-105 cursor-pointer"
+          >
+            <Upload size={14} className="shrink-0 sm:hidden" />
+            <Upload size={16} className="shrink-0 hidden sm:block" />
+            <span className="whitespace-nowrap">Import</span>
+          </button>
+          <button
+            onClick={openAddModal}
+            className="flex items-center justify-center gap-1.5 px-2 py-3 h-11 w-full sm:w-auto sm:h-auto sm:px-5 sm:py-2 bg-linear-to-r from-[#E7A3B0] to-[#f0b8c3] hover:from-[#d891a0] hover:to-[#E7A3B0] text-white rounded-lg text-[11px] sm:text-sm font-medium transition-all duration-300 shadow-md hover:shadow-lg hover:scale-105 cursor-pointer"
+          >
+            <Plus size={14} className="sm:hidden" />
+            <Plus size={18} className="hidden sm:block" />
+            <span className="whitespace-nowrap">Add Product</span>
+          </button>
+        </div>
       )}
 
       <div className="hidden sm:grid gap-2 grid-cols-3 xl:grid-cols-6">
@@ -1305,30 +1338,6 @@ export default function InventoryManagement({ initialAvailabilityFilter, userRol
           </button>
         ))}
       </div>
-
-      {/* Active filter chips — compact strip, mobile only, above search */}
-      {activeFilterChips.length > 0 && (
-        <div className="sm:hidden flex flex-wrap items-center gap-1">
-          {activeFilterChips.map((chip) => (
-            <button
-              key={chip.key}
-              type="button"
-              onClick={chip.onRemove}
-              className="inline-flex items-center gap-1 rounded-full border border-[#E7A3B0]/30 bg-[#fffcfd] px-2 py-0.5 text-[10px] font-medium text-[#6f5058]"
-            >
-              <span className="max-w-[160px] truncate">{chip.label}</span>
-              <X className="h-2.5 w-2.5 text-[#b47c88]" />
-            </button>
-          ))}
-          <button
-            type="button"
-            onClick={clearAllFilters}
-            className="text-[10px] font-semibold text-[#b47c88] px-1"
-          >
-            Clear
-          </button>
-        </div>
-      )}
 
       <div className="flex items-center gap-2 sm:flex-wrap sm:gap-3 pt-2 sm:pt-0">
         <AdminSearchInput
@@ -1371,6 +1380,20 @@ export default function InventoryManagement({ initialAvailabilityFilter, userRol
                   }}
                   triggerClassName="w-full"
                 />
+                {categoryFilter !== "all" && selectedCategoryLabel && (
+                  <div className="mt-3 flex flex-wrap items-center gap-2">
+                    <span className="max-w-full truncate rounded-full border border-[#E7A3B0] bg-[#FFF0F3] px-3 py-1 text-xs font-medium text-[#8C414F]">
+                      Category: {selectedCategoryLabel}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setCategoryFilter("all")}
+                      className="text-xs font-semibold text-[#B96D7D] hover:text-[#E7A3B0]"
+                    >
+                      Clear category
+                    </button>
+                  </div>
+                )}
               </div>
               {/* Visibility */}
               <div>
@@ -1543,9 +1566,12 @@ export default function InventoryManagement({ initialAvailabilityFilter, userRol
           onDismiss={() => setActionNotice(null)}
         />
       )}
+      </div>
 
-<div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-4 sm:mb-4">
-        <div className="hidden sm:block text-sm text-gray-600">
+    <div className="flex flex-col gap-2 sm:mb-4">
+      {/* Desktop info row */}
+      <div className="hidden sm:flex sm:items-center sm:justify-between sm:gap-4">
+        <div className="text-sm text-gray-600">
           Showing {filteredProducts.length > 0 ? startIndex + 1 : 0}-{Math.min(endIndex, filteredProducts.length)} of {filteredProducts.length} items
         </div>
         <div className="flex flex-wrap items-center gap-2">
@@ -1581,58 +1607,84 @@ export default function InventoryManagement({ initialAvailabilityFilter, userRol
               <span className="hidden sm:inline">Batch </span>Add Discount
             </Button>
           )}
-          {selectedProducts.size > 0 && (
+
+          {/* Row 2: Show & Hide (Active scope only) */}
+          {inventoryScope === "active" && (
+            <div className="flex items-center gap-2 w-full sm:w-auto">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => handleBulkCatalogToggle(true)}
+                className="flex-1 sm:flex-none h-8 border-[#E7A3B0]/35 text-[#b96d7d] hover:bg-[#fff5f7] hover:text-[#b96d7d]"
+                disabled={actionLoading}
+              >
+                <Eye className="mr-1.5 h-3.5 w-3.5" />
+                <span>Show</span>
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => handleBulkCatalogToggle(false)}
+                className="flex-1 sm:flex-none h-8 border-[#E7A3B0]/35 text-[#b96d7d] hover:bg-[#fff5f7] hover:text-[#b96d7d]"
+                disabled={actionLoading}
+              >
+                <EyeOff className="mr-1.5 h-3.5 w-3.5" />
+                <span>Hide</span>
+              </Button>
+            </div>
+          )}
+
+          {/* Row 3: Clear & Archive/Restore (All scopes) */}
+          <div className="flex items-center gap-2 w-full sm:w-auto">
             <Button
               type="button"
               variant="outline"
               size="sm"
               onClick={clearSelection}
-              className="h-8 border-zinc-200 text-zinc-600 hover:bg-zinc-50 hover:text-zinc-700"
+              className="flex-1 sm:flex-none h-8 border-zinc-200 text-zinc-600 hover:bg-zinc-50 hover:text-zinc-700"
             >
-              <span className="hidden sm:inline">Clear selection</span>
-              <span className="sm:hidden">Clear</span>
+              <span>Clear</span>
             </Button>
-          )}
-          {selectedProducts.size > 0 && (
             <AlertDialog>
               <AlertDialogTrigger asChild>
                 <Button
-                  className={inventoryScope === "active" ? "bg-amber-500 hover:bg-amber-600 text-white" : "bg-emerald-600 hover:bg-emerald-700 text-white"}
+                  size="sm"
+                  className={`flex-1 sm:flex-none h-8 text-xs font-medium ${inventoryScope === "active" ? "bg-amber-500 hover:bg-amber-600 text-white" : "bg-emerald-600 hover:bg-emerald-700 text-white"}`}
                   disabled={actionLoading}
                 >
-                  {inventoryScope === "active" ? <Archive className="w-4 h-4 mr-2" /> : <RotateCcw className="w-4 h-4 mr-2" />}
-                  {inventoryScope === "active" ? "Archive" : "Restore"} ({selectedProducts.size})
+                  {inventoryScope === "active" ? <Archive className="w-3.5 h-3.5 mr-1.5" /> : <RotateCcw className="w-3.5 h-3.5 mr-1.5" />}
+                  {inventoryScope === "active" ? `Archive (${selectedProducts.size})` : `Restore (${selectedProducts.size})`}
                 </Button>
               </AlertDialogTrigger>
               <AlertDialogContent className="bg-white">
                 <AlertDialogHeader>
                   <AlertDialogTitle className="text-gray-900">
-                    {inventoryScope === "active"
-                      ? selectedProducts.size === 1 ? "Archive Product" : "Archive Multiple Products"
-                      : selectedProducts.size === 1 ? "Restore Product" : "Restore Multiple Products"}
+                    {inventoryScope === "active" ? "Archive Selected Products" : "Restore Selected Products"}
                   </AlertDialogTitle>
                   <AlertDialogDescription>
                     {inventoryScope === "active"
-                      ? <>Archive <span className="font-semibold">{selectedProducts.size}</span> {selectedProducts.size === 1 ? "product" : "products"}? Archived products are hidden from active dashboards and can be restored later.</>
-                      : <>Restore <span className="font-semibold">{selectedProducts.size}</span> {selectedProducts.size === 1 ? "product" : "products"} to the active inventory list?</>}
+                      ? `Move ${selectedProducts.size} product(s) to the archive? They will be hidden from the public catalog.`
+                      : `Restore ${selectedProducts.size} product(s) to the active inventory?`}
                   </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
                   <AlertDialogCancel className="border-zinc-300 bg-white text-zinc-700 hover:bg-zinc-50 hover:text-zinc-900">Cancel</AlertDialogCancel>
                   <AlertDialogAction
-                    className={`${inventoryScope === "active" ? "bg-amber-500 hover:bg-amber-600" : "bg-emerald-600 hover:bg-emerald-700"} text-white cursor-pointer`}
+                    className={`cursor-pointer ${inventoryScope === "active" ? "bg-amber-500 hover:bg-amber-600 text-white" : "bg-emerald-600 hover:bg-emerald-700 text-white"}`}
                     onClick={handleBulkScopeAction}
                   >
-                    {inventoryScope === "active"
-                      ? selectedProducts.size === 1 ? "Archive" : "Archive All"
-                      : selectedProducts.size === 1 ? "Restore" : "Restore All"}
+                    {inventoryScope === "active" ? "Archive All" : "Restore All"}
                   </AlertDialogAction>
                 </AlertDialogFooter>
               </AlertDialogContent>
             </AlertDialog>
-          )}
+          </div>
         </div>
       </div>
+    </div>
+
 
       {loading ? (
         <div className="bg-white rounded-lg border p-4 space-y-4">
@@ -1661,6 +1713,12 @@ export default function InventoryManagement({ initialAvailabilityFilter, userRol
           handleRestoreProduct={handleRestoreProduct}
           onRowActivate={inventoryScope === "active" ? handleEditProduct : undefined}
           actionLoading={actionLoading}
+          onClearSelection={clearSelection}
+          onBatchSeason={() => { setBatchSeasonSelection(""); setShowBatchSeasonModal(true); }}
+          onBatchDiscount={() => setShowDiscountModal(true)}
+          onBulkScopeAction={handleBulkScopeAction}
+          bulkCatalogAction={selectedCatalogState}
+          onBulkCatalogToggle={handleBulkCatalogToggle}
           emptyTitle={inventoryEmptyTitle}
           emptyDescription={inventoryEmptyDescription}
         />
