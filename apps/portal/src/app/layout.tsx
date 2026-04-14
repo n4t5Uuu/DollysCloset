@@ -127,7 +127,7 @@ export default function RootLayout({
                 <ConditionalNavbar />
                 {children}
                 <ConditionalFooter />
-                <Toaster duration={3000} />
+                <Toaster duration={3000} position="top-center" />
               </div>
             </SidebarProvider>
           </UnsavedChangesProvider>
