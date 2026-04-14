@@ -2,12 +2,17 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams, useRouter, usePathname } from "next/navigation";
-import { Plus, Archive, RotateCcw, RefreshCcw, X } from "lucide-react";
+import { Plus, Archive, RotateCcw, RefreshCcw, X, ArrowUpDown } from "lucide-react";
 import { createClient, Employee } from "@dollys-closet/core";
 import {
   Button,
   CustomPagination,
   Skeleton,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
 } from "@dollys-closet/ui";
 import AdminSearchInput from "@/components/general-components/AdminSearchInput";
 import { AdminNoticeBanner } from "@/components/ui/admin-notice-banner";
@@ -25,6 +30,15 @@ type ActionNotice = {
 };
 
 type EmployeeScope = "active" | "archived";
+type EmployeeSortOption = "newest" | "oldest" | "updated" | "az" | "za";
+
+const sortLabels: Record<EmployeeSortOption, string> = {
+  newest: "Newest first",
+  oldest: "Oldest first",
+  updated: "Last updated",
+  az: "Name: A\u2013Z",
+  za: "Name: Z\u2013A",
+};
 
 export default function EmployeesClient() {
   const searchParams = useSearchParams();
@@ -49,6 +63,7 @@ export default function EmployeesClient() {
   const [selectedRows, setSelectedRows] = useState<Set<string>>(new Set());
   const [actionNotice, setActionNotice] = useState<ActionNotice | null>(null);
   const [employeeScope, setEmployeeScope] = useState<EmployeeScope>("active");
+  const [sortOption, setSortOption] = useState<EmployeeSortOption>("newest");
   const searchInputRef = useRef<HTMLInputElement | null>(null);
   const itemsPerPage = 10;
 
@@ -112,15 +127,25 @@ export default function EmployeesClient() {
     [employees, searchTerm]
   );
 
-  const totalPages = Math.max(1, Math.ceil(filteredEmployees.length / itemsPerPage));
+  const sortedEmployees = useMemo(() => {
+    return [...filteredEmployees].sort((a, b) => {
+      if (sortOption === "az") return (a.first_name + " " + a.last_name).localeCompare(b.first_name + " " + b.last_name);
+      if (sortOption === "za") return (b.first_name + " " + b.last_name).localeCompare(a.first_name + " " + a.last_name);
+      if (sortOption === "oldest") return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+      if (sortOption === "updated") return new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime();
+      return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+    });
+  }, [filteredEmployees, sortOption]);
+
+  const totalPages = Math.max(1, Math.ceil(sortedEmployees.length / itemsPerPage));
   const safePage = Math.min(currentPage, totalPages);
   const startIndex = (safePage - 1) * itemsPerPage;
   const endIndex = startIndex + itemsPerPage;
-  const currentEmployees = filteredEmployees.slice(startIndex, endIndex);
+  const currentEmployees = sortedEmployees.slice(startIndex, endIndex);
 
   useEffect(() => {
     router.replace(pathname);
-  }, [searchTerm, router, pathname]);
+  }, [searchTerm, sortOption, router, pathname]);
 
   useEffect(() => {
     setSelectedRows(new Set());
@@ -330,16 +355,15 @@ export default function EmployeesClient() {
   const selectedCount = selectedRows.size;
   const hasSearch = searchTerm.trim().length > 0;
   const activeFilterChips = useMemo(() => {
-    if (!hasSearch) return [];
-
     return [
-      {
-        key: "search",
-        label: `Search: ${searchTerm.trim()}`,
-        onRemove: () => setSearchTerm(""),
-      },
-    ];
-  }, [hasSearch, searchTerm]);
+      hasSearch
+        ? { key: "search", label: `Search: ${searchTerm.trim()}`, onRemove: () => setSearchTerm("") }
+        : null,
+      sortOption !== "newest"
+        ? { key: "sort", label: `Sort: ${sortLabels[sortOption]}`, onRemove: () => setSortOption("newest") }
+        : null,
+    ].filter((chip): chip is { key: string; label: string; onRemove: () => void } => Boolean(chip));
+  }, [hasSearch, searchTerm, sortOption]);
   const rangeSummaryMessage = useMemo(() => {
     if (loading) {
       return "Preparing employee results...";
@@ -377,7 +401,7 @@ export default function EmployeesClient() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-3 sm:space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-2">
@@ -507,16 +531,55 @@ export default function EmployeesClient() {
         )}
 
         <div className="space-y-3">
-          <div className="flex items-center gap-3 flex-wrap">
+          <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
             <AdminSearchInput
               ref={searchInputRef}
               value={searchTerm}
               onChange={setSearchTerm}
               placeholder="Search by user ID, username, and full name"
               ariaLabel="Search employees by user ID, username, and full name"
-              className="min-w-[240px]"
+              className="flex-1 min-w-0 sm:min-w-[240px]"
+              inputClassName="h-8 sm:h-9"
               clearLabel="Clear employee search"
             />
+            {/* Sort - mobile: icon button with native select overlay */}
+            <div className="relative shrink-0 sm:hidden">
+              <button
+                type="button"
+                className={`h-8 w-8 flex items-center justify-center rounded-md border bg-white transition-colors ${sortOption !== "newest" ? "border-[#E7A3B0] text-[#b96d7d]" : "border-gray-200 text-gray-500"}`}
+                title="Sort"
+                tabIndex={-1}
+              >
+                <ArrowUpDown className="h-3.5 w-3.5 pointer-events-none" />
+              </button>
+              <select
+                value={sortOption}
+                onChange={(e) => setSortOption(e.target.value as EmployeeSortOption)}
+                className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
+                aria-label="Sort employees"
+              >
+                <option value="newest">Newest first</option>
+                <option value="oldest">Oldest first</option>
+                <option value="updated">Last updated</option>
+                <option value="az">Name: A–Z</option>
+                <option value="za">Name: Z–A</option>
+              </select>
+            </div>
+            {/* Sort - desktop: full labeled select */}
+            <div className="hidden sm:block shrink-0">
+              <Select value={sortOption} onValueChange={(value) => setSortOption(value as EmployeeSortOption)}>
+                <SelectTrigger className="w-[190px] h-9 text-xs text-gray-900 bg-white">
+                  <SelectValue placeholder="Sort employees" />
+                </SelectTrigger>
+                <SelectContent className="bg-white border-gray-200 text-black">
+                  <SelectItem value="newest" className="cursor-pointer focus:bg-[#fff5f7] focus:text-[#E7A3B0]">Newest first</SelectItem>
+                  <SelectItem value="oldest" className="cursor-pointer focus:bg-[#fff5f7] focus:text-[#E7A3B0]">Oldest first</SelectItem>
+                  <SelectItem value="updated" className="cursor-pointer focus:bg-[#fff5f7] focus:text-[#E7A3B0]">Last updated</SelectItem>
+                  <SelectItem value="az" className="cursor-pointer focus:bg-[#fff5f7] focus:text-[#E7A3B0]">Name: A–Z</SelectItem>
+                  <SelectItem value="za" className="cursor-pointer focus:bg-[#fff5f7] focus:text-[#E7A3B0]">Name: Z–A</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
 
           {activeFilterChips.length > 0 && (
@@ -545,8 +608,8 @@ export default function EmployeesClient() {
             </div>
           )}
 
-          <div className="flex items-center justify-between gap-3 flex-wrap">
-            <p className="hidden sm:block text-sm text-gray-600">{rangeSummaryMessage}</p>
+          <div className="hidden sm:flex items-center justify-between gap-3 flex-wrap">
+            <p className="text-sm text-gray-600">{rangeSummaryMessage}</p>
             {selectedCount > 0 && (
               <div className="flex items-center gap-2 flex-wrap">
                 <span className="rounded-md bg-[#fff0f3] px-2.5 py-1 text-xs font-semibold text-[#b96d7d]">
@@ -600,6 +663,9 @@ export default function EmployeesClient() {
             totalFilteredCount={filteredEmployees.length}
             emptyTitle={emptyTitle}
             emptyDescription={emptyDescription}
+            onBulkScopeAction={() => setShowBulkDeleteModal(true)}
+            onClearSelection={() => setSelectedRows(new Set())}
+            actionLoading={actionLoading}
           />
         )}
         

@@ -134,7 +134,8 @@ function SortableMainCard({
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: card.id,
   });
-  const headerDetails = minimized ? card.minimizedSummary ?? card.description : card.description;
+  const isMobile = useIsMobile();
+  const headerDetails = minimized ? (card.minimizedSummary ?? null) : card.description;
 
   return (
     <section
@@ -169,7 +170,10 @@ function SortableMainCard({
           <GripVertical className="h-4 w-4" />
         </button>
 
-        <div className="min-w-0 flex-1">
+        <div
+          className={cn("min-w-0 flex-1", isMobile && "cursor-pointer select-none")}
+          onClick={isMobile ? onToggleMinimized : undefined}
+        >
           <div className="flex flex-wrap items-center gap-2">
             {card.icon ? <span className="shrink-0 text-[#E7A3B0]">{card.icon}</span> : null}
             <h2 className="text-sm font-semibold text-[#121212]">{card.title}</h2>

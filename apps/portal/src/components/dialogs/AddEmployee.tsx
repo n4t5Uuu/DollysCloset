@@ -235,21 +235,22 @@ export default function AddEmployee({ isOpen, onClose, employeeToEdit, onEmploye
     if (!isOpen) return null;
 
     return (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={(event) => {
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-0 sm:p-4" onClick={(event) => {
             if (event.target === event.currentTarget && !actionLoading) {
                 handleClose();
             }
         }}>
-            <Card className="bg-white w-full max-w-lg max-h-[90vh] flex flex-col overflow-hidden p-0" onClick={(event) => event.stopPropagation()}>
-                <AdminDialogHeader 
+            <Card className="bg-white w-full h-full max-h-full rounded-none shadow-none flex flex-col overflow-hidden p-0 gap-0 sm:max-w-lg sm:max-h-[90vh] sm:rounded-2xl sm:shadow-2xl" onClick={(event) => event.stopPropagation()}>
+                <AdminDialogHeader
                     title={employeeToEdit ? "Edit Employee" : "Add New Employee"}
                     description={employeeToEdit ? "Update employee details or reset the password if needed." : "Create an employee account with a valid email and temporary password."}
                     onClose={handleClose}
                     isLoading={actionLoading}
                 />
 
-                <form onSubmit={handleSaveEmployee}>
-                    <CardContent className="space-y-5 pt-2 px-6 pb-6 overflow-y-auto">
+                <form onSubmit={handleSaveEmployee} className="flex min-h-0 flex-1 flex-col overflow-hidden">
+                    <div className="min-h-0 flex-1 overflow-y-auto">
+                    <CardContent className="space-y-5 pt-2 px-6 pb-6">
                         <FormNotice>
                             Fields marked with <span className="text-red-500">*</span> are required. Use a secure, non-personal password.
                         </FormNotice>
@@ -366,8 +367,9 @@ export default function AddEmployee({ isOpen, onClose, employeeToEdit, onEmploye
                             </div>
                         </div>
                     </CardContent>
+                    </div>
 
-                    <AdminDialogFooter 
+                    <AdminDialogFooter
                         onCancel={handleClose}
                         statusMessage={formStatusMessage}
                         actionLabel={employeeToEdit ? "Save Changes" : "Add Employee"}
