@@ -18,6 +18,9 @@ interface EmployeeTableProps {
   openPrimaryActionModal: (employee: Employee) => void;
   currentUserId?: string | null;
   onRowActivate?: (employee: Employee) => void;
+  showingStart?: number;
+  showingEnd?: number;
+  totalFilteredCount?: number;
   emptyTitle?: string;
   emptyDescription?: string;
 }
@@ -43,6 +46,9 @@ export function EmployeeTable({
   openPrimaryActionModal,
   currentUserId,
   onRowActivate,
+  showingStart = 0,
+  showingEnd = 0,
+  totalFilteredCount = 0,
   emptyTitle = "No employees found",
   emptyDescription = "We couldn't find any employees matching your current search or filters.",
 }: EmployeeTableProps) {
@@ -75,12 +81,19 @@ export function EmployeeTable({
         {sortedEmployees.length > 0 ? (
           <>
             <div className="flex items-center gap-2 px-3 py-2 bg-gray-50 rounded-t-lg">
-              <Checkbox
-                checked={allSelectableRowsSelected}
-                disabled={!hasSelectableRows}
-                onCheckedChange={toggleSelectAll}
-              />
-              <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Select all</span>
+              <span className="text-[11px] text-gray-400">
+                {selectedRows.size > 0
+                  ? `${selectedRows.size}/${totalFilteredCount} selected`
+                  : `Showing ${showingStart}–${showingEnd} of ${totalFilteredCount}`}
+              </span>
+              <div className="ml-auto flex items-center gap-1.5">
+                <span className="text-[10px] font-medium text-gray-400 uppercase tracking-wide">Select all</span>
+                <Checkbox
+                  checked={allSelectableRowsSelected}
+                  disabled={!hasSelectableRows}
+                  onCheckedChange={toggleSelectAll}
+                />
+              </div>
             </div>
             {sortedEmployees.map((employee) => {
               const isOwnRow = employee.user_id === currentUserId;
@@ -91,8 +104,8 @@ export function EmployeeTable({
                   key={employee.user_key}
                   className={`px-3 py-3 ${isSelected ? "bg-[#E7A3B0]/5" : ""}`}
                 >
-                  <div className="flex items-start gap-3">
-                    <div className="pt-1">
+                  <div className="flex items-center gap-2">
+                    <div className="shrink-0 self-start pt-0.5">
                       {!isOwnRow && (
                         <Checkbox
                           checked={isSelected}
@@ -102,26 +115,61 @@ export function EmployeeTable({
                     </div>
 
                     <div className="min-w-0 flex-1 space-y-2">
-                      <div className="flex items-start justify-between gap-3">
-                        <div className="min-w-0">
+                      <div className="flex items-center gap-2">
+                        <div className="min-w-0 flex-1 flex items-baseline gap-1.5 overflow-hidden">
+                          <span className="shrink-0 text-xs font-semibold text-gray-400">
+                            {employee.user_key}
+                          </span>
                           <button
                             type="button"
                             onClick={() => activateRow(employee)}
-                            className="max-w-full text-left font-medium text-sm text-gray-900 transition-colors hover:text-[#b96d7d]"
+                            className="shrink-0 text-left font-medium text-sm text-gray-900 transition-colors hover:text-[#b96d7d]"
                           >
-                            <span className="block truncate">{employee.first_name?.split(" ")[0] ?? ""} {employee.last_name}</span>
+                            {[employee.first_name, employee.last_name].filter(Boolean).join(" ")}
                           </button>
-                          <button
-                            type="button"
-                            onClick={() => openViewModal(employee)}
-                            className="max-w-full text-left text-xs text-gray-500 transition-colors hover:text-[#b96d7d]"
-                          >
-                            <span className="block truncate">{employee.username}</span>
-                          </button>
+                          <span className="min-w-0 text-xs text-gray-500 truncate">
+                            {employee.username}
+                          </span>
                         </div>
-                        <span className="shrink-0 rounded-full bg-gray-100 px-2 py-1 text-[10px] font-semibold text-gray-600">
-                          {employee.user_key}
-                        </span>
+
+                        <div className="shrink-0 flex items-center gap-1">
+                          <Button
+                            size="icon"
+                            variant="outline"
+                            title="View employee"
+                            aria-label={`View ${employee.first_name} ${employee.last_name}`}
+                            className="h-7 w-7 bg-white border border-black text-[#b96d7d] rounded-lg shadow-sm hover:shadow-md hover:scale-105 transition-all duration-300"
+                            onClick={() => openViewModal(employee)}
+                          >
+                            <Eye className="h-3 w-3" />
+                          </Button>
+                          {mode === "active" && (
+                            <Button
+                              size="icon"
+                              variant="outline"
+                              title="Edit employee"
+                              aria-label={`Edit ${employee.first_name} ${employee.last_name}`}
+                              className="h-7 w-7 bg-white border border-black text-blue-600 rounded-lg shadow-sm hover:shadow-md hover:scale-105 transition-all duration-300"
+                              onClick={() => openEditModal(employee)}
+                            >
+                              <Pencil className="h-3 w-3" />
+                            </Button>
+                          )}
+                          {!isOwnRow && (
+                            <Button
+                              size="icon"
+                              variant="outline"
+                              title={mode === "active" ? "Archive employee" : "Restore employee"}
+                              aria-label={`${mode === "active" ? "Archive" : "Restore"} ${employee.first_name} ${employee.last_name}`}
+                              className={mode === "active"
+                                ? "h-7 w-7 bg-white border border-black text-amber-700 rounded-lg shadow-sm hover:shadow-md hover:scale-105 transition-all duration-300"
+                                : "h-7 w-7 bg-white border border-black text-emerald-700 rounded-lg shadow-sm hover:shadow-md hover:scale-105 transition-all duration-300"}
+                              onClick={() => openPrimaryActionModal(employee)}
+                            >
+                              {mode === "active" ? <Archive className="h-3 w-3" /> : <RotateCcw className="h-3 w-3" />}
+                            </Button>
+                          )}
+                        </div>
                       </div>
 
                       <div className={`grid ${mode === "archived" ? "grid-cols-3" : "grid-cols-2"} gap-2 text-xs text-gray-500`}>
@@ -138,45 +186,6 @@ export function EmployeeTable({
                             <span className="block uppercase tracking-wide text-amber-600">Archived</span>
                             <span className="text-amber-700 font-medium">{formatDate(employee.archived_at)}</span>
                           </div>
-                        )}
-                      </div>
-
-                      <div className="flex items-center gap-1.5 pt-1">
-                        <Button
-                          size="icon"
-                          variant="outline"
-                          title="View employee"
-                          aria-label={`View ${employee.first_name} ${employee.last_name}`}
-                          className="h-8 w-8 border-pink-200 text-pink-600 bg-pink-50 hover:bg-pink-200 hover:text-pink-700 hover:border-pink-300"
-                          onClick={() => openViewModal(employee)}
-                        >
-                          <Eye className="h-3.5 w-3.5" />
-                        </Button>
-                        {mode === "active" && (
-                          <Button
-                            size="icon"
-                            variant="outline"
-                            title="Edit employee"
-                            aria-label={`Edit ${employee.first_name} ${employee.last_name}`}
-                            className="h-8 w-8 border-blue-200 text-blue-600 bg-blue-50 hover:bg-blue-200 hover:text-blue-700 hover:border-blue-300"
-                            onClick={() => openEditModal(employee)}
-                          >
-                            <Pencil className="h-3.5 w-3.5" />
-                          </Button>
-                        )}
-                        {!isOwnRow && (
-                          <Button
-                            size="icon"
-                            variant="outline"
-                            title={mode === "active" ? "Archive employee" : "Restore employee"}
-                            aria-label={`${mode === "active" ? "Archive" : "Restore"} ${employee.first_name} ${employee.last_name}`}
-                            className={mode === "active"
-                              ? "h-8 w-8 border-amber-200 text-amber-700 bg-amber-50 hover:bg-amber-100 hover:text-amber-800 hover:border-amber-300"
-                              : "h-8 w-8 border-emerald-200 text-emerald-700 bg-emerald-50 hover:bg-emerald-100 hover:text-emerald-800 hover:border-emerald-300"}
-                            onClick={() => openPrimaryActionModal(employee)}
-                          >
-                            {mode === "active" ? <Archive className="h-3.5 w-3.5" /> : <RotateCcw className="h-3.5 w-3.5" />}
-                          </Button>
                         )}
                       </div>
                     </div>

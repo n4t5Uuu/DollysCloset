@@ -743,22 +743,17 @@ export default function ActivityLogsClient() {
               className="w-full text-left px-4 py-3.5 hover:bg-gray-50 active:bg-gray-100 transition-colors"
               onClick={() => setViewLog(log)}
             >
-              <div className="flex items-start justify-between gap-2">
+              <div className="flex items-center gap-2">
                 <span className={`shrink-0 inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-medium ${actionColors[log.action_type] || "bg-gray-100 text-gray-800"}`}>
                   {actionLabels[log.action_type] || log.action_type}
                 </span>
-                <span className="text-[11px] text-gray-400 shrink-0 mt-0.5">
+                <span className="text-[11px] font-semibold text-gray-600 shrink-0">#{log.log_id}</span>
+                <span className="ml-auto text-[11px] text-gray-400 shrink-0">
                   {new Date(log.created_at).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}
                 </span>
               </div>
-              <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs text-gray-500">
-                <span className="font-semibold text-gray-700">#{log.log_id}</span>
-                {log.editor && <span className="truncate max-w-[200px]">{log.editor}</span>}
-              </div>
-              {(log.product_id !== null || log.business_details !== null) && (
-                <div className="mt-1 text-[11px] text-gray-400">
-                  {log.product_id !== null ? `Product #${log.product_id}` : `Business #${log.business_details}`}
-                </div>
+              {log.editor && (
+                <div className="mt-1.5 text-xs text-gray-500 truncate">{log.editor}</div>
               )}
               {employeeManagementActions.has(log.action_type) && (log.user_key || log.user_id) && (
                 <div className="mt-0.5 text-[11px] text-gray-400">
