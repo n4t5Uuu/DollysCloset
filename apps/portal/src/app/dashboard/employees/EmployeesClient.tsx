@@ -380,14 +380,58 @@ export default function EmployeesClient() {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold">Manage Employees</h1>
-          <p className="text-gray-500 text-sm">
+          <div className="flex items-center gap-2">
+            <h1 className="text-2xl font-bold">Manage Employees</h1>
+            {/* Mobile: scope tabs inline with title */}
+            <div className="sm:hidden flex items-center rounded-lg border border-[#E7A3B0]/20 bg-[#fff9fb] p-1">
+              <button
+                type="button"
+                onClick={() => setEmployeeScope("active")}
+                className={`rounded-md px-3 py-1.5 text-xs font-semibold transition-colors ${
+                  employeeScope === "active" ? "bg-[#E7A3B0] text-white" : "text-[#8f5f69] hover:bg-white"
+                }`}
+              >
+                Active
+              </button>
+              <button
+                type="button"
+                onClick={() => setEmployeeScope("archived")}
+                className={`rounded-md px-3 py-1.5 text-xs font-semibold transition-colors ${
+                  employeeScope === "archived" ? "bg-[#E7A3B0] text-white" : "text-[#8f5f69] hover:bg-white"
+                }`}
+              >
+                Archived
+              </button>
+            </div>
+            {/* Mobile: refresh icon on far right */}
+            <button
+              type="button"
+              onClick={handleRefreshEmployees}
+              disabled={loading}
+              title="Refresh employees"
+              className="sm:hidden ml-auto p-1.5 text-[#b96d7d] hover:text-[#E7A3B0] disabled:opacity-50 transition-colors"
+            >
+              <RefreshCcw className={`h-5 w-5 ${loading ? "animate-spin" : ""}`} />
+            </button>
+          </div>
+          <p className="text-gray-500 text-sm mt-0.5">
             {employeeScope === "active"
               ? "Manage staff members, roles, and archive access when accounts should no longer be active."
               : "Review archived employee accounts and restore them when access should be re-enabled."}
           </p>
+          {/* Mobile: Add Employee button below description */}
+          {employeeScope === "active" && (
+            <button
+              onClick={openAddModal}
+              className="sm:hidden mt-2 flex items-center gap-2 px-4 py-2 bg-linear-to-r from-[#E7A3B0] to-[#f0b8c3] hover:from-[#d891a0] hover:to-[#E7A3B0] text-white rounded-lg text-sm font-medium transition-all duration-300 shadow-md hover:shadow-lg hover:scale-105 cursor-pointer"
+            >
+              <Plus size={16} />
+              Add Employee
+            </button>
+          )}
         </div>
-        <div className="flex flex-wrap items-center gap-3">
+        {/* Desktop: tabs + Refresh button + Add Employee */}
+        <div className="hidden sm:flex flex-wrap items-center gap-3">
           <div className="flex items-center rounded-lg border border-[#E7A3B0]/20 bg-[#fff9fb] p-1">
             <button
               type="button"
@@ -502,7 +546,7 @@ export default function EmployeesClient() {
           )}
 
           <div className="flex items-center justify-between gap-3 flex-wrap">
-            <p className="text-sm text-gray-600">{rangeSummaryMessage}</p>
+            <p className="hidden sm:block text-sm text-gray-600">{rangeSummaryMessage}</p>
             {selectedCount > 0 && (
               <div className="flex items-center gap-2 flex-wrap">
                 <span className="rounded-md bg-[#fff0f3] px-2.5 py-1 text-xs font-semibold text-[#b96d7d]">
@@ -551,6 +595,9 @@ export default function EmployeesClient() {
             openPrimaryActionModal={openPrimaryActionModal}
             currentUserId={currentUserId}
             onRowActivate={employeeScope === "active" ? openEditModal : undefined}
+            showingStart={filteredEmployees.length > 0 ? startIndex + 1 : 0}
+            showingEnd={Math.min(endIndex, filteredEmployees.length)}
+            totalFilteredCount={filteredEmployees.length}
             emptyTitle={emptyTitle}
             emptyDescription={emptyDescription}
           />

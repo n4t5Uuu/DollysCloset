@@ -482,11 +482,35 @@ export default function ActivityLogsClient() {
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold">Activity Logs</h1>
-          <p className="text-gray-500 text-sm">Inventory actions by admin or employee.</p>
+        <div className="flex items-center justify-between sm:block">
+          <div>
+            <h1 className="text-2xl font-bold">Activity Logs</h1>
+            <p className="text-gray-500 text-sm hidden sm:block">Inventory actions by admin or employee.</p>
+          </div>
+          {/* Mobile: icon refresh + full purge button */}
+          <div className="flex items-center gap-2 sm:hidden">
+            <button
+              type="button"
+              onClick={handleManualRefresh}
+              disabled={loading}
+              className="p-1.5 text-[#b96d7d] hover:text-[#E7A3B0] disabled:opacity-50 transition-colors"
+              title="Refresh"
+            >
+              <RefreshCcw className={`h-5 w-5 ${loading ? "animate-spin" : ""}`} />
+            </button>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={handleOpenPurge}
+              className="h-9 border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700 text-xs px-3"
+            >
+              <Trash2 className="mr-1.5 h-3.5 w-3.5" />
+              Export &amp; Purge
+            </Button>
+          </div>
         </div>
-        <div className="flex flex-wrap items-center gap-3">
+        {/* Desktop: full buttons */}
+        <div className="hidden sm:flex flex-wrap items-center gap-3">
           <Button
             type="button"
             variant="outline"
@@ -538,7 +562,7 @@ export default function ActivityLogsClient() {
       )}
 
       <div className="space-y-3">
-        <div className="flex items-center gap-3 flex-wrap">
+        <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
           <AdminSearchInput
             ref={searchInputRef}
             value={searchQuery}
@@ -547,7 +571,7 @@ export default function ActivityLogsClient() {
             debounceMs={400}
             placeholder="Search by log ID, Linked ID, user key, editor"
             ariaLabel="Search activity logs"
-            className="min-w-[240px]"
+            className="flex-1 min-w-0 sm:min-w-[240px] sm:flex-none"
             clearLabel="Clear activity log search"
           />
 
@@ -556,18 +580,18 @@ export default function ActivityLogsClient() {
               variant="outline"
               size="sm"
               onClick={() => setShowFilters((p) => !p)}
-              className="flex items-center gap-2 h-9 text-xs hover:bg-[#fff5f7] hover:text-[#E7A3B0] hover:border-[#E7A3B0] hover:scale-105 hover:shadow-md active:scale-95 transition-all duration-300"
+              className="flex items-center gap-1.5 sm:gap-2 h-9 text-xs hover:bg-[#fff5f7] hover:text-[#E7A3B0] hover:border-[#E7A3B0] hover:scale-105 hover:shadow-md active:scale-95 transition-all duration-300"
             >
               <SlidersHorizontal className="w-3.5 h-3.5" />
-              Filters
+              <span className="hidden sm:inline">Filters</span>
               {activeFilterCount > 0 && (
-                <span className="ml-1 flex h-4 w-4 items-center justify-center rounded-full bg-[#E7A3B0] text-[9px] font-semibold text-white">
+                <span className="flex h-4 w-4 items-center justify-center rounded-full bg-[#E7A3B0] text-[9px] font-semibold text-white">
                   {activeFilterCount}
                 </span>
               )}
             </Button>
             {showFilters && (
-              <div className="absolute left-0 z-20 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg p-4 w-72 space-y-4">
+              <div className="absolute right-0 sm:left-0 sm:right-auto z-20 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg p-4 w-[min(288px,calc(100vw-1rem))] space-y-4">
                 <div>
                   <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Action Type</p>
                   <div className="flex gap-1.5 flex-wrap">
@@ -603,14 +627,15 @@ export default function ActivityLogsClient() {
               variant="outline"
               size="sm"
               onClick={() => setShowPicker((p) => !p)}
-              className="flex items-center gap-2 h-9 text-xs hover:bg-[#fff5f7] hover:text-[#E7A3B0] hover:border-[#E7A3B0] hover:scale-105 hover:shadow-md active:scale-95 transition-all duration-300"
+              className="flex items-center gap-1.5 sm:gap-2 h-9 text-xs hover:bg-[#fff5f7] hover:text-[#E7A3B0] hover:border-[#E7A3B0] hover:scale-105 hover:shadow-md active:scale-95 transition-all duration-300"
             >
               <Calendar className="w-3.5 h-3.5" />
-              {selectedMonthLabel}
+              <span className="hidden sm:inline">{selectedMonthLabel}</span>
+              {selectedMonth && <span className="sm:hidden flex h-4 w-4 items-center justify-center rounded-full bg-[#E7A3B0] text-[9px] font-semibold text-white">1</span>}
               <ChevronDown className="w-3.5 h-3.5" />
             </Button>
             {showPicker && (
-              <div className="absolute left-0 z-10 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg p-3 w-72">
+              <div className="absolute right-0 sm:left-0 sm:right-auto z-10 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg p-3 w-[min(288px,calc(100vw-1rem))]">
                 <div className="mb-3">
                   <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Available Months</p>
                 </div>
@@ -657,12 +682,19 @@ export default function ActivityLogsClient() {
               </div>
             )}
           </div>
-          <span className="text-sm text-gray-600">
+          <span className="hidden sm:inline text-sm text-gray-600">
             {totalCount > 0
               ? `Showing ${startIndex + 1}-${Math.min(startIndex + itemsPerPage, totalCount)} of ${totalCount} logs`
               : "Showing 0 logs"}
           </span>
         </div>
+
+        {/* Mobile count */}
+        <p className="sm:hidden text-xs text-gray-500">
+          {totalCount > 0
+            ? `${startIndex + 1}–${Math.min(startIndex + itemsPerPage, totalCount)} of ${totalCount} logs`
+            : "No logs"}
+        </p>
 
         {activeFilterChips.length > 0 && (
           <div className="flex flex-wrap items-center gap-2 rounded-xl border border-[#E7A3B0]/15 bg-[#fffcfd] px-4 py-3">
@@ -695,15 +727,75 @@ export default function ActivityLogsClient() {
         </div>
       </div>
 
+      {/* ── Mobile card list ── */}
       {loading ? (
-        <div className="bg-white rounded-lg border p-4 space-y-4">
+        <div className="sm:hidden bg-white rounded-lg border p-4 space-y-3">
+          {Array.from({ length: 5 }).map((_, i) => (
+            <Skeleton key={i} className="h-16 w-full rounded-md" />
+          ))}
+        </div>
+      ) : logs.length > 0 ? (
+        <div className="sm:hidden divide-y divide-gray-100 bg-white rounded-lg border">
+          {logs.map((log) => (
+            <button
+              key={log.log_id}
+              type="button"
+              className="w-full text-left px-4 py-3.5 hover:bg-gray-50 active:bg-gray-100 transition-colors"
+              onClick={() => setViewLog(log)}
+            >
+              <div className="flex items-center gap-2">
+                <span className={`shrink-0 inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-medium ${actionColors[log.action_type] || "bg-gray-100 text-gray-800"}`}>
+                  {actionLabels[log.action_type] || log.action_type}
+                </span>
+                <span className="text-[11px] font-semibold text-gray-600 shrink-0">#{log.log_id}</span>
+                <span className="ml-auto text-[11px] text-gray-400 shrink-0">
+                  {new Date(log.created_at).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}
+                </span>
+              </div>
+              {log.editor && (
+                <div className="mt-1.5 text-xs text-gray-500 truncate">{log.editor}</div>
+              )}
+              {employeeManagementActions.has(log.action_type) && (log.user_key || log.user_id) && (
+                <div className="mt-0.5 text-[11px] text-gray-400">
+                  User: {log.user_key || log.user_id}
+                </div>
+              )}
+            </button>
+          ))}
+        </div>
+      ) : (
+        <div className="sm:hidden bg-white rounded-lg border">
+          <Empty className="border-none rounded-none py-10">
+            <EmptyHeader>
+              <EmptyMedia variant="icon">
+                <ClipboardList className="size-6 text-[#E7A3B0]" />
+              </EmptyMedia>
+              <EmptyTitle>No activity logs found</EmptyTitle>
+              <EmptyDescription>
+                {!debouncedSearch && !selectedMonth && actionTypeFilter.size === 0
+                  ? "No activity has been recorded yet."
+                  : "No logs match your current filters."}
+              </EmptyDescription>
+              {hasActiveFilters && (
+                <Button type="button" variant="outline" size="sm" onClick={clearAllFilters}>
+                  Clear filters
+                </Button>
+              )}
+            </EmptyHeader>
+          </Empty>
+        </div>
+      )}
+
+      {/* ── Desktop table (unchanged) ── */}
+      {loading ? (
+        <div className="hidden sm:block bg-white rounded-lg border p-4 space-y-4">
           <Skeleton className="h-12 w-full rounded-md" />
           {Array.from({ length: 7 }).map((_, i) => (
             <Skeleton key={i} className="h-14 w-full rounded-md" />
           ))}
         </div>
       ) : (
-        <div className="bg-white rounded-lg border overflow-x-auto">
+        <div className="hidden sm:block bg-white rounded-lg border overflow-x-auto">
           <Table className="w-full">
             <TableHeader className="border-b bg-gray-50">
               <TableRow>

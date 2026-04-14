@@ -1200,33 +1200,49 @@ export default function InventoryManagement({ initialAvailabilityFilter, userRol
       <div className="space-y-3">
         {/* Top row: Title + scope toggle */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-          <div className="flex items-center sm:block">
-            <div>
-              <div className="flex items-center gap-1.5">
-                <h1 className="text-2xl font-bold">Manage Inventory</h1>
+          <div>
+            <div className="flex items-center gap-2">
+              <h1 className="text-2xl font-bold">Manage Inventory</h1>
+              {/* Mobile: scope tabs inline with title */}
+              <div className="sm:hidden flex items-center rounded-lg border border-[#E7A3B0]/20 bg-[#fff9fb] p-1">
+                <button
+                  type="button"
+                  onClick={() => { setProducts([]); setInventoryScope("active"); }}
+                  className={`rounded-md px-3 py-1.5 text-xs font-semibold transition-colors ${
+                    inventoryScope === "active" ? "bg-[#E7A3B0] text-white" : "text-[#8f5f69] hover:bg-white"
+                  }`}
+                >
+                  Active
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { setProducts([]); setInventoryScope("archived"); }}
+                  className={`rounded-md px-3 py-1.5 text-xs font-semibold transition-colors ${
+                    inventoryScope === "archived" ? "bg-[#E7A3B0] text-white" : "text-[#8f5f69] hover:bg-white"
+                  }`}
+                >
+                  Archived
+                </button>
               </div>
-              <p className="text-gray-500 text-sm sm:hidden">
-                {inventoryScope === "active"
-                  ? "Create, update, archive, and organize products and categories."
-                  : "Review archived products and restore them when they should return to the active catalog."}
-              </p>
-              <p className="hidden sm:block text-gray-500 text-sm">
-                {inventoryScope === "active"
-                  ? "Create, update, archive, and organize products and categories."
-                  : "Review archived products and restore them when they should return to the active catalog."}
-              </p>
+              {/* Mobile: refresh icon on far right */}
+              <button
+                type="button"
+                onClick={() => fetchProducts(true)}
+                disabled={loading || actionLoading}
+                title="Refresh inventory"
+                className="sm:hidden ml-auto p-1.5 text-[#b96d7d] hover:text-[#E7A3B0] disabled:opacity-50 transition-colors"
+              >
+                <RefreshCw className={`h-5 w-5 ${(loading || actionLoading) ? "animate-spin" : ""}`} />
+              </button>
             </div>
-            <button
-              type="button"
-              onClick={() => fetchProducts(true)}
-              disabled={loading || actionLoading}
-              title="Refresh inventory"
-              className="sm:hidden ml-auto p-1.5 text-[#b96d7d] hover:text-[#E7A3B0] disabled:opacity-50 transition-colors"
-            >
-              <RefreshCw className={`h-5 w-5 ${(loading || actionLoading) ? "animate-spin" : ""}`} />
-            </button>
+            <p className="text-gray-500 text-sm mt-0.5">
+              {inventoryScope === "active"
+                ? "Create, update, archive, and organize products and categories."
+                : "Review archived products and restore them when they should return to the active catalog."}
+            </p>
           </div>
-          <div className="flex items-center w-fit rounded-lg border border-[#E7A3B0]/20 bg-[#fff9fb] p-1 sm:shrink-0">
+          {/* Desktop: scope tabs on the right */}
+          <div className="hidden sm:flex items-center w-fit rounded-lg border border-[#E7A3B0]/20 bg-[#fff9fb] p-1 sm:shrink-0">
             <button
               type="button"
               onClick={() => { setProducts([]); setInventoryScope("active"); }}
