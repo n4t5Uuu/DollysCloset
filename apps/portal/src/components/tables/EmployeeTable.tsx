@@ -1,9 +1,10 @@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@dollys-closet/ui";
 import { Checkbox } from "@dollys-closet/ui";
 import { Button } from "@dollys-closet/ui";
-import { Eye, Pencil, Archive, RotateCcw, Users } from "lucide-react";
+import { Eye, Pencil, Archive, RotateCcw, Users, MoreHorizontal, X } from "lucide-react";
 import { Employee } from "@dollys-closet/core";
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@dollys-closet/ui";
+import { useState } from "react";
 
 interface EmployeeTableProps {
   mode: "active" | "archived";
@@ -23,6 +24,9 @@ interface EmployeeTableProps {
   totalFilteredCount?: number;
   emptyTitle?: string;
   emptyDescription?: string;
+  onBulkScopeAction?: () => void;
+  onClearSelection?: () => void;
+  actionLoading?: boolean;
 }
 
 function formatDate(value: string) {
@@ -51,7 +55,12 @@ export function EmployeeTable({
   totalFilteredCount = 0,
   emptyTitle = "No employees found",
   emptyDescription = "We couldn't find any employees matching your current search or filters.",
+  onBulkScopeAction,
+  onClearSelection,
+  actionLoading = false,
 }: EmployeeTableProps) {
+  const [moreMenuId, setMoreMenuId] = useState<string | null>(null);
+
   const activateRow = (employee: Employee) => {
     if (onRowActivate) {
       onRowActivate(employee);
@@ -87,6 +96,26 @@ export function EmployeeTable({
                   : `Showing ${showingStart}–${showingEnd} of ${totalFilteredCount}`}
               </span>
               <div className="ml-auto flex items-center gap-1.5">
+                {selectedRows.size > 0 && (
+                  <>
+                    {onBulkScopeAction && (
+                      <Button type="button" variant="outline" size="sm" onClick={onBulkScopeAction} disabled={actionLoading}
+                        className={`h-6 w-6 p-0 ${mode === "active" ? "border-amber-200 text-amber-500 hover:bg-amber-50" : "border-emerald-200 text-emerald-600 hover:bg-emerald-50"}`}
+                        aria-label={mode === "active" ? "Archive selected" : "Restore selected"}
+                      >
+                        {mode === "active" ? <Archive className="h-3.5 w-3.5" /> : <RotateCcw className="h-3.5 w-3.5" />}
+                      </Button>
+                    )}
+                    {onClearSelection && (
+                      <Button type="button" variant="outline" size="sm" onClick={onClearSelection}
+                        className="h-6 w-6 p-0 border-zinc-200 text-zinc-400 hover:bg-zinc-50"
+                        aria-label="Clear selection"
+                      >
+                        <X className="h-3.5 w-3.5" />
+                      </Button>
+                    )}
+                  </>
+                )}
                 <span className="text-[10px] font-medium text-gray-400 uppercase tracking-wide">Select all</span>
                 <Checkbox
                   checked={allSelectableRowsSelected}
@@ -133,42 +162,58 @@ export function EmployeeTable({
                         </div>
 
                         <div className="shrink-0 flex items-center gap-1">
-                          <Button
-                            size="icon"
-                            variant="outline"
-                            title="View employee"
-                            aria-label={`View ${employee.first_name} ${employee.last_name}`}
-                            className="h-7 w-7 bg-white border border-black text-[#b96d7d] rounded-lg shadow-sm hover:shadow-md hover:scale-105 transition-all duration-300"
-                            onClick={() => openViewModal(employee)}
-                          >
-                            <Eye className="h-3 w-3" />
-                          </Button>
                           {mode === "active" && (
                             <Button
                               size="icon"
                               variant="outline"
                               title="Edit employee"
                               aria-label={`Edit ${employee.first_name} ${employee.last_name}`}
-                              className="h-7 w-7 bg-white border border-black text-blue-600 rounded-lg shadow-sm hover:shadow-md hover:scale-105 transition-all duration-300"
+                              className="h-7 w-7 bg-pink-50 border-pink-200 text-pink-600 hover:bg-pink-200 rounded-lg shadow-sm hover:shadow-md hover:scale-105 transition-all duration-300"
                               onClick={() => openEditModal(employee)}
                             >
                               <Pencil className="h-3 w-3" />
                             </Button>
                           )}
-                          {!isOwnRow && (
+                          <div className="relative">
                             <Button
                               size="icon"
                               variant="outline"
-                              title={mode === "active" ? "Archive employee" : "Restore employee"}
-                              aria-label={`${mode === "active" ? "Archive" : "Restore"} ${employee.first_name} ${employee.last_name}`}
-                              className={mode === "active"
-                                ? "h-7 w-7 bg-white border border-black text-amber-700 rounded-lg shadow-sm hover:shadow-md hover:scale-105 transition-all duration-300"
-                                : "h-7 w-7 bg-white border border-black text-emerald-700 rounded-lg shadow-sm hover:shadow-md hover:scale-105 transition-all duration-300"}
-                              onClick={() => openPrimaryActionModal(employee)}
+                              title="More actions"
+                              aria-label={`More actions for ${employee.first_name} ${employee.last_name}`}
+                              className="h-7 w-7 bg-white border border-black text-gray-500 rounded-lg shadow-sm hover:shadow-md hover:scale-105 transition-all duration-300"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setMoreMenuId(moreMenuId === employee.user_id ? null : employee.user_id);
+                              }}
                             >
-                              {mode === "active" ? <Archive className="h-3 w-3" /> : <RotateCcw className="h-3 w-3" />}
+                              <MoreHorizontal className="h-3 w-3" />
                             </Button>
-                          )}
+                            {moreMenuId === employee.user_id && (
+                              <>
+                                <div className="fixed inset-0 z-20" onClick={() => setMoreMenuId(null)} />
+                                <div className="absolute right-0 bottom-full mb-1 z-30 bg-white border border-gray-200 rounded-lg shadow-lg py-1 min-w-[120px]">
+                                  <button
+                                    type="button"
+                                    onClick={() => { openViewModal(employee); setMoreMenuId(null); }}
+                                    className="w-full flex items-center gap-2 px-3 py-2 text-xs text-gray-700 hover:bg-gray-50"
+                                  >
+                                    <Eye className="h-3.5 w-3.5 text-pink-500" />
+                                    View
+                                  </button>
+                                  {!isOwnRow && (
+                                    <button
+                                      type="button"
+                                      onClick={() => { openPrimaryActionModal(employee); setMoreMenuId(null); }}
+                                      className={`w-full flex items-center gap-2 px-3 py-2 text-xs hover:bg-gray-50 ${mode === "active" ? "text-amber-700" : "text-emerald-700"}`}
+                                    >
+                                      {mode === "active" ? <Archive className="h-3.5 w-3.5" /> : <RotateCcw className="h-3.5 w-3.5" />}
+                                      {mode === "active" ? "Archive" : "Restore"}
+                                    </button>
+                                  )}
+                                </div>
+                              </>
+                            )}
+                          </div>
                         </div>
                       </div>
 
