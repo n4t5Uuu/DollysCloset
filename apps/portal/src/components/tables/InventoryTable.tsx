@@ -306,6 +306,7 @@ export function InventoryTable({
                     <AlertDialogAction
                         className={`${mode === "active" ? "bg-amber-500 hover:bg-amber-600" : "bg-emerald-600 hover:bg-emerald-700"} text-white cursor-pointer`}
                         onClick={() => mode === "active" ? handleArchiveProduct(product.product_id) : handleRestoreProduct(product.product_id)}
+                        disabled={actionLoading}
                     >
                         {mode === "active" ? "Archive" : "Restore"}
                     </AlertDialogAction>
@@ -389,7 +390,7 @@ export function InventoryTable({
                                                     </AlertDialogHeader>
                                                     <AlertDialogFooter>
                                                         <AlertDialogCancel className="border-zinc-300 bg-white text-zinc-700 hover:bg-zinc-50">Cancel</AlertDialogCancel>
-                                                        <AlertDialogAction className={`${mode === "active" ? "bg-amber-500 hover:bg-amber-600" : "bg-emerald-600 hover:bg-emerald-700"} text-white cursor-pointer`} onClick={onBulkScopeAction}>
+                                                        <AlertDialogAction className={`${mode === "active" ? "bg-amber-500 hover:bg-amber-600" : "bg-emerald-600 hover:bg-emerald-700"} text-white cursor-pointer`} onClick={onBulkScopeAction} disabled={actionLoading}>
                                                             {mode === "active"
                                                                 ? selectedProducts.size === 1 ? "Archive" : "Archive All"
                                                                 : selectedProducts.size === 1 ? "Restore" : "Restore All"}
@@ -535,6 +536,7 @@ export function InventoryTable({
                                     : handleRestoreProduct(archiveTargetProduct.product_id);
                                 setArchiveTargetProduct(null);
                             }}
+                            disabled={actionLoading}
                         >
                             {mode === "active" ? "Archive" : "Restore"}
                         </AlertDialogAction>
