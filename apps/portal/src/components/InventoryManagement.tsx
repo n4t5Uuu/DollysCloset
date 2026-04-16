@@ -313,6 +313,7 @@ export default function InventoryManagement({ initialAvailabilityFilter, userRol
     setShowBatchSeasonModal(false);
     setBatchSeasonSelection("");
     setProducts([]);
+    setActionNotice(null);
   }, [inventoryScope]);
 
   const categoryById = useMemo(
@@ -1207,7 +1208,7 @@ export default function InventoryManagement({ initialAvailabilityFilter, userRol
               <div className="sm:hidden flex items-center rounded-lg border border-[#E7A3B0]/20 bg-[#fff9fb] p-1">
                 <button
                   type="button"
-                  onClick={() => { setProducts([]); setInventoryScope("active"); }}
+                  onClick={() => { if (inventoryScope !== "active") { setProducts([]); setInventoryScope("active"); } }}
                   className={`rounded-md px-3 py-1.5 text-xs font-semibold transition-colors ${
                     inventoryScope === "active" ? "bg-[#E7A3B0] text-white" : "text-[#8f5f69] hover:bg-white"
                   }`}
@@ -1216,7 +1217,7 @@ export default function InventoryManagement({ initialAvailabilityFilter, userRol
                 </button>
                 <button
                   type="button"
-                  onClick={() => { setProducts([]); setInventoryScope("archived"); }}
+                  onClick={() => { if (inventoryScope !== "archived") { setProducts([]); setInventoryScope("archived"); } }}
                   className={`rounded-md px-3 py-1.5 text-xs font-semibold transition-colors ${
                     inventoryScope === "archived" ? "bg-[#E7A3B0] text-white" : "text-[#8f5f69] hover:bg-white"
                   }`}
@@ -1245,7 +1246,7 @@ export default function InventoryManagement({ initialAvailabilityFilter, userRol
           <div className="hidden sm:flex items-center w-fit rounded-lg border border-[#E7A3B0]/20 bg-[#fff9fb] p-1 sm:shrink-0">
             <button
               type="button"
-              onClick={() => { setProducts([]); setInventoryScope("active"); }}
+              onClick={() => { if (inventoryScope !== "active") { setProducts([]); setInventoryScope("active"); } }}
               className={`rounded-md px-3 py-1.5 text-xs font-semibold transition-colors ${
                 inventoryScope === "active"
                   ? "bg-[#E7A3B0] text-white"
@@ -1256,7 +1257,7 @@ export default function InventoryManagement({ initialAvailabilityFilter, userRol
             </button>
             <button
               type="button"
-              onClick={() => { setProducts([]); setInventoryScope("archived"); }}
+              onClick={() => { if (inventoryScope !== "archived") { setProducts([]); setInventoryScope("archived"); } }}
               className={`rounded-md px-3 py-1.5 text-xs font-semibold transition-colors ${
                 inventoryScope === "archived"
                   ? "bg-[#E7A3B0] text-white"
@@ -1624,8 +1625,8 @@ export default function InventoryManagement({ initialAvailabilityFilter, userRol
             </Button>
           )}
 
-          {/* Row 2: Show & Hide (Active scope only) */}
-          {inventoryScope === "active" && (
+          {/* Row 2: Show & Hide (Active scope only, selection required) */}
+          {inventoryScope === "active" && selectedProducts.size > 0 && (
             <div className="flex items-center gap-2 w-full sm:w-auto">
               <Button
                 type="button"
@@ -1652,8 +1653,8 @@ export default function InventoryManagement({ initialAvailabilityFilter, userRol
             </div>
           )}
 
-          {/* Row 3: Clear & Archive/Restore (All scopes) */}
-          <div className="flex items-center gap-2 w-full sm:w-auto">
+          {/* Row 3: Clear & Archive/Restore (selection required) */}
+          {selectedProducts.size > 0 && <div className="flex items-center gap-2 w-full sm:w-auto">
             <Button
               type="button"
               variant="outline"
@@ -1690,13 +1691,14 @@ export default function InventoryManagement({ initialAvailabilityFilter, userRol
                   <AlertDialogAction
                     className={`cursor-pointer ${inventoryScope === "active" ? "bg-amber-500 hover:bg-amber-600 text-white" : "bg-emerald-600 hover:bg-emerald-700 text-white"}`}
                     onClick={handleBulkScopeAction}
+                    disabled={actionLoading}
                   >
                     {inventoryScope === "active" ? "Archive All" : "Restore All"}
                   </AlertDialogAction>
                 </AlertDialogFooter>
               </AlertDialogContent>
             </AlertDialog>
-          </div>
+          </div>}
         </div>
       </div>
     </div>

@@ -617,5 +617,5 @@ export function buildAboutAggregate(rows: BusinessDetailsRowLike[]) {
 
 export function sanitizeAnnouncementBody(rawBody: unknown) {
   const nextBody = typeof rawBody === "string" ? rawBody : toText(rawBody);
-  return sanitizeAnnouncementText(nextBody || defaultAnnouncementText);
+  return sanitizeAnnouncementText(nextBody);
 }
