@@ -15,20 +15,20 @@ export const metadata: Metadata = {
     address: false,
     telephone: false,
   },
-  metadataBase: new URL("https://dollys-closet-admin-and-employee-fawn.vercel.app"),
+  metadataBase: new URL("https://admin.dollysclosetph.com"),
   alternates: {
     canonical: "/",
   },
   openGraph: {
     type: "website",
     locale: "en_PH",
-    url: "https://dollyscloset.app", // Adjust if needed
+    url: "https://admin.dollysclosetph.com",
     siteName: "Dolly's Closet",
     title: "Dolly's Closet | Admin & Employee Portal",
     description: "Secure administrative portal for Dolly's Closet inventory management and analytics.",
     images: [
       {
-        url: "/og-image.png", // Assume there might be one or placeholder
+        url: "/og-image.png",
         width: 1200,
         height: 630,
         alt: "Dolly's Closet | Admin & Employee Portal",

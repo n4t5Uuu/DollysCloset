@@ -97,9 +97,9 @@ npx turbo dev --filter=@dollys-closet/portal
 ## 🌐 Deployment
 
 ### Frontend (Vercel)
-The applications are optimized for deployment on **Vercel**. Each app in the `/apps` directory can be deployed independently.
-- **Portal**: Administrative dashboard.
-- **Store**: Public storefront.
+The applications are optimized for deployment on **Vercel**.
+- **Portal**: [admin.dollysclosetph.com](https://admin.dollysclosetph.com)
+- **Store**: [www.dollysclosetph.com](https://www.dollysclosetph.com)
 
 ### Backend (Supabase)
 Ensure your Supabase project is configured with:

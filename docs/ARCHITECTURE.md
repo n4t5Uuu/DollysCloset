@@ -1,49 +1,61 @@
 # Project Architecture Guide
 
-This document describes the high-level architecture and design patterns used in the Dolly's Closet Admin & Employee Portal.
+Welcome to the technical blueprint for **Dolly's Closet**, a high-performance fashion management ecosystem built on a **Turborepo** monorepo architecture.
+
+---
+
+## 🏗️ Monorepo Structure
+
+The project is divided into specialized applications and shared internal packages to maximize code reuse and maintainability.
+
+### 📱 Applications (`/apps`)
+- **Portal**: The administrative engine. Handles inventory, employee management, and business analytics.
+- **Store**: The public-facing boutique. Optimized for SEO, performance, and customer experience.
+
+### 📦 Shared Packages (`/packages`)
+- **`@dollys-closet/core`**: Contains shared business logic, Supabase clients, TypeScript schemas, and reusable React hooks.
+- **`@dollys-closet/ui`**: A centralized design system built with Radix UI and Tailwind CSS, ensuring visual consistency.
+- **`@dollys-closet/config`**: Unified linting, formatting, and TypeScript configurations.
+
+---
 
 ## 🔐 Authentication & Authorization
 
-The portal uses **Supabase Auth** integrated with **Next.js Middleware** for a secure, server-side-first approach.
+The ecosystem uses **Supabase Auth** integrated with **Next.js Middleware** for secure, server-side-first session management.
 
-### The Middleware Flow (`middleware.ts`)
-1. **Token Refresh**: The middleware uses `@supabase/ssr` to check and refresh authentication tokens on every request to protected routes (`/admin`, `/employee`, `/dashboard`).
-2. **Cookie Propagation**: It ensures that refreshed tokens are synchronized between the request (for server components) and the response (for the browser).
-3. **Role-Based Access Control (RBAC)**: After verifying the token, it queries the `tbl_users` table to check the user's role and redirects unauthorized attempts (e.g., an employee trying to access `/admin`).
-4. **Cache Control**: It forces `no-store` headers on protected routes to prevent sensitive data from being stored in the browser's back-forward cache.
-
----
-
-## 🛡️ Navigation Protection (Unsaved Changes)
-
-To prevent accidental data loss, the application implements a global "Unsaved Changes" guard.
-
-### Components
-1. **`UnsavedChangesContext`**: A global context that tracks a `isDirty` boolean and a situational `unsavedMessage`.
-2. **`NavigationGuard`**: A client component in the root layout that:
-   - Listens to `beforeunload` for browser-level refreshes.
-   - Intercepts clicks on all `<a>` tags (including `next/link`) to show a confirmation `AlertDialog`.
-
-### Usage Pattern
-Pages with forms (like Settings or Manage Details) use the `useUnsavedChanges` hook to update the global state based on their local form state.
+### The Middleware Flow
+1. **Token Refresh**: Uses `@supabase/ssr` to ensure auth tokens are valid on every request.
+2. **RBAC**: Interrogates the `tbl_users` table to enforce Role-Based Access Control, protecting administrative routes from unauthorized access.
+3. **Security Headers**: Injects strict security headers and cache controls to protect sensitive operational data.
 
 ---
 
-## 📦 Data Management
+## 🛡️ Navigation Protection
 
-### Product Bulk Operations
-- **Import**: Uses the `xlsx` library to parse user-uploaded spreadsheets, validates them against the schema, and performs bulk insertions into Supabase.
-- **Export**: Generates Excel files from the current product list for offline management.
-
-### Business Details
-The `ManageDetailsClient` allows for independent field updates. Each field (Announcement, Phone, FAQ item) has its own "Save" lifecycle to ensure granular control over what is published to the customer site.
+To prevent data loss during administrative tasks, we implement a global "Unsaved Changes" guard.
+- **`UnsavedChangesContext`**: Tracks the "dirty" state of forms across the application.
+- **`NavigationGuard`**: Intercepts route changes and browser events to prompt users before they leave unsaved work.
 
 ---
 
-## 🎨 UI & Aesthetic Standards
+## 📦 Data Management & Operations
 
-- **Tailwind CSS v4**: Utilizes the latest OKLCH color system for premium, perception-accurate colors.
-- **Typography**:
-  - `Oswald`: Used for bold, uppercase headers.
-  - `Montserrat`: Used for readable body text and UI labels.
-- **Micro-animations**: Powered by `motion` (Framer Motion) for smooth tab transitions and layout shifts.
+### Product Catalog
+- **Bulk Operations**: High-speed import/export utilizing `xlsx` and `PapaParse` for Excel/CSV processing.
+- **Media Optimization**: Integrated browser-side image compression to ensure fast uploads and optimal storage usage.
+
+### Analytics Engine
+- **GA4 Integration**: Real-time business metrics tracking across both Portal and Store applications.
+- **Custom Reporting**: Dashboard visualizations powered by `Recharts` for inventory and sales insights.
+
+---
+
+## 🎨 Design System (OKLCH)
+
+We utilize **Tailwind CSS v4** with the **OKLCH** color space for perceptual uniformity and accessibility.
+- **Typography**: OSWALD (Headers) and MONTSERRAT (Body).
+- **Animations**: Fluid, tactile transitions powered by **Motion**.
+
+---
+
+© 2026 Dolly's Closet. Technical Documentation.

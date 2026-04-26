@@ -14,14 +14,14 @@ export const metadata: Metadata = {
     template: "%s | Dolly's Closet",
   },
   description: "Curated boutique collection from Dolly's Closet.",
-  metadataBase: new URL("https://dollyscloset.app"),
+  metadataBase: new URL("https://www.dollysclosetph.com"),
   alternates: {
     canonical: "/",
   },
   openGraph: {
     type: "website",
     locale: "en_PH",
-    url: "https://dollyscloset.app",
+    url: "https://www.dollysclosetph.com",
     siteName: "Dolly's Closet",
     title: "Dolly's Closet",
     description: "Curated boutique collection from Dolly's Closet.",
