@@ -12,7 +12,7 @@ This project is organized into modular applications and shared packages, ensurin
 
 ### 📱 Applications (`/apps`)
 - **[Portal](./apps/portal)**: The internal administrative and employee management system. Features include inventory control, employee roles, advanced analytics (GA4), and bulk data operations.
-- **[Store](./apps/store)**: The customer-facing storefront (under development), designed for a seamless and premium shopping experience.
+- **[Store](./apps/store)**: The customer-facing storefront, designed for a seamless and premium shopping experience.
 
 ### 📦 Shared Packages (`/packages`)
 - **[@dollys-closet/core](./packages/core)**: The engine of the application. Contains shared business logic, Supabase clients, reusable hooks, and TypeScript schemas.
@@ -25,12 +25,13 @@ This project is organized into modular applications and shared packages, ensurin
 
 | Feature | Description |
 | :--- | :--- |
-| **📊 Analytics Engine** | Real-time business insights integrated with Google Analytics 4. |
-| **📦 Smart Inventory** | Full CRUD with Excel/CSV bulk import/export capabilities. |
-| **👥 RBAC Ecosystem** | Role-based access control with secure invitation flows. |
-| **🔐 Multi-Layer Auth** | Secure session management powered by Supabase Auth & SSR. |
-| **📝 Audit Logging** | Comprehensive activity tracking for operational transparency. |
-| **🌗 Premium UI/UX** | Dark-mode native interface with smooth Motion animations. |
+| **📊 Analytics Engine** | Real-time business insights integrated with Google Analytics 4 (Portal & Store). |
+| **📦 Smart Inventory** | Advanced catalog management with Excel/CSV bulk import/export capabilities. |
+| **👥 RBAC Ecosystem** | Granular Role-Based Access Control with secure invitation and management flows. |
+| **🔐 Multi-Layer Auth** | Secure session management powered by Supabase Auth (SSR-ready). |
+| **📝 Audit Logging** | Comprehensive activity tracking for operational transparency and security. |
+| **🌗 Premium UI/UX** | Dark-mode native interface with smooth Motion animations and tactile feedback. |
+| **📂 Media Management** | Optimized asset handling with browser-side image compression. |
 
 ---
 
@@ -43,7 +44,8 @@ This project is organized into modular applications and shared packages, ensurin
 - **UI Primitives**: [Radix UI](https://www.radix-ui.com/)
 - **Animations**: [Motion](https://motion.dev/)
 - **Charts**: [Recharts](https://recharts.org/)
-- **Data Sharing**: [SheetJS](https://sheetjs.com/) (Pro/Bulk Operations)
+- **Data Operations**: [SheetJS](https://sheetjs.com/) (Pro/Bulk Operations), [PapaParse](https://www.papaparse.com/)
+- **Drag & Drop**: [dnd-kit](https://dndkit.com/)
 
 ---
 
@@ -73,7 +75,7 @@ This project is organized into modular applications and shared packages, ensurin
     NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
     SUPABASE_SERVICE_ROLE_KEY=your_service_role_key
 
-    # Google Analytics (Portal specific)
+    # Google Analytics
     GA_PROPERTY_ID=your_ga_property_id
     GOOGLE_APPLICATION_CREDENTIALS=path_to_your_json_credentials
     ```
@@ -89,6 +91,21 @@ To work on a specific application using Turborepo filters:
 ```bash
 npx turbo dev --filter=@dollys-closet/portal
 ```
+
+---
+
+## 🌐 Deployment
+
+### Frontend (Vercel)
+The applications are optimized for deployment on **Vercel**. Each app in the `/apps` directory can be deployed independently.
+- **Portal**: Administrative dashboard.
+- **Store**: Public storefront.
+
+### Backend (Supabase)
+Ensure your Supabase project is configured with:
+1.  **Authentication**: Email/Password and any social providers.
+2.  **Database**: RLS (Row Level Security) enabled on all tables.
+3.  **Storage**: Buckets for product images and media.
 
 ---
 
@@ -117,5 +134,5 @@ For deep technical insights, review our **[Architecture Guide](./docs/ARCHITECTU
 
 ---
 
-> [!NOTE]
-> This project is currently in active development. Security audits and feature expansions are ongoing.
+© 2026 Dolly's Closet. All rights reserved.
+
