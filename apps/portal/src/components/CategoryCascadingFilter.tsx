@@ -454,6 +454,7 @@ export default function CategoryCascadingFilter({
                         type="button"
                         onClick={() => {
                           if (hasAny) {
+                            setActiveRootKey(rootGroup.key);
                             setDrillPath([rootGroup.key]);
                           } else {
                             onValueChange(`rootgroup:${rootGroup.key}`);
@@ -501,6 +502,7 @@ export default function CategoryCascadingFilter({
                           type="button"
                           onClick={() => {
                             if (catHasChildren) {
+                              setActiveSecondLevelId(catId);
                               setDrillPath([rootKey, catId]);
                             } else {
                               onValueChange(String(catId));
