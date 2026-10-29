@@ -177,6 +177,19 @@ function injectCategoriesIntoTemplate(
  * Serves a live bulk-import template with category options synchronized
  * to current dashboard categories.
  */
+let templateBytesPromise: Promise<Uint8Array> | null = null;
+
+function loadTemplateBytes() {
+  templateBytesPromise ??= fs
+    .readFile(path.join(process.cwd(), "public", "product_bulk_import_template.xlsx"))
+    .then((buffer) => new Uint8Array(buffer))
+    .catch((error) => {
+      templateBytesPromise = null;
+      throw error;
+    });
+  return templateBytesPromise;
+}
+
 export async function GET(request: NextRequest) {
   try {
     const authResult = await requireRequestAuth(request, {
@@ -214,13 +227,7 @@ export async function GET(request: NextRequest) {
       .sort((a, b) => a - b)
       .map((id) => `${id} - ${buildCategoryPath(id, categoryById)}`);
 
-    const templatePath = path.join(
-      process.cwd(),
-      "public",
-      "product_bulk_import_template.xlsx",
-    );
-    const templateBuffer = await fs.readFile(templatePath);
-    const templateBytes = new Uint8Array(templateBuffer);
+    const templateBytes = await loadTemplateBytes();
 
     const outputBytes = injectCategoriesIntoTemplate(templateBytes, categoryOptions);
 
