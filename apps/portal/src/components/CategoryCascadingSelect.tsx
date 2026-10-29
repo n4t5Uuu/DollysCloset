@@ -52,19 +52,6 @@ export default function CategoryCascadingSelect({
   const activeSecondLevelId =
     pickedSecondLevelId !== undefined ? pickedSecondLevelId : selectionColumns.secondLevelId;
 
-  // Position dropdown via fixed coords to escape modal overflow clipping
-  useEffect(() => {
-    if (!isOpen || !triggerRef.current) return;
-    const rect = triggerRef.current.getBoundingClientRect();
-    const panelWidth = Math.min(580, window.innerWidth - 16);
-    const wouldOverflowRight = rect.left + panelWidth > window.innerWidth - 8;
-    const left = wouldOverflowRight ? Math.max(8, rect.right - panelWidth) : rect.left;
-    const approxDropdownHeight = 320;
-    const wouldOverflowBottom = rect.bottom + approxDropdownHeight > window.innerHeight;
-    const top = wouldOverflowBottom ? rect.top - approxDropdownHeight - 4 : rect.bottom + 4;
-    setDropdownStyle({ position: "fixed", top, left, zIndex: 9999 });
-  }, [isOpen]);
-
   // Close on outside click or Escape
   useEffect(() => {
     const handleOutsideClick = (e: MouseEvent) => {
@@ -86,6 +73,19 @@ export default function CategoryCascadingSelect({
     };
   }, []);
 
+  // Position dropdown via fixed coords to escape modal overflow clipping
+  const positionDropdown = () => {
+    if (!triggerRef.current) return;
+    const rect = triggerRef.current.getBoundingClientRect();
+    const panelWidth = Math.min(580, window.innerWidth - 16);
+    const wouldOverflowRight = rect.left + panelWidth > window.innerWidth - 8;
+    const left = wouldOverflowRight ? Math.max(8, rect.right - panelWidth) : rect.left;
+    const approxDropdownHeight = 320;
+    const wouldOverflowBottom = rect.bottom + approxDropdownHeight > window.innerHeight;
+    const top = wouldOverflowBottom ? rect.top - approxDropdownHeight - 4 : rect.bottom + 4;
+    setDropdownStyle({ position: "fixed", top, left, zIndex: 9999 });
+  };
+
   const handleSelect = (categoryId: number) => {
     onValueChange(String(categoryId));
     setIsOpen(false);
@@ -102,6 +102,7 @@ export default function CategoryCascadingSelect({
           if (!isOpen) {
             setPickedRootKey(null);
             setPickedSecondLevelId(undefined);
+            positionDropdown();
           }
           setIsOpen(!isOpen);
         }}

@@ -42,12 +42,12 @@ export function useIsMobileView() {
   return { isMobileView, isMobileViewRef };
 }
 
-/** Whether the desktop panel should open towards the left to stay on screen. */
-export function useAlignRight(containerRef: RefObject<HTMLElement | null>, isOpen: boolean) {
+/** Whether the desktop panel should open towards the left to stay on screen. Call `measure` when opening. */
+export function useAlignRight(containerRef: RefObject<HTMLElement | null>) {
   const [alignRight, setAlignRight] = useState(false);
 
-  useEffect(() => {
-    if (!isOpen || !containerRef.current) return;
+  const measure = () => {
+    if (!containerRef.current) return;
 
     const containerRect = containerRef.current.getBoundingClientRect();
     const panelWidth = Math.min(580, window.innerWidth - 16);
@@ -55,9 +55,9 @@ export function useAlignRight(containerRef: RefObject<HTMLElement | null>, isOpe
     const hasLeftSpace = containerRect.right - panelWidth >= 8;
 
     setAlignRight(wouldOverflowRight && hasLeftSpace);
-  }, [containerRef, isOpen]);
+  };
 
-  return alignRight;
+  return { alignRight, measure };
 }
 
 /** Splits the filter value ("all", "rootgroup:key" or a category id) and builds its label. */

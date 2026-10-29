@@ -38,7 +38,7 @@ export default function CategoryCascadingFilter({
   const [drillPath, setDrillPath] = useState<DrillPath>([]);
   const [searchQuery, setSearchQuery] = useState("");
 
-  const alignRight = useAlignRight(containerRef, isOpen);
+  const { alignRight, measure: measureAlignment } = useAlignRight(containerRef);
   const { isMobileView, isMobileViewRef } = useIsMobileView();
   useDismiss(containerRef, () => setIsOpen(false));
 
@@ -97,6 +97,7 @@ export default function CategoryCascadingFilter({
           if (!isOpen) {
             setPickedRootKey(null);
             setPickedSecondLevelId(undefined);
+            measureAlignment();
           }
           setIsOpen(!isOpen);
         }}
