@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import { ArrowUpRight } from "lucide-react";
-import { motion, useReducedMotion, useSpring, useTransform } from "motion/react";
+import { m, useReducedMotion, useSpring, useTransform } from "motion/react";
 import { useCallback, useMemo, useRef, useState } from "react";
 import {
     cn,
@@ -321,7 +321,7 @@ function FloatingCard({ slot, slotIndex, product, onClick, parallaxX, parallaxY,
     const priceText = hasDiscount && formattedSalePrice ? formattedSalePrice : formattedPrice;
 
     return (
-        <motion.div
+        <m.div
             className="absolute"
             style={{
                 left: `${slot.left}%`,
@@ -398,7 +398,7 @@ function FloatingCard({ slot, slotIndex, product, onClick, parallaxX, parallaxY,
                     </div>
                 </div>
             </button>
-        </motion.div>
+        </m.div>
     );
 }
 

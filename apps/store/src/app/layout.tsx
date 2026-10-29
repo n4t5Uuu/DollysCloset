@@ -6,7 +6,7 @@ import {
   Playfair_Display,
 } from "next/font/google";
 import "./globals.css";
-import { Footer, Navbar, Toaster } from "@dollys-closet/ui";
+import { Footer, MotionProvider, Navbar, Toaster } from "@dollys-closet/ui";
 
 export const metadata: Metadata = {
   title: {
@@ -16,7 +16,7 @@ export const metadata: Metadata = {
   description: "Curated boutique collection from Dolly's Closet.",
   metadataBase: new URL("https://www.dollysclosetph.com"),
   alternates: {
-    canonical: "/",
+    canonical: "https://www.dollysclosetph.com",
   },
   openGraph: {
     type: "website",
@@ -67,12 +67,14 @@ export default function RootLayout({
       <body
         className={`${oswald.variable} ${montserrat.variable} ${playfairDisplay.variable} ${greatVibes.variable} antialiased`}
       >
+          <MotionProvider>
           <div className="flex min-h-screen w-full flex-col">
             <Navbar navLinks={["Collection", "About", "Contact"]} showLogout={false} />
             {children}
             <Footer />
             <Toaster duration={3000} />
           </div>
+          </MotionProvider>
       </body>
     </html>
   );

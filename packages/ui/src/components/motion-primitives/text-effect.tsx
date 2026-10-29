@@ -2,7 +2,7 @@
 import { cn } from '@dollys-closet/core';
 import {
   AnimatePresence,
-  motion
+  m
 } from 'motion/react';
 import type {
   TargetAndTransition,
@@ -119,30 +119,30 @@ const AnimationComponent: React.FC<{
 }> = React.memo(({ segment, variants, per, segmentWrapperClassName }) => {
   const content =
     per === 'line' ? (
-      <motion.span variants={variants} className='block'>
+      <m.span variants={variants} className='block'>
         {segment}
-      </motion.span>
+      </m.span>
     ) : per === 'word' ? (
-      <motion.span
+      <m.span
         aria-hidden='true'
         variants={variants}
         className='inline-block whitespace-pre'
       >
         {segment}
-      </motion.span>
+      </m.span>
     ) : (
-      <motion.span className='inline-block whitespace-pre'>
+      <m.span className='inline-block whitespace-pre'>
         {segment.split('').map((char, charIndex) => (
-          <motion.span
+          <m.span
             key={`char-${charIndex}`}
             aria-hidden='true'
             variants={variants}
             className='inline-block whitespace-pre'
           >
             {char}
-          </motion.span>
+          </m.span>
         ))}
-      </motion.span>
+      </m.span>
     );
 
   if (!segmentWrapperClassName) {
@@ -207,6 +207,16 @@ const createVariantsWithTransition = (
   };
 };
 
+/** Pairs each segment with a key made of its text and how many identical segments came before it. */
+function withUniqueKeys(segments: string[]) {
+  const seen = new Map<string, number>();
+  return segments.map((segment) => {
+    const occurrence = seen.get(segment) ?? 0;
+    seen.set(segment, occurrence + 1);
+    return { segment, key: `${segment}-${occurrence}` };
+  });
+}
+
 export function TextEffect({
   children,
   per = 'word',
@@ -226,7 +236,7 @@ export function TextEffect({
   style,
 }: TextEffectProps) {
   const segments = splitText(children, per);
-  const MotionTag = motion[as as keyof typeof motion] as typeof motion.div;
+  const MotionTag = m[as as keyof typeof m] as typeof m.div;
 
   const baseVariants = preset
     ? presetVariants[preset]
@@ -279,9 +289,9 @@ export function TextEffect({
           style={style}
         >
           {per !== 'line' ? <span className='sr-only'>{children}</span> : null}
-          {segments.map((segment, index) => (
+          {withUniqueKeys(segments).map(({ segment, key }) => (
             <AnimationComponent
-              key={`${per}-${index}-${segment}`}
+              key={`${per}-${key}`}
               segment={segment}
               variants={computedVariants.item}
               per={per}

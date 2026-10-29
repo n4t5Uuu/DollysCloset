@@ -1,6 +1,6 @@
 'use client';
 import { cn } from '@dollys-closet/core';
-import { useMotionValue, animate, motion } from 'motion/react';
+import { useMotionValue, animate, m } from 'motion/react';
 import { useState, useEffect } from 'react';
 import useMeasure from 'react-use-measure';
 
@@ -92,7 +92,7 @@ export function InfiniteSlider({
 
   return (
     <div className={cn('overflow-hidden', className)}>
-      <motion.div
+      <m.div
         className='flex w-max'
         style={{
           ...(direction === 'horizontal'
@@ -106,7 +106,7 @@ export function InfiniteSlider({
       >
         {children}
         {children}
-      </motion.div>
+      </m.div>
     </div>
   );
 }

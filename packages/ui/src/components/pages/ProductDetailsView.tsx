@@ -12,7 +12,7 @@ import {
   MapPinned,
   PackageSearch,
 } from "lucide-react";
-import { AnimatePresence, motion } from "motion/react";
+import { AnimatePresence, m } from "motion/react";
 
 import ProductCard from "../catalog/ProductCard";
 import { InfiniteSlider } from "../motion-primitives/infinite-slider";
@@ -82,15 +82,18 @@ const slideVariants = {
 const ZOOM_FACTOR = 1.5;
 const ZOOM_PANEL_SIZE = 300;
 
-export function ProductDetailsView({
-  productId,
-  initialProduct,
-  initialCatalog,
-}: {
+interface ProductDetailsViewProps {
   productId: string;
   initialProduct?: CatalogApiProduct | null;
   initialCatalog?: CatalogApiProduct[];
-}) {
+}
+
+/** Remounts the view per product so image selection and zoom reset without an effect. */
+export function ProductDetailsView(props: ProductDetailsViewProps) {
+  return <ProductDetailsContent key={props.productId} {...props} />;
+}
+
+function ProductDetailsContent({ productId, initialProduct, initialCatalog }: ProductDetailsViewProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const fromPath = useMemo(() => getSafeInternalPath(searchParams.get("from"), "/collection"), [searchParams]);
@@ -135,6 +138,8 @@ export function ProductDetailsView({
   useEffect(() => {
     if (initialProduct && initialCatalog) return;
 
+    let cancelled = false;
+
     const fetchProductPageData = async () => {
       try {
         setLoading(true);
@@ -153,18 +158,24 @@ export function ProductDetailsView({
           throw new Error(catalogResult.friendlyMessage || "Failed to load catalog");
         }
 
+        if (cancelled) return;
         setProduct(productResult.data?.data || null);
         setProducts(catalogResult.data?.data?.products || []);
       } catch (err: unknown) {
+        if (cancelled) return;
         setError(err instanceof Error ? err.message : "Failed to load product");
         setProduct(null);
         setProducts([]);
       } finally {
-        setLoading(false);
+        setLoading((current) => (cancelled ? current : false));
       }
     };
 
     fetchProductPageData();
+
+    return () => {
+      cancelled = true;
+    };
   }, [productId, initialProduct, initialCatalog]);
 
   useEffect(() => {
@@ -187,9 +198,6 @@ export function ProductDetailsView({
   }, []);
 
   useEffect(() => {
-    setSelectedImage(0);
-    setSlideDirection(1);
-    setIsZoomed(false);
     window.scrollTo({ top: 0, left: 0, behavior: "auto" });
   }, [productId]);
 
@@ -355,7 +363,7 @@ export function ProductDetailsView({
                 onMouseMove={handleMouseMove}
               >
                 <AnimatePresence initial={false} custom={slideDirection} mode="wait">
-                  <motion.div
+                  <m.div
                     key={selectedImage}
                     custom={slideDirection}
                     variants={slideVariants}
@@ -376,7 +384,7 @@ export function ProductDetailsView({
                       className="object-cover"
                       sizes="(max-width: 1024px) 100vw, 60vw"
                     />
-                  </motion.div>
+                  </m.div>
                 </AnimatePresence>
 
                 {product.images.length > 1 && (
@@ -410,7 +418,7 @@ export function ProductDetailsView({
 
               <AnimatePresence>
                 {isZoomed && (
-                  <motion.div
+                  <m.div
                     initial={{ opacity: 0, scale: 0.5 }}
                     animate={{ opacity: 1, scale: 1 }}
                     exit={{ opacity: 0, scale: 0.5 }}
@@ -440,14 +448,14 @@ export function ProductDetailsView({
                     {/* Subtle inner depth highlights */}
                     <div className="absolute inset-0 rounded-2xl shadow-[inset_0_0_40px_rgba(0,0,0,0.1)]" />
                     <div className="absolute inset-0 rounded-2xl bg-linear-to-tr from-white/10 to-transparent" />
-                  </motion.div>
+                  </m.div>
                 )}
               </AnimatePresence>
 
               <div className="mt-8 flex space-x-6 overflow-x-auto p-4 scrollbar-hide">
                 {product.images.map((img, idx) => (
                   <button
-                    key={`${img}-${idx}`}
+                    key={img}
                     onClick={() => {
                       setSlideDirection(idx > selectedImage ? 1 : -1);
                       setSelectedImage(idx);
@@ -505,7 +513,7 @@ export function ProductDetailsView({
                 </div>
                 {product.discount && product.discount.ends_at && (
                   <p className="text-sm font-medium text-rose-600">
-                    Sale ends {new Date(product.discount.ends_at).toLocaleString()}
+                    Sale ends {new Date(product.discount.ends_at).toLocaleString("en-US", { timeZone: "Asia/Manila" })}
                   </p>
                 )}
                 {product.discount?.discount_name && (

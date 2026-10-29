@@ -2,7 +2,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { motion, AnimatePresence } from "motion/react";
+import { m, AnimatePresence } from "motion/react";
 import Image from "next/image";
 import Link from "next/link";
 import { Menu, X } from "lucide-react";
@@ -146,7 +146,7 @@ export default function Navbar({ navLinks = DEFAULT_NAV_LINKS, showLogout = true
                 {/* Mobile Menu Dropdown */}
                 <AnimatePresence>
                     {isMenuOpen && (
-                        <motion.div
+                        <m.div
                             initial={{ opacity: 0, scale: 0.95, y: -20 }}
                             animate={{ opacity: 1, scale: 1, y: 0 }}
                             exit={{ opacity: 0, scale: 0.95, y: -20 }}
@@ -177,7 +177,7 @@ export default function Navbar({ navLinks = DEFAULT_NAV_LINKS, showLogout = true
                                     </div>
                                 )}
                             </div>
-                        </motion.div>
+                        </m.div>
                     )}
                 </AnimatePresence>
             </nav>

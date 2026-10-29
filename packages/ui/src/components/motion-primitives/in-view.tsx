@@ -1,7 +1,7 @@
 'use client';
 import { ReactNode, useRef, useState } from 'react';
 import {
-  motion,
+  m,
   useInView,
   Variant,
   Transition,
@@ -40,7 +40,7 @@ export function InView({
 
   const [isViewed, setIsViewed] = useState(false)
 
-  const MotionComponent = motion[as as keyof typeof motion] as typeof as;
+  const MotionComponent = m[as as keyof typeof m] as typeof as;
 
   return (
     <MotionComponent

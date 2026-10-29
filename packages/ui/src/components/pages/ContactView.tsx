@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { motion } from "motion/react";
+import { m } from "motion/react";
 import { 
   MapPin, 
   Send, 
@@ -92,6 +92,7 @@ export function ContactView({ pageTitle, initialDetails }: ContactViewProps) {
 
   // 'idle' | 'submitting' | 'success' | 'error'
   const [status, setStatus] = useState("idle");
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   const [isMapModalOpen, setIsMapModalOpen] = useState(false);
   const displayAddress = details.address || STORE_ADDRESS_CANONICAL;
@@ -143,6 +144,7 @@ export function ContactView({ pageTitle, initialDetails }: ContactViewProps) {
 
   const onSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    if (isSubmitting) return;
     setStatus("submitting");
     setErrorMessage("");
 
@@ -162,11 +164,19 @@ export function ContactView({ pageTitle, initialDetails }: ContactViewProps) {
     payload.append("subject", normalizedSubject);
     payload.append("body", normalizedBody);
 
+    setIsSubmitting(true);
     try {
       const response = await fetch("https://api.web3forms.com/submit", {
         method: "POST",
         body: payload,
       });
+
+      if (!response.ok) {
+        const failure = await response.json().catch(() => null);
+        setStatus("error");
+        setErrorMessage(failure?.message || "Error submitting form");
+        return;
+      }
 
       const data = await response.json();
 
@@ -181,6 +191,8 @@ export function ContactView({ pageTitle, initialDetails }: ContactViewProps) {
       console.log(error);
       setStatus("error");
       setErrorMessage("Something went wrong! Please try again later.");
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -289,6 +301,7 @@ export function ContactView({ pageTitle, initialDetails }: ContactViewProps) {
              <iframe
                title="Dolly's Closet Store Location - Expanded"
                src={details.mapEmbedUrl || STORE_OSM_EMBED_URL}
+               sandbox="allow-scripts allow-popups"
                className="w-full h-[65vh]"
                loading="lazy"
              />
@@ -353,15 +366,15 @@ export function ContactView({ pageTitle, initialDetails }: ContactViewProps) {
                 viewOptions={{ once: true }}
                 className="grid grid-cols-1 sm:grid-cols-2 gap-4 items-stretch"
               >
-                {contactMethods.map((method, index) => {
+                {contactMethods.map((method) => {
                   const Icon = method.icon;
                   const shouldOpenInNewTab = method.link.startsWith("http://") || method.link.startsWith("https://");
 
                   const isCopied = copiedLabel === method.label;
 
                   return (
-                    <motion.a
-                      key={index}
+                    <m.a
+                      key={method.label}
                       href={method.copyText ? undefined : method.link}
                       target={!method.copyText && shouldOpenInNewTab ? "_blank" : undefined}
                       rel={!method.copyText && shouldOpenInNewTab ? "noopener noreferrer" : undefined}
@@ -406,7 +419,7 @@ export function ContactView({ pageTitle, initialDetails }: ContactViewProps) {
                         className="from-pink-300/20 via-pink-200/20 to-transparent blur-2xl"
                         size={300}
                       />
-                    </motion.a>
+                    </m.a>
                   );
                 })}
               </InView>
@@ -469,6 +482,7 @@ export function ContactView({ pageTitle, initialDetails }: ContactViewProps) {
                        <iframe
                          title="Dolly's Closet Store Location"
                          src={details.mapEmbedUrl || STORE_OSM_EMBED_URL}
+                         sandbox="allow-scripts allow-popups"
                          className="w-full h-52"
                          loading="lazy"
                        />

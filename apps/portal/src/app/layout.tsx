@@ -61,6 +61,7 @@ import {
   ConditionalFooter,
   ConditionalNavbar,
   SidebarProvider,
+  MotionProvider,
   Toaster
 } from "@dollys-closet/ui";
 import { NavigationGuard } from "@/components/general-components/NavigationGuard";
@@ -118,6 +119,7 @@ export default function RootLayout({
       >
 
         <QueryProvider>
+        <MotionProvider>
         <UserProvider>
           <ProductProvider>
           <UnsavedChangesProvider>
@@ -135,6 +137,7 @@ export default function RootLayout({
           </UnsavedChangesProvider>
         </ProductProvider>
         </UserProvider>
+        </MotionProvider>
         </QueryProvider>
       </body>
     </html>

@@ -1,6 +1,6 @@
 'use client';
 import React, { useRef, useState, useCallback, useEffect } from 'react';
-import { motion, useSpring, useTransform, SpringOptions } from 'motion/react';
+import { m, useSpring, useTransform, SpringOptions } from 'motion/react';
 import { cn } from '@dollys-closet/core';
 
 export type SpotlightProps = {
@@ -66,7 +66,7 @@ export function Spotlight({
   }, [parentElement, handleMouseMove]);
 
   return (
-    <motion.div
+    <m.div
       ref={containerRef}
       className={cn(
         'pointer-events-none absolute rounded-full bg-[radial-gradient(circle_at_center,var(--tw-gradient-stops),transparent_80%)] blur-xl transition-opacity duration-200',

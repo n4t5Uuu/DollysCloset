@@ -41,6 +41,7 @@ export * from "./components/pages/ProductDetailsView";
 
 export { default as DynamicError } from "./components/general-components/DynamicError";
 export * from "./components/general-components/NavigationGuard";
+export * from "./components/general-components/MotionProvider";
 export * from "./components/general-components/ConditionalFooterAndHeader";
 export * from "./components/general-components/SearchBar";
 export { default as CustomPagination } from "./components/general-components/CustomPagination";
