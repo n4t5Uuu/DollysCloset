@@ -20,7 +20,8 @@ export function resolveProductPlaceholder(categoryOrPath: string | null | undefi
     .split(" ")
     .filter(Boolean);
 
-  const hasKeyword = (keywords: string[]) => keywords.some((keyword) => tokens.includes(keyword));
+  const tokenSet = new Set(tokens);
+  const hasKeyword = (keywords: string[]) => keywords.some((keyword) => tokenSet.has(keyword));
 
   if (hasKeyword(WOMEN_KEYWORDS)) {
     return WOMEN_PLACEHOLDER;
