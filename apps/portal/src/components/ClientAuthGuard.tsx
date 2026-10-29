@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { createClient, clearManualLogoutIntent, consumeManualLogoutIntent } from "@dollys-closet/core";
 import { buildLoginPath } from "@/lib/auth/auth-routing";
 import { Loader2 } from "lucide-react";
@@ -8,13 +8,11 @@ import { toast } from "sonner";
 
 export default function ClientAuthGuard({ children }: { children: React.ReactNode }) {
     const [isAuthorized, setIsAuthorized] = useState<boolean | null>(null);
-    const supabaseRef = useRef(createClient());
+    const [supabase] = useState(createClient);
 
     useEffect(() => {
         let isMounted = true;
         const nextPath = `${window.location.pathname}${window.location.search}`;
-
-        const supabase = supabaseRef.current;
 
         // Listen for auth state changes reactively on the client side.
         // SIGNED_OUT can fire because the user explicitly logged out (handled by
@@ -86,7 +84,7 @@ export default function ClientAuthGuard({ children }: { children: React.ReactNod
             window.clearInterval(pollInterval);
             document.removeEventListener("visibilitychange", onVisibilityChange);
         };
-    }, []);
+    }, [supabase]);
 
 
     // Show a loading screen while checking auth securely on the client side
