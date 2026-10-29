@@ -1,9 +1,19 @@
 "use client";
 /* eslint-disable react-hooks/set-state-in-effect */
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Check, ChevronDown, ChevronLeft, ChevronRight, X } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { ChevronDown } from "lucide-react";
 import { InventoryCategory as Category } from "@dollys-closet/core";
+import { FilterDesktopPanel } from "@/components/category-cascading/FilterDesktopPanel";
+import { FilterMobileSheet, type DrillPath } from "@/components/category-cascading/FilterMobileSheet";
+import { useCategoryTree } from "@/components/category-cascading/useCategoryTree";
+import {
+  resolveFilterSelection,
+  useAlignRight,
+  useDismiss,
+  useIsMobileView,
+} from "@/components/category-cascading/useFilterBehavior";
+import { useFilterColumns } from "@/components/category-cascading/useFilterColumns";
 
 interface CategoryCascadingFilterProps {
   categories: Category[];
@@ -11,10 +21,6 @@ interface CategoryCascadingFilterProps {
   onValueChange: (value: string) => void;
   className?: string;
   triggerClassName?: string;
-}
-
-function sortById(firstCategory: Category, secondCategory: Category) {
-  return Number(firstCategory.category_id) - Number(secondCategory.category_id);
 }
 
 export default function CategoryCascadingFilter({
@@ -29,334 +35,59 @@ export default function CategoryCascadingFilter({
   // Columns the user picked while the dropdown is open; unset falls back to the current selection.
   const [pickedRootKey, setPickedRootKey] = useState<string | null>(null);
   const [pickedSecondLevelId, setPickedSecondLevelId] = useState<number | null | undefined>(undefined);
-  const [alignRight, setAlignRight] = useState(false);
-  const [isMobileView, setIsMobileView] = useState(false);
-  const isMobileViewRef = useRef(false);
-  const [drillPath, setDrillPath] = useState<Array<string | number>>([]);
+  const [drillPath, setDrillPath] = useState<DrillPath>([]);
   const [searchQuery, setSearchQuery] = useState("");
 
-  const normalizeName = (categoryName: string) => categoryName.trim().toLowerCase();
+  const alignRight = useAlignRight(containerRef, isOpen);
+  const { isMobileView, isMobileViewRef } = useIsMobileView();
+  useDismiss(containerRef, () => setIsOpen(false));
 
-  const childrenByParent = useMemo(() => {
-    const map = new Map<number | null, Category[]>();
+  const tree = useCategoryTree(categories);
+  const { categoryById, rootCategoryGroups, rootGroupByKey, hasChildren, getCategoryPath, getSelectionColumns } = tree;
 
-    categories.forEach((category) => {
-      const parentId = category.parent_category;
-      const existing = map.get(parentId) || [];
-      existing.push(category);
-      map.set(parentId, existing);
-    });
-
-    map.forEach((groupedCategories, key) => {
-      map.set(key, [...groupedCategories].sort(sortById));
-    });
-
-    return map;
-  }, [categories]);
-
-  const categoryById = useMemo(
-    () => new Map(categories.map((category) => [Number(category.category_id), category])),
-    [categories]
+  const { selectedRootGroupKey, selectedCategoryId, selectedLabel } = resolveFilterSelection(
+    value,
+    rootGroupByKey,
+    getCategoryPath
   );
-
-  const rootCategoryGroups = useMemo(() => {
-    const rootCategories = childrenByParent.get(null) || [];
-    const groupedRoots = new Map<
-      string,
-      { key: string; label: string; rootIds: number[] }
-    >();
-
-    rootCategories.forEach((rootCategory) => {
-      const key = normalizeName(rootCategory.category_name);
-      const existing = groupedRoots.get(key);
-      const rootId = Number(rootCategory.category_id);
-
-      if (existing) {
-        existing.rootIds.push(rootId);
-        return;
-      }
-
-      groupedRoots.set(key, {
-        key,
-        label: rootCategory.category_name,
-        rootIds: [rootId],
-      });
-    });
-
-    return Array.from(groupedRoots.values()).map((group) => ({
-      ...group,
-      rootIds: [...group.rootIds].sort((firstId, secondId) => firstId - secondId),
-    }));
-  }, [childrenByParent]);
-
-  const rootGroupByRootId = useMemo(() => {
-    const map = new Map<number, string>();
-
-    rootCategoryGroups.forEach((group) => {
-      group.rootIds.forEach((rootId) => {
-        map.set(rootId, group.key);
-      });
-    });
-
-    return map;
-  }, [rootCategoryGroups]);
-
-  const rootGroupByKey = useMemo(() => {
-    const map = new Map<string, { key: string; label: string; rootIds: number[] }>();
-    rootCategoryGroups.forEach((group) => map.set(group.key, group));
-    return map;
-  }, [rootCategoryGroups]);
-
-  const hasChildren = useCallback(
-    (categoryId: number) => (childrenByParent.get(categoryId) || []).length > 0,
-    [childrenByParent]
-  );
-
-  const getCategoryPath = (categoryId: number) => {
-    const category = categoryById.get(categoryId);
-    if (!category) return "Unknown";
-
-    const path: string[] = [category.category_name];
-    let parentId = category.parent_category;
-    const visited = new Set<number>([categoryId]);
-
-    while (parentId !== null) {
-      if (visited.has(parentId)) break;
-      visited.add(parentId);
-
-      const parentCategory = categoryById.get(parentId);
-      if (!parentCategory) break;
-
-      path.unshift(parentCategory.category_name);
-      parentId = parentCategory.parent_category;
-    }
-
-    return path.join(" > ");
-  };
-
-  const isRootGroupValue = value.startsWith("rootgroup:");
-  const selectedRootGroupKey = isRootGroupValue ? value.slice("rootgroup:".length) : null;
-  const selectedCategoryId = value === "all" || isRootGroupValue ? null : Number(value);
-  const selectedLabel = isRootGroupValue
-    ? (rootGroupByKey.get(selectedRootGroupKey!)?.label ?? "All Categories")
-    : selectedCategoryId && !Number.isNaN(selectedCategoryId)
-      ? getCategoryPath(selectedCategoryId)
-      : "All Categories";
 
   // Columns that show the current selection; user picks override them until the dropdown reopens.
-  const selectionColumns = useMemo(() => {
-    const firstRootKey = rootCategoryGroups[0]?.key ?? null;
-
-    if (selectedRootGroupKey) return { rootKey: selectedRootGroupKey, secondLevelId: null };
-
-    const selectedCategory =
-      selectedCategoryId && !Number.isNaN(selectedCategoryId)
-        ? categoryById.get(selectedCategoryId)
-        : undefined;
-    if (!selectedCategory) return { rootKey: firstRootKey, secondLevelId: null };
-
-    let rootId = Number(selectedCategory.category_id);
-    let childId: number | null = null;
-    let parentId = selectedCategory.parent_category;
-
-    while (parentId !== null) {
-      childId = rootId;
-      rootId = parentId;
-      const parent = categoryById.get(parentId);
-      parentId = parent?.parent_category ?? null;
-    }
-
-    return { rootKey: rootGroupByRootId.get(rootId) ?? firstRootKey, secondLevelId: childId };
-  }, [selectedRootGroupKey, selectedCategoryId, categoryById, rootCategoryGroups, rootGroupByRootId]);
-
+  const selectionColumns = selectedRootGroupKey
+    ? { rootKey: selectedRootGroupKey, secondLevelId: null }
+    : getSelectionColumns(selectedCategoryId);
   const activeRootKey = pickedRootKey ?? selectionColumns.rootKey;
   const activeSecondLevelId =
     pickedSecondLevelId !== undefined ? pickedSecondLevelId : selectionColumns.secondLevelId;
 
-  useEffect(() => {
-    if (!isOpen || !containerRef.current) return;
-
-    const containerRect = containerRef.current.getBoundingClientRect();
-    const panelWidth = Math.min(580, window.innerWidth - 16);
-    const wouldOverflowRight = containerRect.left + panelWidth > window.innerWidth - 8;
-    const hasLeftSpace = containerRect.right - panelWidth >= 8;
-
-    setAlignRight(wouldOverflowRight && hasLeftSpace);
-  }, [isOpen]);
-
-  useEffect(() => {
-    const handleOutsideClick = (event: MouseEvent) => {
-      if (!containerRef.current) return;
-      if (!containerRef.current.contains(event.target as Node)) {
-        setIsOpen(false);
-      }
-    };
-
-    const handleEscape = (event: KeyboardEvent) => {
-      if (event.key === "Escape") {
-        setIsOpen(false);
-      }
-    };
-
-    document.addEventListener("mousedown", handleOutsideClick);
-    document.addEventListener("keydown", handleEscape);
-
-    return () => {
-      document.removeEventListener("mousedown", handleOutsideClick);
-      document.removeEventListener("keydown", handleEscape);
-    };
-  }, []);
-
-  useEffect(() => {
-    const mq = window.matchMedia("(max-width: 639px)");
-    const handleMqChange = (e: MediaQueryList | MediaQueryListEvent) => {
-      isMobileViewRef.current = e.matches;
-      setIsMobileView(e.matches);
-    };
-    handleMqChange(mq);
-    mq.addEventListener("change", handleMqChange);
-    return () => mq.removeEventListener("change", handleMqChange);
-  }, []);
+  const { filteredRootGroups, secondColumn, thirdColumn } = useFilterColumns(
+    tree,
+    activeRootKey,
+    activeSecondLevelId,
+    searchQuery
+  );
 
   useEffect(() => {
     if (!isOpen || !isMobileViewRef.current) return;
     setDrillPath([]);
     setSearchQuery("");
-  }, [isOpen]);
+  }, [isOpen, isMobileViewRef]);
 
-  const normalizedSearchQuery = searchQuery.trim().toLowerCase();
-  const hasSearchQuery = normalizedSearchQuery.length > 0;
-
-  const matchesSearch = useCallback(
-    (categoryName: string) => categoryName.toLowerCase().includes(normalizedSearchQuery),
-    [normalizedSearchQuery]
-  );
-
-  const filteredRootGroups = useMemo(() => {
-    if (!hasSearchQuery) {
-      return rootCategoryGroups;
-    }
-
-    return rootCategoryGroups.filter((rootGroup) => {
-      if (matchesSearch(rootGroup.label)) return true;
-
-      return rootGroup.rootIds.some((rootId) => {
-        const rootCategory = categoryById.get(rootId);
-        if (rootCategory && matchesSearch(rootCategory.category_name)) return true;
-
-        const secondLevel = childrenByParent.get(rootId) || [];
-        if (secondLevel.some((child) => matchesSearch(child.category_name))) return true;
-
-        return secondLevel.some((child) => {
-          const grandchildren = childrenByParent.get(Number(child.category_id)) || [];
-          return grandchildren.some((grandchild) => matchesSearch(grandchild.category_name));
-        });
-      });
-    });
-  }, [hasSearchQuery, matchesSearch, rootCategoryGroups, categoryById, childrenByParent]);
-
-  const firstColumn = rootCategoryGroups;
-
-  const secondColumn = useMemo(() => {
-    if (!activeRootKey) return [];
-
-    const group = rootGroupByKey.get(activeRootKey);
-    if (!group) return [];
-
-    const combinedChildren: Category[] = [];
-    const seenCategoryIds = new Set<number>();
-
-    group.rootIds.forEach((rootId) => {
-      const children = childrenByParent.get(rootId) || [];
-      children.forEach((childCategory) => {
-        const childId = Number(childCategory.category_id);
-        if (seenCategoryIds.has(childId)) return;
-        seenCategoryIds.add(childId);
-        combinedChildren.push(childCategory);
-      });
-    });
-
-    const sorted = combinedChildren.sort(sortById);
-    if (!hasSearchQuery) return sorted;
-
-    return sorted.filter((category) => {
-      if (matchesSearch(category.category_name)) return true;
-      if (!hasChildren(Number(category.category_id))) return false;
-      return (childrenByParent.get(Number(category.category_id)) || []).some((child) => matchesSearch(child.category_name));
-    });
-  }, [activeRootKey, rootGroupByKey, childrenByParent, hasSearchQuery, matchesSearch, hasChildren]);
-
-  const thirdColumn = useMemo(() => {
-    const items = activeSecondLevelId !== null ? childrenByParent.get(activeSecondLevelId) || [] : [];
-    if (!hasSearchQuery) return items;
-    return items.filter((category) => matchesSearch(category.category_name));
-  }, [activeSecondLevelId, childrenByParent, hasSearchQuery, matchesSearch]);
-
-  const renderItem = (category: Category, level: 2 | 3) => {
-    const categoryId = Number(category.category_id);
-    const itemHasChildren = hasChildren(categoryId);
-    const isSelected = selectedCategoryId === categoryId;
-    const isActive = level === 2 && activeSecondLevelId === categoryId;
-
-    return (
-      <button
-        key={category.category_id}
-        type="button"
-        onMouseEnter={() => {
-          if (level === 2) {
-            setPickedSecondLevelId(categoryId);
-          }
-        }}
-        onClick={() => {
-          onValueChange(String(categoryId));
-          setIsOpen(false);
-        }}
-        className={`w-full flex items-center justify-between rounded-lg px-3 py-2 text-left text-sm transition-colors cursor-pointer ${
-          isActive || isSelected
-            ? "bg-[#FFF0F3] text-[#E7A3B0] font-medium"
-            : "text-zinc-700 hover:bg-[#FFF0F3] hover:text-[#E7A3B0]"
-        }`}
-      >
-        <span className="truncate pr-2">{category.category_name}</span>
-        <span className="flex items-center gap-1">
-          {isSelected && <Check className="h-4 w-4 text-[#8CA2B4]" />}
-          {itemHasChildren && <ChevronRight className="h-4 w-4 text-zinc-400" />}
-        </span>
-      </button>
-    );
+  const selectValue = (nextValue: string) => {
+    onValueChange(nextValue);
+    setIsOpen(false);
   };
 
-  const renderRootItem = (rootGroup: { key: string; label: string; rootIds: number[] }) => {
-    const hasAnyChildren = rootGroup.rootIds.some((rootId) => hasChildren(rootId));
-    const isActive = activeRootKey === rootGroup.key;
-    const isSelected = selectedRootGroupKey === rootGroup.key;
-
-    return (
-      <button
-        key={rootGroup.key}
-        type="button"
-        onMouseEnter={() => {
-          setPickedRootKey(rootGroup.key);
-          setPickedSecondLevelId(null);
-        }}
-        onClick={() => {
-          onValueChange(`rootgroup:${rootGroup.key}`);
-          setIsOpen(false);
-        }}
-        className={`w-full flex items-center justify-between rounded-lg px-3 py-2 text-left text-sm transition-colors cursor-pointer ${
-          isActive || isSelected
-            ? "bg-[#FFF0F3] text-[#E7A3B0] font-medium"
-            : "text-zinc-700 hover:bg-[#FFF0F3] hover:text-[#E7A3B0]"
-        }`}
-      >
-        <span className="truncate pr-2">{rootGroup.label}</span>
-        <span className="flex items-center gap-1">
-          {isSelected && <Check className="h-4 w-4 text-[#8CA2B4]" />}
-          {hasAnyChildren && <ChevronRight className="h-4 w-4 text-zinc-400" />}
-        </span>
-      </button>
-    );
+  const pickRoot = (key: string) => {
+    setPickedRootKey(key);
+    setPickedSecondLevelId(null);
   };
+
+  const sheetTitle =
+    drillPath.length === 0
+      ? "Category"
+      : drillPath.length === 1
+        ? (rootGroupByKey.get(drillPath[0] as string)?.label ?? "Category")
+        : (categoryById.get(drillPath[1] as number)?.category_name ?? "Category");
 
   return (
     <div ref={containerRef} className={`relative ${className}`}>
@@ -378,234 +109,57 @@ export default function CategoryCascadingFilter({
         <ChevronDown className="h-4 w-4 text-gray-400" />
       </button>
 
-      {isOpen && (
-        isMobileView ? (
-          <div className="fixed inset-x-2 bottom-2 z-50 rounded-xl border border-black bg-white shadow-xl overflow-hidden flex flex-col max-h-[70vh]">
-            <div className="flex items-center gap-1 border-b border-zinc-100 px-3 py-2.5 shrink-0">
-              {drillPath.length > 0 ? (
-                <button aria-label="Back"
-                  type="button"
-                  onClick={() => setDrillPath((p) => p.slice(0, -1))}
-                  className="flex items-center justify-center rounded-md p-1 hover:bg-zinc-100 -ml-1 mr-1"
-                >
-                  <ChevronLeft className="h-4 w-4 text-zinc-600" />
-                </button>
-              ) : (
-                <div className="w-6 mr-1" />
-              )}
-              <span className="flex-1 text-sm font-semibold text-zinc-800 truncate">
-                {drillPath.length === 0
-                  ? "Category"
-                  : drillPath.length === 1
-                    ? (rootGroupByKey.get(drillPath[0] as string)?.label ?? "Category")
-                    : (categoryById.get(drillPath[1] as number)?.category_name ?? "Category")}
-              </span>
-              <button aria-label="Close categories"
-                type="button"
-                onClick={() => setIsOpen(false)}
-                className="flex items-center justify-center rounded-md p-1 hover:bg-zinc-100 -mr-1"
-              >
-                <X className="h-4 w-4 text-zinc-500" />
-              </button>
-            </div>
-            <div className="border-b border-zinc-100 px-3 py-3 space-y-3">
-              <div className="flex items-center justify-between gap-3">
-                <div className="min-w-0">
-                  <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">Category</p>
-                  <p className="truncate text-sm font-medium text-zinc-900">{value === "all" ? "All Categories" : selectedLabel}</p>
-                </div>
-                {value !== "all" && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      onValueChange("all");
-                      setIsOpen(false);
-                    }}
-                    className="text-xs font-semibold text-[#b96d7d] hover:text-[#E7A3B0]"
-                  >
-                    Clear
-                  </button>
-                )}
-              </div>
-              <input
-                value={searchQuery}
-                onChange={(event) => setSearchQuery(event.target.value)}
-                placeholder="Search categories"
-                aria-label="Search categories"
-                className="w-full rounded-md border border-gray-200 bg-zinc-50 px-3 py-2 text-sm text-gray-900 outline-none focus:border-[#E7A3B0] focus:ring-1 focus:ring-[#E7A3B0]"
-              />
-            </div>
-            <div className="overflow-y-auto flex-1 p-2 space-y-0.5">
-              {drillPath.length === 0 && (
-                <>
-                  <button
-                    type="button"
-                    onClick={() => { onValueChange("all"); setIsOpen(false); }}
-                    className={`w-full flex items-center rounded-lg px-3 py-2.5 text-left text-sm ${
-                      value === "all" ? "bg-[#FFF0F3] text-[#E7A3B0] font-medium" : "text-zinc-700 hover:bg-[#FFF0F3] hover:text-[#E7A3B0]"
-                    }`}
-                  >
-                    <span className="flex-1">All Categories</span>
-                    {value === "all" && <Check className="h-4 w-4 shrink-0" />}
-                  </button>
-                  {(hasSearchQuery ? filteredRootGroups : firstColumn).map((rootGroup) => {
-                    const hasAny = rootGroup.rootIds.some((id) => hasChildren(id));
-                    const isSelected = selectedRootGroupKey === rootGroup.key;
-                    return (
-                      <button
-                        key={rootGroup.key}
-                        type="button"
-                        onClick={() => {
-                          if (hasAny) {
-                            setPickedRootKey(rootGroup.key);
-                            setDrillPath([rootGroup.key]);
-                          } else {
-                            onValueChange(`rootgroup:${rootGroup.key}`);
-                            setIsOpen(false);
-                          }
-                        }}
-                        className={`w-full flex items-center rounded-lg px-3 py-2.5 text-left text-sm ${
-                          isSelected ? "bg-[#FFF0F3] text-[#E7A3B0] font-medium" : "text-zinc-700 hover:bg-[#FFF0F3] hover:text-[#E7A3B0]"
-                        }`}
-                      >
-                        <span className="flex-1 truncate">{rootGroup.label}</span>
-                        {isSelected && <Check className="h-4 w-4 text-[#8CA2B4] shrink-0 mr-1" />}
-                        {hasAny && <ChevronRight className="h-4 w-4 text-zinc-400 shrink-0" />}
-                      </button>
-                    );
-                  })}
-                </>
-              )}
-              {drillPath.length === 1 && (() => {
-                const rootKey = drillPath[0] as string;
-                const group = rootGroupByKey.get(rootKey);
-                if (!group) return null;
-                const isRootSelected = selectedRootGroupKey === rootKey;
-                const level2Items = secondColumn;
-                return (
-                  <>
-                    <button
-                      type="button"
-                      onClick={() => { onValueChange(`rootgroup:${rootKey}`); setIsOpen(false); }}
-                      className={`w-full flex items-center rounded-lg px-3 py-2.5 text-left text-sm ${
-                        isRootSelected ? "bg-[#FFF0F3] text-[#E7A3B0] font-medium" : "text-zinc-500 hover:bg-[#FFF0F3] hover:text-[#E7A3B0]"
-                      }`}
-                    >
-                      <span className="flex-1">All {group.label}</span>
-                      {isRootSelected && <Check className="h-4 w-4 text-[#8CA2B4] shrink-0" />}
-                    </button>
-                    {level2Items.length === 0 && <div className="px-3 py-2 text-sm text-zinc-400">No subcategories</div>}
-                    {level2Items.map((cat) => {
-                      const catId = Number(cat.category_id);
-                      const catHasChildren = hasChildren(catId);
-                      const isSelected = selectedCategoryId === catId;
-                      return (
-                        <button
-                          key={cat.category_id}
-                          type="button"
-                          onClick={() => {
-                            if (catHasChildren) {
-                              setPickedSecondLevelId(catId);
-                              setDrillPath([rootKey, catId]);
-                            } else {
-                              onValueChange(String(catId));
-                              setIsOpen(false);
-                            }
-                          }}
-                          className={`w-full flex items-center rounded-lg px-3 py-2.5 text-left text-sm ${
-                            isSelected ? "bg-[#FFF0F3] text-[#E7A3B0] font-medium" : "text-zinc-700 hover:bg-[#FFF0F3] hover:text-[#E7A3B0]"
-                          }`}
-                        >
-                          <span className="flex-1 truncate">{cat.category_name}</span>
-                          {isSelected && <Check className="h-4 w-4 text-[#8CA2B4] shrink-0 mr-1" />}
-                          {catHasChildren && <ChevronRight className="h-4 w-4 text-zinc-400 shrink-0" />}
-                        </button>
-                      );
-                    })}
-                  </>
-                );
-              })()}
-              {drillPath.length === 2 && (() => {
-                const secondId = drillPath[1] as number;
-                const parentCat = categoryById.get(secondId);
-                const level3Items = thirdColumn;
-                const isParentSelected = selectedCategoryId === secondId;
-                return (
-                  <>
-                    <button
-                      type="button"
-                      onClick={() => { onValueChange(String(secondId)); setIsOpen(false); }}
-                      className={`w-full flex items-center rounded-lg px-3 py-2.5 text-left text-sm ${
-                        isParentSelected ? "bg-[#FFF0F3] text-[#E7A3B0] font-medium" : "text-zinc-500 hover:bg-[#FFF0F3] hover:text-[#E7A3B0]"
-                      }`}
-                    >
-                      <span className="flex-1">All {parentCat?.category_name}</span>
-                      {isParentSelected && <Check className="h-4 w-4 text-[#8CA2B4] shrink-0" />}
-                    </button>
-                    {level3Items.length === 0 && <div className="px-3 py-2 text-sm text-zinc-400">No subcategories</div>}
-                    {level3Items.map((cat) => {
-                      const catId = Number(cat.category_id);
-                      const isSelected = selectedCategoryId === catId;
-                      return (
-                        <button
-                          key={cat.category_id}
-                          type="button"
-                          onClick={() => { onValueChange(String(catId)); setIsOpen(false); }}
-                          className={`w-full flex items-center rounded-lg px-3 py-2.5 text-left text-sm ${
-                            isSelected ? "bg-[#FFF0F3] text-[#E7A3B0] font-medium" : "text-zinc-700 hover:bg-[#FFF0F3] hover:text-[#E7A3B0]"
-                          }`}
-                        >
-                          <span className="flex-1 truncate">{cat.category_name}</span>
-                          {isSelected && <Check className="h-4 w-4 text-[#8CA2B4] shrink-0" />}
-                        </button>
-                      );
-                    })}
-                  </>
-                );
-              })()}
-            </div>
-          </div>
-        ) : (
-          <div className={`absolute z-50 mt-2 w-[min(90vw,580px)] max-w-[calc(100vw-1rem)] rounded-xl border border-black bg-white p-2.5 shadow-xl ${alignRight ? "right-0" : "left-0"}`}>
-            <button
-              type="button"
-              onClick={() => {
-                onValueChange("all");
-                setIsOpen(false);
-              }}
-              className={`mb-2 w-full flex items-center justify-between rounded-lg px-3 py-2 text-left text-sm ${
-                value === "all"
-                  ? "bg-[#FFF0F3] text-[#E7A3B0] font-medium"
-                  : "text-zinc-700 hover:bg-[#FFF0F3] hover:text-[#E7A3B0]"
-              }`}
-            >
-              <span>All Categories</span>
-              {value === "all" && <Check className="h-4 w-4" />}
-            </button>
+      {isOpen && isMobileView && (
+        <FilterMobileSheet
+          title={sheetTitle}
+          drillPath={drillPath}
+          onBack={() => setDrillPath((path) => path.slice(0, -1))}
+          onClose={() => setIsOpen(false)}
+          isAllSelected={value === "all"}
+          selectedLabel={selectedLabel}
+          searchQuery={searchQuery}
+          onSearchChange={setSearchQuery}
+          onSelectAll={() => selectValue("all")}
+          rootGroups={filteredRootGroups}
+          rootGroupByKey={rootGroupByKey}
+          categoryById={categoryById}
+          secondColumn={secondColumn}
+          thirdColumn={thirdColumn}
+          hasChildren={hasChildren}
+          selectedCategoryId={selectedCategoryId}
+          selectedRootGroupKey={selectedRootGroupKey}
+          onOpenRoot={(key) => {
+            setPickedRootKey(key);
+            setDrillPath([key]);
+          }}
+          onOpenSecondLevel={(rootKey, id) => {
+            setPickedSecondLevelId(id);
+            setDrillPath([rootKey, id]);
+          }}
+          onSelectRootGroup={(key) => selectValue(`rootgroup:${key}`)}
+          onSelectCategory={(id) => selectValue(String(id))}
+        />
+      )}
 
-            <div className="grid grid-cols-3 gap-2">
-              <div className="max-h-72 overflow-y-auto rounded-md border border-zinc-200 p-1">
-                {firstColumn.length > 0 ? firstColumn.map((rootGroup) => renderRootItem(rootGroup)) : (
-                  <div className="px-3 py-2 text-sm text-zinc-400">No categories found</div>
-                )}
-              </div>
-
-              <div className="max-h-72 overflow-y-auto rounded-md border border-zinc-200 p-1">
-                {secondColumn.length > 0 ? secondColumn.map((category) => renderItem(category, 2)) : (
-                  <div className="px-3 py-2 text-sm text-zinc-400">Select a parent category</div>
-                )}
-              </div>
-
-              <div className="max-h-72 overflow-y-auto rounded-md border border-zinc-200 p-1">
-                {thirdColumn.length > 0 ? thirdColumn.map((category) => renderItem(category, 3)) : (
-                  <div className="px-3 py-2 text-sm text-zinc-300">Select a subcategory</div>
-                )}
-              </div>
-            </div>
-          </div>
-        )
+      {isOpen && !isMobileView && (
+        <FilterDesktopPanel
+          alignRight={alignRight}
+          isAllSelected={value === "all"}
+          rootGroups={rootCategoryGroups}
+          secondColumn={secondColumn}
+          thirdColumn={thirdColumn}
+          hasChildren={hasChildren}
+          selectedCategoryId={selectedCategoryId}
+          selectedRootGroupKey={selectedRootGroupKey}
+          activeRootKey={activeRootKey}
+          activeSecondLevelId={activeSecondLevelId}
+          onSelectAll={() => selectValue("all")}
+          onPickRoot={pickRoot}
+          onPickSecondLevel={setPickedSecondLevelId}
+          onSelectRootGroup={(key) => selectValue(`rootgroup:${key}`)}
+          onSelectCategory={(id) => selectValue(String(id))}
+        />
       )}
     </div>
   );
 }
-
