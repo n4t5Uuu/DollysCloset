@@ -4,7 +4,8 @@ import { CardTitle } from "../ui/card"
 import { cn, type Product, resolveProductPlaceholder, useProductMetadata } from "@dollys-closet/core"
 
 import Image from "next/image"
-import { useMemo, useRef, useState } from "react"
+import { useMemo } from "react"
+import { useImageCycle, type AnimPhase } from "./useImageCycle"
 
 interface ProductCardProps {
     product?: Product;
@@ -13,26 +14,273 @@ interface ProductCardProps {
     compact?: boolean;
 }
 
-type AnimPhase = "idle" | "prepare" | "animating";
+type ChipTone = "neutral" | "info" | "warning";
+type Ribbon = { label: string; bg: string; text: string };
+
+const IMAGE_SIZES = "(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 20vw";
+
+const CHIP_TONE_CLASS: Record<ChipTone, string> = {
+    info: "border-[#b8daf0]/70 bg-[#eef7ff] text-[#2b6b93]",
+    warning: "border-[#f2c98a]/60 bg-[#fff8ec] text-[#9a6a17]",
+    neutral: "border-[#efdde1] bg-[#fff9fb] text-[#725c62]",
+};
+
+const formatNumber = (value: number) =>
+    Number.isInteger(value)
+        ? value.toLocaleString()
+        : value.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 });
+
+const formatPercent = (value: number) => `${Math.round(value)}%`;
+
+/** Ribbon text for a discounted product: the percent off, or the amount off for flat discounts. */
+function getDiscountLabel(product: Product) {
+    const discount = product.discount!;
+    const rawValue = Math.max(0, Number(discount.discount_value) || 0);
+    const originalPrice = Math.max(0, Number(product.price) || 0);
+    const discountedPrice = Math.max(0, Number(product.discountedPrice) || 0);
+    const amountOff = Math.max(0, originalPrice - discountedPrice);
+    const effectivePercent = originalPrice > 0 ? (amountOff / originalPrice) * 100 : 0;
+
+    if (discount.discount_type === "percent") return formatPercent(rawValue);
+    if (discount.discount_type === "fixed_price") return formatPercent(effectivePercent);
+    return `-₱${formatNumber(rawValue)}`;
+}
+
+function getRibbon(product: Product, isSoldOut: boolean, hasDiscount: boolean): Ribbon | null {
+    if (isSoldOut) return { label: "Sold Out", bg: "#121212", text: "#ffffff" };
+
+    const hasDiscountPrice =
+        hasDiscount && product.discount && product.discountedPrice !== null && product.discountedPrice !== undefined;
+    if (hasDiscountPrice) {
+        const raw = getDiscountLabel(product);
+        return { label: raw.startsWith("-") ? raw : `-${raw}`, bg: "#c95f7b", text: "#ffffff" };
+    }
+
+    if (product.isNewArrival) return { label: "New", bg: "#E7A3B0", text: "#ffffff" };
+    return null;
+}
+
+function getOverlayChips(product: Product, hasLowStock: boolean, metadataChips: string[]) {
+    const chips: { label: string; tone: ChipTone }[] = [];
+    const seasonName = product.seasonName?.trim();
+    if (seasonName) chips.push({ label: seasonName, tone: "info" });
+    if (hasLowStock) chips.push({ label: `${product.stock} Left`, tone: "warning" });
+    for (const chip of metadataChips) chips.push({ label: chip, tone: "neutral" });
+    // Keep chip count tight so the card stays compact and scannable.
+    return chips.slice(0, 3);
+}
+
+function SlideImage({
+    src,
+    alt,
+    phase,
+    transform,
+    isSoldOut,
+    draggable,
+}: {
+    src: string;
+    alt: string;
+    phase: AnimPhase;
+    transform: string;
+    isSoldOut: boolean;
+    draggable?: boolean;
+}) {
+    return (
+        <div
+            className={cn("absolute inset-0", phase === "animating" && "transition-transform duration-420 ease-in-out")}
+            style={{ transform }}
+        >
+            <Image
+                src={src}
+                alt={alt}
+                fill
+                sizes={IMAGE_SIZES}
+                draggable={draggable}
+                className={cn(
+                    "object-cover transition-transform duration-500 group-hover:scale-105",
+                    isSoldOut ? "grayscale-[0.3]" : ""
+                )}
+            />
+        </div>
+    );
+}
+
+function CardRibbon({ ribbon }: { ribbon: Ribbon }) {
+    return (
+        <div
+            className="absolute left-0 top-3 z-10 flex items-center justify-center rounded-r-[6px] px-2.5 py-1 shadow-[0_4px_12px_rgba(18,18,18,0.22)]"
+            style={{ backgroundColor: ribbon.bg }}
+            aria-label={ribbon.label}
+        >
+            <span className="font-oswald text-[11px] font-semibold uppercase tracking-[0.18em]" style={{ color: ribbon.text }}>
+                {ribbon.label}
+            </span>
+        </div>
+    );
+}
+
+function ImageDots({ images, activeIndex }: { images: string[]; activeIndex: number }) {
+    return (
+        <div className="absolute bottom-2 left-0 right-0 flex justify-center gap-1 sm:hidden">
+            {images.map((image, i) => (
+                <div
+                    key={image}
+                    className={cn(
+                        "h-1.5 rounded-full transition-all duration-200",
+                        i === activeIndex ? "w-3 bg-white" : "w-1.5 bg-white/50"
+                    )}
+                />
+            ))}
+        </div>
+    );
+}
+
+function CardImageStage({
+    product,
+    compact,
+    fallback,
+    validImages,
+    isSoldOut,
+    ribbon,
+    cycle,
+}: {
+    product: Product;
+    compact?: boolean;
+    fallback: string;
+    validImages: string[];
+    isSoldOut: boolean;
+    ribbon: Ribbon | null;
+    cycle: ReturnType<typeof useImageCycle>;
+}) {
+    const { currentSrc, nextSrc, phase, activeImageIndex, animDirRef } = cycle;
+    const leavesLeft = animDirRef.current === "left";
+
+    return (
+        <div
+            className={cn("relative overflow-hidden bg-[#f7eef1] select-none", compact ? "aspect-square sm:aspect-3/4" : "aspect-3/4")}
+            onTouchStart={compact ? undefined : cycle.handleTouchStart}
+            onTouchEnd={compact ? undefined : cycle.handleTouchEnd}
+        >
+            <SlideImage
+                src={currentSrc || fallback}
+                alt={product.name}
+                phase={phase}
+                transform={phase === "animating" ? `translateX(${leavesLeft ? "-100%" : "100%"})` : "translateX(0)"}
+                isSoldOut={isSoldOut}
+                draggable={false}
+            />
+
+            {phase !== "idle" && nextSrc && (
+                <SlideImage
+                    src={nextSrc}
+                    alt={product.name}
+                    phase={phase}
+                    transform={phase === "animating" ? "translateX(0)" : `translateX(${leavesLeft ? "100%" : "-100%"})`}
+                    isSoldOut={isSoldOut}
+                />
+            )}
+
+            {ribbon && <CardRibbon ribbon={ribbon} />}
+
+            {/* Dot indicators — collection grid only (not masonry), mobile only */}
+            {validImages.length > 1 && !compact && <ImageDots images={validImages} activeIndex={activeImageIndex} />}
+        </div>
+    );
+}
+
+function CardEyebrow({ categoryLabel, eyebrow }: { categoryLabel: string; eyebrow?: string | null }) {
+    return (
+        <div className="flex items-center gap-2 text-[9px] sm:text-[10px] font-medium uppercase tracking-[0.14em] text-[#8b7580]">
+            {/* Desktop: category label */}
+            <span className="hidden sm:inline truncate font-montserrat">{categoryLabel}</span>
+            {/* Desktop: separator + brand (only if different from category) */}
+            {eyebrow && eyebrow !== categoryLabel && (
+                <>
+                    <span className="hidden sm:inline text-[#c0929d]">·</span>
+                    <span className="hidden sm:inline truncate font-montserrat">{eyebrow}</span>
+                </>
+            )}
+            {/* Mobile: brand only */}
+            {eyebrow && <span className="sm:hidden truncate font-montserrat">{eyebrow}</span>}
+        </div>
+    );
+}
+
+function CardChips({ chips }: { chips: { label: string; tone: ChipTone }[] }) {
+    if (chips.length === 0) return null;
+
+    return (
+        <div className="flex flex-wrap gap-1 sm:gap-1.5">
+            {chips.map((chip) => (
+                <span
+                    key={`${chip.tone}-${chip.label}`}
+                    className={cn(
+                        "max-w-full truncate rounded-full border px-1.5 py-px sm:px-2 sm:py-0.5 font-montserrat text-[9px] sm:text-[10px] font-medium",
+                        chip.tone === "info" && "hidden sm:inline-flex",
+                        CHIP_TONE_CLASS[chip.tone]
+                    )}
+                >
+                    {chip.label}
+                </span>
+            ))}
+        </div>
+    );
+}
+
+function CardPrice({
+    showSale,
+    isSoldOut,
+    formattedPrice,
+    formattedOriginalPrice,
+    formattedSalePrice,
+}: {
+    showSale: boolean;
+    isSoldOut: boolean;
+    formattedPrice: string;
+    formattedOriginalPrice: string;
+    formattedSalePrice?: string | null;
+}) {
+    return (
+        <div className="mt-auto flex flex-wrap items-baseline gap-1 sm:gap-2 pt-0 sm:pt-1">
+            {showSale ? (
+                <>
+                    <span className="font-oswald text-base sm:text-lg font-bold tracking-[0.02em] text-[#1a1a1a] break-all">
+                        {formattedSalePrice}
+                    </span>
+                    <span className="font-montserrat text-xs text-[#8b7580] line-through break-all">
+                        {formattedOriginalPrice}
+                    </span>
+                </>
+            ) : (
+                <span
+                    className={cn(
+                        "font-oswald text-base sm:text-lg font-bold tracking-[0.02em] break-all",
+                        isSoldOut ? "text-[#8b7580]" : "text-[#1a1a1a]"
+                    )}
+                >
+                    {formattedPrice}
+                </span>
+            )}
+        </div>
+    );
+}
+
+function EmptyProductCard() {
+    return (
+        <div className="w-full max-w-[280px]">
+            <div className="bg-[#f5f5f5] aspect-3/4 w-full flex items-center justify-center flex-col relative overflow-hidden rounded-[0.85rem]">
+                <div className="font-oswald font-bold text-xl tracking-widest text-black/90">
+                    NO PRODUCT
+                </div>
+            </div>
+        </div>
+    );
+}
 
 export default function ProductCard({ product, href, onClick, compact }: ProductCardProps) {
     const validImages = product?.images.filter(Boolean) ?? [];
     const fallback = product ? resolveProductPlaceholder(product.category) : "";
-    const firstSrc = validImages[0] || fallback;
-
-    const [currentSrc, setCurrentSrc] = useState(firstSrc);
-    const [nextSrc, setNextSrc] = useState("");
-    const [phase, setPhase] = useState<AnimPhase>("idle");
-
-    const [activeImageIndex, setActiveImageIndex] = useState(0);
-
-    const imageIndexRef = useRef(0);
-    const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
-    const animTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-    const rafRef = useRef<number | null>(null);
-    const touchStartXRef = useRef<number | null>(null);
-    const touchStartYRef = useRef<number | null>(null);
-    const animDirRef = useRef<"left" | "right">("left");
+    const cycle = useImageCycle(validImages, validImages[0] || fallback);
 
     // Get centralized metadata
     const {
@@ -47,174 +295,24 @@ export default function ProductCard({ product, href, onClick, compact }: Product
         formattedSalePrice,
     } = useProductMetadata(product || {} as Product);
 
-    const discountDisplayInfo = useMemo(() => {
-        if (!hasDiscount || !product?.discount || product.discountedPrice === null || product.discountedPrice === undefined) {
-            return null;
-        }
+    const ribbon = useMemo(
+        () => (product ? getRibbon(product, isSoldOut, hasDiscount) : null),
+        [product, isSoldOut, hasDiscount]
+    );
+    const visibleChips = useMemo(
+        () => (product ? getOverlayChips(product, hasLowStock, metadataChips) : []),
+        [product, hasLowStock, metadataChips]
+    );
 
-        const discountType = product.discount.discount_type;
-        const rawValue = Math.max(0, Number(product.discount.discount_value) || 0);
-        const originalPrice = Math.max(0, Number(product.price) || 0);
-        const discountedPrice = Math.max(0, Number(product.discountedPrice) || 0);
-        const amountOff = Math.max(0, originalPrice - discountedPrice);
-        const effectivePercent = originalPrice > 0 ? (amountOff / originalPrice) * 100 : 0;
-
-        const formatNumber = (value: number) => {
-            if (Number.isInteger(value)) return value.toLocaleString();
-            return value.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 });
-        };
-
-        const formatPercent = (value: number) => `${Math.round(value)}%`;
-
-        const topRightLabel = discountType === "percent"
-            ? formatPercent(rawValue)
-            : discountType === "fixed_price"
-                ? formatPercent(effectivePercent)
-                : `-₱${formatNumber(rawValue)}`;
-
-        const codeDiscountLabel = discountType === "percent"
-            ? formatPercent(rawValue)
-            : formatPercent(effectivePercent);
-
-        return {
-            topRightLabel,
-            codeLabel: product.discount.discount_name
-                ? `${product.discount.discount_name} - ${codeDiscountLabel}`
-                : codeDiscountLabel,
-        };
-    }, [hasDiscount, product]);
-
-    const ribbon = useMemo(() => {
-        if (!product) return null;
-        if (isSoldOut) {
-            return { label: "Sold Out", bg: "#121212", text: "#ffffff" };
-        }
-        if (hasDiscount && discountDisplayInfo) {
-            const raw = discountDisplayInfo.topRightLabel;
-            const label = raw.startsWith("-") ? raw : `-${raw}`;
-            return { label, bg: "#c95f7b", text: "#ffffff" };
-        }
-        if (product.isNewArrival) {
-            return { label: "New", bg: "#E7A3B0", text: "#ffffff" };
-        }
-        return null;
-    }, [product, isSoldOut, hasDiscount, discountDisplayInfo]);
-
-    const overlayChips = useMemo(() => {
-        const chips: { label: string; tone: "neutral" | "info" | "warning" }[] = [];
-        if (product?.seasonName && product.seasonName.trim()) {
-            chips.push({ label: product.seasonName.trim(), tone: "info" });
-        }
-        if (hasLowStock && product) {
-            chips.push({ label: `${product.stock} Left`, tone: "warning" });
-        }
-        for (const chip of metadataChips) {
-            chips.push({ label: chip, tone: "neutral" });
-        }
-        return chips;
-    }, [product, hasLowStock, metadataChips]);
-
-    if (!product) {
-        return (
-            <div className="w-full max-w-[280px]">
-                <div className="bg-[#f5f5f5] aspect-3/4 w-full flex items-center justify-center flex-col relative overflow-hidden rounded-[0.85rem]">
-                    <div className="font-oswald font-bold text-xl tracking-widest text-black/90">
-                        NO PRODUCT
-                    </div>
-                </div>
-            </div>
-        );
-    }
-
-    const handleMouseEnter = () => {
-        if (validImages.length <= 1) return;
-        if (typeof window !== "undefined" && !window.matchMedia("(hover: hover) and (pointer: fine)").matches) return;
-        intervalRef.current = setInterval(() => {
-            imageIndexRef.current = (imageIndexRef.current + 1) % validImages.length;
-            const newSrc = validImages[imageIndexRef.current];
-
-            if (animTimeoutRef.current) clearTimeout(animTimeoutRef.current);
-            if (rafRef.current) cancelAnimationFrame(rafRef.current);
-
-            setNextSrc(newSrc);
-            setPhase("prepare");
-
-            rafRef.current = requestAnimationFrame(() => {
-                rafRef.current = requestAnimationFrame(() => {
-                    setPhase("animating");
-                    animTimeoutRef.current = setTimeout(() => {
-                        setCurrentSrc(newSrc);
-                        setNextSrc("");
-                        setPhase("idle");
-                    }, 440);
-                });
-            });
-        }, 1400);
-    };
-
-    const handleMouseLeave = () => {
-        if (intervalRef.current) clearInterval(intervalRef.current);
-        if (animTimeoutRef.current) clearTimeout(animTimeoutRef.current);
-        if (rafRef.current) cancelAnimationFrame(rafRef.current);
-        imageIndexRef.current = 0;
-        setActiveImageIndex(0);
-        setCurrentSrc(firstSrc);
-        setNextSrc("");
-        setPhase("idle");
-    };
-
-    const goToImage = (nextIndex: number, direction: "left" | "right") => {
-        if (validImages.length <= 1) return;
-        if (animTimeoutRef.current) clearTimeout(animTimeoutRef.current);
-        if (rafRef.current) cancelAnimationFrame(rafRef.current);
-        animDirRef.current = direction;
-        const newSrc = validImages[nextIndex];
-        imageIndexRef.current = nextIndex;
-        setActiveImageIndex(nextIndex);
-        setNextSrc(newSrc);
-        setPhase("prepare");
-        rafRef.current = requestAnimationFrame(() => {
-            rafRef.current = requestAnimationFrame(() => {
-                setPhase("animating");
-                animTimeoutRef.current = setTimeout(() => {
-                    setCurrentSrc(newSrc);
-                    setNextSrc("");
-                    setPhase("idle");
-                }, 440);
-            });
-        });
-    };
-
-    const handleTouchStart = (e: React.TouchEvent) => {
-        touchStartXRef.current = e.touches[0]?.clientX ?? null;
-        touchStartYRef.current = e.touches[0]?.clientY ?? null;
-    };
-
-    const handleTouchEnd = (e: React.TouchEvent) => {
-        if (touchStartXRef.current === null || touchStartYRef.current === null || validImages.length <= 1) return;
-        const deltaX = (e.changedTouches[0]?.clientX ?? 0) - touchStartXRef.current;
-        const deltaY = (e.changedTouches[0]?.clientY ?? 0) - touchStartYRef.current;
-        touchStartXRef.current = null;
-        touchStartYRef.current = null;
-        // Ignore if swipe is too short or clearly more vertical than horizontal
-        if (Math.abs(deltaX) < 30 || Math.abs(deltaX) < Math.abs(deltaY)) return;
-        const direction = deltaX < 0 ? "left" : "right";
-        const nextIndex = direction === "left"
-            ? (imageIndexRef.current + 1) % validImages.length
-            : (imageIndexRef.current - 1 + validImages.length) % validImages.length;
-        goToImage(nextIndex, direction);
-    };
-
-    // Keep chip count tight so the card stays compact and scannable.
-    const visibleChips = overlayChips.slice(0, 3);
+    if (!product) return <EmptyProductCard />;
 
     return (
         <a
             href={href}
             aria-label={`View details for ${product.name}`}
             onClick={(e) => { e.preventDefault(); onClick?.(); }}
-            onMouseEnter={handleMouseEnter}
-            onMouseLeave={handleMouseLeave}
+            onMouseEnter={cycle.handleMouseEnter}
+            onMouseLeave={cycle.handleMouseLeave}
             className="group block h-full w-full text-left focus-visible:outline-none focus-visible:[&>article]:ring-2 focus-visible:[&>article]:ring-[#E7A3B0] focus-visible:[&>article]:ring-offset-2"
         >
             <article
@@ -223,100 +321,18 @@ export default function ProductCard({ product, href, onClick, compact }: Product
                     "group-hover:-translate-y-1 group-hover:shadow-xl"
                 )}
             >
-                <div
-                    className={cn("relative overflow-hidden bg-[#f7eef1] select-none", compact ? "aspect-square sm:aspect-3/4" : "aspect-3/4")}
-                    onTouchStart={compact ? undefined : handleTouchStart}
-                    onTouchEnd={compact ? undefined : handleTouchEnd}
-                >
-                    <div
-                        className={cn(
-                            "absolute inset-0",
-                            phase === "animating" && "transition-transform duration-420 ease-in-out"
-                        )}
-                        style={{ transform: phase === "animating" ? `translateX(${animDirRef.current === "left" ? "-100%" : "100%"})` : "translateX(0)" }}
-                    >
-                        <Image
-                            src={currentSrc || fallback}
-                            alt={product.name}
-                            fill
-                            sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 20vw"
-                            draggable={false}
-                            className={cn(
-                                "object-cover transition-transform duration-500 group-hover:scale-105",
-                                isSoldOut ? "grayscale-[0.3]" : ""
-                            )}
-                        />
-                    </div>
-
-                    {phase !== "idle" && nextSrc && (
-                        <div
-                            className={cn(
-                                "absolute inset-0",
-                                phase === "animating" && "transition-transform duration-420 ease-in-out"
-                            )}
-                            style={{ transform: phase === "animating" ? "translateX(0)" : `translateX(${animDirRef.current === "left" ? "100%" : "-100%"})` }}
-                        >
-                            <Image
-                                src={nextSrc}
-                                alt={product.name}
-                                fill
-                                sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 20vw"
-                                className={cn(
-                                    "object-cover transition-transform duration-500 group-hover:scale-105",
-                                    isSoldOut ? "grayscale-[0.3]" : ""
-                                )}
-                            />
-                        </div>
-                    )}
-
-                    {ribbon && (
-                        <div
-                            className="absolute left-0 top-3 z-10 flex items-center justify-center rounded-r-[6px] px-2.5 py-1 shadow-[0_4px_12px_rgba(18,18,18,0.22)]"
-                            style={{ backgroundColor: ribbon.bg }}
-                            aria-label={ribbon.label}
-                        >
-                            <span
-                                className="font-oswald text-[11px] font-semibold uppercase tracking-[0.18em]"
-                                style={{ color: ribbon.text }}
-                            >
-                                {ribbon.label}
-                            </span>
-                        </div>
-                    )}
-
-                    {/* Dot indicators — collection grid only (not masonry), mobile only */}
-                    {validImages.length > 1 && !compact && (
-                        <div className="absolute bottom-2 left-0 right-0 flex justify-center gap-1 sm:hidden">
-                            {validImages.map((_, i) => (
-                                <div
-                                    key={i}
-                                    className={cn(
-                                        "h-1.5 rounded-full transition-all duration-200",
-                                        i === activeImageIndex ? "w-3 bg-white" : "w-1.5 bg-white/50"
-                                    )}
-                                />
-                            ))}
-                        </div>
-                    )}
-                </div>
+                <CardImageStage
+                    product={product}
+                    compact={compact}
+                    fallback={fallback}
+                    validImages={validImages}
+                    isSoldOut={isSoldOut}
+                    ribbon={ribbon}
+                    cycle={cycle}
+                />
 
                 <div className="flex flex-1 flex-col gap-1 p-2 sm:gap-2 sm:p-4">
-                    {/* Category · Brand line — single compact row */}
-                    <div className="flex items-center gap-2 text-[9px] sm:text-[10px] font-medium uppercase tracking-[0.14em] text-[#8b7580]">
-                        {/* Desktop: category label */}
-                        <span className="hidden sm:inline truncate font-montserrat">{categoryLabel}</span>
-                        {/* Desktop: separator + brand (only if different from category) */}
-                        {eyebrow && eyebrow !== categoryLabel && (
-                            <>
-                                <span className="hidden sm:inline text-[#c0929d]">·</span>
-                                <span className="hidden sm:inline truncate font-montserrat">{eyebrow}</span>
-                            </>
-                        )}
-                        {/* Mobile: brand only */}
-                        {eyebrow && (
-                            <span className="sm:hidden truncate font-montserrat">{eyebrow}</span>
-                        )}
-                    </div>
+                    <CardEyebrow categoryLabel={categoryLabel} eyebrow={eyebrow} />
 
                     <CardTitle
                         className="font-playfair-display text-xs sm:text-sm font-semibold leading-tight text-[#121212] truncate"
@@ -325,53 +341,15 @@ export default function ProductCard({ product, href, onClick, compact }: Product
                         {product.name}
                     </CardTitle>
 
-                    {visibleChips.length > 0 && (
-                        <div className="flex flex-wrap gap-1 sm:gap-1.5">
-                            {visibleChips.map((chip) => {
-                                const toneClass =
-                                    chip.tone === "info"
-                                        ? "border-[#b8daf0]/70 bg-[#eef7ff] text-[#2b6b93]"
-                                        : chip.tone === "warning"
-                                            ? "border-[#f2c98a]/60 bg-[#fff8ec] text-[#9a6a17]"
-                                            : "border-[#efdde1] bg-[#fff9fb] text-[#725c62]";
-                                return (
-                                    <span
-                                        key={`${chip.tone}-${chip.label}`}
-                                        className={cn(
-                                            "max-w-full truncate rounded-full border px-1.5 py-px sm:px-2 sm:py-0.5 font-montserrat text-[9px] sm:text-[10px] font-medium",
-                                            chip.tone === "info" && "hidden sm:inline-flex",
-                                            toneClass
-                                        )}
-                                    >
-                                        {chip.label}
-                                    </span>
-                                );
-                            })}
-                        </div>
-                    )}
+                    <CardChips chips={visibleChips} />
 
-                    {/* Price — bold + dark, optional strikethrough original */}
-                    <div className="mt-auto flex flex-wrap items-baseline gap-1 sm:gap-2 pt-0 sm:pt-1">
-                        {hasDiscount && !isSoldOut && formattedSalePrice ? (
-                            <>
-                                <span className="font-oswald text-base sm:text-lg font-bold tracking-[0.02em] text-[#1a1a1a] break-all">
-                                    {formattedSalePrice}
-                                </span>
-                                <span className="font-montserrat text-xs text-[#8b7580] line-through break-all">
-                                    {formattedOriginalPrice}
-                                </span>
-                            </>
-                        ) : (
-                            <span
-                                className={cn(
-                                    "font-oswald text-base sm:text-lg font-bold tracking-[0.02em] break-all",
-                                    isSoldOut ? "text-[#8b7580]" : "text-[#1a1a1a]"
-                                )}
-                            >
-                                {formattedPrice}
-                            </span>
-                        )}
-                    </div>
+                    <CardPrice
+                        showSale={Boolean(hasDiscount && !isSoldOut && formattedSalePrice)}
+                        isSoldOut={isSoldOut}
+                        formattedPrice={formattedPrice}
+                        formattedOriginalPrice={formattedOriginalPrice}
+                        formattedSalePrice={formattedSalePrice}
+                    />
                 </div>
             </article>
         </a>
