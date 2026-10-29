@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useEffect, useState, ReactNode } from "react";
+import { createContext, useContext, useEffect, useMemo, useState, ReactNode } from "react";
 import { User, Session } from "@supabase/supabase-js";
 import { createClient } from "../lib/supabase/browser";
 import { authHelper } from "../lib/auth/auth-helper";
@@ -28,25 +28,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
     const [loading, setLoading] = useState(true);
 
     async function fetchUserRole(userId: string) {
-        try {
-            const response = await fetch("/api/auth/profile", { cache: "no-store" });
-            if (!response.ok) {
-                setUserRole(null);
-                return;
-            }
-
-            const result = await response.json();
-            const role = result?.data?.role;
-
-            if (userId === result?.data?.userId && (role === "admin" || role === "employee")) {
-                setUserRole(role);
-                return;
-            }
-            setUserRole(null);
-        } catch (error) {
-            console.error("Error fetching user role:", error);
-            setUserRole(null);
-        }
+        setUserRole(await authHelper.getProfileRole(userId));
     }
 
     useEffect(() => {
@@ -111,8 +93,10 @@ export function UserProvider({ children }: { children: ReactNode }) {
         setUserRole(null);
     };
 
+    const value = useMemo(() => ({ user, userRole, loading, signOut }), [user, userRole, loading]);
+
     return (
-        <UserContext.Provider value={{ user, userRole, loading, signOut }}>
+        <UserContext.Provider value={value}>
             {children}
         </UserContext.Provider>
     );

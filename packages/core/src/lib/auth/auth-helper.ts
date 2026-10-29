@@ -175,6 +175,29 @@ export const authHelper = {
     },
 
     /**
+     * Looks up the signed-in user's role from the profile API.
+     * Returns null when the request fails or the profile belongs to a different user.
+     * @param userId - The id of the user whose role is expected.
+     */
+    async getProfileRole(userId: string): Promise<"admin" | "employee" | null> {
+        try {
+            const response = await fetch("/api/auth/profile", { cache: "no-store" });
+            if (!response.ok) return null;
+
+            const result = await response.json();
+            const role = result?.data?.role;
+
+            if (userId === result?.data?.userId && (role === "admin" || role === "employee")) {
+                return role;
+            }
+            return null;
+        } catch (error) {
+            console.error("Error fetching user role:", error);
+            return null;
+        }
+    },
+
+    /**
      * Sends a password reset email to the specified user email address.
      * @param email - The email address to send the reset link to.
      * @param redirectTo - The URL that the user will be redirected to after clicking the email link.
@@ -189,15 +212,15 @@ export const authHelper = {
                 body: JSON.stringify({ email, redirectTo }),
             });
 
-            const payload = await response.json().catch(() => ({}));
-
             if (!response.ok) {
+                const errorPayload = await response.json().catch(() => ({}));
                 return {
                     data: null,
-                    error: new Error(payload?.error || "Unable to send reset email."),
+                    error: new Error(errorPayload?.error || "Unable to send reset email."),
                 };
             }
 
+            const payload = await response.json().catch(() => ({}));
             return { data: payload?.data ?? null, error: null };
         } catch (error) {
             console.warn("Error Sending Reset Email: ", error);

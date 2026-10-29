@@ -9,7 +9,7 @@
  * to block accidental exits.
  */
 
-import React, { createContext, useContext, useState, useCallback } from "react";
+import React, { createContext, useContext, useState, useCallback, useMemo } from "react";
 
 /**
  * @interface UnsavedChangesContextType
@@ -46,8 +46,13 @@ export function UnsavedChangesProvider({ children }: { children: React.ReactNode
     });
   }, []);
 
+  const value = useMemo(
+    () => ({ isDirty, setIsDirty, unsavedMessage, setUnsavedMessage }),
+    [isDirty, setIsDirty, unsavedMessage]
+  );
+
   return (
-    <UnsavedChangesContext.Provider value={{ isDirty, setIsDirty, unsavedMessage, setUnsavedMessage }}>
+    <UnsavedChangesContext.Provider value={value}>
       {children}
     </UnsavedChangesContext.Provider>
   );
