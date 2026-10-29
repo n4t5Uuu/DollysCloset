@@ -1,6 +1,8 @@
 'use client';
 
-import { useEffect, useState, useCallback, useRef } from 'react';
+import { useEffect, useState, useRef } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { fetchJson } from '@/lib/fetch-json';
 import { Users, Eye, Zap } from 'lucide-react';
 
 const BRAND = '#E7A3B0';
@@ -14,28 +16,21 @@ interface RealtimeData {
 }
 
 export function RealtimeSection() {
-  const [data, setData] = useState<RealtimeData | null>(null);
   const [open, setOpen] = useState(false);
-  const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const ref = useRef<HTMLDivElement>(null);
 
-  const fetchRealtime = useCallback(async () => {
-    try {
-      const res = await fetch('/api/admin/analytics/realtime');
-      if (!res.ok) return;
-      const json = await res.json();
-      if (!json.error) {
-        setData(json);
-        setLastUpdated(new Date());
-      }
-    } catch { /* silently fail */ }
-  }, []);
-
-  useEffect(() => {
-    fetchRealtime();
-    const interval = setInterval(fetchRealtime, REFRESH_INTERVAL);
-    return () => clearInterval(interval);
-  }, [fetchRealtime]);
+  // Failed polls keep showing the last good numbers.
+  const { data: snapshot } = useQuery({
+    queryKey: ['analytics-realtime'],
+    queryFn: async () => {
+      const json = await fetchJson<RealtimeData & { error?: string }>('/api/admin/analytics/realtime');
+      if (json.error) throw new Error(json.error);
+      return { data: json, lastUpdated: new Date() };
+    },
+    refetchInterval: REFRESH_INTERVAL,
+  });
+  const data = snapshot?.data ?? null;
+  const lastUpdated = snapshot?.lastUpdated ?? null;
 
   // Close on outside click
   useEffect(() => {

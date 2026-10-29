@@ -1,6 +1,7 @@
 'use client';
 
-import { useEffect, useState, type ReactNode } from 'react';
+import { type ReactNode } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { fetchJson } from '@/lib/fetch-json';
 import { DailyTrafficChart, MonthlyTrafficChart } from './charts/TrafficCharts';
 import {
@@ -211,6 +212,14 @@ function DeviceBreakdownBody({ devices }: { devices: DeviceData[] }) {
   );
 }
 
+const analyticsUrl = (selectedMonth?: string) =>
+  selectedMonth && selectedMonth !== 'all'
+    ? `/api/admin/analytics?month=${selectedMonth}`
+    : '/api/admin/analytics';
+
+const toErrorMessage = (error: unknown) =>
+  error instanceof Error ? error.message : 'Unable to load analytics data right now.';
+
 export function AnalyticsDashboard({
   selectedMonth,
   refreshToken = 0,
@@ -218,46 +227,22 @@ export function AnalyticsDashboard({
   selectedMonth?: string;
   refreshToken?: number;
 }) {
-  const [data, setData] = useState<AnalyticsData | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [retryToken, setRetryToken] = useState(0);
-  const [lastUpdated, setLastUpdated] = useState<string | null>(null);
+  const url = analyticsUrl(selectedMonth);
 
-  useEffect(() => {
-    setLoading(true);
-    let isMounted = true;
-
-    const url =
-      selectedMonth && selectedMonth !== 'all'
-        ? `/api/admin/analytics?month=${selectedMonth}`
-        : '/api/admin/analytics';
-
-    fetchJson<AnalyticsData>(url, undefined, 'Analytics service is unavailable right now.')
-      .then((json) => {
-        if (!isMounted) return;
-
-        setError(null);
-        setData(json);
-        setLastUpdated(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
-      })
-      .catch((fetchError: unknown) => {
-        if (!isMounted) return;
-        setError(
-          fetchError instanceof Error ? fetchError.message : 'Unable to load analytics data right now.'
-        );
-        setData(null);
-      })
-      .finally(() => {
-        if (isMounted) {
-          setLoading(false);
-        }
-      });
-
-    return () => {
-      isMounted = false;
-    };
-  }, [refreshToken, retryToken, selectedMonth]);
+  const query = useQuery({
+    queryKey: ['analytics-overview', url, refreshToken],
+    queryFn: async () => {
+      const json = await fetchJson<AnalyticsData>(url, undefined, 'Analytics service is unavailable right now.');
+      return {
+        json,
+        lastUpdated: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      };
+    },
+  });
+  const loading = query.isPending;
+  const data = query.data?.json ?? null;
+  const lastUpdated = query.data?.lastUpdated ?? null;
+  const error = query.error ? toErrorMessage(query.error) : null;
 
   if (loading) {
     return (
@@ -282,7 +267,7 @@ export function AnalyticsDashboard({
             <code className="rounded bg-gray-100 px-1">.env.local</code> to enable analytics.
           </p>
         ) : null}
-        <Button type="button" variant="outline" onClick={() => setRetryToken((current) => current + 1)}>
+        <Button type="button" variant="outline" onClick={() => void query.refetch()}>
           <RefreshCcw className="mr-2 h-4 w-4" />
           Try again
         </Button>
