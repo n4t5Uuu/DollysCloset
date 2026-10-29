@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import InventoryManagement from "@/components/InventoryManagement";
 import { getServerAuthState } from "@/lib/auth/auth-server";
 import { redirect } from "next/navigation";
@@ -36,9 +37,11 @@ export default async function InventoryPage({ searchParams }: { searchParams: Pr
     }
 
     return (
-      <InventoryManagement
-        initialAvailabilityFilter={params.availability}
-        userRole={authState.role ?? undefined}
-      />
+      <Suspense>
+        <InventoryManagement
+          initialAvailabilityFilter={params.availability}
+          userRole={authState.role ?? undefined}
+        />
+      </Suspense>
     );
 }

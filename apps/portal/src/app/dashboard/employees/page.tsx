@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import EmployeesClient from "./EmployeesClient";
 import { getServerAuthState } from "@/lib/auth/auth-server";
 import { redirect } from "next/navigation";
@@ -18,5 +19,9 @@ export default async function EmployeesPage() {
     if (!authState.ok) redirect(buildLoginPath({ reason: authState.reason }));
     if (authState.role !== 'admin') redirect(buildUnauthorizedPath("access-denied"));
 
-    return <EmployeesClient />;
+    return (
+        <Suspense>
+            <EmployeesClient />
+        </Suspense>
+    );
 }

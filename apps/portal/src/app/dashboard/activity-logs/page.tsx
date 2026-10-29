@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import ActivityLogsClient from "./ActivityLogsClient";
 import { getServerAuthState } from "@/lib/auth/auth-server";
 import { redirect } from "next/navigation";
@@ -18,5 +19,9 @@ export default async function ActivityLogsPage() {
     if (!authState.ok) redirect(buildLoginPath({ reason: authState.reason }));
     if (authState.role !== 'admin') redirect(buildUnauthorizedPath("access-denied"));
 
-    return <ActivityLogsClient />;
+    return (
+        <Suspense>
+            <ActivityLogsClient />
+        </Suspense>
+    );
 }
