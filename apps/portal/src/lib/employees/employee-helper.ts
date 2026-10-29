@@ -1,6 +1,9 @@
 import { SupabaseClient } from "@supabase/supabase-js";
 import { createClient } from "@dollys-closet/core";
 import { Employee } from "@dollys-closet/core";
+import { mapWithConcurrency } from "@/lib/concurrency";
+
+const BULK_ACCOUNT_CONCURRENCY = 5;
 
 interface EmployeeAccountPayload {
     username: string;
@@ -310,23 +313,12 @@ export const employeeHelper = {
         const deletedIds: string[] = [];
         const failures: EmployeeDeleteFailure[] = [];
 
-        for (const employeeId of employeeIds) {
+        const outcomes = await mapWithConcurrency(employeeIds, BULK_ACCOUNT_CONCURRENCY, async (employeeId) => {
             const { data: employee, error: fetchError } = await this.getUserById(employeeId, supabase, { includeArchived: true });
 
-            if (fetchError) {
-                failures.push({ employeeId, reason: fetchError.message });
-                continue;
-            }
-
-            if (!employee) {
-                failures.push({ employeeId, reason: "Employee not found" });
-                continue;
-            }
-
-            if (employee.archived_at) {
-                deletedIds.push(employeeId);
-                continue;
-            }
+            if (fetchError) return { employeeId, reason: fetchError.message };
+            if (!employee) return { employeeId, reason: "Employee not found" };
+            if (employee.archived_at) return { employeeId };
 
             const { error: archiveError } = await supabase
                 .from("tbl_users")
@@ -335,12 +327,12 @@ export const employeeHelper = {
                 })
                 .eq("user_id", employeeId);
 
-            if (archiveError) {
-                failures.push({ employeeId, reason: archiveError.message });
-                continue;
-            }
+            return archiveError ? { employeeId, reason: archiveError.message } : { employeeId };
+        });
 
-            deletedIds.push(employeeId);
+        for (const { employeeId, reason } of outcomes) {
+            if (reason) failures.push({ employeeId, reason });
+            else deletedIds.push(employeeId);
         }
 
         return {
@@ -355,23 +347,12 @@ export const employeeHelper = {
         const restoredIds: string[] = [];
         const failures: EmployeeDeleteFailure[] = [];
 
-        for (const employeeId of employeeIds) {
+        const outcomes = await mapWithConcurrency(employeeIds, BULK_ACCOUNT_CONCURRENCY, async (employeeId) => {
             const { data: employee, error: fetchError } = await this.getUserById(employeeId, supabase, { includeArchived: true });
 
-            if (fetchError) {
-                failures.push({ employeeId, reason: fetchError.message });
-                continue;
-            }
-
-            if (!employee) {
-                failures.push({ employeeId, reason: "Employee not found" });
-                continue;
-            }
-
-            if (!employee.archived_at) {
-                restoredIds.push(employeeId);
-                continue;
-            }
+            if (fetchError) return { employeeId, reason: fetchError.message };
+            if (!employee) return { employeeId, reason: "Employee not found" };
+            if (!employee.archived_at) return { employeeId };
 
             const { error: restoreError } = await supabase
                 .from("tbl_users")
@@ -380,12 +361,12 @@ export const employeeHelper = {
                 })
                 .eq("user_id", employeeId);
 
-            if (restoreError) {
-                failures.push({ employeeId, reason: restoreError.message });
-                continue;
-            }
+            return restoreError ? { employeeId, reason: restoreError.message } : { employeeId };
+        });
 
-            restoredIds.push(employeeId);
+        for (const { employeeId, reason } of outcomes) {
+            if (reason) failures.push({ employeeId, reason });
+            else restoredIds.push(employeeId);
         }
 
         return {

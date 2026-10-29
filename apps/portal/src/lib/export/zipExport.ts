@@ -1,6 +1,9 @@
 import JSZip from "jszip";
 import { buildXlsxBuffer } from "./xlsxExport";
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { mapWithConcurrency } from "../concurrency";
+
+const IMAGE_DOWNLOAD_CONCURRENCY = 6;
 
 /** Extracts the relative object path from a product-images storage URL. */
 function extractStoragePath(imageUrl: string): string {
@@ -62,7 +65,7 @@ export async function buildProductArchiveZip(
   let failedCount = 0;
   const failedPaths: string[] = [];
 
-  for (const img of images) {
+  await mapWithConcurrency(images, IMAGE_DOWNLOAD_CONCURRENCY, async (img) => {
     const storagePath = extractStoragePath(img.image_url);
     const filename = pathFilename(storagePath);
     const zipPath = `images/${img.product_id}/${filename}`;
@@ -84,7 +87,7 @@ export async function buildProductArchiveZip(
       failedPaths.push(storagePath);
       console.warn(`ZIP export: failed to download image ${storagePath}:`, err);
     }
-  }
+  });
 
   // --- Build XLSX metadata ---
   const imageUrlMap = new Map<string, string[]>();
