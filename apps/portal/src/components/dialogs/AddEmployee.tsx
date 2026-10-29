@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useEffectEvent, useCallback, useMemo } from "react";
 import { Loader2, X, Check, Eye, EyeOff } from "lucide-react";
 import { 
     createClient,
@@ -20,6 +20,7 @@ import {
 import DiscardChangesDialog from "@/components/dialogs/DiscardChangesDialog";
 import { toast } from "sonner";
 import { AdminDialogHeader } from "./AdminDialogHeader";
+import { ModalBackdrop } from "@/components/dialogs/ModalBackdrop";
 import { AdminDialogFooter } from "./AdminDialogFooter";
 
 interface AddEmployeeProps {
@@ -31,15 +32,20 @@ interface AddEmployeeProps {
 
 const renderLengthMeta = (value: string, maxLength: number) => `${value.length}/${maxLength} characters`;
 
-export default function AddEmployee({ isOpen, onClose, employeeToEdit, onEmployeeSaved }: AddEmployeeProps) {
+/** Mounts the form only while open, keyed by employee, so opening or switching employee resets it. */
+export default function AddEmployee({ isOpen, ...props }: AddEmployeeProps) {
+    return isOpen ? <AddEmployeeForm key={props.employeeToEdit?.user_id ?? "new"} {...props} /> : null;
+}
+
+function AddEmployeeForm({ onClose, employeeToEdit, onEmployeeSaved }: Omit<AddEmployeeProps, "isOpen">) {
     const [actionLoading, setActionLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
-    const [formData, setFormData] = useState({
-        username: "",
-        first_name: "",
-        last_name: "",
+    const [formData, setFormData] = useState(() => ({
+        username: employeeToEdit ? sanitizeSingleLineInput(employeeToEdit.username, schemaExactLimits.userUsername) : "",
+        first_name: employeeToEdit ? sanitizeSingleLineInput(employeeToEdit.first_name, schemaExactLimits.userFirstName) : "",
+        last_name: employeeToEdit ? sanitizeSingleLineInput(employeeToEdit.last_name, schemaExactLimits.userLastName) : "",
         password: "",
-    });
+    }));
     const [showDiscardConfirm, setShowDiscardConfirm] = useState(false);
     const [showPassword, setShowPassword] = useState(false);
 
@@ -114,31 +120,17 @@ export default function AddEmployee({ isOpen, onClose, employeeToEdit, onEmploye
         }
     }, [hasUnsavedChanges, onClose]);
 
-    useEffect(() => {
-        if (isOpen) {
-            if (employeeToEdit) {
-                setFormData({
-                    username: sanitizeSingleLineInput(employeeToEdit.username, schemaExactLimits.userUsername),
-                    first_name: sanitizeSingleLineInput(employeeToEdit.first_name, schemaExactLimits.userFirstName),
-                    last_name: sanitizeSingleLineInput(employeeToEdit.last_name, schemaExactLimits.userLastName),
-                    password: "",
-                });
-            } else {
-                setFormData({ username: "", first_name: "", last_name: "", password: "" });
-            }
-            setError(null);
-        }
-    }, [isOpen, employeeToEdit]);
+    const closeOnEscape = useEffectEvent(() => {
+        if (!actionLoading) handleClose();
+    });
 
     useEffect(() => {
-        if (!isOpen) return;
-
         const originalOverflow = document.body.style.overflow;
         document.body.style.overflow = "hidden";
 
         const handleEscape = (event: KeyboardEvent) => {
-            if (event.key === "Escape" && !actionLoading) {
-                handleClose();
+            if (event.key === "Escape") {
+                closeOnEscape();
             }
         };
 
@@ -148,7 +140,7 @@ export default function AddEmployee({ isOpen, onClose, employeeToEdit, onEmploye
             document.body.style.overflow = originalOverflow;
             document.removeEventListener("keydown", handleEscape);
         };
-    }, [actionLoading, handleClose, isOpen]);
+    }, []);
 
     /**
      * Handles saving an employee to the backend.
@@ -232,15 +224,10 @@ export default function AddEmployee({ isOpen, onClose, employeeToEdit, onEmploye
         }
     };
 
-    if (!isOpen) return null;
-
     return (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-0 sm:p-4" onClick={(event) => {
-            if (event.target === event.currentTarget && !actionLoading) {
-                handleClose();
-            }
-        }}>
-            <Card className="bg-white w-full h-full max-h-full rounded-none shadow-none flex flex-col overflow-hidden p-0 gap-0 sm:max-w-lg sm:max-h-[90vh] sm:rounded-2xl sm:shadow-2xl" onClick={(event) => event.stopPropagation()}>
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-0 sm:p-4">
+            <ModalBackdrop onClick={() => { if (!actionLoading) handleClose(); }} />
+            <Card className="relative bg-white w-full h-full max-h-full rounded-none shadow-none flex flex-col overflow-hidden p-0 gap-0 sm:max-w-lg sm:max-h-[90vh] sm:rounded-2xl sm:shadow-2xl">
                 <AdminDialogHeader
                     title={employeeToEdit ? "Edit Employee" : "Add New Employee"}
                     description={employeeToEdit ? "Update employee details or reset the password if needed." : "Create an employee account with a valid email and temporary password."}
@@ -261,8 +248,8 @@ export default function AddEmployee({ isOpen, onClose, employeeToEdit, onEmploye
                         )}
 
                         <div className="space-y-2">
-                            <label className="block text-sm font-medium text-gray-700">Email Address <span className="text-red-500">*</span></label>
-                            <Input
+                            <label htmlFor="employee-form-email-address" className="block text-sm font-medium text-gray-700">Email Address <span className="text-red-500">*</span></label>
+                            <Input id="employee-form-email-address"
                                 type="email"
                                 value={formData.username}
                                 onChange={(e) => setFormData({ ...formData, username: sanitizeSingleLineInput(e.target.value, schemaExactLimits.userUsername) })}
@@ -287,8 +274,8 @@ export default function AddEmployee({ isOpen, onClose, employeeToEdit, onEmploye
 
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <div className="space-y-2">
-                                <label className="block text-sm font-medium text-gray-700">First Name <span className="text-red-500">*</span></label>
-                                <Input
+                                <label htmlFor="employee-form-first-name" className="block text-sm font-medium text-gray-700">First Name <span className="text-red-500">*</span></label>
+                                <Input id="employee-form-first-name"
                                     type="text"
                                     value={formData.first_name}
                                     onChange={(e) => setFormData({ ...formData, first_name: sanitizeSingleLineInput(e.target.value, schemaExactLimits.userFirstName) })}
@@ -309,8 +296,8 @@ export default function AddEmployee({ isOpen, onClose, employeeToEdit, onEmploye
                             </div>
 
                             <div className="space-y-2">
-                                <label className="block text-sm font-medium text-gray-700">Last Name <span className="text-red-500">*</span></label>
-                                <Input
+                                <label htmlFor="employee-form-last-name" className="block text-sm font-medium text-gray-700">Last Name <span className="text-red-500">*</span></label>
+                                <Input id="employee-form-last-name"
                                     type="text"
                                     value={formData.last_name}
                                     onChange={(e) => setFormData({ ...formData, last_name: sanitizeSingleLineInput(e.target.value, schemaExactLimits.userLastName) })}
@@ -343,11 +330,11 @@ export default function AddEmployee({ isOpen, onClose, employeeToEdit, onEmploye
                                 </div>
                             </div>
 
-                            <label className="block text-sm font-medium text-gray-700">
+                            <label htmlFor="employee-form-password" className="block text-sm font-medium text-gray-700">
                                 {employeeToEdit ? "New Password (optional)" : <>Password <span className="text-red-500">*</span></>}
                             </label>
                             <div className="relative group">
-                                <Input
+                                <Input id="employee-form-password"
                                     type={showPassword ? "text" : "password"}
                                     value={formData.password}
                                     onChange={(e) => setFormData({ ...formData, password: e.target.value })}
@@ -357,7 +344,7 @@ export default function AddEmployee({ isOpen, onClose, employeeToEdit, onEmploye
                                     aria-invalid={hasInvalidPassword}
                                     className="pr-10 border-gray-300 text-gray-900 bg-white placeholder:text-gray-400 focus:border-[#E7A3B0] focus:ring-[#E7A3B0]"
                                 />
-                                <button
+                                <button aria-label={showPassword ? "Hide password" : "Show password"}
                                     type="button"
                                     onClick={() => setShowPassword(!showPassword)}
                                     className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-[#E7A3B0] transition-colors focus:outline-none"

@@ -15,7 +15,7 @@ export default function BaseModalDialog({ children, onClose, title }: BaseModalD
         >
             <div className="sticky top-0 bg-white border-b border-gray-100 px-6 py-4 flex items-center justify-between rounded-t-2xl">
             <h2 className="text-xl font-bold text-gray-900">{title}</h2>
-            <button
+            <button aria-label="Close dialog"
                 onClick={onClose}
                 className="p-2 hover:bg-gray-100 rounded-lg transition-colors text-gray-500 hover:text-gray-700 cursor-pointer"
             >

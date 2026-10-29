@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useCallback, useEffect } from "react";
+import { useState, useRef, useCallback, useEffect, useEffectEvent } from "react";
 import {
   X,
   Upload,
@@ -13,6 +13,10 @@ import {
   HardDrive,
 } from "lucide-react";
 import * as XLSX from "xlsx";
+import { useQuery } from "@tanstack/react-query";
+import { fetchJson } from "@/lib/fetch-json";
+import { mapWithConcurrency } from "@/lib/concurrency";
+import { ModalBackdrop } from "@/components/dialogs/ModalBackdrop";
 import {
   createClient,
   compressImage,
@@ -267,13 +271,17 @@ function getRowImageNames(row: ParsedRow): string[] {
     .filter(Boolean);
 }
 
+const NO_PRODUCTS: Product[] = [];
+// Image compression is CPU and memory heavy, so keep only a few running at once.
+const IMAGE_COMPRESSION_CONCURRENCY = 3;
+
 type Step = "upload" | "preview" | "results";
 
 export default function BulkImportModal({
   isOpen,
   onClose,
   onImportComplete,
-  existingProducts = [],
+  existingProducts = NO_PRODUCTS,
 }: BulkImportModalProps) {
   const [step, setStep] = useState<Step>("upload");
   const [isDragging, setIsDragging] = useState(false);
@@ -284,34 +292,33 @@ export default function BulkImportModal({
   const [importProgress, setImportProgress] = useState(0);
   const [importSubLabel, setImportSubLabel] = useState("");
   const [importResult, setImportResult] = useState<ImportResult | null>(null);
-  const [currentSession, setCurrentSession] = useState<string | null>(null);
+  // Only read by handlers, so a ref avoids redundant renders.
+  const currentSessionRef = useRef<string | null>(null);
 
   // Image state
   const [droppedImages, setDroppedImages] = useState<Map<string, File>>(new Map());
-  const [compressedCache, setCompressedCache] = useState<Map<string, File>>(new Map());
+  // Mutated in place; only read by import handlers, so changes need not re-render.
+  const [compressedCache] = useState(() => new Map<string, File>());
   const [imageMatchError, setImageMatchError] = useState<string | null>(null);
   const [imageMatching, setImageMatching] = useState<ImageMatching | null>(null);
   const [isEstimating, setIsEstimating] = useState(false);
   const [estimatedUploadBytes, setEstimatedUploadBytes] = useState(0);
 
   // Storage quota
-  const [quota, setQuota] = useState<StorageQuota | null>(null);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const imageInputRef = useRef<HTMLInputElement>(null);
 
   // Fetch quota on open
-  useEffect(() => {
-    if (!isOpen) return;
-    fetch("/api/admin/storage/usage")
-      .then((r) => r.json())
-      .then((d) => {
-        if (typeof d.usedBytes === "number") {
-          setQuota({ usedBytes: d.usedBytes, budgetBytes: d.budgetBytes });
-        }
-      })
-      .catch(() => {});
-  }, [isOpen]);
+  const { data: usage } = useQuery({
+    queryKey: ["storage-usage"],
+    queryFn: () => fetchJson<{ usedBytes?: number; budgetBytes: number }>("/api/admin/storage/usage"),
+    enabled: isOpen,
+  });
+  const quota: StorageQuota | null =
+    typeof usage?.usedBytes === "number"
+      ? { usedBytes: usage.usedBytes, budgetBytes: usage.budgetBytes }
+      : null;
 
   // Compute image matching whenever validatedRows or droppedImages changes
   useEffect(() => {
@@ -351,7 +358,7 @@ export default function BulkImportModal({
   // Background compression of matched images whenever droppedImages or matching changes
   useEffect(() => {
     if (droppedImages.size === 0 || validatedRows.length === 0) {
-      setCompressedCache(new Map());
+      compressedCache.clear();
       setEstimatedUploadBytes(0);
       return;
     }
@@ -365,7 +372,7 @@ export default function BulkImportModal({
     }
 
     if (referencedNames.size === 0) {
-      setCompressedCache(new Map());
+      compressedCache.clear();
       setEstimatedUploadBytes(0);
       return;
     }
@@ -377,16 +384,16 @@ export default function BulkImportModal({
       const cache = new Map<string, File>();
       let totalBytes = 0;
 
-      for (const name of referencedNames) {
+      await mapWithConcurrency([...referencedNames], IMAGE_COMPRESSION_CONCURRENCY, async (name) => {
         if (cancelled) return;
-        const file = droppedImages.get(name)!;
-        const compressed = await compressImage(file);
+        const compressed = await compressImage(droppedImages.get(name)!);
         cache.set(name, compressed);
         totalBytes += compressed.size;
-      }
+      });
 
       if (!cancelled) {
-        setCompressedCache(cache);
+        compressedCache.clear();
+        for (const [name, file] of cache) compressedCache.set(name, file);
         setEstimatedUploadBytes(totalBytes);
         setIsEstimating(false);
       }
@@ -395,7 +402,7 @@ export default function BulkImportModal({
     return () => {
       cancelled = true;
     };
-  }, [droppedImages, validatedRows]);
+  }, [droppedImages, validatedRows, compressedCache]);
 
   const reset = () => {
     setStep("upload");
@@ -406,9 +413,9 @@ export default function BulkImportModal({
     setImportProgress(0);
     setImportSubLabel("");
     setImportResult(null);
-    setCurrentSession(null);
+    currentSessionRef.current = null;
     setDroppedImages(new Map());
-    setCompressedCache(new Map());
+    compressedCache.clear();
     setImageMatchError(null);
     setImageMatching(null);
     setIsEstimating(false);
@@ -421,19 +428,23 @@ export default function BulkImportModal({
     onClose();
   };
 
+  const closeOnEscape = useEffectEvent(() => {
+    if (!importing) handleClose();
+  });
+
   useEffect(() => {
     if (!isOpen) return;
     const originalOverflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";
     const handleEscape = (event: KeyboardEvent) => {
-      if (event.key === "Escape" && !importing) handleClose();
+      if (event.key === "Escape") closeOnEscape();
     };
     document.addEventListener("keydown", handleEscape);
     return () => {
       document.body.style.overflow = originalOverflow;
       document.removeEventListener("keydown", handleEscape);
     };
-  }, [importing, isOpen]);
+  }, [isOpen]);
 
   const processFile = useCallback(
     (file: File) => {
@@ -541,27 +552,30 @@ export default function BulkImportModal({
   };
 
   const handleRetryImages = async (failure: ImageFailure) => {
-    if (!currentSession) return;
+    const accessToken = currentSessionRef.current;
+    if (!accessToken) return;
     toast.info(`Retrying images for "${failure.name}"…`);
     const retried: string[] = [];
 
-    for (let j = 0; j < failure.imagesFailed.length; j++) {
-      const name = failure.imagesFailed[j].toLowerCase();
-      const fileToUpload = compressedCache.get(name) ?? droppedImages.get(name);
-      if (!fileToUpload) continue;
+    await Promise.all(
+      failure.imagesFailed.map(async (failedName, j) => {
+        const name = failedName.toLowerCase();
+        const fileToUpload = compressedCache.get(name) ?? droppedImages.get(name);
+        if (!fileToUpload) return;
 
-      try {
-        await uploadProductImageFile({
-          accessToken: currentSession,
-          displayOrder: j + 1,
-          file: fileToUpload,
-          isPrimary: j === 0,
-          productId: failure.productId,
-        });
-      } catch {
-        retried.push(name);
-      }
-    }
+        try {
+          await uploadProductImageFile({
+            accessToken,
+            displayOrder: j + 1,
+            file: fileToUpload,
+            isPrimary: j === 0,
+            productId: failure.productId,
+          });
+        } catch {
+          retried.push(name);
+        }
+      })
+    );
 
     if (retried.length === 0) {
       toast.success(`Images uploaded for "${failure.name}".`);
@@ -598,7 +612,7 @@ export default function BulkImportModal({
       setImporting(false);
       return;
     }
-    setCurrentSession(session.access_token);
+    currentSessionRef.current = session.access_token;
 
     let succeeded = 0;
     const errors: ImportResult["errors"] = [];
@@ -668,36 +682,36 @@ export default function BulkImportModal({
       if (productId) {
         const imageNames = getRowImageNames(row.raw);
 
-        const imagesFailed: string[] = [];
+        setImportSubLabel(
+          `Row ${i + 1} of ${validRows.length} — uploading ${imageNames.length} image(s)`,
+        );
 
-        for (let j = 0; j < imageNames.length; j++) {
-          const name = imageNames[j];
-          const fileToUpload = compressedCache.get(name) ?? droppedImages.get(name);
-          if (!fileToUpload) {
+        // Each image carries its own display order, so a product's images can upload together.
+        const uploadFailed = await Promise.all(
+          imageNames.map(async (name, j) => {
+            const fileToUpload = compressedCache.get(name) ?? droppedImages.get(name);
+            let failed = false;
+
+            if (fileToUpload) {
+              try {
+                await uploadProductImageFile({
+                  accessToken: session.access_token,
+                  displayOrder: j + 1,
+                  file: fileToUpload,
+                  isPrimary: j === 0,
+                  productId,
+                });
+              } catch {
+                failed = true;
+              }
+            }
+
             completedUnits++;
             setImportProgress(Math.round((completedUnits / totalUnits) * 100));
-            continue;
-          }
-
-          setImportSubLabel(
-            `Row ${i + 1} of ${validRows.length} — uploading image ${j + 1} of ${imageNames.length}`,
-          );
-
-          try {
-            await uploadProductImageFile({
-              accessToken: session.access_token,
-              displayOrder: j + 1,
-              file: fileToUpload,
-              isPrimary: j === 0,
-              productId,
-            });
-          } catch {
-            imagesFailed.push(imageNames[j]);
-          }
-
-          completedUnits++;
-          setImportProgress(Math.round((completedUnits / totalUnits) * 100));
-        }
+            return failed;
+          }),
+        );
+        const imagesFailed = imageNames.filter((_, j) => uploadFailed[j]);
 
         if (imagesFailed.length > 0) {
           partialImageFailures.push({
@@ -747,16 +761,9 @@ export default function BulkImportModal({
     estimatedUploadBytes > remainingBytes * 0.8;
 
   return (
-    <div
-      className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
-      onClick={(event) => {
-        if (event.target === event.currentTarget && !importing) handleClose();
-      }}
-    >
-      <Card
-        className="bg-white w-full max-w-4xl max-h-[90vh] flex flex-col p-0 overflow-hidden"
-        onClick={(event) => event.stopPropagation()}
-      >
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+      <ModalBackdrop onClick={() => { if (!importing) handleClose(); }} />
+      <Card className="relative bg-white w-full max-w-4xl max-h-[90vh] flex flex-col p-0 overflow-hidden">
         <CardHeader className="flex flex-row items-center justify-between border-b p-6 space-y-0 shrink-0">
           <div className="space-y-1">
             <div className="flex items-center gap-3">
@@ -792,7 +799,7 @@ export default function BulkImportModal({
               <Download className="w-4 h-4" />
               Download Template
             </a>
-            <button
+            <button aria-label="Close bulk import"
               type="button"
               onClick={handleClose}
               disabled={importing}
@@ -869,7 +876,15 @@ export default function BulkImportModal({
                 }}
                 onDragLeave={() => setIsDragging(false)}
                 onDrop={handleDrop}
+                role="button"
+                tabIndex={0}
                 onClick={() => fileInputRef.current?.click()}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    fileInputRef.current?.click();
+                  }
+                }}
                 className={`border-2 border-dashed rounded-xl p-12 flex flex-col items-center gap-3 cursor-pointer transition-colors ${
                   isDragging
                     ? "border-pink-400 bg-pink-50"
@@ -1287,8 +1302,8 @@ export default function BulkImportModal({
               {importResult.errors.length > 0 && (
                 <div className="bg-red-50 border border-red-200 rounded-lg p-3 space-y-1">
                   <p className="text-xs font-medium text-red-800">Failed rows:</p>
-                  {importResult.errors.map((err, i) => (
-                    <p key={i} className="text-xs text-red-700">
+                  {importResult.errors.map((err) => (
+                    <p key={`${err.row}-${err.reason}`} className="text-xs text-red-700">
                       Row {err.row} ({err.name}): {err.reason}
                     </p>
                   ))}
@@ -1300,9 +1315,9 @@ export default function BulkImportModal({
                   <p className="text-xs font-medium text-orange-800">
                     Products imported but some images failed — you can retry:
                   </p>
-                  {importResult.partialImageFailures.map((failure, i) => (
+                  {importResult.partialImageFailures.map((failure) => (
                     <div
-                      key={failure.productId || i}
+                      key={failure.productId || failure.row}
                       className="flex items-center justify-between gap-2"
                     >
                       <p className="text-xs text-orange-700">

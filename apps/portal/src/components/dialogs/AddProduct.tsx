@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo, useRef, useCallback } from "react";
+import { useState, useEffect, useMemo, useRef, useCallback, useEffectEvent } from "react";
 import { ChevronDown } from "lucide-react";
 import { 
     createClient,
@@ -33,14 +33,19 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@dollys-closet/ui";
+import { useQuery } from "@tanstack/react-query";
+import { fetchJson } from "@/lib/fetch-json";
 import ProductImageUpload from "@/components/product-image-upload";
 import ImageSelector from "@/components/image-selector";
 import CategoryCascadingSelect from "@/components/CategoryCascadingSelect";
 import { toast } from "sonner";
 import { AdminDialogHeader } from "./AdminDialogHeader";
+import { ModalBackdrop } from "@/components/dialogs/ModalBackdrop";
 import { AdminDialogFooter } from "./AdminDialogFooter";
 import DiscardChangesDialog from "@/components/dialogs/DiscardChangesDialog";
 
+const NO_PRODUCTS: Product[] = [];
+const NO_DISCOUNTS: ProductDiscount[] = [];
 const SIZE_OPTIONS = ["One Size", "Free Size", "XS", "S", "M", "L", "XL", "XXL"];
 const CONDITION_OPTIONS = ["New", "Like New", "Good", "Used", "Fair"];
 
@@ -82,6 +87,38 @@ const normalizeCategoryId = (value: unknown) => {
     return raw;
 };
 
+const buildInitialFormData = (productToEdit: Product | null | undefined, existingProducts: Product[]) => {
+    if (productToEdit) {
+        return {
+            product_name: sanitizeSingleLineInput(productToEdit.product_name, schemaExactLimits.productName),
+            category_id: normalizeCategoryId(productToEdit.category_id),
+            product_price: productToEdit.product_price.toString(),
+            product_brand: sanitizeSingleLineInput(productToEdit.product_brand, schemaExactLimits.productBrand),
+            product_description: sanitizeMultilineInput(productToEdit.product_description, PRODUCT_DESCRIPTION_LIMIT),
+            product_stock: productToEdit.product_stock.toString(),
+            product_condition: sanitizeSingleLineInput(productToEdit.product_condition || "", schemaExactLimits.productCondition),
+            size_label: sanitizeSingleLineInput(productToEdit.size_label || "", schemaExactLimits.productSizeLabel),
+            show_in_catalog: productToEdit.show_in_catalog,
+            season_id: String(productToEdit.season_id || ""),
+            image_id: productToEdit.image_id || "",
+        };
+    }
+
+    return {
+        product_name: "",
+        category_id: existingProducts.length > 0 ? normalizeCategoryId(existingProducts[0].category_id) : "",
+        product_price: "",
+        product_brand: "",
+        product_description: "",
+        product_stock: "1",
+        product_condition: "New",
+        size_label: "",
+        show_in_catalog: true,
+        season_id: "",
+        image_id: "",
+    };
+};
+
 /**
  * AddProduct Modal Component
  * 
@@ -94,38 +131,37 @@ const normalizeCategoryId = (value: unknown) => {
  * - Form Guard: Intercepts close attempts if unsaved changes are detected.
  * - Real-time Validation: Disables save if required fields (Name, Category, Price) are missing.
  */
-export default function AddProduct({ isOpen, onClose, categories, productToEdit, onProductSaved, existingProducts = [], discounts = [] }: AddProductProps) {
+/** Mounts the form only while open, keyed by product, so opening or switching product resets it. */
+export default function AddProduct({ isOpen, ...props }: AddProductProps) {
+    return isOpen ? <AddProductForm key={props.productToEdit?.product_id ?? "new"} {...props} /> : null;
+}
+
+function AddProductForm({ onClose, categories, productToEdit, onProductSaved, existingProducts = NO_PRODUCTS, discounts = NO_DISCOUNTS }: Omit<AddProductProps, "isOpen">) {
     const [actionLoading, setActionLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [stagedFiles, setStagedFiles] = useState<File[]>([]);
+    const editingProductId = productToEdit?.product_id;
     const [productImages, setProductImages] = useState<ProductImage[]>([]);
     const [sizeDropdownOpen, setSizeDropdownOpen] = useState(false);
     const sizeDropdownRef = useRef<HTMLDivElement>(null);
     const [conditionDropdownOpen, setConditionDropdownOpen] = useState(false);
     const conditionDropdownRef = useRef<HTMLDivElement>(null);
-    const [discountEnabled, setDiscountEnabled] = useState(false);
-    const [selectedDiscountId, setSelectedDiscountId] = useState("");
+    const [discountEnabled, setDiscountEnabled] = useState(() => Boolean(productToEdit?.discount));
+    const [selectedDiscountId, setSelectedDiscountId] = useState(() => String(productToEdit?.discount?.id || ""));
     const [discountSearch, setDiscountSearch] = useState("");
     const [discountDropdownOpen, setDiscountDropdownOpen] = useState(false);
     const discountDropdownRef = useRef<HTMLDivElement>(null);
     const discountDropdownMobileRef = useRef<HTMLDivElement>(null);
-    const [seasons, setSeasons] = useState<Season[]>([]);
-    const [loadingSeasons, setLoadingSeasons] = useState(false);
+    const { data: seasons = [], isLoading: loadingSeasons } = useQuery({
+        queryKey: ["seasons"],
+        queryFn: async () => {
+            const result = await fetchJson<{ data?: Season[] }>("/api/admin/seasons", { cache: "no-store" }, "Failed to fetch seasons");
+            return result.data || [];
+        },
+    });
 
     const [showDiscardConfirm, setShowDiscardConfirm] = useState(false);
-    const [formData, setFormData] = useState({
-        product_name: "",
-        category_id: "",
-        product_price: "",
-        product_brand: "",
-        product_description: "",
-        product_stock: "1",
-        product_condition: "",
-        size_label: "",
-        show_in_catalog: true,
-        season_id: "",
-        image_id: "",
-    });
+    const [formData, setFormData] = useState(() => buildInitialFormData(productToEdit, existingProducts));
 
     const selectedDiscount = useMemo(
         () => discounts.find((discount) => String(discount.id) === selectedDiscountId) || null,
@@ -277,15 +313,17 @@ export default function AddProduct({ isOpen, onClose, categories, productToEdit,
         }
     };
 
-    useEffect(() => {
-        if (!isOpen) return;
+    const closeOnEscape = useEffectEvent(() => {
+        if (!actionLoading) handleClose();
+    });
 
+    useEffect(() => {
         const originalOverflow = document.body.style.overflow;
         document.body.style.overflow = "hidden";
 
         const handleEscape = (event: KeyboardEvent) => {
-            if (event.key === "Escape" && !actionLoading) {
-                handleClose();
+            if (event.key === "Escape") {
+                closeOnEscape();
             }
         };
 
@@ -295,111 +333,29 @@ export default function AddProduct({ isOpen, onClose, categories, productToEdit,
             document.body.style.overflow = originalOverflow;
             document.removeEventListener("keydown", handleEscape);
         };
-    }, [actionLoading, handleClose, isOpen]);
+    }, []);
 
-    useEffect(() => {
-        if (isOpen) {
-            if (productToEdit) {
-                setError(null);
-                setFormData({
-                    product_name: sanitizeSingleLineInput(productToEdit.product_name, schemaExactLimits.productName),
-                    category_id: normalizeCategoryId(productToEdit.category_id),
-                    product_price: productToEdit.product_price.toString(),
-                    product_brand: sanitizeSingleLineInput(productToEdit.product_brand, schemaExactLimits.productBrand),
-                    product_description: sanitizeMultilineInput(productToEdit.product_description, PRODUCT_DESCRIPTION_LIMIT),
-                    product_stock: productToEdit.product_stock.toString(),
-                    product_condition: sanitizeSingleLineInput(productToEdit.product_condition || "", schemaExactLimits.productCondition),
-                    size_label: sanitizeSingleLineInput(productToEdit.size_label || "", schemaExactLimits.productSizeLabel),
-                    show_in_catalog: productToEdit.show_in_catalog,
-                    season_id: String(productToEdit.season_id || ""),
-                    image_id: productToEdit.image_id || "",
-                });
-                setDiscountEnabled(Boolean(productToEdit.discount));
-                setSelectedDiscountId(String(productToEdit.discount?.id || ""));
-                fetchProductImages(productToEdit.product_id);
-            } else {
-                resetForm();
-                setDiscountEnabled(false);
-                setSelectedDiscountId("");
-            }
-        }
-    }, [isOpen, productToEdit]);
+    // Keep the primary image selection valid as images are added, removed or reordered.
+    const resolvedImageId = useMemo(() => {
+        if (!productToEdit) return formData.image_id;
 
-    useEffect(() => {
-        if (!productToEdit) return;
+        const availableIds = new Set(productImages.map((image) => String(image.image_id)));
+        const currentImageId = String(formData.image_id || "");
+        if (currentImageId && availableIds.has(currentImageId)) return formData.image_id;
 
-        setFormData((prev) => {
-            const availableIds = new Set(productImages.map((image) => String(image.image_id)));
-            const currentImageId = String(prev.image_id || "");
-
-            if (currentImageId && availableIds.has(currentImageId)) {
-                return prev;
-            }
-
-            const fallbackImageId =
-                productImages.find((image) => image.is_primary)?.image_id ||
-                productImages[0]?.image_id ||
-                "";
-
-            return {
-                ...prev,
-                image_id: fallbackImageId ? String(fallbackImageId) : "",
-            };
-        });
-    }, [productImages, productToEdit]);
-
-    const resetForm = () => {
-        const lastCategoryId = existingProducts.length > 0
-            ? normalizeCategoryId(existingProducts[0].category_id)
-            : "";
-        setFormData({
-            product_name: "",
-            category_id: lastCategoryId,
-            product_price: "",
-            product_brand: "",
-            product_description: "",
-            product_stock: "1",
-            product_condition: "New",
-            size_label: "",
-            show_in_catalog: true,
-            season_id: "",
-            image_id: "",
-        });
-        setDiscountEnabled(false);
-        setSelectedDiscountId("");
-        setDiscountSearch("");
-        setStagedFiles([]);
-        setProductImages([]);
-        setError(null);
-    };
-
-    useEffect(() => {
-        if (!isOpen) return;
-
-        const fetchSeasons = async () => {
-            setLoadingSeasons(true);
-            try {
-                const response = await fetch("/api/admin/seasons", { cache: "no-store" });
-                const result = await response.json();
-                if (!response.ok) throw new Error(result.error || "Failed to fetch seasons");
-                setSeasons(result.data || []);
-            } catch (err) {
-                console.error("Failed to load seasons:", err);
-                setSeasons([]);
-            } finally {
-                setLoadingSeasons(false);
-            }
-        };
-
-        fetchSeasons();
-    }, [isOpen]);
+        const fallbackImageId =
+            productImages.find((image) => image.is_primary)?.image_id ||
+            productImages[0]?.image_id ||
+            "";
+        return fallbackImageId ? String(fallbackImageId) : "";
+    }, [formData.image_id, productImages, productToEdit]);
 
     /**
      * Fetches product images from the backend for a specific product.
      * Hits the /api/admin/images endpoint and stores the images in state.
      * @param productId - The unique identifier of the product.
      */
-    const fetchProductImages = async (productId: string) => {
+    const fetchProductImages = useCallback(async (productId: string) => {
         try {
             const response = await fetch(`/api/admin/images?product_id=${productId}`);
             if (response.ok) {
@@ -409,7 +365,11 @@ export default function AddProduct({ isOpen, onClose, categories, productToEdit,
         } catch (err) {
             console.error('Error fetching images:', err);
         }
-    };
+    }, []);
+
+    useEffect(() => {
+        if (editingProductId) fetchProductImages(editingProductId);
+    }, [editingProductId, fetchProductImages]);
 
     const addStagedFiles = (files: File[]) => {
         setStagedFiles((prev) => [...prev, ...files].slice(0, 5));
@@ -431,20 +391,23 @@ export default function AddProduct({ isOpen, onClose, categories, productToEdit,
 
         const failedFiles: string[] = [];
 
-        for (const [index, file] of stagedFiles.entries()) {
-            try {
-                await uploadProductImageFile({
-                    accessToken: session.access_token,
-                    displayOrder: index + 1,
-                    file,
-                    isPrimary: index === 0,
-                    productId,
-                });
-            } catch (err) {
-                console.error("Upload error for:", file.name, err);
-                failedFiles.push(file.name);
-            }
-        }
+        // Each file carries its own display order, so uploads can run together.
+        await Promise.all(
+            stagedFiles.map(async (file, index) => {
+                try {
+                    await uploadProductImageFile({
+                        accessToken: session.access_token,
+                        displayOrder: index + 1,
+                        file,
+                        isPrimary: index === 0,
+                        productId,
+                    });
+                } catch (err) {
+                    console.error("Upload error for:", file.name, err);
+                    failedFiles.push(file.name);
+                }
+            })
+        );
 
         setStagedFiles([]);
 
@@ -535,7 +498,7 @@ export default function AddProduct({ isOpen, onClose, categories, productToEdit,
                     product_condition: normalizedCondition,
                     size_label: normalizedSizeLabel,
                     show_in_catalog: formData.show_in_catalog,
-                    image_id: formData.image_id || null,
+                    image_id: resolvedImageId || null,
                     discount_id: discountEnabled ? selectedDiscountId || null : null,
                     season_id: formData.season_id || null,
                 })
@@ -572,15 +535,10 @@ export default function AddProduct({ isOpen, onClose, categories, productToEdit,
         }
     };
 
-    if (!isOpen) return null;
-
     return (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-0 sm:p-4" onClick={(event) => {
-            if (event.target === event.currentTarget && !actionLoading) {
-                handleClose();
-            }
-        }}>
-            <Card className="bg-white w-full h-full max-h-full rounded-none shadow-none flex flex-col overflow-hidden p-0 gap-0 sm:max-w-2xl sm:max-h-[90vh] sm:rounded-2xl sm:shadow-2xl md:gap-6" onClick={(event) => event.stopPropagation()}>
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-0 sm:p-4">
+            <ModalBackdrop onClick={() => { if (!actionLoading) handleClose(); }} />
+            <Card className="relative bg-white w-full h-full max-h-full rounded-none shadow-none flex flex-col overflow-hidden p-0 gap-0 sm:max-w-2xl sm:max-h-[90vh] sm:rounded-2xl sm:shadow-2xl md:gap-6">
                 <AdminDialogHeader 
                     title={productToEdit ? "Edit Product" : "Add New Product"}
                     description={productToEdit ? "Update details for this curated piece." : "Add a new curator pick to your boutique's collection."}
@@ -624,8 +582,8 @@ export default function AddProduct({ isOpen, onClose, categories, productToEdit,
                         </div>
 
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">Product Name <span className="text-red-500">*</span></label>
-                            <Input
+                            <label htmlFor="product-form-product-name" className="block text-sm font-medium text-gray-700 mb-2">Product Name <span className="text-red-500">*</span></label>
+                            <Input id="product-form-product-name"
                                 placeholder="Enter product name"
                                 value={formData.product_name}
                                 onChange={(e) => setFormData({ ...formData, product_name: sanitizeSingleLineInput(e.target.value, schemaExactLimits.productName) })}
@@ -643,8 +601,8 @@ export default function AddProduct({ isOpen, onClose, categories, productToEdit,
                         </div>
 
                         <div className="hidden md:block">
-                            <label className="block text-sm font-medium text-gray-700 mb-2">Brand</label>
-                            <Input
+                            <label htmlFor="product-form-brand-1" className="block text-sm font-medium text-gray-700 mb-2">Brand</label>
+                            <Input id="product-form-brand-1"
                                 placeholder="e.g., Gucci"
                                 value={formData.product_brand}
                                 onChange={(e) => setFormData({ ...formData, product_brand: sanitizeSingleLineInput(e.target.value, schemaExactLimits.productBrand) })}
@@ -660,8 +618,8 @@ export default function AddProduct({ isOpen, onClose, categories, productToEdit,
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-2">Category <span className="text-red-500">*</span></label>
-                                <CategoryCascadingSelect
+                                <label htmlFor="product-form-category" className="block text-sm font-medium text-gray-700 mb-2">Category <span className="text-red-500">*</span></label>
+                                <CategoryCascadingSelect id="product-form-category"
                                     categories={categories}
                                     value={formData.category_id}
                                     onValueChange={(value) => setFormData({ ...formData, category_id: normalizeCategoryId(value) })}
@@ -674,8 +632,8 @@ export default function AddProduct({ isOpen, onClose, categories, productToEdit,
 
                             {/* Desktop-only: Price next to Category */}
                             <div className="hidden md:block">
-                                <label className="block text-sm font-medium text-gray-700 mb-2">Price <span className="text-red-500">*</span></label>
-                                <Input
+                                <label htmlFor="product-form-price-1" className="block text-sm font-medium text-gray-700 mb-2">Price <span className="text-red-500">*</span></label>
+                                <Input id="product-form-price-1"
                                     type="number"
                                     min="0"
                                     max={String(PRODUCT_PRICE_LIMIT)}
@@ -705,8 +663,8 @@ export default function AddProduct({ isOpen, onClose, categories, productToEdit,
                             {/* Mobile-only: Price + Stock side by side */}
                             <div className="col-span-full md:hidden grid grid-cols-2 gap-3">
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-2">Price <span className="text-red-500">*</span></label>
-                                    <Input
+                                    <label htmlFor="product-form-price-2" className="block text-sm font-medium text-gray-700 mb-2">Price <span className="text-red-500">*</span></label>
+                                    <Input id="product-form-price-2"
                                         type="number"
                                         min="0"
                                         step="0.01"
@@ -728,8 +686,8 @@ export default function AddProduct({ isOpen, onClose, categories, productToEdit,
                                     />
                                 </div>
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-2">Stock</label>
-                                    <Input
+                                    <label htmlFor="product-form-stock-1" className="block text-sm font-medium text-gray-700 mb-2">Stock</label>
+                                    <Input id="product-form-stock-1"
                                         type="number"
                                         min="0"
                                         placeholder="0"
@@ -758,10 +716,10 @@ export default function AddProduct({ isOpen, onClose, categories, productToEdit,
 
                             <div className="grid grid-cols-2 gap-3">
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-2">Size Label</label>
+                                    <label htmlFor="product-form-size-label" className="block text-sm font-medium text-gray-700 mb-2">Size Label</label>
                                     <div className="relative" ref={sizeDropdownRef}>
                                         <div className="flex h-9 w-full rounded-md bg-white" style={{ border: '1px solid #101722' }}>
-                                            <input
+                                            <input id="product-form-size-label"
                                                 value={formData.size_label}
                                                 onChange={(e) => {
                                                     setFormData({
@@ -813,10 +771,10 @@ export default function AddProduct({ isOpen, onClose, categories, productToEdit,
                                 </div>
 
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-2">Condition</label>
+                                    <label htmlFor="product-form-condition" className="block text-sm font-medium text-gray-700 mb-2">Condition</label>
                                     <div className="relative" ref={conditionDropdownRef}>
                                         <div className="flex h-9 w-full rounded-md bg-white" style={{ border: '1px solid #101722' }}>
-                                            <input
+                                            <input id="product-form-condition"
                                                 value={formData.product_condition}
                                                 onChange={(e) => {
                                                     setFormData({ ...formData, product_condition: sanitizeSingleLineInput(e.target.value, schemaExactLimits.productCondition) });
@@ -866,8 +824,8 @@ export default function AddProduct({ isOpen, onClose, categories, productToEdit,
                             </div>
 
                             <div className="md:hidden">
-                                <label className="block text-sm font-medium text-gray-700 mb-2">Brand</label>
-                                <Input
+                                <label htmlFor="product-form-brand-2" className="block text-sm font-medium text-gray-700 mb-2">Brand</label>
+                                <Input id="product-form-brand-2"
                                     placeholder="e.g., Gucci"
                                     value={formData.product_brand}
                                     onChange={(e) => setFormData({ ...formData, product_brand: sanitizeSingleLineInput(e.target.value, schemaExactLimits.productBrand) })}
@@ -883,12 +841,12 @@ export default function AddProduct({ isOpen, onClose, categories, productToEdit,
 
                             {/* Desktop-only: Season (on mobile it moves to the bottom) */}
                             <div className="hidden md:block">
-                                <label className="block text-sm font-medium text-gray-700 mb-2">Season</label>
+                                <label htmlFor="product-form-season-1" className="block text-sm font-medium text-gray-700 mb-2">Season</label>
                                 <Select
                                     value={formData.season_id || "none"}
                                     onValueChange={(value) => setFormData({ ...formData, season_id: value === "none" ? "" : value })}
                                 >
-                                    <SelectTrigger className="border-gray-300 bg-white text-gray-900">
+                                    <SelectTrigger id="product-form-season-1" className="border-gray-300 bg-white text-gray-900">
                                         <SelectValue placeholder={loadingSeasons ? "Loading seasons..." : "No season"} />
                                     </SelectTrigger>
                                     <SelectContent>
@@ -930,10 +888,10 @@ export default function AddProduct({ isOpen, onClose, categories, productToEdit,
                             {discountEnabled && (
                                 <div className="space-y-3 pl-7">
                                     <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-2">Discount Code</label>
+                                        <label htmlFor="product-form-discount-code-1" className="block text-sm font-medium text-gray-700 mb-2">Discount Code</label>
                                         <div className="relative" ref={discountDropdownRef}>
                                             <div className="flex items-center border border-gray-300 rounded-md bg-white overflow-hidden focus-within:ring-2 focus-within:ring-pink-300 focus-within:border-pink-300">
-                                                <input
+                                                <input id="product-form-discount-code-1"
                                                     type="text"
                                                     value={discountDropdownOpen ? discountSearch : (selectedDiscount?.discount_name || "")}
                                                     placeholder={discounts.length > 0 ? "Search discount..." : "No discounts created yet"}
@@ -985,7 +943,7 @@ export default function AddProduct({ isOpen, onClose, categories, productToEdit,
                                                     : selectedDiscount.discount_type === "fixed_price"
                                                         ? `Final price ₱${selectedDiscount.discount_value.toFixed(2)}`
                                                         : `₱${selectedDiscount.discount_value.toFixed(2)} off`}
-                                                {selectedDiscount.ends_at ? ` • Ends ${new Date(selectedDiscount.ends_at).toLocaleString()}` : ""}
+                                                {selectedDiscount.ends_at ? ` • Ends ${new Date(selectedDiscount.ends_at).toLocaleString("en-US", { timeZone: "Asia/Manila" })}` : ""}
                                             </p>
                                             {previewDiscountedPrice !== null && (
                                                 <p className="mt-1 text-xs font-medium text-[#b96d7d]">
@@ -999,8 +957,8 @@ export default function AddProduct({ isOpen, onClose, categories, productToEdit,
                         </div>
 
                         <div className="hidden md:block">
-                            <label className="block text-sm font-medium text-gray-700 mb-2">Stock</label>
-                            <Input
+                            <label htmlFor="product-form-stock-2" className="block text-sm font-medium text-gray-700 mb-2">Stock</label>
+                            <Input id="product-form-stock-2"
                                 type="number"
                                 min="0"
                                 placeholder="0"
@@ -1059,8 +1017,8 @@ export default function AddProduct({ isOpen, onClose, categories, productToEdit,
                         </div>
 
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">Description</label>
-                            <Textarea
+                            <label htmlFor="product-form-description" className="block text-sm font-medium text-gray-700 mb-2">Description</label>
+                            <Textarea id="product-form-description"
                                 placeholder="Enter product description"
                                 value={formData.product_description}
                                 onChange={(e) => setFormData({ ...formData, product_description: sanitizeMultilineInput(e.target.value, PRODUCT_DESCRIPTION_LIMIT) })}
@@ -1092,12 +1050,12 @@ export default function AddProduct({ isOpen, onClose, categories, productToEdit,
 
                         {/* Mobile-only: Season at bottom */}
                         <div className="md:hidden">
-                            <label className="block text-sm font-medium text-gray-700 mb-2">Season</label>
+                            <label htmlFor="product-form-season-2" className="block text-sm font-medium text-gray-700 mb-2">Season</label>
                             <Select
                                 value={formData.season_id || "none"}
                                 onValueChange={(value) => setFormData({ ...formData, season_id: value === "none" ? "" : value })}
                             >
-                                <SelectTrigger className="border-gray-300 bg-white text-gray-900">
+                                <SelectTrigger id="product-form-season-2" className="border-gray-300 bg-white text-gray-900">
                                     <SelectValue placeholder={loadingSeasons ? "Loading seasons..." : "No season"} />
                                 </SelectTrigger>
                                 <SelectContent>
@@ -1131,10 +1089,10 @@ export default function AddProduct({ isOpen, onClose, categories, productToEdit,
                             {discountEnabled && (
                                 <div className="space-y-3 pl-7">
                                     <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-2">Discount Code</label>
+                                        <label htmlFor="product-form-discount-code-2" className="block text-sm font-medium text-gray-700 mb-2">Discount Code</label>
                                         <div className="relative" ref={discountDropdownMobileRef}>
                                             <div className="flex items-center border border-gray-300 rounded-md bg-white overflow-hidden focus-within:ring-2 focus-within:ring-pink-300 focus-within:border-pink-300">
-                                                <input
+                                                <input id="product-form-discount-code-2"
                                                     type="text"
                                                     value={discountDropdownOpen ? discountSearch : (selectedDiscount?.discount_name || "")}
                                                     placeholder={discounts.length > 0 ? "Search discount..." : "No discounts created yet"}
@@ -1186,7 +1144,7 @@ export default function AddProduct({ isOpen, onClose, categories, productToEdit,
                                                     : selectedDiscount.discount_type === "fixed_price"
                                                         ? `Final price ₱${selectedDiscount.discount_value.toFixed(2)}`
                                                         : `₱${selectedDiscount.discount_value.toFixed(2)} off`}
-                                                {selectedDiscount.ends_at ? ` • Ends ${new Date(selectedDiscount.ends_at).toLocaleString()}` : ""}
+                                                {selectedDiscount.ends_at ? ` • Ends ${new Date(selectedDiscount.ends_at).toLocaleString("en-US", { timeZone: "Asia/Manila" })}` : ""}
                                             </p>
                                             {previewDiscountedPrice !== null && (
                                                 <p className="mt-1 text-xs font-medium text-[#b96d7d]">

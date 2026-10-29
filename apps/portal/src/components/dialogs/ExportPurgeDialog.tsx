@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useState } from "react";
 import { AlertTriangle, Download, Trash2, X } from "lucide-react";
 import { Button } from "@dollys-closet/ui";
 
@@ -44,8 +44,12 @@ const FORMAT_LABELS: Record<ExportPurgeFormat, string> = {
   zip: "ZIP",
 };
 
-export function ExportPurgeDialog({
-  open,
+/** Mounts the dialog body only while open so every close resets its state. */
+export function ExportPurgeDialog({ open, ...props }: ExportPurgeDialogProps) {
+  return open ? <ExportPurgeDialogBody {...props} /> : null;
+}
+
+function ExportPurgeDialogBody({
   onClose,
   title,
   description,
@@ -57,10 +61,11 @@ export function ExportPurgeDialog({
   onDownload,
   onPurge,
   onPurgeSuccess,
-}: ExportPurgeDialogProps) {
+}: Omit<ExportPurgeDialogProps, "open">) {
   const [mode, setMode] = useState<PurgeMode>("preset");
   const [presetDays, setPresetDays] = useState<30 | 90 | 180>(90);
   const [customDate, setCustomDate] = useState("");
+  const [today] = useState(() => new Date().toISOString().slice(0, 10));
   const [format, setFormat] = useState<ExportPurgeFormat>(defaultFormat);
 
   const [previewCount, setPreviewCount] = useState<number | null>(null);
@@ -83,21 +88,10 @@ export function ExportPurgeDialog({
   }, []);
 
   // Reset dependent state whenever the cutoff selection changes.
-  useEffect(() => {
-    if (!open) return;
+  const updateCutoff = (applyChange: () => void) => {
+    applyChange();
     resetState();
-  }, [open, mode, presetDays, customDate, resetState]);
-
-  // Full reset on close.
-  useEffect(() => {
-    if (!open) {
-      setMode("preset");
-      setPresetDays(90);
-      setCustomDate("");
-      setFormat(defaultFormat);
-      resetState();
-    }
-  }, [open, defaultFormat, resetState]);
+  };
 
   const resolveCutoff = useCallback((): { iso: string; label: string } | { error: string } => {
     if (mode === "preset") {
@@ -180,8 +174,6 @@ export function ExportPurgeDialog({
     }
   };
 
-  if (!open) return null;
-
   const showFormatToggle = availableFormats.length > 1;
 
   return (
@@ -220,7 +212,7 @@ export function ExportPurgeDialog({
                 <button
                   key={m}
                   type="button"
-                  onClick={() => setMode(m)}
+                  onClick={() => updateCutoff(() => setMode(m))}
                   className={`flex-1 rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${
                     mode === m
                       ? "bg-[#E7A3B0] text-white shadow-sm"
@@ -238,7 +230,7 @@ export function ExportPurgeDialog({
                   <button
                     key={days}
                     type="button"
-                    onClick={() => setPresetDays(days)}
+                    onClick={() => updateCutoff(() => setPresetDays(days))}
                     className={`flex-1 rounded-lg border px-3 py-2 text-xs font-medium transition-colors ${
                       presetDays === days
                         ? "border-[#E7A3B0] bg-[#fff5f7] text-[#b96d7d]"
@@ -250,11 +242,11 @@ export function ExportPurgeDialog({
                 ))}
               </div>
             ) : (
-              <input
+              <input aria-label="Cutoff date"
                 type="date"
                 value={customDate}
-                max={new Date().toISOString().slice(0, 10)}
-                onChange={(e) => setCustomDate(e.target.value)}
+                max={today}
+                onChange={(e) => updateCutoff(() => setCustomDate(e.target.value))}
                 className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-700 focus:border-[#E7A3B0] focus:outline-none focus:ring-2 focus:ring-[#E7A3B0]/20"
               />
             )}
@@ -343,11 +335,12 @@ export function ExportPurgeDialog({
             <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">
               Step 2 — Confirm deletion
             </p>
-            <p className="text-xs text-gray-600">
+            <label htmlFor="export-purge-confirm" className="block text-xs text-gray-600">
               Type{" "}
               <span className="font-mono font-semibold text-red-600">DELETE</span> to enable the purge button.
-            </p>
+            </label>
             <input
+              id="export-purge-confirm"
               type="text"
               value={confirmText}
               onChange={(e) => setConfirmText(e.target.value)}
