@@ -1,7 +1,7 @@
 "use client";
 
 import { ImageAlertDialog } from "@/components/image-alert-dialog";
-import { useEffect, useState } from "react";
+import { useCallback, useState } from "react";
 import { Upload, X, Loader2 } from "lucide-react";
 import { compressImage } from "@dollys-closet/core";
 import {
@@ -39,13 +39,16 @@ function SortableStagedImageItem({
   onRemove: (index: number) => void;
 }) {
   const fileId = `${file.name}-${file.size}-${file.lastModified}`;
-  const [previewUrl, setPreviewUrl] = useState<string>();
-
-  useEffect(() => {
-    const url = URL.createObjectURL(file);
-    setPreviewUrl(url);
-    return () => URL.revokeObjectURL(url);
-  }, [file]);
+  // Ref callbacks run at commit, so the object URL is never created during render; React 19 calls the cleanup on unmount or file change.
+  const previewRef = useCallback(
+    (img: HTMLImageElement | null) => {
+      if (!img) return;
+      const url = URL.createObjectURL(file);
+      img.src = url;
+      return () => URL.revokeObjectURL(url);
+    },
+    [file]
+  );
 
   const {
     attributes,
@@ -75,7 +78,7 @@ function SortableStagedImageItem({
     >
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
-        src={previewUrl}
+        ref={previewRef}
         alt={`Staged upload ${index + 1}`}
         className="w-full h-20 md:h-32 object-cover"
       />
