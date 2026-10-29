@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 import { AlertTriangle, ArrowRight, ImageOff, Loader2, Package, Pencil } from "lucide-react";
 import { cn } from "@dollys-closet/core";
 import { Button, Skeleton } from "@dollys-closet/ui";
@@ -9,6 +10,7 @@ import { toast } from "sonner";
 import AddProduct from "@/components/dialogs/AddProduct";
 import { DashboardCardLayout, type DashboardCardDefinition } from "@/components/dashboard-layout/DashboardCardLayout";
 import type { DashboardSurfaceKey } from "@/lib/dashboard-layout/config";
+import { fetchJson } from "@/lib/fetch-json";
 
 const actionLabels: Record<string, string> = {
   create_product: "Listed Product",
@@ -152,8 +154,7 @@ export default function Dashboard({ role }: DashboardProps) {
         const product = products.find((item) => String(item.product_id) === productId);
         if (!product) return;
 
-        const categoriesResponse = await fetch("/api/admin/categories");
-        const categoriesResult = await categoriesResponse.json();
+        const categoriesResult = await fetchJson("/api/admin/categories");
         setCategories(categoriesResult.data ?? []);
         setEditingProduct(product);
       } catch (err: unknown) {
@@ -381,12 +382,12 @@ export default function Dashboard({ role }: DashboardProps) {
                   ))}
 
                 <div className="pt-2">
-                  <a
+                  <Link
                     href="/dashboard/inventory?availability=stock-alerts"
                     className="flex items-center gap-1 text-xs font-medium text-[#E7A3B0]"
                   >
                     View all {stockAlertCount} in Inventory <ArrowRight className="h-3 w-3" />
-                  </a>
+                  </Link>
                 </div>
               </>
             )}
@@ -437,12 +438,12 @@ export default function Dashboard({ role }: DashboardProps) {
                 ))}
 
                 <div className="pt-1">
-                  <a
+                  <Link
                     href="/dashboard/inventory?availability=no-image"
                     className="flex items-center gap-1 text-xs font-medium text-[#E7A3B0]"
                   >
                     View all {missingPhotoItems.length} in Inventory <ArrowRight className="h-3 w-3" />
-                  </a>
+                  </Link>
                 </div>
               </>
             )}

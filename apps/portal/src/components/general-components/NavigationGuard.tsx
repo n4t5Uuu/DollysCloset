@@ -7,7 +7,7 @@
 
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useUnsavedChanges } from "@dollys-closet/core";
 import {
@@ -36,7 +36,8 @@ export function NavigationGuard() {
   const router = useRouter();
   const { isDirty, setIsDirty, unsavedMessage } = useUnsavedChanges();
   const [showDialog, setShowDialog] = useState(false);
-  const [pendingUrl, setPendingUrl] = useState<string | null>(null);
+  // Only read when the user confirms, so a ref avoids a redundant render.
+  const pendingUrlRef = useRef<string | null>(null);
 
   /**
    * Browser-level event handler for destructive navigation (back button, refresh, tab close).
@@ -79,7 +80,7 @@ export function NavigationGuard() {
 
           e.preventDefault();
           e.stopPropagation();
-          setPendingUrl(anchor.href);
+          pendingUrlRef.current = anchor.href;
           setShowDialog(true);
         }
       }
@@ -97,8 +98,8 @@ export function NavigationGuard() {
   const handleConfirm = () => {
     setIsDirty(false); // Reset dirty state so we don't block the next action
     setShowDialog(false);
-    if (pendingUrl) {
-      router.push(pendingUrl);
+    if (pendingUrlRef.current) {
+      router.push(pendingUrlRef.current);
     }
   };
 
@@ -107,7 +108,7 @@ export function NavigationGuard() {
    */
   const handleCancel = () => {
     setShowDialog(false);
-    setPendingUrl(null);
+    pendingUrlRef.current = null;
   };
 
   return (

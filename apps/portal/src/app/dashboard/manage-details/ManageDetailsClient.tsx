@@ -63,6 +63,7 @@ import {
   FAQCategory,
 } from "@dollys-closet/core";
 import { toast } from "sonner";
+import { fetchJson } from "@/lib/fetch-json";
 
 /**
  * ManageDetailsClient.tsx
@@ -404,24 +405,28 @@ export default function ManageDetailsClient({ role }: ManageDetailsClientProps) 
       setSavingFaq(true);
       setError(null);
       if (editingFaq) {
-        const response = await fetch(`/api/admin/faqs/${editingFaq.id}`, {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload),
-        });
-        const result = await response.json();
-        if (!response.ok) throw new Error(result.error || "Failed to update FAQ");
+        const result = await fetchJson<{ data: FAQRow }>(
+          `/api/admin/faqs/${editingFaq.id}`,
+          {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload),
+          },
+          "Failed to update FAQ"
+        );
         setFaqs((prev) => prev.map((f) => f.id === editingFaq.id ? result.data as FAQRow : f));
         toast.success("FAQ updated.");
         setEditingFaq(null);
       } else {
-        const response = await fetch("/api/admin/faqs", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload),
-        });
-        const result = await response.json();
-        if (!response.ok) throw new Error(result.error || "Failed to create FAQ");
+        const result = await fetchJson<{ data: FAQRow }>(
+          "/api/admin/faqs",
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload),
+          },
+          "Failed to create FAQ"
+        );
         setFaqs((prev) => [...prev, result.data as FAQRow]);
         toast.success("FAQ created.");
         setAddingFaq(false);
@@ -964,7 +969,7 @@ export default function ManageDetailsClient({ role }: ManageDetailsClientProps) 
                         >
                           {faqFormDirty ? "Unsaved" : editingFaq ? "Saved" : "Draft"}
                         </span>
-                        <button type="button" onClick={cancelFaqForm} className="text-gray-400 hover:text-gray-600">
+                        <button aria-label="Close FAQ form" type="button" onClick={cancelFaqForm} className="text-gray-400 hover:text-gray-600">
                           <X className="h-4 w-4" />
                         </button>
                       </div>
@@ -1094,7 +1099,7 @@ export default function ManageDetailsClient({ role }: ManageDetailsClientProps) 
                             <p className="text-xs text-gray-500 mt-1 line-clamp-2">{faq.answer}</p>
                           </div>
                           <div className="flex items-center gap-1 shrink-0">
-                            <button
+                            <button aria-label="Edit FAQ"
                               type="button"
                               onClick={() => startEditFaq(faq)}
                               disabled={deletingFaqId !== null || savingFaq}
@@ -1102,7 +1107,7 @@ export default function ManageDetailsClient({ role }: ManageDetailsClientProps) 
                             >
                               <Pencil className="h-3.5 w-3.5" />
                             </button>
-                            <button
+                            <button aria-label="Delete FAQ"
                               type="button"
                               onClick={() => handleDeleteFaq(faq.id)}
                               disabled={deletingFaqId !== null || savingFaq}

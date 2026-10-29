@@ -172,7 +172,20 @@ function SortableMainCard({
 
         <div
           className={cn("min-w-0 flex-1", isMobile && "cursor-pointer select-none")}
+          role={isMobile ? "button" : undefined}
+          tabIndex={isMobile ? 0 : undefined}
+          aria-expanded={isMobile ? !minimized : undefined}
           onClick={isMobile ? onToggleMinimized : undefined}
+          onKeyDown={
+            isMobile
+              ? (event) => {
+                  if (event.key === "Enter" || event.key === " ") {
+                    event.preventDefault();
+                    onToggleMinimized();
+                  }
+                }
+              : undefined
+          }
         >
           <div className="flex flex-wrap items-center gap-2">
             {card.icon ? <span className="shrink-0 text-[#E7A3B0]">{card.icon}</span> : null}
@@ -406,7 +419,8 @@ export function DashboardCardLayout({
   const [desktopRailOpen, setDesktopRailOpen] = useState(false);
   const [mobileRailOpen, setMobileRailOpen] = useState(false);
   const [preferencesReady, setPreferencesReady] = useState(false);
-  const lastSavedLayoutRef = useRef(serializeLayout(getDefaultDashboardLayout(surface)));
+  const [initialSerializedLayout] = useState(() => serializeLayout(getDefaultDashboardLayout(surface)));
+  const lastSavedLayoutRef = useRef(initialSerializedLayout);
   const pendingLayoutRef = useRef<DashboardLayoutPreference | null>(null);
   const isSavingRef = useRef(false);
   const cardMap = useMemo(() => new Map(cards.map((card) => [card.id, card])), [cards]);

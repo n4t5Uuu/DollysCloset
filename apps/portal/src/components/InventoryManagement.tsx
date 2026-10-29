@@ -3,6 +3,7 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import { Plus, Archive, RotateCcw, X, Upload, SlidersHorizontal, RefreshCw, BadgePercent, Trash2, CalendarRange, ArrowUpDown, Info, Eye, EyeOff } from "lucide-react";
+import { ModalBackdrop } from "@/components/dialogs/ModalBackdrop";
 import { ExportPurgeDialog } from "@/components/dialogs/ExportPurgeDialog";
 import type { ExportPurgeFormat } from "@/components/dialogs/ExportPurgeDialog";
 import { 
@@ -45,7 +46,8 @@ import AddProduct from "@/components/dialogs/AddProduct";
 import BulkImportModal from "@/components/dialogs/BulkImportModal";
 import { InventoryTable } from "@/components/tables/InventoryTable";
 import ViewProductDialog from "@/components/dialogs/ViewProductDialog";
-import { SeasonCalendar, getSeasonColor } from "@/components/seasons/SeasonCalendar";
+import { SeasonCalendar } from "@/components/seasons/SeasonCalendar";
+import { getSeasonColor } from "@/lib/season-colors";
 import { toast } from "sonner";
 
 interface InventoryManagementProps {
@@ -136,7 +138,6 @@ export default function InventoryManagement({ initialAvailabilityFilter, userRol
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const [actionNotice, setActionNotice] = useState<{ tone: "success" | "warning"; message: string } | null>(null);
   const [inventoryScope, setInventoryScope] = useState<InventoryScope>("active");
 
@@ -191,7 +192,6 @@ export default function InventoryManagement({ initialAvailabilityFilter, userRol
       if (showGlobalLoader) {
         setLoading(true);
       }
-      setError(null);
 
       const { data, error, friendlyMessage } = await safeFetchJson<{ data: Product[] }>(`/api/admin/products?scope=${scope}`);
       
@@ -203,7 +203,6 @@ export default function InventoryManagement({ initialAvailabilityFilter, userRol
       return true;
     } catch (err: unknown) {
       console.error('Error fetching products:', err);
-      setError(err instanceof Error ? err.message : 'Failed to fetch products');
       return false;
     } finally {
       setLoading((current) => (showGlobalLoader ? false : current));
@@ -220,7 +219,6 @@ export default function InventoryManagement({ initialAvailabilityFilter, userRol
     } catch (err: unknown) {
       console.error('Error fetching categories:', err);
       setCategories([]);
-      setError(err instanceof Error ? err.message : 'Failed to load categories');
     }
   }, []);
 
@@ -253,15 +251,14 @@ export default function InventoryManagement({ initialAvailabilityFilter, userRol
   }, []);
 
   useEffect(() => {
-    const initializeInventory = async () => {
-      setLoading(true);
-      try {
-        await Promise.all([fetchProducts(false), fetchCategories(), fetchDiscounts(), fetchSeasons()]);
-      } finally {
-        setLoading(false);
-      }
+    let cancelled = false;
+    setLoading(true);
+    Promise.all([fetchProducts(false), fetchCategories(), fetchDiscounts(), fetchSeasons()]).finally(() => {
+      if (!cancelled) setLoading(false);
+    });
+    return () => {
+      cancelled = true;
     };
-    initializeInventory();
   }, [fetchProducts, fetchCategories, fetchDiscounts, fetchSeasons]);
 
   useEffect(() => {
@@ -618,7 +615,7 @@ export default function InventoryManagement({ initialAvailabilityFilter, userRol
   };
 
   const selectedCatalogState = useMemo((): "publish" | "unpublish" | null => {
-    if (selectedProducts.size === 0) return null;
+    if (selectedProductIds.size === 0) return null;
     const selected = products.filter((p) => selectedProductIds.has(String(p.product_id)));
     if (selected.length === 0) return null;
     return selected.every((p) => p.show_in_catalog) ? "unpublish" : "publish";
@@ -651,7 +648,6 @@ export default function InventoryManagement({ initialAvailabilityFilter, userRol
 
   const handleArchiveProduct = async (productId: string) => {
     setActionLoading(true);
-    setError(null);
     setActionNotice(null);
     try {
       const supabase = createClient();
@@ -669,13 +665,11 @@ export default function InventoryManagement({ initialAvailabilityFilter, userRol
 
       if (error) throw new Error(friendlyMessage || 'Failed to archive product');
 
-      setError(null);
       await fetchProducts();
       toast.success("Product archived successfully.");
       setActionNotice({ tone: "success", message: "Product archived. It has been moved to the archive view." });
     } catch (err: unknown) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to archive product';
-      setError(errorMessage);
       toast.error(errorMessage);
     } finally {
       setActionLoading(false);
@@ -684,7 +678,6 @@ export default function InventoryManagement({ initialAvailabilityFilter, userRol
 
   const handleRestoreProduct = async (productId: string) => {
     setActionLoading(true);
-    setError(null);
     setActionNotice(null);
     try {
       const supabase = createClient();
@@ -702,13 +695,11 @@ export default function InventoryManagement({ initialAvailabilityFilter, userRol
 
       if (error) throw new Error(friendlyMessage || 'Failed to restore product');
 
-      setError(null);
       await fetchProducts();
       toast.success("Product restored successfully.");
       setActionNotice({ tone: "success", message: "Product restored and returned to the active inventory list." });
     } catch (err: unknown) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to restore product';
-      setError(errorMessage);
       toast.error(errorMessage);
     } finally {
       setActionLoading(false);
@@ -717,11 +708,9 @@ export default function InventoryManagement({ initialAvailabilityFilter, userRol
 
   const handleBulkScopeAction = async () => {
     if (selectedProducts.size === 0) {
-      setError("No products selected");
       return;
     }
     setActionLoading(true);
-    setError(null);
     setActionNotice(null);
     try {
       const supabase = createClient();
@@ -741,7 +730,6 @@ export default function InventoryManagement({ initialAvailabilityFilter, userRol
       if (error) throw new Error(friendlyMessage || (inventoryScope === "active" ? 'Failed to archive products' : 'Failed to restore products'));
 
       setSelectedProducts(new Set());
-      setError(null);
       await fetchProducts();
       if (inventoryScope === "active") {
         toast.success("Selected products archived successfully.");
@@ -752,7 +740,6 @@ export default function InventoryManagement({ initialAvailabilityFilter, userRol
       }
     } catch (err: unknown) {
       const errorMessage = err instanceof Error ? err.message : (inventoryScope === "active" ? 'Failed to archive products' : 'Failed to restore products');
-      setError(errorMessage);
       toast.error(errorMessage);
     } finally {
       setActionLoading(false);
@@ -762,7 +749,6 @@ export default function InventoryManagement({ initialAvailabilityFilter, userRol
   const handleBulkCatalogToggle = async (publish: boolean) => {
     if (selectedProducts.size === 0) return;
     setActionLoading(true);
-    setError(null);
     setActionNotice(null);
     try {
       const supabase = createClient();
@@ -805,7 +791,6 @@ export default function InventoryManagement({ initialAvailabilityFilter, userRol
       }
     } catch (err: unknown) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to update visibility';
-      setError(errorMessage);
       toast.error(errorMessage);
     } finally {
       setActionLoading(false);
@@ -1751,17 +1736,14 @@ export default function InventoryManagement({ initialAvailabilityFilter, userRol
       </div>
 
       {showBatchSeasonModal && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-4"
-          onClick={() => {
-            setShowBatchSeasonModal(false);
-            setBatchSeasonSelection("");
-          }}
-        >
-          <div
-            className="w-full max-w-lg overflow-hidden rounded-3xl border border-[#E7A3B0]/20 bg-white shadow-[0_24px_80px_rgba(17,24,39,0.28)]"
-            onClick={(event) => event.stopPropagation()}
-          >
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-4">
+          <ModalBackdrop
+            onClick={() => {
+              setShowBatchSeasonModal(false);
+              setBatchSeasonSelection("");
+            }}
+          />
+          <div className="relative w-full max-w-lg overflow-hidden rounded-3xl border border-[#E7A3B0]/20 bg-white shadow-[0_24px_80px_rgba(17,24,39,0.28)]">
             <div className="flex items-start justify-between gap-4 border-b border-[#E7A3B0]/15 bg-[#fffafc] px-6 py-5">
               <div>
                 <div className="flex items-center gap-2 text-2xl font-semibold text-gray-900">
@@ -1791,12 +1773,12 @@ export default function InventoryManagement({ initialAvailabilityFilter, userRol
               </div>
 
               <div>
-                <label className="mb-2 block text-sm font-medium text-gray-700">Season Option</label>
+                <label htmlFor="inventory-season-option" className="mb-2 block text-sm font-medium text-gray-700">Season Option</label>
                 <Select
                   value={batchSeasonSelection || "__placeholder__"}
                   onValueChange={(value) => setBatchSeasonSelection(value === "__placeholder__" ? "" : value)}
                 >
-                  <SelectTrigger className="border-gray-300 bg-white text-gray-900">
+                  <SelectTrigger id="inventory-season-option" className="border-gray-300 bg-white text-gray-900">
                     <SelectValue placeholder="Select a season option" />
                   </SelectTrigger>
                   <SelectContent>
@@ -1874,8 +1856,8 @@ export default function InventoryManagement({ initialAvailabilityFilter, userRol
               <div className="rounded-2xl border border-[#E7A3B0]/15 bg-[#fffafc] p-3 sm:p-5 shadow-sm lg:sticky lg:top-0 lg:self-start">
                 <div className="space-y-3 sm:space-y-4">
                   <div>
-                    <label className="mb-2 block text-sm font-medium text-gray-700">Discount Name</label>
-                    <Input
+                    <label htmlFor="inventory-discount-name" className="mb-2 block text-sm font-medium text-gray-700">Discount Name</label>
+                    <Input id="inventory-discount-name"
                       value={discountForm.discount_name}
                       onChange={(event) => setDiscountForm((prev) => ({ ...prev, discount_name: event.target.value.slice(0, 30) }))}
                       maxLength={30}
@@ -1887,12 +1869,12 @@ export default function InventoryManagement({ initialAvailabilityFilter, userRol
 
                   <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                     <div>
-                      <label className="mb-2 block text-sm font-medium text-gray-700">Discount Type</label>
+                      <label htmlFor="inventory-discount-type" className="mb-2 block text-sm font-medium text-gray-700">Discount Type</label>
                       <Select
                         value={discountForm.discount_type}
                         onValueChange={(value) => setDiscountForm((prev) => ({ ...prev, discount_type: value as "percent" | "flat" | "fixed_price" }))}
                       >
-                        <SelectTrigger className="border-gray-300 bg-white text-gray-900">
+                        <SelectTrigger id="inventory-discount-type" className="border-gray-300 bg-white text-gray-900">
                           <SelectValue placeholder="Select type" />
                         </SelectTrigger>
                         <SelectContent>
@@ -1904,14 +1886,14 @@ export default function InventoryManagement({ initialAvailabilityFilter, userRol
                     </div>
 
                     <div>
-                      <label className="mb-2 block text-sm font-medium text-gray-700">
+                      <label htmlFor="inventory-percent-off" className="mb-2 block text-sm font-medium text-gray-700">
                         {discountForm.discount_type === "percent"
                           ? "Percent Off"
                           : discountForm.discount_type === "fixed_price"
                             ? "Final Price"
                             : "Flat Amount"}
                       </label>
-                      <Input
+                      <Input id="inventory-percent-off"
                         type="number"
                         min="0.01"
                         max={discountForm.discount_type === "percent" ? "100" : undefined}
@@ -1932,11 +1914,12 @@ export default function InventoryManagement({ initialAvailabilityFilter, userRol
                   </div>
 
                   <div>
-                    <label className="mb-2 block text-sm font-medium text-gray-700">Ends At</label>
+                    <label htmlFor="inventory-ends-at" className="mb-2 block text-sm font-medium text-gray-700">Ends At</label>
                     {/* Mobile: split date + time side by side */}
                     <div className="flex gap-2 sm:hidden">
                       <Input
                         type="date"
+                        aria-label="Ends at date"
                         value={discountForm.ends_at ? discountForm.ends_at.split("T")[0] : ""}
                         onChange={(e) => {
                           const time = discountForm.ends_at?.split("T")[1]?.substring(0, 5) || "00:00";
@@ -1946,6 +1929,7 @@ export default function InventoryManagement({ initialAvailabilityFilter, userRol
                       />
                       <Input
                         type="time"
+                        aria-label="Ends at time"
                         value={discountForm.ends_at ? discountForm.ends_at.split("T")[1]?.substring(0, 5) || "" : ""}
                         onChange={(e) => {
                           const date = discountForm.ends_at?.split("T")[0] || "";
@@ -1956,6 +1940,7 @@ export default function InventoryManagement({ initialAvailabilityFilter, userRol
                     </div>
                     {/* Desktop: single datetime-local */}
                     <Input
+                      id="inventory-ends-at"
                       type="datetime-local"
                       value={discountForm.ends_at}
                       onChange={(event) => setDiscountForm((prev) => ({ ...prev, ends_at: event.target.value }))}
@@ -2061,17 +2046,14 @@ export default function InventoryManagement({ initialAvailabilityFilter, userRol
       )}
 
       {showSeasonModal && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-4"
-          onClick={() => {
-            setShowSeasonModal(false);
-            resetSeasonForm();
-          }}
-        >
-          <div
-            className="w-full max-w-5xl max-h-[90vh] overflow-hidden rounded-3xl border border-[#E7A3B0]/20 bg-white shadow-[0_24px_80px_rgba(17,24,39,0.28)]"
-            onClick={(event) => event.stopPropagation()}
-          >
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-4">
+          <ModalBackdrop
+            onClick={() => {
+              setShowSeasonModal(false);
+              resetSeasonForm();
+            }}
+          />
+          <div className="relative w-full max-w-5xl max-h-[90vh] overflow-hidden rounded-3xl border border-[#E7A3B0]/20 bg-white shadow-[0_24px_80px_rgba(17,24,39,0.28)]">
             <div className="flex items-start justify-between gap-4 border-b border-[#E7A3B0]/15 bg-[#fffafc] px-6 py-5">
               <div>
                 <div className="flex items-center gap-2 text-2xl font-semibold text-gray-900">
@@ -2119,13 +2101,13 @@ export default function InventoryManagement({ initialAvailabilityFilter, userRol
                       <div className="mb-2 flex items-center justify-between">
                         <div className="flex items-center gap-2">
                           <span className="flex h-5 w-5 items-center justify-center rounded-full bg-[#E7A3B0]/25 text-[10px] font-bold text-[#b96d7d]">1</span>
-                          <label className="text-sm font-medium text-gray-700">Season Name</label>
+                          <label htmlFor="inventory-season-name" className="text-sm font-medium text-gray-700">Season Name</label>
                         </div>
                         <span className={`text-xs tabular-nums ${seasonForm.name.length >= 30 ? "font-medium text-rose-500" : "text-gray-400"}`}>
                           {seasonForm.name.length}/30
                         </span>
                       </div>
-                      <Input
+                      <Input id="inventory-season-name"
                         value={seasonForm.name}
                         onChange={(event) => setSeasonForm((previous) => ({ ...previous, name: event.target.value.slice(0, 30) }))}
                         maxLength={30}
@@ -2296,7 +2278,6 @@ export default function InventoryManagement({ initialAvailabilityFilter, userRol
           closeModal();
           const refreshed = await fetchProducts(false);
           if (!refreshed) {
-            setError('Saved successfully, but refresh was delayed. Data will update shortly.');
             setActionNotice({ tone: "warning", message: "Product saved, but the inventory list could not refresh immediately." });
           } else {
             setActionNotice({

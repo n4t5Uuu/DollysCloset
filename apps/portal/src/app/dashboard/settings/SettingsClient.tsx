@@ -341,7 +341,7 @@ export default function SettingsPage() {
             >
               Current Password
             </label>
-            <button
+            <button aria-label={showCurrent ? "Hide current password" : "Show current password"}
               type="button"
               onClick={() => setShowCurrent(!showCurrent)}
               disabled={loading}
@@ -371,7 +371,7 @@ export default function SettingsPage() {
             >
               New Password
             </label>
-            <button
+            <button aria-label={showNew ? "Hide new password" : "Show new password"}
               type="button"
               onClick={() => setShowNew(!showNew)}
               disabled={loading}
@@ -401,7 +401,7 @@ export default function SettingsPage() {
             >
               Confirm New Password
             </label>
-            <button
+            <button aria-label={showConfirm ? "Hide confirm password" : "Show confirm password"}
               type="button"
               onClick={() => setShowConfirm(!showConfirm)}
               disabled={loading}
