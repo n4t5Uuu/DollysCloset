@@ -2,7 +2,7 @@
 
 import { useEffect } from "react";
 import { createClient } from "@dollys-closet/core";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 
 /**
  * SessionGuard Component
@@ -17,7 +17,6 @@ import { usePathname, useRouter } from "next/navigation";
  */
 export function SessionGuard() {
   const pathname = usePathname();
-  const router = useRouter();
 
   useEffect(() => {
     // Skip logical segments that don't need protection or are part of auth flow.
@@ -43,7 +42,7 @@ export function SessionGuard() {
         // Force the browser to drop all auth cookies
         await supabase.auth.signOut();
         // Redirect to login explicitly to trigger clean state
-        router.replace("/?reason=session-expired");
+        window.location.replace("/?reason=session-expired");
       };
 
       clearSession();
@@ -51,7 +50,7 @@ export function SessionGuard() {
       // Mark this tab as active if it's not already.
       sessionStorage.setItem("dollys_closet_tab_active", "true");
     }
-  }, [pathname, router]);
+  }, [pathname]);
 
 
   return null;

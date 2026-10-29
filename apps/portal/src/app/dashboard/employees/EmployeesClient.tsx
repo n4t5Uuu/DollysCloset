@@ -50,7 +50,7 @@ export default function EmployeesClient() {
 
   const handlePageChange = (page: number) => {
     if (page <= 1) {
-      router.replace(pathname);
+      window.history.replaceState(null, "", pathname);
     } else {
       router.replace(`${pathname}?page=${page}`);
     }
@@ -106,7 +106,7 @@ export default function EmployeesClient() {
       setError(err instanceof Error ? err.message : String(err));
       return false;
     } finally {
-      if (!isBackground) setLoading(false);
+      setLoading((current) => (isBackground ? current : false));
     }
   }, [employeeScope]);
 
@@ -144,8 +144,8 @@ export default function EmployeesClient() {
   const currentEmployees = sortedEmployees.slice(startIndex, endIndex);
 
   useEffect(() => {
-    router.replace(pathname);
-  }, [searchTerm, sortOption, router, pathname]);
+    window.history.replaceState(null, "", pathname);
+  }, [searchTerm, sortOption, pathname]);
 
   useEffect(() => {
     setSelectedRows(new Set());
@@ -447,7 +447,7 @@ export default function EmployeesClient() {
           {employeeScope === "active" && (
             <button
               onClick={openAddModal}
-              className="sm:hidden mt-2 flex items-center gap-2 px-4 py-2 bg-linear-to-r from-[#E7A3B0] to-[#f0b8c3] hover:from-[#d891a0] hover:to-[#E7A3B0] text-white rounded-lg text-sm font-medium transition-all duration-300 shadow-md hover:shadow-lg hover:scale-105 cursor-pointer"
+              className="sm:hidden mt-2 flex items-center gap-2 px-4 py-2 bg-linear-to-r from-[#E7A3B0] to-[#f0b8c3] hover:from-[#d891a0] hover:to-[#E7A3B0] text-white rounded-lg text-sm font-medium transition duration-300 shadow-md hover:shadow-lg hover:scale-105 cursor-pointer"
             >
               <Plus size={16} />
               Add Employee
@@ -493,7 +493,7 @@ export default function EmployeesClient() {
           {employeeScope === "active" && (
             <button
               onClick={openAddModal}
-              className="flex items-center gap-2 px-4 py-2 bg-linear-to-r from-[#E7A3B0] to-[#f0b8c3] hover:from-[#d891a0] hover:to-[#E7A3B0] text-white rounded-lg text-sm font-medium transition-all duration-300 shadow-md hover:shadow-lg hover:scale-105 cursor-pointer sm:shrink-0"
+              className="flex items-center gap-2 px-4 py-2 bg-linear-to-r from-[#E7A3B0] to-[#f0b8c3] hover:from-[#d891a0] hover:to-[#E7A3B0] text-white rounded-lg text-sm font-medium transition duration-300 shadow-md hover:shadow-lg hover:scale-105 cursor-pointer sm:shrink-0"
             >
               <Plus size={16} />
               Add Employee

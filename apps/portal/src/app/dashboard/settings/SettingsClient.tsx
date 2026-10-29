@@ -31,8 +31,7 @@ export default function SettingsPage() {
   const [success, setSuccess] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
 
-  useEffect(() => {
-    async function loadProfile() {
+  const loadProfile = useCallback(async () => {
       try {
         const supabase = createClient();
         const [profileRes, { data: { user } }] = await Promise.all([
@@ -53,9 +52,11 @@ export default function SettingsPage() {
       } finally {
         setProfileLoading(false);
       }
-    }
-    loadProfile();
   }, []);
+
+  useEffect(() => {
+    loadProfile();
+  }, [loadProfile]);
 
   // Track unsaved changes in password fields
   useEffect(() => {
@@ -152,22 +153,24 @@ export default function SettingsPage() {
 
     setLoading(true);
 
-    const { error } = await changePasswordAction(currentPassword, newPassword);
+    try {
+      const { error } = await changePasswordAction(currentPassword, newPassword);
 
-    if (error) {
-      setFormError(error);
-      toast.error(error);
+      if (error) {
+        setFormError(error);
+        toast.error(error);
+        return;
+      }
+
+      setCurrentPassword("");
+      setNewPassword("");
+      setConfirmPassword("");
+      setIsDirty(false); // Explicitly clear dirty state on success
+      setSuccess(true);
+      setFormError(null);
+    } finally {
       setLoading(false);
-      return;
     }
-
-    setCurrentPassword("");
-    setNewPassword("");
-    setConfirmPassword("");
-    setIsDirty(false); // Explicitly clear dirty state on success
-    setSuccess(true);
-    setFormError(null);
-    setLoading(false);
   }
 
   const avatarInitial = (profile?.displayName?.[0] ?? "?").toUpperCase();
@@ -305,7 +308,7 @@ export default function SettingsPage() {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-3">
             {passwordChecks.map((check) => (
               <div key={check.label} className="flex items-center gap-3">
-                <div className={`shrink-0 w-5 h-5 rounded-full flex items-center justify-center transition-all duration-300 ${check.passed ? 'bg-emerald-500 text-white shadow-[0_2px_8px_rgba(16,185,129,0.3)]' : 'bg-gray-200 text-gray-400'}`}>
+                <div className={`shrink-0 w-5 h-5 rounded-full flex items-center justify-center transition duration-300 ${check.passed ? 'bg-emerald-500 text-white shadow-[0_2px_8px_rgba(16,185,129,0.3)]' : 'bg-gray-200 text-gray-400'}`}>
                   {check.passed ? <span className="text-[10px]">✓</span> : <div className="w-1 h-1 rounded-full bg-current" />}
                 </div>
                 <span className={`text-[13px] transition-colors duration-300 ${check.passed ? 'text-gray-900 font-medium' : 'text-gray-400'}`}>
@@ -328,11 +331,11 @@ export default function SettingsPage() {
               onChange={(e) => setCurrentPassword(e.target.value)}
               required
               disabled={loading}
-              className="peer w-full px-5 py-[18px] rounded-xl border border-[#E5E5E5] bg-transparent text-[#1A1A1A] text-sm focus:outline-none focus:border-[#E7A3B0] focus:ring-1 focus:ring-[#E7A3B0] transition-all duration-200 pr-12 disabled:opacity-60"
+              className="peer w-full px-5 py-[18px] rounded-xl border border-[#E5E5E5] bg-transparent text-[#1A1A1A] text-sm focus:outline-none focus:border-[#E7A3B0] focus:ring-1 focus:ring-[#E7A3B0] transition duration-200 pr-12 disabled:opacity-60"
             />
             <label
               htmlFor="currentPassword"
-              className="absolute left-5 top-1/2 -translate-y-1/2 text-[#828282] text-[14px] font-medium pointer-events-none px-1 bg-white transition-all duration-200
+              className="absolute left-5 top-1/2 -translate-y-1/2 text-[#828282] text-[14px] font-medium pointer-events-none px-1 bg-white transition duration-200
                 peer-focus:top-0 peer-focus:text-[11px] peer-focus:text-[#E7A3B0]
                 peer-[:not(:placeholder-shown)]:top-0 peer-[:not(:placeholder-shown)]:text-[11px] peer-[:not(:placeholder-shown)]:text-[#E7A3B0]"
             >
@@ -358,11 +361,11 @@ export default function SettingsPage() {
               onChange={(e) => setNewPassword(e.target.value)}
               required
               disabled={loading}
-              className="peer w-full px-5 py-[18px] rounded-xl border border-[#E5E5E5] bg-transparent text-[#1A1A1A] text-sm focus:outline-none focus:border-[#E7A3B0] focus:ring-1 focus:ring-[#E7A3B0] transition-all duration-200 pr-12 disabled:opacity-60"
+              className="peer w-full px-5 py-[18px] rounded-xl border border-[#E5E5E5] bg-transparent text-[#1A1A1A] text-sm focus:outline-none focus:border-[#E7A3B0] focus:ring-1 focus:ring-[#E7A3B0] transition duration-200 pr-12 disabled:opacity-60"
             />
             <label
               htmlFor="newPassword"
-              className="absolute left-5 top-1/2 -translate-y-1/2 text-[#828282] text-[14px] font-medium pointer-events-none px-1 bg-white transition-all duration-200
+              className="absolute left-5 top-1/2 -translate-y-1/2 text-[#828282] text-[14px] font-medium pointer-events-none px-1 bg-white transition duration-200
                 peer-focus:top-0 peer-focus:text-[11px] peer-focus:text-[#E7A3B0]
                 peer-[:not(:placeholder-shown)]:top-0 peer-[:not(:placeholder-shown)]:text-[11px] peer-[:not(:placeholder-shown)]:text-[#E7A3B0]"
             >
@@ -388,11 +391,11 @@ export default function SettingsPage() {
               onChange={(e) => setConfirmPassword(e.target.value)}
               required
               disabled={loading}
-              className="peer w-full px-5 py-[18px] rounded-xl border border-[#E5E5E5] bg-transparent text-[#1A1A1A] text-sm focus:outline-none focus:border-[#E7A3B0] focus:ring-1 focus:ring-[#E7A3B0] transition-all duration-200 pr-12 disabled:opacity-60"
+              className="peer w-full px-5 py-[18px] rounded-xl border border-[#E5E5E5] bg-transparent text-[#1A1A1A] text-sm focus:outline-none focus:border-[#E7A3B0] focus:ring-1 focus:ring-[#E7A3B0] transition duration-200 pr-12 disabled:opacity-60"
             />
             <label
               htmlFor="confirmPassword"
-              className="absolute left-5 top-1/2 -translate-y-1/2 text-[#828282] text-[14px] font-medium pointer-events-none px-1 bg-white transition-all duration-200
+              className="absolute left-5 top-1/2 -translate-y-1/2 text-[#828282] text-[14px] font-medium pointer-events-none px-1 bg-white transition duration-200
                 peer-focus:top-0 peer-focus:text-[11px] peer-focus:text-[#E7A3B0]
                 peer-[:not(:placeholder-shown)]:top-0 peer-[:not(:placeholder-shown)]:text-[11px] peer-[:not(:placeholder-shown)]:text-[#E7A3B0]"
             >
@@ -411,7 +414,7 @@ export default function SettingsPage() {
           <button
             type="submit"
             disabled={loading || !isFormReady}
-            className="w-full bg-linear-to-r from-[#E7A3B0] to-[#E2899A] text-white font-bold py-[18px] rounded-xl hover:from-[#E2899A] hover:to-[#DE7588] transition-all duration-300 text-[13px] tracking-widest uppercase shadow-[0_8px_20px_-6px_rgba(231,163,176,0.6)] hover:shadow-[0_12px_24px_-6px_rgba(231,163,176,0.8)] hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.98] disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:translate-y-0 disabled:hover:shadow-[0_8px_20px_-6px_rgba(231,163,176,0.6)]"
+            className="w-full bg-linear-to-r from-[#E7A3B0] to-[#E2899A] text-white font-bold py-[18px] rounded-xl hover:from-[#E2899A] hover:to-[#DE7588] transition duration-300 text-[13px] tracking-widest uppercase shadow-[0_8px_20px_-6px_rgba(231,163,176,0.6)] hover:shadow-[0_12px_24px_-6px_rgba(231,163,176,0.8)] hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.98] disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:translate-y-0 disabled:hover:shadow-[0_8px_20px_-6px_rgba(231,163,176,0.6)]"
           >
             {loading ? "Updating..." : "Update Password"}
           </button>

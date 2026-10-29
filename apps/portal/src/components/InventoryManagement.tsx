@@ -126,7 +126,7 @@ export default function InventoryManagement({ initialAvailabilityFilter, userRol
 
   const handlePageChange = (page: number) => {
     if (page <= 1) {
-      router.replace(pathname);
+      window.history.replaceState(null, "", pathname);
     } else {
       router.replace(`${pathname}?page=${page}`);
     }
@@ -206,7 +206,7 @@ export default function InventoryManagement({ initialAvailabilityFilter, userRol
       setError(err instanceof Error ? err.message : 'Failed to fetch products');
       return false;
     } finally {
-      if (showGlobalLoader) setLoading(false);
+      setLoading((current) => (showGlobalLoader ? false : current));
     }
   }, [inventoryScope]);
 
@@ -297,8 +297,8 @@ export default function InventoryManagement({ initialAvailabilityFilter, userRol
   }, []);
 
   useEffect(() => {
-    router.replace(pathname);
-  }, [searchQuery, visibilityFilter, availabilityFilter, saleFilter, categoryFilter, sortOption, router, pathname]);
+    window.history.replaceState(null, "", pathname);
+  }, [searchQuery, visibilityFilter, availabilityFilter, saleFilter, categoryFilter, sortOption, pathname]);
 
   useEffect(() => {
     setSelectedProducts(new Set());
@@ -1299,7 +1299,7 @@ export default function InventoryManagement({ initialAvailabilityFilter, userRol
               resetSeasonForm();
               setShowSeasonModal(true);
             }}
-            className="flex items-center justify-center gap-1.5 px-2 py-3 h-11 w-full sm:w-auto sm:h-auto sm:px-4 sm:py-2 bg-white border border-black sm:border-[#E7A3B0]/30 text-[#b96d7d] rounded-lg text-[11px] sm:text-sm font-medium transition-all duration-300 shadow-sm hover:shadow-md hover:border-[#E7A3B0] hover:bg-[#fff5f7] hover:scale-105 cursor-pointer"
+            className="flex items-center justify-center gap-1.5 px-2 py-3 h-11 w-full sm:w-auto sm:h-auto sm:px-4 sm:py-2 bg-white border border-black sm:border-[#E7A3B0]/30 text-[#b96d7d] rounded-lg text-[11px] sm:text-sm font-medium transition duration-300 shadow-sm hover:shadow-md hover:border-[#E7A3B0] hover:bg-[#fff5f7] hover:scale-105 cursor-pointer"
           >
             <CalendarRange size={14} className="shrink-0 sm:hidden" />
             <CalendarRange size={16} className="shrink-0 hidden sm:block" />
@@ -1308,7 +1308,7 @@ export default function InventoryManagement({ initialAvailabilityFilter, userRol
           </button>
           <button
             onClick={() => setShowDiscountModal(true)}
-            className="flex items-center justify-center gap-1.5 px-2 py-3 h-11 w-full sm:w-auto sm:h-auto sm:px-4 sm:py-2 bg-white border border-black sm:border-[#E7A3B0]/30 text-[#b96d7d] rounded-lg text-[11px] sm:text-sm font-medium transition-all duration-300 shadow-sm hover:shadow-md hover:border-[#E7A3B0] hover:bg-[#fff5f7] hover:scale-105 cursor-pointer"
+            className="flex items-center justify-center gap-1.5 px-2 py-3 h-11 w-full sm:w-auto sm:h-auto sm:px-4 sm:py-2 bg-white border border-black sm:border-[#E7A3B0]/30 text-[#b96d7d] rounded-lg text-[11px] sm:text-sm font-medium transition duration-300 shadow-sm hover:shadow-md hover:border-[#E7A3B0] hover:bg-[#fff5f7] hover:scale-105 cursor-pointer"
           >
             <BadgePercent size={14} className="shrink-0 sm:hidden" />
             <BadgePercent size={16} className="shrink-0 hidden sm:block" />
@@ -1317,7 +1317,7 @@ export default function InventoryManagement({ initialAvailabilityFilter, userRol
           </button>
           <button
             onClick={() => setShowBulkImport(true)}
-            className="flex items-center justify-center gap-1.5 px-2 py-3 h-11 w-full sm:w-auto sm:h-auto sm:px-4 sm:py-2 bg-gray-100 hover:bg-gray-200 text-gray-800 border border-black sm:border-0 rounded-lg text-[11px] sm:text-sm font-medium transition-all duration-300 shadow-sm hover:shadow-md hover:scale-105 cursor-pointer"
+            className="flex items-center justify-center gap-1.5 px-2 py-3 h-11 w-full sm:w-auto sm:h-auto sm:px-4 sm:py-2 bg-gray-100 hover:bg-gray-200 text-gray-800 border border-black sm:border-0 rounded-lg text-[11px] sm:text-sm font-medium transition duration-300 shadow-sm hover:shadow-md hover:scale-105 cursor-pointer"
           >
             <Upload size={14} className="shrink-0 sm:hidden" />
             <Upload size={16} className="shrink-0 hidden sm:block" />
@@ -1325,7 +1325,7 @@ export default function InventoryManagement({ initialAvailabilityFilter, userRol
           </button>
           <button
             onClick={openAddModal}
-            className="flex items-center justify-center gap-1.5 px-2 py-3 h-11 w-full sm:w-auto sm:h-auto sm:px-5 sm:py-2 bg-linear-to-r from-[#E7A3B0] to-[#f0b8c3] hover:from-[#d891a0] hover:to-[#E7A3B0] text-white rounded-lg text-[11px] sm:text-sm font-medium transition-all duration-300 shadow-md hover:shadow-lg hover:scale-105 cursor-pointer"
+            className="flex items-center justify-center gap-1.5 px-2 py-3 h-11 w-full sm:w-auto sm:h-auto sm:px-5 sm:py-2 bg-linear-to-r from-[#E7A3B0] to-[#f0b8c3] hover:from-[#d891a0] hover:to-[#E7A3B0] text-white rounded-lg text-[11px] sm:text-sm font-medium transition duration-300 shadow-md hover:shadow-lg hover:scale-105 cursor-pointer"
           >
             <Plus size={14} className="sm:hidden" />
             <Plus size={18} className="hidden sm:block" />
@@ -1340,7 +1340,7 @@ export default function InventoryManagement({ initialAvailabilityFilter, userRol
             key={card.key}
             type="button"
             onClick={card.onClick}
-            className={`rounded-xl border px-3 py-3 text-left transition-all ${
+            className={`rounded-xl border px-3 py-3 text-left transition ${
               card.active
                 ? "border-[#E7A3B0] bg-[#fff5f7] shadow-sm"
                 : "border-gray-200 bg-white hover:border-[#E7A3B0]/40 hover:bg-[#fffafb]"
@@ -1373,7 +1373,7 @@ export default function InventoryManagement({ initialAvailabilityFilter, userRol
             variant="outline"
             size="sm"
             onClick={() => setShowFilters((p) => !p)}
-            className="flex items-center gap-1.5 h-8 sm:h-9 sm:gap-2 text-xs hover:bg-[#fff5f7] hover:text-[#E7A3B0] hover:border-[#E7A3B0] hover:scale-105 hover:shadow-md active:scale-95 transition-all duration-300"
+            className="flex items-center gap-1.5 h-8 sm:h-9 sm:gap-2 text-xs hover:bg-[#fff5f7] hover:text-[#E7A3B0] hover:border-[#E7A3B0] hover:scale-105 hover:shadow-md active:scale-95 transition duration-300"
           >
             <SlidersHorizontal className="w-3.5 h-3.5" />
             <span className="hidden sm:inline">Filters</span>
@@ -1420,7 +1420,7 @@ export default function InventoryManagement({ initialAvailabilityFilter, userRol
                     <button
                       key={v}
                       onClick={() => setVisibilityFilter(v)}
-                      className={`px-3 py-1.5 text-xs rounded-full border transition-all duration-200 hover:scale-105 active:scale-95 cursor-pointer ${
+                      className={`px-3 py-1.5 text-xs rounded-full border transition duration-200 hover:scale-105 active:scale-95 cursor-pointer ${
                         visibilityFilter === v
                           ? "bg-[#E7A3B0] text-white border-[#E7A3B0] shadow-sm"
                           : "border-gray-200 text-gray-600 hover:border-[#E7A3B0] hover:bg-[#fff5f7] hover:text-[#E7A3B0] hover:shadow-sm"
@@ -1446,7 +1446,7 @@ export default function InventoryManagement({ initialAvailabilityFilter, userRol
                     <button
                       key={v}
                       onClick={() => setAvailabilityFilter(v)}
-                      className={`px-3 py-1.5 text-xs rounded-full border transition-all duration-200 hover:scale-105 active:scale-95 cursor-pointer ${
+                      className={`px-3 py-1.5 text-xs rounded-full border transition duration-200 hover:scale-105 active:scale-95 cursor-pointer ${
                         availabilityFilter === v
                           ? "bg-[#E7A3B0] text-white border-[#E7A3B0] shadow-sm"
                           : "border-gray-200 text-gray-600 hover:border-[#E7A3B0] hover:bg-[#fff5f7] hover:text-[#E7A3B0] hover:shadow-sm"
@@ -1464,7 +1464,7 @@ export default function InventoryManagement({ initialAvailabilityFilter, userRol
                     <button
                       key={value}
                       onClick={() => setSaleFilter(value as "all" | "on-sale")}
-                      className={`px-3 py-1.5 text-xs rounded-full border transition-all duration-200 hover:scale-105 active:scale-95 cursor-pointer ${
+                      className={`px-3 py-1.5 text-xs rounded-full border transition duration-200 hover:scale-105 active:scale-95 cursor-pointer ${
                         saleFilter === value
                           ? "bg-[#E7A3B0] text-white border-[#E7A3B0] shadow-sm"
                           : "border-gray-200 text-gray-600 hover:border-[#E7A3B0] hover:bg-[#fff5f7] hover:text-[#E7A3B0] hover:shadow-sm"
@@ -1484,7 +1484,7 @@ export default function InventoryManagement({ initialAvailabilityFilter, userRol
                     setSaleFilter("all");
                     setCategoryFilter("all");
                   }}
-                  className="w-full text-xs text-gray-500 py-1.5 hover:bg-[#fff5f7] hover:border-[#E7A3B0] hover:text-[#E7A3B0] rounded-md transition-all duration-200 hover:scale-[1.02] active:scale-95 cursor-pointer border border-gray-200"
+                  className="w-full text-xs text-gray-500 py-1.5 hover:bg-[#fff5f7] hover:border-[#E7A3B0] hover:text-[#E7A3B0] rounded-md transition duration-200 hover:scale-[1.02] active:scale-95 cursor-pointer border border-gray-200"
                 >
                   Clear all filters
                 </button>

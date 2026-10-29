@@ -161,7 +161,7 @@ export default function ActivityLogsClient() {
 
   const handlePageChange = (page: number) => {
     if (page <= 1) {
-      router.replace(pathname);
+      window.history.replaceState(null, "", pathname);
     } else {
       router.replace(`${pathname}?page=${page}`);
     }
@@ -249,9 +249,8 @@ export default function ActivityLogsClient() {
         activeRequestControllerRef.current = null;
       }
 
-      if (!isBackground && isMountedRef.current && requestVersion === requestVersionRef.current) {
-        setLoading(false);
-      }
+      const ownsLoading = !isBackground && isMountedRef.current && requestVersion === requestVersionRef.current;
+      setLoading((current) => (ownsLoading ? false : current));
     }
   }, [currentPage, debouncedSearch, selectedMonth, actionTypeFilter]);
 
@@ -356,8 +355,8 @@ export default function ActivityLogsClient() {
   const groupedMonthEntries = Object.entries(monthsByYear).sort(([firstYear], [secondYear]) => Number(secondYear) - Number(firstYear));
 
   useEffect(() => {
-    router.replace(pathname);
-  }, [debouncedSearch, selectedMonth, actionTypeFilter, router, pathname]);
+    window.history.replaceState(null, "", pathname);
+  }, [debouncedSearch, selectedMonth, actionTypeFilter, pathname]);
 
   const totalPages = Math.max(1, Math.ceil(totalCount / itemsPerPage));
   const safePage = Math.min(currentPage, totalPages);
@@ -580,7 +579,7 @@ export default function ActivityLogsClient() {
               variant="outline"
               size="sm"
               onClick={() => setShowFilters((p) => !p)}
-              className="flex items-center gap-1.5 sm:gap-2 h-9 text-xs hover:bg-[#fff5f7] hover:text-[#E7A3B0] hover:border-[#E7A3B0] hover:scale-105 hover:shadow-md active:scale-95 transition-all duration-300"
+              className="flex items-center gap-1.5 sm:gap-2 h-9 text-xs hover:bg-[#fff5f7] hover:text-[#E7A3B0] hover:border-[#E7A3B0] hover:scale-105 hover:shadow-md active:scale-95 transition duration-300"
             >
               <SlidersHorizontal className="w-3.5 h-3.5" />
               <span className="hidden sm:inline">Filters</span>
@@ -599,7 +598,7 @@ export default function ActivityLogsClient() {
                       <button
                         key={key}
                         onClick={() => toggleActionType(key)}
-                        className={`px-3 py-1.5 text-xs rounded-full border transition-all duration-200 hover:scale-105 active:scale-95 cursor-pointer ${
+                        className={`px-3 py-1.5 text-xs rounded-full border transition duration-200 hover:scale-105 active:scale-95 cursor-pointer ${
                           actionTypeFilter.has(key)
                             ? "bg-[#E7A3B0] text-white border-[#E7A3B0] shadow-sm"
                             : "border-gray-200 text-gray-600 hover:border-[#E7A3B0] hover:bg-[#fff5f7] hover:text-[#E7A3B0] hover:shadow-sm"
@@ -613,7 +612,7 @@ export default function ActivityLogsClient() {
                 {activeFilterCount > 0 && (
                   <button
                     onClick={() => setActionTypeFilter(new Set())}
-                    className="w-full text-xs text-gray-500 py-1.5 hover:bg-[#fff5f7] hover:border-[#E7A3B0] hover:text-[#E7A3B0] rounded-md transition-all duration-200 hover:scale-[1.02] active:scale-95 cursor-pointer border border-gray-200"
+                    className="w-full text-xs text-gray-500 py-1.5 hover:bg-[#fff5f7] hover:border-[#E7A3B0] hover:text-[#E7A3B0] rounded-md transition duration-200 hover:scale-[1.02] active:scale-95 cursor-pointer border border-gray-200"
                   >
                     Clear all filters
                   </button>
@@ -627,7 +626,7 @@ export default function ActivityLogsClient() {
               variant="outline"
               size="sm"
               onClick={() => setShowPicker((p) => !p)}
-              className="flex items-center gap-1.5 sm:gap-2 h-9 text-xs hover:bg-[#fff5f7] hover:text-[#E7A3B0] hover:border-[#E7A3B0] hover:scale-105 hover:shadow-md active:scale-95 transition-all duration-300"
+              className="flex items-center gap-1.5 sm:gap-2 h-9 text-xs hover:bg-[#fff5f7] hover:text-[#E7A3B0] hover:border-[#E7A3B0] hover:scale-105 hover:shadow-md active:scale-95 transition duration-300"
             >
               <Calendar className="w-3.5 h-3.5" />
               <span className="hidden sm:inline">{selectedMonthLabel}</span>
@@ -969,7 +968,7 @@ export default function ActivityLogsClient() {
               </div>
               <button
                 onClick={() => setViewLog(null)}
-                className="w-full px-4 py-3 bg-linear-to-r from-[#E7A3B0] to-[#f0b8c3] text-white rounded-xl hover:from-[#d891a0] hover:to-[#E7A3B0] font-medium transition-all shadow-md hover:shadow-lg"
+                className="w-full px-4 py-3 bg-linear-to-r from-[#E7A3B0] to-[#f0b8c3] text-white rounded-xl hover:from-[#d891a0] hover:to-[#E7A3B0] font-medium transition shadow-md hover:shadow-lg"
               >
                 Close
               </button>

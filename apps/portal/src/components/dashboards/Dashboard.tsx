@@ -139,7 +139,7 @@ export default function Dashboard({ role }: DashboardProps) {
 
         setError(errorMsg);
       } finally {
-        if (!isBackground) setLoading(false);
+        setLoading((current) => (isBackground ? current : false));
       }
     },
     [role]
