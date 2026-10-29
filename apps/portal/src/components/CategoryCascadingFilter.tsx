@@ -1,7 +1,7 @@
 "use client";
 /* eslint-disable react-hooks/set-state-in-effect */
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Check, ChevronDown, ChevronLeft, ChevronRight, X } from "lucide-react";
 import { InventoryCategory as Category } from "@dollys-closet/core";
 
@@ -26,8 +26,9 @@ export default function CategoryCascadingFilter({
 }: CategoryCascadingFilterProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const [isOpen, setIsOpen] = useState(false);
-  const [activeRootKey, setActiveRootKey] = useState<string | null>(null);
-  const [activeSecondLevelId, setActiveSecondLevelId] = useState<number | null>(null);
+  // Columns the user picked while the dropdown is open; unset falls back to the current selection.
+  const [pickedRootKey, setPickedRootKey] = useState<string | null>(null);
+  const [pickedSecondLevelId, setPickedSecondLevelId] = useState<number | null | undefined>(undefined);
   const [alignRight, setAlignRight] = useState(false);
   const [isMobileView, setIsMobileView] = useState(false);
   const isMobileViewRef = useRef(false);
@@ -106,9 +107,10 @@ export default function CategoryCascadingFilter({
     return map;
   }, [rootCategoryGroups]);
 
-  const hasChildren = (categoryId: number) => {
-    return (childrenByParent.get(categoryId) || []).length > 0;
-  };
+  const hasChildren = useCallback(
+    (categoryId: number) => (childrenByParent.get(categoryId) || []).length > 0,
+    [childrenByParent]
+  );
 
   const getCategoryPath = (categoryId: number) => {
     const category = categoryById.get(categoryId);
@@ -141,43 +143,35 @@ export default function CategoryCascadingFilter({
       ? getCategoryPath(selectedCategoryId)
       : "All Categories";
 
-  useEffect(() => {
-    if (!isOpen) return;
+  // Columns that show the current selection; user picks override them until the dropdown reopens.
+  const selectionColumns = useMemo(() => {
+    const firstRootKey = rootCategoryGroups[0]?.key ?? null;
 
-    if (selectedRootGroupKey) {
-      setActiveRootKey(selectedRootGroupKey);
-      setActiveSecondLevelId(null);
-      return;
+    if (selectedRootGroupKey) return { rootKey: selectedRootGroupKey, secondLevelId: null };
+
+    const selectedCategory =
+      selectedCategoryId && !Number.isNaN(selectedCategoryId)
+        ? categoryById.get(selectedCategoryId)
+        : undefined;
+    if (!selectedCategory) return { rootKey: firstRootKey, secondLevelId: null };
+
+    let rootId = Number(selectedCategory.category_id);
+    let childId: number | null = null;
+    let parentId = selectedCategory.parent_category;
+
+    while (parentId !== null) {
+      childId = rootId;
+      rootId = parentId;
+      const parent = categoryById.get(parentId);
+      parentId = parent?.parent_category ?? null;
     }
 
-    if (selectedCategoryId && !Number.isNaN(selectedCategoryId)) {
-      const selectedCategory = categoryById.get(selectedCategoryId);
+    return { rootKey: rootGroupByRootId.get(rootId) ?? firstRootKey, secondLevelId: childId };
+  }, [selectedRootGroupKey, selectedCategoryId, categoryById, rootCategoryGroups, rootGroupByRootId]);
 
-      if (!selectedCategory) {
-        setActiveRootKey(rootCategoryGroups[0]?.key ?? null);
-        setActiveSecondLevelId(null);
-        return;
-      }
-
-      let rootId = Number(selectedCategory.category_id);
-      let childId: number | null = null;
-      let parentId = selectedCategory.parent_category;
-
-      while (parentId !== null) {
-        childId = rootId;
-        rootId = parentId;
-        const parent = categoryById.get(parentId);
-        parentId = parent?.parent_category ?? null;
-      }
-
-      setActiveRootKey(rootGroupByRootId.get(rootId) ?? rootCategoryGroups[0]?.key ?? null);
-      setActiveSecondLevelId(childId);
-      return;
-    }
-
-    setActiveRootKey(rootCategoryGroups[0]?.key ?? null);
-    setActiveSecondLevelId(null);
-  }, [isOpen, selectedRootGroupKey, selectedCategoryId, categoryById, rootCategoryGroups, rootGroupByRootId]);
+  const activeRootKey = pickedRootKey ?? selectionColumns.rootKey;
+  const activeSecondLevelId =
+    pickedSecondLevelId !== undefined ? pickedSecondLevelId : selectionColumns.secondLevelId;
 
   useEffect(() => {
     if (!isOpen || !containerRef.current) return;
@@ -233,7 +227,10 @@ export default function CategoryCascadingFilter({
   const normalizedSearchQuery = searchQuery.trim().toLowerCase();
   const hasSearchQuery = normalizedSearchQuery.length > 0;
 
-  const matchesSearch = (categoryName: string) => categoryName.toLowerCase().includes(normalizedSearchQuery);
+  const matchesSearch = useCallback(
+    (categoryName: string) => categoryName.toLowerCase().includes(normalizedSearchQuery),
+    [normalizedSearchQuery]
+  );
 
   const filteredRootGroups = useMemo(() => {
     if (!hasSearchQuery) {
@@ -256,7 +253,7 @@ export default function CategoryCascadingFilter({
         });
       });
     });
-  }, [hasSearchQuery, normalizedSearchQuery, rootCategoryGroups, categoryById, childrenByParent]);
+  }, [hasSearchQuery, matchesSearch, rootCategoryGroups, categoryById, childrenByParent]);
 
   const firstColumn = rootCategoryGroups;
 
@@ -287,13 +284,13 @@ export default function CategoryCascadingFilter({
       if (!hasChildren(Number(category.category_id))) return false;
       return (childrenByParent.get(Number(category.category_id)) || []).some((child) => matchesSearch(child.category_name));
     });
-  }, [activeRootKey, rootGroupByKey, childrenByParent, hasSearchQuery, normalizedSearchQuery, hasChildren]);
+  }, [activeRootKey, rootGroupByKey, childrenByParent, hasSearchQuery, matchesSearch, hasChildren]);
 
   const thirdColumn = useMemo(() => {
     const items = activeSecondLevelId !== null ? childrenByParent.get(activeSecondLevelId) || [] : [];
     if (!hasSearchQuery) return items;
     return items.filter((category) => matchesSearch(category.category_name));
-  }, [activeSecondLevelId, childrenByParent, hasSearchQuery, normalizedSearchQuery]);
+  }, [activeSecondLevelId, childrenByParent, hasSearchQuery, matchesSearch]);
 
   const renderItem = (category: Category, level: 2 | 3) => {
     const categoryId = Number(category.category_id);
@@ -307,7 +304,7 @@ export default function CategoryCascadingFilter({
         type="button"
         onMouseEnter={() => {
           if (level === 2) {
-            setActiveSecondLevelId(categoryId);
+            setPickedSecondLevelId(categoryId);
           }
         }}
         onClick={() => {
@@ -339,8 +336,8 @@ export default function CategoryCascadingFilter({
         key={rootGroup.key}
         type="button"
         onMouseEnter={() => {
-          setActiveRootKey(rootGroup.key);
-          setActiveSecondLevelId(null);
+          setPickedRootKey(rootGroup.key);
+          setPickedSecondLevelId(null);
         }}
         onClick={() => {
           onValueChange(`rootgroup:${rootGroup.key}`);
@@ -365,7 +362,13 @@ export default function CategoryCascadingFilter({
     <div ref={containerRef} className={`relative ${className}`}>
       <button
         type="button"
-        onClick={() => setIsOpen((previous) => !previous)}
+        onClick={() => {
+          if (!isOpen) {
+            setPickedRootKey(null);
+            setPickedSecondLevelId(undefined);
+          }
+          setIsOpen(!isOpen);
+        }}
         className={`h-9 px-3 border border-input rounded-md bg-white text-sm text-gray-900 flex items-center justify-between ${triggerClassName ?? "w-[180px]"}`}
         aria-haspopup="dialog"
         aria-expanded={isOpen}
@@ -380,7 +383,7 @@ export default function CategoryCascadingFilter({
           <div className="fixed inset-x-2 bottom-2 z-50 rounded-xl border border-black bg-white shadow-xl overflow-hidden flex flex-col max-h-[70vh]">
             <div className="flex items-center gap-1 border-b border-zinc-100 px-3 py-2.5 shrink-0">
               {drillPath.length > 0 ? (
-                <button
+                <button aria-label="Back"
                   type="button"
                   onClick={() => setDrillPath((p) => p.slice(0, -1))}
                   className="flex items-center justify-center rounded-md p-1 hover:bg-zinc-100 -ml-1 mr-1"
@@ -397,7 +400,7 @@ export default function CategoryCascadingFilter({
                     ? (rootGroupByKey.get(drillPath[0] as string)?.label ?? "Category")
                     : (categoryById.get(drillPath[1] as number)?.category_name ?? "Category")}
               </span>
-              <button
+              <button aria-label="Close categories"
                 type="button"
                 onClick={() => setIsOpen(false)}
                 className="flex items-center justify-center rounded-md p-1 hover:bg-zinc-100 -mr-1"
@@ -454,7 +457,7 @@ export default function CategoryCascadingFilter({
                         type="button"
                         onClick={() => {
                           if (hasAny) {
-                            setActiveRootKey(rootGroup.key);
+                            setPickedRootKey(rootGroup.key);
                             setDrillPath([rootGroup.key]);
                           } else {
                             onValueChange(`rootgroup:${rootGroup.key}`);
@@ -502,7 +505,7 @@ export default function CategoryCascadingFilter({
                           type="button"
                           onClick={() => {
                             if (catHasChildren) {
-                              setActiveSecondLevelId(catId);
+                              setPickedSecondLevelId(catId);
                               setDrillPath([rootKey, catId]);
                             } else {
                               onValueChange(String(catId));
