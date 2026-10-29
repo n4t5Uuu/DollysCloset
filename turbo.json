@@ -14,6 +14,14 @@
       "dependsOn": ["^build"],
       "outputs": [".next/**", "!.next/cache/**"]
     },
+    "@dollys-closet/core#build": {
+      "dependsOn": ["^build"],
+      "outputs": []
+    },
+    "@dollys-closet/ui#build": {
+      "dependsOn": ["^build"],
+      "outputs": []
+    },
     "lint": {
       "dependsOn": ["^lint"]
     },
