@@ -1,11 +1,10 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@dollys-closet/core";
 import { Eye, EyeOff, Loader2, CheckCircle2, ChevronRight, X, Check } from "lucide-react";
 import { toast } from "sonner";
-import { motion, AnimatePresence } from "framer-motion";
 
 export default function SetPasswordPage() {
     const router = useRouter();
@@ -14,21 +13,6 @@ export default function SetPasswordPage() {
     const [showPassword, setShowPassword] = useState(false);
     const [loading, setLoading] = useState(false);
     const [isSuccess, setIsSuccess] = useState(false);
-    const [user, setUser] = useState<any>(null);
-
-    useEffect(() => {
-        const checkSession = async () => {
-            const supabase = createClient();
-            const { data: { user }, error } = await supabase.auth.getUser();
-            if (error || !user) {
-                toast.error("Invalid or expired session. Please contact your admin.");
-                router.push("/");
-                return;
-            }
-            setUser(user);
-        };
-        checkSession();
-    }, [router]);
 
     // Real-time validation logic
     const validations = useMemo(() => ({
@@ -84,13 +68,9 @@ export default function SetPasswordPage() {
         return (
             <div className="min-h-screen w-full flex items-center justify-center font-montserrat p-4 relative overflow-hidden bg-[#FFFBFB]">
                 <div className="relative z-10 w-full max-w-[420px] bg-white rounded-[32px] shadow-xl p-12 text-center">
-                    <motion.div 
-                        initial={{ scale: 0.5, opacity: 0 }}
-                        animate={{ scale: 1, opacity: 1 }}
-                        className="mb-6 flex justify-center"
-                    >
+                    <div className="mb-6 flex justify-center animate-pop-in">
                         <CheckCircle2 size={80} className="text-emerald-500" />
-                    </motion.div>
+                    </div>
                     <h1 className="text-3xl font-oswald font-bold text-[#1A1A1A] mb-4 uppercase tracking-wider">Account Active!</h1>
                     <p className="text-[#828282] mb-8">Access granted. Redirecting to your dashboard workspace...</p>
                     <div className="flex flex-col items-center gap-2">
@@ -145,7 +125,7 @@ export default function SetPasswordPage() {
                             type={showPassword ? "text" : "password"}
                             id="password"
                             placeholder=" " 
-                            className="peer w-full px-5 py-[18px] rounded-2xl border border-[#F0F0F0] bg-white/50 text-[#1A1A1A] focus:outline-none transition-all duration-300 pr-12 focus:border-[#E7A3B0] focus:ring-1 focus:ring-[#E7A3B0]"
+                            className="peer w-full px-5 py-[18px] rounded-2xl border border-[#F0F0F0] bg-white/50 text-[#1A1A1A] focus:outline-none transition duration-300 pr-12 focus:border-[#E7A3B0] focus:ring-1 focus:ring-[#E7A3B0]"
                             value={password}
                             onChange={(e) => setPassword(e.target.value)}
                             required
@@ -154,7 +134,7 @@ export default function SetPasswordPage() {
                         />
                         <label 
                             htmlFor="password"
-                            className="absolute left-5 top-1/2 -translate-y-1/2 text-[#999] font-medium text-[14px] transition-all duration-200 cursor-text pointer-events-none px-1.5 bg-white/0
+                            className="absolute left-5 top-1/2 -translate-y-1/2 text-[#999] font-medium text-[14px] transition duration-200 cursor-text pointer-events-none px-1.5 bg-white/0
                                       peer-focus:top-0 peer-focus:text-[12px] peer-focus:text-[#E7A3B0] peer-focus:bg-white
                                       peer-[:not(:placeholder-shown)]:top-0 peer-[:not(:placeholder-shown)]:text-[12px] peer-[:not(:placeholder-shown)]:text-[#E7A3B0] peer-[:not(:placeholder-shown)]:bg-white"
                             suppressHydrationWarning
@@ -176,7 +156,7 @@ export default function SetPasswordPage() {
                             type={showPassword ? "text" : "password"}
                             id="confirmPassword"
                             placeholder=" " 
-                            className={`peer w-full px-5 py-[18px] rounded-2xl border bg-white/50 text-[#1A1A1A] focus:outline-none transition-all duration-300 pr-12 
+                            className={`peer w-full px-5 py-[18px] rounded-2xl border bg-white/50 text-[#1A1A1A] focus:outline-none transition duration-300 pr-12 
                                 ${isMatching ? 'border-emerald-200 focus:border-emerald-400 focus:ring-emerald-400' : 'border-[#F0F0F0] focus:border-[#E7A3B0] focus:ring-[#E7A3B0]'}`}
                             value={confirmPassword}
                             onChange={(e) => setConfirmPassword(e.target.value)}
@@ -186,7 +166,7 @@ export default function SetPasswordPage() {
                         />
                         <label 
                             htmlFor="confirmPassword"
-                            className="absolute left-5 top-1/2 -translate-y-1/2 text-[#999] font-medium text-[14px] transition-all duration-200 cursor-text pointer-events-none px-1.5 bg-white/0
+                            className="absolute left-5 top-1/2 -translate-y-1/2 text-[#999] font-medium text-[14px] transition duration-200 cursor-text pointer-events-none px-1.5 bg-white/0
                                       peer-focus:top-0 peer-focus:text-[12px] peer-focus:bg-white
                                       peer-[:not(:placeholder-shown)]:top-0 peer-[:not(:placeholder-shown)]:text-[12px] peer-[:not(:placeholder-shown)]:bg-white"
                             suppressHydrationWarning
@@ -203,7 +183,7 @@ export default function SetPasswordPage() {
                     <button 
                         type="submit" 
                         disabled={loading || !isAllValid || !isMatching}
-                        className="w-full relative bg-linear-to-r from-[#E7A3B0] to-[#E2899A] text-white font-bold py-[20px] rounded-2xl transition-all duration-300 mt-4 text-[15px] tracking-widest uppercase shadow-[0_12px_24px_-8px_rgba(231,163,176,0.6)] hover:shadow-[0_16px_32px_-8px_rgba(231,163,176,0.8)] disabled:opacity-40 disabled:cursor-not-allowed disabled:shadow-none hover:-translate-y-0.5"
+                        className="w-full relative bg-linear-to-r from-[#E7A3B0] to-[#E2899A] text-white font-bold py-[20px] rounded-2xl transition duration-300 mt-4 text-[15px] tracking-widest uppercase shadow-[0_12px_24px_-8px_rgba(231,163,176,0.6)] hover:shadow-[0_16px_32px_-8px_rgba(231,163,176,0.8)] disabled:opacity-40 disabled:cursor-not-allowed disabled:shadow-none hover:-translate-y-0.5"
                     >
                         {loading ? (
                             <div className="flex items-center justify-center gap-2">
@@ -223,7 +203,7 @@ export default function SetPasswordPage() {
 function ValidationItem({ isMet, label }: { isMet: boolean; label: string }) {
     return (
         <div className="flex items-center gap-3">
-            <div className={`shrink-0 w-5 h-5 rounded-full flex items-center justify-center transition-all duration-300 ${isMet ? 'bg-emerald-500 text-white' : 'bg-gray-200 text-gray-400'}`}>
+            <div className={`shrink-0 w-5 h-5 rounded-full flex items-center justify-center transition duration-300 ${isMet ? 'bg-emerald-500 text-white' : 'bg-gray-200 text-gray-400'}`}>
                 {isMet ? <Check size={12} strokeWidth={3} /> : <div className="w-1 h-1 rounded-full bg-current" />}
             </div>
             <span className={`text-[13px] transition-colors duration-300 ${isMet ? 'text-gray-900 font-medium' : 'text-gray-400'}`}>

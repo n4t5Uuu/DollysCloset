@@ -2,3 +2,29 @@
 @source "../**/*.{ts,tsx}";
 @source "../../../../packages/ui/src/**/*.{ts,tsx}";
 @source "../../../../packages/core/src/**/*.{ts,tsx}";
+
+@keyframes pop-in {
+  from {
+    transform: scale(0.5);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+.animate-pop-in {
+  animation: pop-in 0.3s ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
