@@ -22,6 +22,13 @@ const tabs = [
 
 type Tab = (typeof tabs)[number]['key'];
 
+async function readErrorMessage(response: Response, isJson: boolean) {
+  const fallback = 'Analytics service is unavailable right now.';
+  if (response.ok || !isJson) return fallback;
+  const body = await response.json().catch(() => null);
+  return typeof body?.error === 'string' ? body.error : fallback;
+}
+
 export function AnalyticsWorkspace() {
   const [active, setActive] = useState<Tab>('overview');
   const [exporting, setExporting] = useState(false);
@@ -44,9 +51,11 @@ export function AnalyticsWorkspace() {
     try {
       const response = await fetch('/api/admin/analytics', { cache: 'no-store' });
       const contentType = response.headers.get('content-type') ?? '';
-      const json = contentType.includes('application/json')
-        ? await response.json()
-        : { error: 'Analytics service is unavailable right now.' };
+      const isJson = contentType.includes('application/json');
+      const json =
+        response.ok && isJson
+          ? await response.json()
+          : { error: await readErrorMessage(response, isJson) };
 
       if (!response.ok || json.error) {
         const message =
@@ -179,7 +188,7 @@ export function AnalyticsWorkspace() {
                 type="button"
                 onClick={() => setActive(tab.key)}
                 aria-pressed={isActive}
-                className="flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-all duration-200"
+                className="flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition duration-200"
                 style={
                   isActive
                     ? { backgroundColor: 'white', color: '#111827', boxShadow: '0 1px 3px rgba(0,0,0,0.08)' }

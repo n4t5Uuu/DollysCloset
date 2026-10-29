@@ -22,6 +22,7 @@ export function RealtimeSection() {
   const fetchRealtime = useCallback(async () => {
     try {
       const res = await fetch('/api/admin/analytics/realtime');
+      if (!res.ok) return;
       const json = await res.json();
       if (!json.error) {
         setData(json);
@@ -52,7 +53,7 @@ export function RealtimeSection() {
       {/* Pill button */}
       <button
         onClick={() => setOpen(prev => !prev)}
-        className="flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium transition-all"
+        className="flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium transition"
         style={{
           backgroundColor: open ? BRAND_LIGHT : 'white',
           border: `1px solid ${open ? BRAND : '#e5e7eb'}`,

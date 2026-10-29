@@ -26,6 +26,8 @@ import {
 import { Button, Tooltip as UITooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@dollys-closet/ui';
 import { InventoryCategory, InventoryProduct } from '@dollys-closet/core';
 import AddProduct from '@/components/dialogs/AddProduct';
+import Link from 'next/link';
+import { fetchJson } from '@/lib/fetch-json';
 import {
   DashboardCardLayout,
   type DashboardCardDefinition,
@@ -129,7 +131,7 @@ function MetricList({
         const value = item[valueKey] ?? 0;
         const pct = maxValue > 0 ? Math.round((value / maxValue) * 100) : 0;
         return (
-          <div key={`${item.name}-${index}`} className="space-y-1">
+          <div key={item.name} className="space-y-1">
             <div className="flex items-center justify-between text-sm">
               <span className="max-w-[70%] truncate font-medium text-[#374151]" title={item.name}>
                 {item.name}
@@ -184,15 +186,11 @@ export function ProductsDashboard({
       }
 
       try {
-        const response = await fetch(url, { cache: 'no-store' });
-        const contentType = response.headers.get('content-type') ?? '';
-        const json = contentType.includes('application/json')
-          ? await response.json()
-          : { error: 'Product analytics are unavailable right now.' };
-
-        if (!response.ok || json.error) {
-          throw new Error(json.error || 'Product analytics are unavailable right now.');
-        }
+        const json = await fetchJson<ProductsData>(
+          url,
+          { cache: 'no-store' },
+          'Product analytics are unavailable right now.'
+        );
 
         setData(json);
         setLastUpdated(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
@@ -204,9 +202,7 @@ export function ProductsDashboard({
         );
         setData(null);
       } finally {
-        if (!silent) {
-          setLoading(false);
-        }
+        setLoading((current) => (silent ? current : false));
       }
     },
     []
@@ -234,23 +230,21 @@ export function ProductsDashboard({
       }
 
       try {
-        const response = await fetch(url, { cache: 'no-store' });
-        const contentType = response.headers.get('content-type') ?? '';
-        const json = contentType.includes('application/json')
-          ? await response.json()
-          : { error: 'Product analytics are unavailable right now.' };
+        const json = await fetchJson<ProductsData>(
+          url,
+          { cache: 'no-store' },
+          'Product analytics are unavailable right now.'
+        );
 
-        if (!json.error) {
-          setData((currentData) =>
-            currentData
-              ? {
-                  ...currentData,
-                  mostEdited: json.mostEdited,
-                  mostViewed: json.mostViewed,
-                }
-              : json
-          );
-        }
+        setData((currentData) =>
+          currentData
+            ? {
+                ...currentData,
+                mostEdited: json.mostEdited,
+                mostViewed: json.mostViewed,
+              }
+            : json
+        );
       } catch {
         // Keep the existing data visible if this quick refresh fails.
       } finally {
@@ -263,12 +257,10 @@ export function ProductsDashboard({
   const handleEditClick = useCallback(async (productId: string) => {
     setLoadingProductId(productId);
     try {
-      const [productsResponse, categoriesResponse] = await Promise.all([
-        fetch('/api/admin/products'),
-        fetch('/api/admin/categories'),
+      const [productsJson, categoriesJson] = await Promise.all([
+        fetchJson('/api/admin/products'),
+        fetchJson('/api/admin/categories'),
       ]);
-      const productsJson = await productsResponse.json();
-      const categoriesJson = await categoriesResponse.json();
       const product = (productsJson.data as InventoryProduct[]).find(
         (item) => String(item.product_id) === productId
       );
@@ -358,8 +350,8 @@ export function ProductsDashboard({
                     formatter={(value) => [value, 'Products']}
                   />
                   <Bar dataKey="count" name="Products" radius={[0, 4, 4, 0]}>
-                    {data.topCategories.map((_, index) => (
-                      <Cell key={index} fill={index === 0 ? BRAND : '#e5e7eb'} />
+                    {data.topCategories.map((category, index) => (
+                      <Cell key={category.category} fill={index === 0 ? BRAND : '#e5e7eb'} />
                     ))}
                   </Bar>
                 </BarChart>
@@ -480,9 +472,9 @@ export function ProductsDashboard({
 
               {allStockAlerts.length > alertCap ? (
                 <div className="pt-1">
-                  <a href="/dashboard/inventory" className="flex items-center gap-1 text-xs font-medium" style={{ color: BRAND }}>
+                  <Link href="/dashboard/inventory" className="flex items-center gap-1 text-xs font-medium" style={{ color: BRAND }}>
                     View all {allStockAlerts.length} alerts in Inventory <ArrowRight className="h-3 w-3" />
-                  </a>
+                  </Link>
                 </div>
               ) : null}
             </div>
@@ -522,9 +514,9 @@ export function ProductsDashboard({
 
               {data.missingImageList.length > alertCap ? (
                 <div className="pt-1">
-                  <a href="/dashboard/inventory" className="flex items-center gap-1 text-xs font-medium" style={{ color: BRAND }}>
+                  <Link href="/dashboard/inventory" className="flex items-center gap-1 text-xs font-medium" style={{ color: BRAND }}>
                     View all {data.missingImageList.length} in Inventory <ArrowRight className="h-3 w-3" />
-                  </a>
+                  </Link>
                 </div>
               ) : null}
             </div>

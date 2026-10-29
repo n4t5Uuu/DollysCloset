@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState, type ReactNode } from 'react';
+import { fetchJson } from '@/lib/fetch-json';
 import {
   Bar,
   BarChart,
@@ -163,11 +164,11 @@ function PageListBody({
 
   return (
     <div className="space-y-3">
-      {pages.map((page, index) => {
+      {pages.map((page) => {
         const maxViews = pages[0]?.views ?? 0;
         const pct = maxViews > 0 ? Math.round((page.views / maxViews) * 100) : 0;
         return (
-          <div key={`${page.page}-${index}`} className="space-y-1">
+          <div key={page.page} className="space-y-1">
             <div className="flex items-center justify-between text-sm">
               <span className="max-w-[60%] truncate text-[#374151]" title={page.page}>
                 {page.page || '/'}
@@ -176,7 +177,7 @@ function PageListBody({
             </div>
             <div className="h-1.5 overflow-hidden rounded-full bg-gray-100">
               <div
-                className="h-full rounded-full transition-all"
+                className="h-full rounded-full transition"
                 style={{ width: `${pct}%`, backgroundColor: color }}
               />
             </div>
@@ -196,10 +197,10 @@ function DeviceBreakdownBody({ devices }: { devices: DeviceData[] }) {
 
   return (
     <div className="grid grid-cols-1 gap-6 sm:grid-cols-3">
-      {devices.map((device, index) => {
+      {devices.map((device) => {
         const pct = totalDeviceUsers > 0 ? Math.round((device.users / totalDeviceUsers) * 100) : 0;
         return (
-          <div key={`${device.device}-${index}`} className="space-y-2">
+          <div key={device.device} className="space-y-2">
             <div className="flex items-center justify-between text-sm">
               <span className="flex items-center gap-1.5 capitalize text-[#374151]">
                 {deviceIcon(device.device)}
@@ -243,35 +244,19 @@ export function AnalyticsDashboard({
         ? `/api/admin/analytics?month=${selectedMonth}`
         : '/api/admin/analytics';
 
-    fetch(url)
-      .then(async (response) => {
-        const contentType = response.headers.get('content-type') ?? '';
-        const json = contentType.includes('application/json')
-          ? await response.json()
-          : { error: 'Analytics service is unavailable right now.' };
-
-        if (!response.ok) {
-          return { ...json, error: json.error || 'Analytics service is unavailable right now.' };
-        }
-
-        return json;
-      })
+    fetchJson<AnalyticsData>(url, undefined, 'Analytics service is unavailable right now.')
       .then((json) => {
         if (!isMounted) return;
-
-        if (json.error) {
-          setError(json.error);
-          setData(null);
-          return;
-        }
 
         setError(null);
         setData(json);
         setLastUpdated(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
       })
-      .catch(() => {
+      .catch((fetchError: unknown) => {
         if (!isMounted) return;
-        setError('Unable to load analytics data right now.');
+        setError(
+          fetchError instanceof Error ? fetchError.message : 'Unable to load analytics data right now.'
+        );
         setData(null);
       })
       .finally(() => {

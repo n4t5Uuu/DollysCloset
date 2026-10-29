@@ -21,6 +21,17 @@ const tabs = [
 
 type Tab = typeof tabs[number]['key'];
 
+async function fetchActiveMonths() {
+    const res = await fetch('/api/admin/analytics');
+    if (!res.ok) throw new Error(`Analytics request failed (${res.status})`);
+    const json = await res.json();
+    if (!json.monthlyData) return null;
+    return json.monthlyData.map((m: any) => ({
+        value: m.value,
+        label: m.month,
+    })).reverse() as { value: string; label: string }[];
+}
+
 export function AnalyticsTabs() {
   const [active, setActive] = useState<Tab>('overview');
   const [exporting, setExporting] = useState(false);
@@ -31,17 +42,10 @@ export function AnalyticsTabs() {
     useEffect(() => {
         let isMounted = true;
 
-        fetch('/api/admin/analytics')
-            .then(res => res.json())
-            .then(json => {
+        fetchActiveMonths()
+            .then(list => {
                 if (!isMounted) return;
-                if (json.monthlyData) {
-                    const list = json.monthlyData.map((m: any) => ({
-                        value: m.value,
-                        label: m.month,
-                    })).reverse();
-                    setActiveMonths(list);
-                }
+                if (list) setActiveMonths(list);
             })
             .catch((e) => {
                 if (!isMounted) return;
@@ -77,7 +81,7 @@ export function AnalyticsTabs() {
                             <button
                                 key={tab.key}
                                 onClick={() => setActive(tab.key)}
-                                className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200"
+                                className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition duration-200"
                                 style={
                                     isActive
                                         ? { backgroundColor: 'white', color: '#111827', boxShadow: '0 1px 3px rgba(0,0,0,0.08)' }
@@ -111,7 +115,7 @@ export function AnalyticsTabs() {
                     <button
                         onClick={handleExport}
                         disabled={exporting}
-                        className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all shrink-0"
+                        className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition shrink-0"
                         style={{
                             backgroundColor: 'white',
                             border: '1px solid #e5e7eb',

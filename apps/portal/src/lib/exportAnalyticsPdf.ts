@@ -1,4 +1,5 @@
 import jsPDF from 'jspdf';
+import { fetchJson } from '@/lib/fetch-json';
 
 const BRAND = [231, 163, 176] as [number, number, number];
 const A4_W = 210;
@@ -427,17 +428,12 @@ export async function exportAnalyticsPdf(selectedMonth?: string) {
   const productsMonthUrl = selectedMonth ? `/api/admin/analytics/products?period=month&month=${selectedMonth}` : '/api/admin/analytics/products?period=month';
   const productsWeekUrl = selectedMonth ? `/api/admin/analytics/products?period=month&month=${selectedMonth}` : '/api/admin/analytics/products?period=week';
 
-  const [analyticsRes, productsAllRes, productsMonthRes, productsWeekRes] = await Promise.all([
-    fetch(analyticsUrl),
-    fetch(productsAllUrl),
-    fetch(productsMonthUrl),
-    fetch(productsWeekUrl),
+  const [analytics, productsAll, productsMonth, productsWeek] = await Promise.all([
+    fetchJson(analyticsUrl),
+    fetchJson(productsAllUrl),
+    fetchJson(productsMonthUrl),
+    fetchJson(productsWeekUrl),
   ]);
-
-  const analytics = await analyticsRes.json();
-  const productsAll = await productsAllRes.json();
-  const productsMonth = await productsMonthRes.json();
-  const productsWeek = await productsWeekRes.json();
 
   const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
   let y = drawHeader(pdf, selectedMonth);
