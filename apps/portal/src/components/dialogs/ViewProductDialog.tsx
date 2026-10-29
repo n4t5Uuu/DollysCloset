@@ -15,6 +15,154 @@ interface ViewProductDialogProps {
   seasons?: Season[];
 }
 
+const MONTH_ABBR = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"] as const;
+const DATE_FORMAT: Intl.DateTimeFormatOptions = { month: "short", day: "numeric", year: "numeric", timeZone: "Asia/Manila" };
+
+function formatDate(value: string | null | undefined) {
+  if (!value) return "-";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "-";
+  return date.toLocaleDateString("en-US", DATE_FORMAT);
+}
+
+const formatSeasonWindow = (s: Season) =>
+  `${MONTH_ABBR[s.startMonth - 1]} ${s.startDay} \u2013 ${MONTH_ABBR[s.endMonth - 1]} ${s.endDay}`;
+
+function describeDiscount(discount: NonNullable<Product["discount"]>) {
+  const amount =
+    discount.discount_type === "percent"
+      ? `${discount.discount_value}% off`
+      : discount.discount_type === "fixed_price"
+        ? `Final price \u20B1${discount.discount_value.toFixed(2)}`
+        : `\u20B1${discount.discount_value.toFixed(2)} off`;
+  const ends = discount.ends_at
+    ? ` \u2022 Ends ${new Date(discount.ends_at).toLocaleDateString("en-US", DATE_FORMAT)}`
+    : "";
+  return amount + ends;
+}
+
+function ImageGallery({
+  productName,
+  images,
+  selectedImage,
+  onSelectedImageChange,
+}: {
+  productName: string;
+  images: ProductImage[];
+  selectedImage: string | null;
+  onSelectedImageChange: (url: string | null) => void;
+}) {
+  if (images.length === 0) {
+    return (
+      <div className="w-full h-48 rounded-2xl border border-dashed border-gray-200 bg-gray-50 flex items-center justify-center text-gray-400 text-sm">
+        No image available
+      </div>
+    );
+  }
+
+  const orderedImages = [...images].sort((a, b) => {
+    if (a.is_primary === b.is_primary) return a.display_order - b.display_order;
+    return a.is_primary ? -1 : 1;
+  });
+  const shownImage = selectedImage || orderedImages[0].image_url;
+
+  return (
+    <>
+      <div className="w-full h-72 rounded-2xl border border-gray-100 bg-gray-50 flex items-center justify-center p-2">
+        <img src={shownImage} alt={productName} className="w-full h-full object-contain rounded-xl" />
+      </div>
+      {orderedImages.length > 1 && (
+        <div className="mt-3 flex gap-2 overflow-x-auto pb-1">
+          {orderedImages.map((image) => (
+            <button
+              key={image.image_id}
+              type="button"
+              onClick={() => onSelectedImageChange(image.image_url)}
+              className={`h-16 w-16 shrink-0 overflow-hidden rounded-lg border-2 transition ${shownImage === image.image_url ? "border-[#E7A3B0] shadow-sm" : "border-transparent hover:border-[#E7A3B0]/40"}`}
+              aria-label="Select product image"
+            >
+              <img src={image.image_url} alt={`${productName} thumbnail`} className="h-full w-full object-cover" />
+            </button>
+          ))}
+        </div>
+      )}
+    </>
+  );
+}
+
+function PricingSection({ product }: { product: Product }) {
+  const discountedPrice = product.discountedPrice;
+
+  return (
+    <div className="rounded-2xl border border-[#E7A3B0]/15 bg-[#fffafc] p-4">
+      <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#b47c88] mb-3">Pricing</p>
+      <div className="flex items-baseline gap-3">
+        {discountedPrice !== null && discountedPrice !== undefined ? (
+          <>
+            <span className="text-2xl font-bold text-[#b96d7d]">&#8369;{discountedPrice.toFixed(2)}</span>
+            <span className="text-base text-gray-400 line-through">&#8369;{product.product_price.toFixed(2)}</span>
+          </>
+        ) : (
+          <span className="text-2xl font-bold text-gray-900">&#8369;{product.product_price.toFixed(2)}</span>
+        )}
+      </div>
+      {product.discount && (
+        <div className="mt-3 inline-flex items-center gap-2 rounded-lg border border-[#E7A3B0]/20 bg-white px-3 py-2">
+          <BadgePercent className="h-4 w-4 text-[#E7A3B0]" />
+          <div>
+            <p className="text-sm font-semibold text-gray-900">{product.discount.discount_name}</p>
+            <p className="text-xs text-gray-500">{describeDiscount(product.discount)}</p>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function Timestamps({ product }: { product: Product }) {
+  const lastUpdated = product.updated_at || product.time_updated || null;
+
+  return (
+    <div className="flex items-center gap-4 text-xs text-gray-400 border-t border-gray-100 pt-4">
+      <span className="inline-flex items-center gap-1.5">
+        <Calendar className="h-3.5 w-3.5" />
+        Created {formatDate(product.created_at)}
+      </span>
+      {lastUpdated && (
+        <span className="inline-flex items-center gap-1.5">
+          <Clock className="h-3.5 w-3.5" />
+          Updated {formatDate(lastUpdated)}
+        </span>
+      )}
+      {product.archived_at && (
+        <span className="inline-flex items-center gap-1.5 text-amber-500">
+          Archived {formatDate(product.archived_at)}
+        </span>
+      )}
+    </div>
+  );
+}
+
+function SeasonCell({ product, seasons }: { product: Product; seasons: Season[] }) {
+  const season = product.season_id
+    ? seasons.find((s) => String(s.id) === String(product.season_id)) ?? null
+    : null;
+
+  if (!season) {
+    return <InfoCell icon={<CalendarRange className="h-3.5 w-3.5" />} label="Season" value="-" />;
+  }
+
+  const tone = getSeasonColor(season.id, seasons, null);
+  return (
+    <InfoCell
+      icon={<CalendarRange className="h-3.5 w-3.5" />}
+      label="Season"
+      value={`${season.name} (${formatSeasonWindow(season)})${season.isActive === false ? " \u2022 inactive" : ""}`}
+      ribbon={{ borderColor: tone.border, trackColor: tone.bg }}
+    />
+  );
+}
+
 export default function ViewProductDialog({
   product,
   images,
@@ -48,28 +196,6 @@ export default function ViewProductDialog({
 
   if (!product) return null;
 
-  const orderedImages = [...images].sort((a, b) => {
-    if (a.is_primary === b.is_primary) return a.display_order - b.display_order;
-    return a.is_primary ? -1 : 1;
-  });
-
-  const formatDate = (value: string | null | undefined) => {
-    if (!value) return "-";
-    const date = new Date(value);
-    if (Number.isNaN(date.getTime())) return "-";
-    return date.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric", timeZone: "Asia/Manila" });
-  };
-
-  const lastUpdated = product.updated_at || product.time_updated || null;
-
-  const MONTH_ABBR = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"] as const;
-  const season =
-    product.season_id && seasons.length > 0
-      ? seasons.find((s) => String(s.id) === String(product.season_id)) ?? null
-      : null;
-  const formatSeasonWindow = (s: Season) =>
-    `${MONTH_ABBR[s.startMonth - 1]} ${s.startDay} \u2013 ${MONTH_ABBR[s.endMonth - 1]} ${s.endDay}`;
-
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
       <ModalBackdrop onClick={onClose} />
@@ -99,43 +225,12 @@ export default function ViewProductDialog({
         <div className="overflow-y-auto p-6 space-y-5">
           {/* Images */}
           <div className="w-full">
-            {images.length > 0 ? (
-              <>
-                <div className="w-full h-72 rounded-2xl border border-gray-100 bg-gray-50 flex items-center justify-center p-2">
-                  <img
-                    src={selectedImage || orderedImages[0].image_url}
-                    alt={product.product_name}
-                    className="w-full h-full object-contain rounded-xl"
-                  />
-                </div>
-                {orderedImages.length > 1 && (
-                  <div className="mt-3 flex gap-2 overflow-x-auto pb-1">
-                    {orderedImages.map((image) => {
-                      const isSelected = (selectedImage || orderedImages[0].image_url) === image.image_url;
-                      return (
-                        <button
-                          key={image.image_id}
-                          type="button"
-                          onClick={() => onSelectedImageChange(image.image_url)}
-                          className={`h-16 w-16 shrink-0 overflow-hidden rounded-lg border-2 transition ${isSelected ? "border-[#E7A3B0] shadow-sm" : "border-transparent hover:border-[#E7A3B0]/40"}`}
-                          aria-label="Select product image"
-                        >
-                          <img
-                            src={image.image_url}
-                            alt={`${product.product_name} thumbnail`}
-                            className="h-full w-full object-cover"
-                          />
-                        </button>
-                      );
-                    })}
-                  </div>
-                )}
-              </>
-            ) : (
-              <div className="w-full h-48 rounded-2xl border border-dashed border-gray-200 bg-gray-50 flex items-center justify-center text-gray-400 text-sm">
-                No image available
-              </div>
-            )}
+            <ImageGallery
+              productName={product.product_name}
+              images={images}
+              selectedImage={selectedImage}
+              onSelectedImageChange={onSelectedImageChange}
+            />
           </div>
 
           {/* Product name + visibility badge */}
@@ -154,23 +249,7 @@ export default function ViewProductDialog({
           <div className="rounded-2xl border border-[#E7A3B0]/15 bg-[#fffafc] p-4">
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
               <InfoCell icon={<Tag className="h-3.5 w-3.5" />} label="Category" value={getCategoryName(product.category_id)} />
-              <InfoCell
-                icon={<CalendarRange className="h-3.5 w-3.5" />}
-                label="Season"
-                value={
-                  season
-                    ? `${season.name} (${formatSeasonWindow(season)})${season.isActive === false ? " \u2022 inactive" : ""}`
-                    : "-"
-                }
-                ribbon={
-                  season
-                    ? (() => {
-                        const tone = getSeasonColor(season.id, seasons, null);
-                        return { borderColor: tone.border, trackColor: tone.bg };
-                      })()
-                    : undefined
-                }
-              />
+              <SeasonCell product={product} seasons={seasons} />
               <InfoCell label="Brand" value={product.product_brand || "-"} />
               <InfoCell label="Condition" value={product.product_condition || "-"} />
               <InfoCell icon={<Ruler className="h-3.5 w-3.5" />} label="Size" value={product.size_label || "-"} />
@@ -179,36 +258,7 @@ export default function ViewProductDialog({
             </div>
           </div>
 
-          {/* Pricing */}
-          <div className="rounded-2xl border border-[#E7A3B0]/15 bg-[#fffafc] p-4">
-            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#b47c88] mb-3">Pricing</p>
-            <div className="flex items-baseline gap-3">
-              {product.discountedPrice !== null && product.discountedPrice !== undefined ? (
-                <>
-                  <span className="text-2xl font-bold text-[#b96d7d]">&#8369;{product.discountedPrice.toFixed(2)}</span>
-                  <span className="text-base text-gray-400 line-through">&#8369;{product.product_price.toFixed(2)}</span>
-                </>
-              ) : (
-                <span className="text-2xl font-bold text-gray-900">&#8369;{product.product_price.toFixed(2)}</span>
-              )}
-            </div>
-            {product.discount && (
-              <div className="mt-3 inline-flex items-center gap-2 rounded-lg border border-[#E7A3B0]/20 bg-white px-3 py-2">
-                <BadgePercent className="h-4 w-4 text-[#E7A3B0]" />
-                <div>
-                  <p className="text-sm font-semibold text-gray-900">{product.discount.discount_name}</p>
-                  <p className="text-xs text-gray-500">
-                    {product.discount.discount_type === "percent"
-                      ? `${product.discount.discount_value}% off`
-                      : product.discount.discount_type === "fixed_price"
-                        ? `Final price \u20B1${product.discount.discount_value.toFixed(2)}`
-                        : `\u20B1${product.discount.discount_value.toFixed(2)} off`}
-                    {product.discount.ends_at ? ` \u2022 Ends ${new Date(product.discount.ends_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric", timeZone: "Asia/Manila" })}` : ""}
-                  </p>
-                </div>
-              </div>
-            )}
-          </div>
+          <PricingSection product={product} />
 
           {/* Description */}
           {product.product_description && (
@@ -218,24 +268,7 @@ export default function ViewProductDialog({
             </div>
           )}
 
-          {/* Timestamps */}
-          <div className="flex items-center gap-4 text-xs text-gray-400 border-t border-gray-100 pt-4">
-            <span className="inline-flex items-center gap-1.5">
-              <Calendar className="h-3.5 w-3.5" />
-              Created {formatDate(product.created_at)}
-            </span>
-            {lastUpdated && (
-              <span className="inline-flex items-center gap-1.5">
-                <Clock className="h-3.5 w-3.5" />
-                Updated {formatDate(lastUpdated)}
-              </span>
-            )}
-            {product.archived_at && (
-              <span className="inline-flex items-center gap-1.5 text-amber-500">
-                Archived {formatDate(product.archived_at)}
-              </span>
-            )}
-          </div>
+          <Timestamps product={product} />
         </div>
       </div>
     </div>
