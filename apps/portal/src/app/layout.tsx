@@ -17,7 +17,7 @@ export const metadata: Metadata = {
   },
   metadataBase: new URL("https://admin.dollysclosetph.com"),
   alternates: {
-    canonical: "/",
+    canonical: "https://admin.dollysclosetph.com",
   },
   openGraph: {
     type: "website",
