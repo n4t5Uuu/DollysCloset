@@ -2,7 +2,7 @@
  * Fetches JSON and throws an Error (with the API's `error` message when present)
  * on non-2xx or non-JSON responses.
  */
-export async function fetchJson<T = any>(
+export async function fetchJson<T = Awaited<ReturnType<Response["json"]>>>(
   url: string,
   init?: RequestInit,
   fallbackMessage = "Request failed."

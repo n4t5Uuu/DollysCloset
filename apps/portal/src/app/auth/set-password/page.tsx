@@ -56,9 +56,9 @@ export default function SetPasswordPage() {
                 router.push("/dashboard");
             }, 2500);
 
-        } catch (err: any) {
+        } catch (err: unknown) {
             console.error("Set password error:", err);
-            toast.error(err.message || "An error occurred while setting your password.");
+            toast.error((err instanceof Error && err.message) || "An error occurred while setting your password.");
         } finally {
             setLoading(false);
         }
