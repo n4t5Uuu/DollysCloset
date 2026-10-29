@@ -68,6 +68,7 @@ import { SessionGuard } from "@/components/general-components/SessionGuard";
 import { ProductProvider } from "@/contexts/ProductContext";
 import { UserProvider, UnsavedChangesProvider } from "@dollys-closet/core";
 import { GoogleAnalyticsTracker } from "@/components/analytics/GoogleAnalyticsTracker";
+import { QueryProvider } from "@/components/providers/QueryProvider";
 
 const oswald = Oswald({
   subsets: ["latin"],
@@ -116,6 +117,7 @@ export default function RootLayout({
         className={`${oswald.variable} ${montserrat.variable} ${playfairDisplay.variable} ${greatVibes.variable} antialiased`}
       >
 
+        <QueryProvider>
         <UserProvider>
           <ProductProvider>
           <UnsavedChangesProvider>
@@ -133,6 +135,7 @@ export default function RootLayout({
           </UnsavedChangesProvider>
         </ProductProvider>
         </UserProvider>
+        </QueryProvider>
       </body>
     </html>
   );

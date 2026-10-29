@@ -12,7 +12,8 @@ import {
   SelectValue,
 } from '@dollys-closet/ui';
 
-import { useEffect } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { fetchJson } from '@/lib/fetch-json';
 
 const tabs = [
   { key: 'overview', label: 'Overview', icon: BarChart3 },
@@ -22,14 +23,8 @@ const tabs = [
 type Tab = typeof tabs[number]['key'];
 
 async function fetchActiveMonths() {
-    const res = await fetch('/api/admin/analytics');
-    if (!res.ok) throw new Error(`Analytics request failed (${res.status})`);
-    const json = await res.json();
-    if (!json.monthlyData) return null;
-    return json.monthlyData.map((m: any) => ({
-        value: m.value,
-        label: m.month,
-    })).reverse() as { value: string; label: string }[];
+    const json = await fetchJson<{ monthlyData?: { value: string; month: string }[] }>('/api/admin/analytics');
+    return (json.monthlyData ?? []).map((m) => ({ value: m.value, label: m.month })).reverse();
 }
 
 export function AnalyticsTabs() {
@@ -37,23 +32,10 @@ export function AnalyticsTabs() {
   const [exporting, setExporting] = useState(false);
     const currentYearMonth = new Date().toISOString().slice(0, 7); // e.g., "2026-03"
     const [selectedMonth, setSelectedMonth] = useState<string>(currentYearMonth);
-    const [activeMonths, setActiveMonths] = useState<{ value: string; label: string }[]>([]);
-
-    useEffect(() => {
-        let isMounted = true;
-
-        fetchActiveMonths()
-            .then(list => {
-                if (!isMounted) return;
-                if (list) setActiveMonths(list);
-            })
-            .catch((e) => {
-                if (!isMounted) return;
-                console.error('Failed to load analytics months', e);
-            });
-            
-        return () => { isMounted = false; };
-    }, []);
+    const { data: activeMonths = [] } = useQuery({
+        queryKey: ['analytics-months'],
+        queryFn: fetchActiveMonths,
+    });
 
     const handleExport = useCallback(async () => {
         setExporting(true);
