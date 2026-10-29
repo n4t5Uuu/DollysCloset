@@ -1,5 +1,6 @@
 "use client";
 
+import { ImageAlertDialog } from "@/components/image-alert-dialog";
 import { useState } from "react";
 import { Upload, X, Star } from "lucide-react";
 import { compressImage } from "@dollys-closet/core";
@@ -94,7 +95,7 @@ function SortableImageItem({
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
         src={image.image_url}
-        alt={`Product image ${index + 1}`}
+        alt={`Product gallery item ${index + 1}`}
         className="w-full h-20 md:h-32 object-cover"
       />
 
@@ -287,27 +288,29 @@ export default function ProductImageUpload({
         throw new Error("Not authenticated");
       }
 
-      const uploadedImages: ProductImage[] = [];
       const failedFiles: string[] = [];
       const currentCount = images.length;
 
-      for (const [index, file] of files.entries()) {
-        try {
-          const compressed = await compressImage(file);
-          const newImage = await uploadProductImageFile({
-            accessToken: session.access_token,
-            displayOrder: currentCount + index + 1,
-            file: compressed,
-            isPrimary: currentCount === 0 && index === 0,
-            productId: productId!,
-          });
-
-          uploadedImages.push(newImage);
-        } catch (error) {
-          console.error("Upload error for:", file.name, error);
-          failedFiles.push(file.name);
-        }
-      }
+      // Each file carries its own display order, so uploads can run together.
+      const uploadResults = await Promise.all(
+        files.map(async (file, index) => {
+          try {
+            const compressed = await compressImage(file);
+            return await uploadProductImageFile({
+              accessToken: session.access_token,
+              displayOrder: currentCount + index + 1,
+              file: compressed,
+              isPrimary: currentCount === 0 && index === 0,
+              productId: productId!,
+            });
+          } catch (error) {
+            console.error("Upload error for:", file.name, error);
+            failedFiles.push(file.name);
+            return null;
+          }
+        })
+      );
+      const uploadedImages = uploadResults.filter((image): image is ProductImage => image !== null);
 
       if (uploadedImages.length > 0) {
         const refreshResponse = await fetch(`/api/admin/images?product_id=${encodeURIComponent(String(productId))}`);
@@ -458,9 +461,9 @@ export default function ProductImageUpload({
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <label className="block text-sm font-medium text-gray-700">
+        <p className="block text-sm font-medium text-gray-700">
           Product Images ({images.length}/5)
-        </label>
+        </p>
       </div>
 
       {statusMessage && (
@@ -539,24 +542,10 @@ export default function ProductImageUpload({
         </p>
       )}
 
-      <AlertDialog 
-        open={alertConfig.isOpen} 
-        onOpenChange={(open) => setAlertConfig(prev => ({ ...prev, isOpen: open }))}
-      >
-        <AlertDialogContent className="bg-white">
-          <AlertDialogHeader>
-            <AlertDialogTitle className="text-gray-900">{alertConfig.title}</AlertDialogTitle>
-            <AlertDialogDescription>
-              {alertConfig.description}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogAction className="bg-[#E7A3B0] hover:bg-[#ca8c98] text-white cursor-pointer">
-              Understood
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      <ImageAlertDialog
+        config={alertConfig}
+        onOpenChange={(open) => setAlertConfig((prev) => ({ ...prev, isOpen: open }))}
+      />
 
       <AlertDialog
         open={pendingDeleteImageId !== null}

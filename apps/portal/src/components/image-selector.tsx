@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { ImageAlertDialog } from "@/components/image-alert-dialog";
+import { useEffect, useState } from "react";
 import { Upload, X, Loader2 } from "lucide-react";
 import { compressImage } from "@dollys-closet/core";
 import {
@@ -20,15 +21,6 @@ import {
   useSortable,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@dollys-closet/ui";
 
 interface ImageSelectorProps {
   stagedFiles: File[];
@@ -47,6 +39,14 @@ function SortableStagedImageItem({
   onRemove: (index: number) => void;
 }) {
   const fileId = `${file.name}-${file.size}-${file.lastModified}`;
+  const [previewUrl, setPreviewUrl] = useState<string>();
+
+  useEffect(() => {
+    const url = URL.createObjectURL(file);
+    setPreviewUrl(url);
+    return () => URL.revokeObjectURL(url);
+  }, [file]);
+
   const {
     attributes,
     listeners,
@@ -75,8 +75,8 @@ function SortableStagedImageItem({
     >
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
-        src={URL.createObjectURL(file)}
-        alt={`Staged image ${index + 1}`}
+        src={previewUrl}
+        alt={`Staged upload ${index + 1}`}
         className="w-full h-20 md:h-32 object-cover"
       />
 
@@ -199,10 +199,7 @@ export default function ImageSelector({
     if (files.length > 0) {
       setIsCompressing(true);
       try {
-        const compressedFiles: File[] = [];
-        for (const file of files) {
-          compressedFiles.push(await compressImage(file));
-        }
+        const compressedFiles = await Promise.all(files.map((file) => compressImage(file)));
         onFilesAdd(compressedFiles);
         setStatusMessage({
           tone: "success",
@@ -264,10 +261,7 @@ export default function ImageSelector({
     if (limitedImageFiles.length > 0) {
       setIsCompressing(true);
       try {
-        const compressedFiles: File[] = [];
-        for (const file of limitedImageFiles) {
-          compressedFiles.push(await compressImage(file));
-        }
+        const compressedFiles = await Promise.all(limitedImageFiles.map((file) => compressImage(file)));
         onFilesAdd(compressedFiles);
         setStatusMessage({
           tone: "success",
@@ -290,9 +284,9 @@ export default function ImageSelector({
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <label className="block text-sm font-medium text-gray-700">
+        <p className="block text-sm font-medium text-gray-700">
           Product Images ({stagedFiles.length}/5)
-        </label>
+        </p>
       </div>
 
       {statusMessage && (
@@ -367,24 +361,10 @@ export default function ImageSelector({
         </p>
       )}
 
-      <AlertDialog 
-        open={alertConfig.isOpen} 
-        onOpenChange={(open) => setAlertConfig(prev => ({ ...prev, isOpen: open }))}
-      >
-        <AlertDialogContent className="bg-white">
-          <AlertDialogHeader>
-            <AlertDialogTitle className="text-gray-900">{alertConfig.title}</AlertDialogTitle>
-            <AlertDialogDescription>
-              {alertConfig.description}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogAction className="bg-[#E7A3B0] hover:bg-[#ca8c98] text-white cursor-pointer">
-              Understood
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      <ImageAlertDialog
+        config={alertConfig}
+        onOpenChange={(open) => setAlertConfig((prev) => ({ ...prev, isOpen: open }))}
+      />
     </div>
   );
 }
