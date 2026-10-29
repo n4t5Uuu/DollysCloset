@@ -46,29 +46,33 @@ export default function ResetPassword() {
       return;
     }
 
+    let redirecting = false;
     try {
       const { error } = await updatePasswordAction(password);
 
       if (error === "expired") {
         toast.error("Your reset link has expired. Please request a new one.");
+        redirecting = true;
         window.location.href = "/";
         return;
       }
 
       if (error) {
         toast.error(error);
-        setLoading(false);
         return;
       }
 
       toast.success("Password updated successfully!");
+      redirecting = true;
       setTimeout(() => {
         window.location.href = "/";
       }, 1000);
 
     } catch {
       toast.error("An unexpected error occurred. Please try again.");
-      setLoading(false);
+    } finally {
+      // Keep the spinner up while the browser navigates away.
+      setLoading(redirecting);
     }
   }
 
@@ -125,7 +129,7 @@ export default function ResetPassword() {
               type={showPassword ? "text" : "password"}
               id="password"
               placeholder=" "
-              className="peer w-full px-5 py-[18px] rounded-xl border border-[#E5E5E5] bg-transparent text-[#1A1A1A] focus:outline-none transition-all duration-300 pr-12 focus:border-[#E7A3B0] focus:ring-1 focus:ring-[#E7A3B0]"
+              className="peer w-full px-5 py-[18px] rounded-xl border border-[#E5E5E5] bg-transparent text-[#1A1A1A] focus:outline-none transition duration-300 pr-12 focus:border-[#E7A3B0] focus:ring-1 focus:ring-[#E7A3B0]"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
@@ -134,7 +138,7 @@ export default function ResetPassword() {
             />
             <label
               htmlFor="password"
-              className="absolute left-5 top-1/2 -translate-y-1/2 text-[#828282] font-medium text-[14px] transition-all duration-200 cursor-text pointer-events-none px-1.5 bg-white
+              className="absolute left-5 top-1/2 -translate-y-1/2 text-[#828282] font-medium text-[14px] transition duration-200 cursor-text pointer-events-none px-1.5 bg-white
                         peer-focus:top-0 peer-focus:text-[12px] peer-focus:text-[#E7A3B0]
                         peer-[:not(:placeholder-shown)]:top-0 peer-[:not(:placeholder-shown)]:text-[12px] peer-[:not(:placeholder-shown)]:text-[#E7A3B0]"
               suppressHydrationWarning
@@ -157,7 +161,7 @@ export default function ResetPassword() {
               type={showPassword ? "text" : "password"}
               id="confirmPassword"
               placeholder=" "
-              className="peer w-full px-5 py-[18px] rounded-xl border border-[#E5E5E5] bg-transparent text-[#1A1A1A] focus:outline-none transition-all duration-300 pr-12 focus:border-[#E7A3B0] focus:ring-1 focus:ring-[#E7A3B0]"
+              className="peer w-full px-5 py-[18px] rounded-xl border border-[#E5E5E5] bg-transparent text-[#1A1A1A] focus:outline-none transition duration-300 pr-12 focus:border-[#E7A3B0] focus:ring-1 focus:ring-[#E7A3B0]"
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
               required
@@ -166,7 +170,7 @@ export default function ResetPassword() {
             />
             <label
               htmlFor="confirmPassword"
-              className="absolute left-5 top-1/2 -translate-y-1/2 text-[#828282] font-medium text-[14px] transition-all duration-200 cursor-text pointer-events-none px-1.5 bg-white
+              className="absolute left-5 top-1/2 -translate-y-1/2 text-[#828282] font-medium text-[14px] transition duration-200 cursor-text pointer-events-none px-1.5 bg-white
                         peer-focus:top-0 peer-focus:text-[12px] peer-focus:text-[#E7A3B0]
                         peer-[:not(:placeholder-shown)]:top-0 peer-[:not(:placeholder-shown)]:text-[12px] peer-[:not(:placeholder-shown)]:text-[#E7A3B0]"
               suppressHydrationWarning
@@ -183,7 +187,7 @@ export default function ResetPassword() {
           <button
             type="submit"
             disabled={loading || !isAllValid || !isMatching}
-            className="w-full bg-linear-to-r from-[#E7A3B0] to-[#E2899A] text-white font-bold py-[18px] rounded-xl hover:from-[#E2899A] hover:to-[#DE7588] transition-all duration-300 mt-10 text-[15px] tracking-widest uppercase shadow-[0_8px_20px_-6px_rgba(231,163,176,0.6)] hover:shadow-[0_12px_24px_-6px_rgba(231,163,176,0.8)] hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:translate-y-0"
+            className="w-full bg-linear-to-r from-[#E7A3B0] to-[#E2899A] text-white font-bold py-[18px] rounded-xl hover:from-[#E2899A] hover:to-[#DE7588] transition duration-300 mt-10 text-[15px] tracking-widest uppercase shadow-[0_8px_20px_-6px_rgba(231,163,176,0.6)] hover:shadow-[0_12px_24px_-6px_rgba(231,163,176,0.8)] hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:translate-y-0"
           >
             {loading ? "Updating..." : "Update Password"}
           </button>
@@ -196,7 +200,7 @@ export default function ResetPassword() {
 function ValidationItem({ isMet, label }: { isMet: boolean; label: string }) {
   return (
     <div className="flex items-center gap-2.5">
-      <div className={`shrink-0 w-4 h-4 rounded-full flex items-center justify-center transition-all duration-300 ${isMet ? 'bg-emerald-500 text-white' : 'bg-gray-200 text-gray-400'}`}>
+      <div className={`shrink-0 w-4 h-4 rounded-full flex items-center justify-center transition duration-300 ${isMet ? 'bg-emerald-500 text-white' : 'bg-gray-200 text-gray-400'}`}>
         {isMet ? <Check size={10} strokeWidth={3} /> : <div className="w-1 h-1 rounded-full bg-current" />}
       </div>
       <span className={`text-[12px] transition-colors duration-300 ${isMet ? 'text-gray-900 font-medium' : 'text-gray-500'}`}>

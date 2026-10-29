@@ -7,7 +7,7 @@ import { toast } from "sonner";
 import { ArrowLeft, Mail } from "lucide-react";
 
 const COOLDOWN_SECONDS = 60;
-const COOLDOWN_STORAGE_KEY = "forgot-password-cooldown-until";
+const COOLDOWN_STORAGE_KEY = "reset-request-cooldown-until";
 
 const formatCooldown = (seconds: number) => {
   const mins = Math.floor(seconds / 60);
@@ -35,17 +35,12 @@ export default function ForgotPassword() {
   useEffect(() => {
     if (cooldownRemaining <= 0) return;
 
-    const timer = window.setInterval(() => {
-      setCooldownRemaining((prev) => {
-        if (prev <= 1) {
-          window.localStorage.removeItem(COOLDOWN_STORAGE_KEY);
-          return 0;
-        }
-        return prev - 1;
-      });
+    const timer = window.setTimeout(() => {
+      if (cooldownRemaining <= 1) window.localStorage.removeItem(COOLDOWN_STORAGE_KEY);
+      setCooldownRemaining((prev) => prev - 1);
     }, 1000);
 
-    return () => window.clearInterval(timer);
+    return () => window.clearTimeout(timer);
   }, [cooldownRemaining]);
 
   const startCooldown = (seconds: number) => {
@@ -176,7 +171,7 @@ export default function ForgotPassword() {
             </p>
             <button
               onClick={() => router.push("/")}
-              className="w-full bg-linear-to-r from-[#E7A3B0] to-[#E2899A] text-white font-bold py-[18px] rounded-xl hover:from-[#E2899A] hover:to-[#DE7588] transition-all duration-300 text-[15px] tracking-widest uppercase shadow-[0_8px_20px_-6px_rgba(231,163,176,0.6)] hover:shadow-[0_12px_24px_-6px_rgba(231,163,176,0.8)] hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.98]"
+              className="w-full bg-linear-to-r from-[#E7A3B0] to-[#E2899A] text-white font-bold py-[18px] rounded-xl hover:from-[#E2899A] hover:to-[#DE7588] transition duration-300 text-[15px] tracking-widest uppercase shadow-[0_8px_20px_-6px_rgba(231,163,176,0.6)] hover:shadow-[0_12px_24px_-6px_rgba(231,163,176,0.8)] hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.98]"
             >
               Back to Login
             </button>
@@ -199,7 +194,7 @@ export default function ForgotPassword() {
                   type="email"
                   id="email"
                   placeholder=" "
-                  className="peer w-full px-5 py-[18px] rounded-xl border border-[#E5E5E5] bg-transparent text-[#1A1A1A] focus:outline-none transition-all duration-300 focus:border-[#E7A3B0] focus:ring-1 focus:ring-[#E7A3B0]"
+                  className="peer w-full px-5 py-[18px] rounded-xl border border-[#E5E5E5] bg-transparent text-[#1A1A1A] focus:outline-none transition duration-300 focus:border-[#E7A3B0] focus:ring-1 focus:ring-[#E7A3B0]"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
@@ -208,7 +203,7 @@ export default function ForgotPassword() {
                 />
                 <label
                   htmlFor="email"
-                  className="absolute left-5 top-1/2 -translate-y-1/2 text-[#828282] font-medium text-[14px] transition-all duration-200 cursor-text pointer-events-none px-1.5 bg-white
+                  className="absolute left-5 top-1/2 -translate-y-1/2 text-[#828282] font-medium text-[14px] transition duration-200 cursor-text pointer-events-none px-1.5 bg-white
                             peer-focus:top-0 peer-focus:text-[12px] peer-focus:text-[#E7A3B0]
                             peer-[:not(:placeholder-shown)]:top-0 peer-[:not(:placeholder-shown)]:text-[12px] peer-[:not(:placeholder-shown)]:text-[#E7A3B0]"
                   suppressHydrationWarning
@@ -220,7 +215,7 @@ export default function ForgotPassword() {
               <button
                 type="submit"
                 disabled={loading || cooldownRemaining > 0}
-                className="w-full bg-linear-to-r from-[#E7A3B0] to-[#E2899A] text-white font-bold py-[18px] rounded-xl hover:from-[#E2899A] hover:to-[#DE7588] transition-all duration-300 mt-6 text-[15px] tracking-widest uppercase shadow-[0_8px_20px_-6px_rgba(231,163,176,0.6)] hover:shadow-[0_12px_24px_-6px_rgba(231,163,176,0.8)] hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.98]"
+                className="w-full bg-linear-to-r from-[#E7A3B0] to-[#E2899A] text-white font-bold py-[18px] rounded-xl hover:from-[#E2899A] hover:to-[#DE7588] transition duration-300 mt-6 text-[15px] tracking-widest uppercase shadow-[0_8px_20px_-6px_rgba(231,163,176,0.6)] hover:shadow-[0_12px_24px_-6px_rgba(231,163,176,0.8)] hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.98]"
               >
                 {loading
                   ? "Sending..."

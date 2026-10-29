@@ -42,17 +42,12 @@ export default function LoginClient() {
   useEffect(() => {
     if (cooldownRemaining <= 0) return;
 
-    const timer = window.setInterval(() => {
-      setCooldownRemaining((prev) => {
-        if (prev <= 1) {
-          window.localStorage.removeItem(LOGIN_COOLDOWN_STORAGE_KEY);
-          return 0;
-        }
-        return prev - 1;
-      });
+    const timer = window.setTimeout(() => {
+      if (cooldownRemaining <= 1) window.localStorage.removeItem(LOGIN_COOLDOWN_STORAGE_KEY);
+      setCooldownRemaining((prev) => prev - 1);
     }, 1000);
 
-    return () => window.clearInterval(timer);
+    return () => window.clearTimeout(timer);
   }, [cooldownRemaining]);
 
   const startCooldown = (seconds: number) => {
@@ -136,6 +131,7 @@ export default function LoginClient() {
       return;
     }
 
+    let redirecting = false;
     try {
       const { data: loginResult, error, status, friendlyMessage } = await safeFetchJson<{ error?: string; accessToken?: string }>("/api/auth/login", {
         method: "POST",
@@ -160,7 +156,6 @@ export default function LoginClient() {
         }
         setEmail("");
         setPassword("");
-        setLoading(false);
         return;
       }
 
@@ -174,7 +169,6 @@ export default function LoginClient() {
         toast.error("Login failed. Please try again.");
         setEmail("");
         setPassword("");
-        setLoading(false);
         return;
       }
 
@@ -185,12 +179,15 @@ export default function LoginClient() {
 
       document.cookie = "dollys-closet-last-active=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT;";
       toast.success("Login successful. Redirecting to dashboard...");
+      redirecting = true;
       window.location.replace(nextPath);
     } catch (err: unknown) {
       toast.error("An unexpected error occurred. Please try again.");
       setEmail("");
       setPassword("");
-      setLoading(false);
+    } finally {
+      // Keep the spinner up while the browser navigates away.
+      setLoading(redirecting);
     }
   }
 
@@ -238,7 +235,7 @@ export default function LoginClient() {
               name="email"
               autoComplete="email"
               placeholder=" " 
-              className="peer w-full px-5 py-[18px] rounded-xl border border-[#E5E5E5] bg-transparent text-[#1A1A1A] focus:outline-none transition-all duration-300 focus:border-[#E7A3B0] focus:ring-1 focus:ring-[#E7A3B0] [&:-webkit-autofill]:shadow-[inset_0_0_0_1000px_white] [&:-webkit-autofill]:[-webkit-text-fill-color:#1A1A1A]"
+              className="peer w-full px-5 py-[18px] rounded-xl border border-[#E5E5E5] bg-transparent text-[#1A1A1A] focus:outline-none transition duration-300 focus:border-[#E7A3B0] focus:ring-1 focus:ring-[#E7A3B0] [&:-webkit-autofill]:shadow-[inset_0_0_0_1000px_white] [&:-webkit-autofill]:[-webkit-text-fill-color:#1A1A1A]"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
@@ -246,7 +243,7 @@ export default function LoginClient() {
             />
             <label 
               htmlFor="email"
-              className="absolute left-5 top-1/2 -translate-y-1/2 text-[#828282] font-medium text-[14px] transition-all duration-200 cursor-text pointer-events-none px-1.5 bg-white
+              className="absolute left-5 top-1/2 -translate-y-1/2 text-[#828282] font-medium text-[14px] transition duration-200 cursor-text pointer-events-none px-1.5 bg-white
                         peer-focus:top-0 peer-focus:text-[12px] peer-focus:text-[#E7A3B0]
                         peer-[:not(:placeholder-shown)]:top-0 peer-[:not(:placeholder-shown)]:text-[12px] peer-[:not(:placeholder-shown)]:text-[#E7A3B0]
                         peer-[:-webkit-autofill]:top-0 peer-[:-webkit-autofill]:text-[12px] peer-[:-webkit-autofill]:text-[#E7A3B0]"
@@ -262,7 +259,7 @@ export default function LoginClient() {
               name="password"
               autoComplete="current-password"
               placeholder=" "
-              className="peer w-full px-5 py-[18px] rounded-xl border border-[#E5E5E5] bg-transparent text-[#1A1A1A] focus:outline-none transition-all duration-300 pr-12 focus:border-[#E7A3B0] focus:ring-1 focus:ring-[#E7A3B0] [&:-webkit-autofill]:shadow-[inset_0_0_0_1000px_white] [&:-webkit-autofill]:[-webkit-text-fill-color:#1A1A1A]"
+              className="peer w-full px-5 py-[18px] rounded-xl border border-[#E5E5E5] bg-transparent text-[#1A1A1A] focus:outline-none transition duration-300 pr-12 focus:border-[#E7A3B0] focus:ring-1 focus:ring-[#E7A3B0] [&:-webkit-autofill]:shadow-[inset_0_0_0_1000px_white] [&:-webkit-autofill]:[-webkit-text-fill-color:#1A1A1A]"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
@@ -270,7 +267,7 @@ export default function LoginClient() {
             />
             <label 
               htmlFor="password"
-              className="absolute left-5 top-1/2 -translate-y-1/2 text-[#828282] font-medium text-[14px] transition-all duration-200 cursor-text pointer-events-none px-1.5 bg-white
+              className="absolute left-5 top-1/2 -translate-y-1/2 text-[#828282] font-medium text-[14px] transition duration-200 cursor-text pointer-events-none px-1.5 bg-white
                         peer-focus:top-0 peer-focus:text-[12px] peer-focus:text-[#E7A3B0]
                         peer-[:not(:placeholder-shown)]:top-0 peer-[:not(:placeholder-shown)]:text-[12px] peer-[:not(:placeholder-shown)]:text-[#E7A3B0]
                         peer-[:-webkit-autofill]:top-0 peer-[:-webkit-autofill]:text-[12px] peer-[:-webkit-autofill]:text-[#E7A3B0]"
@@ -296,7 +293,7 @@ export default function LoginClient() {
           <button 
             type="submit" 
             disabled={loading || cooldownRemaining > 0}
-            className="w-full bg-linear-to-r from-[#E7A3B0] to-[#E2899A] text-white font-bold py-[18px] rounded-xl hover:from-[#E2899A] hover:to-[#DE7588] transition-all duration-300 mt-6 text-[15px] tracking-widest uppercase shadow-[0_8px_20px_-6px_rgba(231,163,176,0.6)] hover:shadow-[0_12px_24px_-6px_rgba(231,163,176,0.8)] hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.98]"
+            className="w-full bg-linear-to-r from-[#E7A3B0] to-[#E2899A] text-white font-bold py-[18px] rounded-xl hover:from-[#E2899A] hover:to-[#DE7588] transition duration-300 mt-6 text-[15px] tracking-widest uppercase shadow-[0_8px_20px_-6px_rgba(231,163,176,0.6)] hover:shadow-[0_12px_24px_-6px_rgba(231,163,176,0.8)] hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.98]"
           >
             {loading
               ? "Logging in..."
