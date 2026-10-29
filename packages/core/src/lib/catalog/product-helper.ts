@@ -466,18 +466,25 @@ export const productHelper = {
         const storagePaths = images.map((img) => extractStoragePath(img.image_url));
 
         // 3. Delete storage objects in batches of 100.
-        const orphanedPaths: string[] = [];
         const BATCH = 100;
+        const batches: string[][] = [];
         for (let i = 0; i < storagePaths.length; i += BATCH) {
-            const batch = storagePaths.slice(i, i + BATCH);
-            const { error: storageErr } = await supabase.storage
-                .from("product-images")
-                .remove(batch);
-            if (storageErr) {
-                console.error("Storage remove error (batch):", storageErr.message);
-                orphanedPaths.push(...batch);
-            }
+            batches.push(storagePaths.slice(i, i + BATCH));
         }
+        // Batches are independent, so remove them together; failed batches are collected in order.
+        const failedBatches = await Promise.all(
+            batches.map(async (batch) => {
+                const { error: storageErr } = await supabase.storage
+                    .from("product-images")
+                    .remove(batch);
+                if (storageErr) {
+                    console.error("Storage remove error (batch):", storageErr.message);
+                    return batch;
+                }
+                return [];
+            })
+        );
+        const orphanedPaths = failedBatches.flat();
 
         // Abort before touching the DB if storage removal failed for any paths,
         // so we don't leave DB rows pointing to nothing.
