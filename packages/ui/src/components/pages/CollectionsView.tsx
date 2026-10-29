@@ -562,8 +562,10 @@ export function CollectionsView() {
 
     const mobileProducts = filteredProducts.slice(0, mobileVisibleCount);
     const hasMoreMobile = mobileVisibleCount < filteredProducts.length;
-    hasMoreMobileRef.current = hasMoreMobile;
-    filteredCountRef.current = filteredProducts.length;
+    useEffect(() => {
+        hasMoreMobileRef.current = hasMoreMobile;
+        filteredCountRef.current = filteredProducts.length;
+    }, [hasMoreMobile, filteredProducts.length]);
 
     // If the sentinel stays visible after adding items (common when the list is short),
     // IntersectionObserver may not fire again. This ensures we load until either

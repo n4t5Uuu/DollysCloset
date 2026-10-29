@@ -20,11 +20,16 @@ interface AboutViewProps {
 }
 
 function renderParagraphs(text: string) {
+  const seen = new Map<string, number>();
   return text
     .split(/\n\s*\n/g)
     .map((paragraph) => paragraph.trim())
     .filter(Boolean)
-    .map((paragraph, index) => <p key={`${paragraph.slice(0, 24)}-${index}`}>{paragraph}</p>);
+    .map((paragraph) => {
+      const occurrence = seen.get(paragraph) ?? 0;
+      seen.set(paragraph, occurrence + 1);
+      return <p key={`${paragraph}-${occurrence}`}>{paragraph}</p>;
+    });
 }
 
 export function AboutView({ aboutDetails, faqs = [], onFAQClick }: AboutViewProps) {
@@ -34,7 +39,7 @@ export function AboutView({ aboutDetails, faqs = [], onFAQClick }: AboutViewProp
       <section className="relative w-full h-[85vh] flex overflow-hidden">
         {images.map((img, index) => (
           <div 
-            key={index} 
+            key={img.alt} 
             className={cn(
                 "relative h-full transition-all duration-700 ease-in-out cursor-pointer group/item",
                 "flex-1 hover:flex-[1.5]", 
