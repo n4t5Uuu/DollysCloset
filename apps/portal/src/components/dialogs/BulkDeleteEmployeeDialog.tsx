@@ -19,6 +19,33 @@ interface BulkDeleteEmployeeDialogProps {
   error: string | null;
 }
 
+const plural = (count: number) => (count !== 1 ? "s" : "");
+
+const MODE_COPY = {
+  archive: {
+    title: "Archive Multiple Employees",
+    describe: (count: number) => (
+      <>
+        Archive <span className="font-semibold">{count} employee{plural(count)}</span>? Archived accounts are hidden from active dashboards and blocked from portal access until restored.
+      </>
+    ),
+    pending: "Archiving...",
+    action: (count: number) => `Archive ${count} Employee${plural(count)}`,
+    actionClass: "bg-amber-500 hover:bg-amber-600",
+  },
+  restore: {
+    title: "Restore Multiple Employees",
+    describe: (count: number) => (
+      <>
+        Restore <span className="font-semibold">{count} employee{plural(count)}</span> to the active employee directory?
+      </>
+    ),
+    pending: "Restoring...",
+    action: (count: number) => `Restore ${count} Employee${plural(count)}`,
+    actionClass: "bg-emerald-600 hover:bg-emerald-700",
+  },
+} as const;
+
 export default function BulkDeleteEmployeeDialog({
   selectedCount,
   mode,
@@ -27,17 +54,17 @@ export default function BulkDeleteEmployeeDialog({
   actionLoading,
   error
 }: BulkDeleteEmployeeDialogProps) {
+  const copy = MODE_COPY[mode];
+
   return (
     <AlertDialog open={true} onOpenChange={(open) => { if (!open) onClose(); }}>
       <AlertDialogContent className="bg-white">
         <AlertDialogHeader>
           <AlertDialogTitle className="text-gray-900">
-            {mode === "archive" ? "Archive Multiple Employees" : "Restore Multiple Employees"}
+            {copy.title}
           </AlertDialogTitle>
           <AlertDialogDescription>
-               {mode === "archive"
-                ? <>Archive <span className="font-semibold">{selectedCount} employee{selectedCount !== 1 ? 's' : ''}</span>? Archived accounts are hidden from active dashboards and blocked from portal access until restored.</>
-                : <>Restore <span className="font-semibold">{selectedCount} employee{selectedCount !== 1 ? 's' : ''}</span> to the active employee directory?</>}
+            {copy.describe(selectedCount)}
           </AlertDialogDescription>
         </AlertDialogHeader>
 
@@ -57,19 +84,17 @@ export default function BulkDeleteEmployeeDialog({
           </AlertDialogCancel>
           <AlertDialogAction 
             onClick={(e) => { e.preventDefault(); onDelete(); }} 
-            className={`${mode === "archive" ? "bg-amber-500 hover:bg-amber-600" : "bg-emerald-600 hover:bg-emerald-700"} text-white cursor-pointer flex items-center justify-center gap-2`} 
+            className={`${copy.actionClass} text-white cursor-pointer flex items-center justify-center gap-2`} 
             disabled={actionLoading}
           >
-             {actionLoading ? (
-               <>
-                 <Loader2 className="w-4 h-4 animate-spin" />
-                 {mode === "archive" ? "Archiving..." : "Restoring..."}
-               </>
-             ) : (
-               mode === "archive"
-                ? `Archive ${selectedCount} Employee${selectedCount !== 1 ? 's' : ''}`
-                : `Restore ${selectedCount} Employee${selectedCount !== 1 ? 's' : ''}`
-             )}
+            {actionLoading ? (
+              <>
+                <Loader2 className="w-4 h-4 animate-spin" />
+                {copy.pending}
+              </>
+            ) : (
+              copy.action(selectedCount)
+            )}
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>
