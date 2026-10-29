@@ -2,39 +2,13 @@
 
 import { useState, useMemo, memo } from "react";
 import type { Season } from "@dollys-closet/core";
+import { PALETTE, SEL_BG, SEL_BORDER } from "@/lib/season-colors";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@dollys-closet/ui";
 
 const MONTH_DAYS = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31] as const;
 const MONTH_ABBR = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"] as const;
 
-export const PALETTE: Array<{ bg: string; border: string }> = [
-  { bg: "#DBEAFE", border: "#93C5FD" }, // blue
-  { bg: "#D1FAE5", border: "#6EE7B7" }, // emerald
-  { bg: "#FEF3C7", border: "#FCD34D" }, // amber
-  { bg: "#EDE9FE", border: "#C4B5FD" }, // violet
-  { bg: "#FED7AA", border: "#FDBA74" }, // orange
-  { bg: "#CFFAFE", border: "#67E8F9" }, // cyan
-  { bg: "#FCE7F3", border: "#F9A8D4" }, // pink
-  { bg: "#DCFCE7", border: "#86EFAC" }, // green
-  { bg: "#FEF9C3", border: "#FDE047" }, // yellow
-  { bg: "#FFE4E6", border: "#FCA5A5" }, // rose
-  { bg: "#E0E7FF", border: "#A5B4FC" }, // indigo
-];
-
-const SEL_BG = "#FEE2E9";
-const SEL_BORDER = "#E7A3B0";
 const PREV_BG = "#FFF0F4";
-
-export function getSeasonColor(
-  seasonId: string,
-  seasons: Array<{ id: string }>,
-  editingSeasonId: string | null,
-): { bg: string; border: string } {
-  if (seasonId === editingSeasonId) return { bg: SEL_BG, border: SEL_BORDER };
-  const others = seasons.filter((s) => s.id !== editingSeasonId);
-  const idx = others.findIndex((s) => s.id === seasonId);
-  return PALETTE[idx < 0 ? 0 : idx % PALETTE.length];
-}
 
 function toDOY(m: number, d: number) {
   let t = 0;
@@ -172,10 +146,9 @@ function SeasonCalendarBase({
                   }
 
                   const cell = (
-                    <div
+                    <button
                       key={day}
-                      role="button"
-                      tabIndex={0}
+                      type="button"
                       style={{
                         backgroundColor: bg,
                         color: fg,
@@ -183,13 +156,12 @@ function SeasonCalendarBase({
                           ? { borderWidth: 1, borderStyle: "solid" as const, borderColor: border }
                           : {}),
                       }}
-                      className="flex aspect-square cursor-pointer select-none items-center justify-center rounded-[3px] text-[10px] leading-none transition-colors hover:brightness-90"
+                      className="flex aspect-square w-full cursor-pointer select-none items-center justify-center rounded-[3px] text-[10px] leading-none transition-colors hover:brightness-90"
                       onClick={() => handleClick(month, day)}
                       onMouseEnter={() => picking && setHover({ month, day })}
-                      onKeyDown={(e) => e.key === "Enter" && handleClick(month, day)}
                     >
                       {day}
-                    </div>
+                    </button>
                   );
 
                   if (season) {

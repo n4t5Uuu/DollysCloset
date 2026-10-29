@@ -34,6 +34,7 @@ function formatDate(value: string) {
     month: "short",
     day: "numeric",
     year: "numeric",
+    timeZone: "Asia/Manila",
   });
 }
 
@@ -190,7 +191,7 @@ export function EmployeeTable({
                             </Button>
                             {moreMenuId === employee.user_id && (
                               <>
-                                <div className="fixed inset-0 z-20" onClick={() => setMoreMenuId(null)} />
+                                <button type="button" tabIndex={-1} aria-label="Close menu" className="fixed inset-0 z-20 cursor-default" onClick={() => setMoreMenuId(null)} />
                                 <div className="absolute right-0 bottom-full mb-1 z-30 bg-white border border-gray-200 rounded-lg shadow-lg py-1 min-w-[120px]">
                                   <button
                                     type="button"

@@ -1,8 +1,9 @@
-import { useEffect } from "react";
+import { useEffect, useEffectEvent } from "react";
+import { ModalBackdrop } from "@/components/dialogs/ModalBackdrop";
 /* eslint-disable @next/next/no-img-element */
 import { InventoryProduct as Product, InventoryProductImage as ProductImage, Season } from "@dollys-closet/core";
 import { X, Eye, EyeOff, Tag, Package, Ruler, BadgePercent, Clock, Calendar, CalendarRange } from "lucide-react";
-import { getSeasonColor } from "@/components/seasons/SeasonCalendar";
+import { getSeasonColor } from "@/lib/season-colors";
 
 interface ViewProductDialogProps {
   product: Product | null;
@@ -23,6 +24,8 @@ export default function ViewProductDialog({
   getCategoryName,
   seasons = [],
 }: ViewProductDialogProps) {
+  const closeOnEscape = useEffectEvent(() => onClose());
+
   useEffect(() => {
     if (!product) return;
 
@@ -31,7 +34,7 @@ export default function ViewProductDialog({
 
     const handleEscape = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
-        onClose();
+        closeOnEscape();
       }
     };
 
@@ -41,7 +44,7 @@ export default function ViewProductDialog({
       document.body.style.overflow = originalOverflow;
       document.removeEventListener("keydown", handleEscape);
     };
-  }, [onClose, product]);
+  }, [product]);
 
   if (!product) return null;
 
@@ -54,7 +57,7 @@ export default function ViewProductDialog({
     if (!value) return "-";
     const date = new Date(value);
     if (Number.isNaN(date.getTime())) return "-";
-    return date.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+    return date.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric", timeZone: "Asia/Manila" });
   };
 
   const lastUpdated = product.updated_at || product.time_updated || null;
@@ -68,12 +71,9 @@ export default function ViewProductDialog({
     `${MONTH_ABBR[s.startMonth - 1]} ${s.startDay} \u2013 ${MONTH_ABBR[s.endMonth - 1]} ${s.endDay}`;
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={(event) => {
-      if (event.target === event.currentTarget) {
-        onClose();
-      }
-    }}>
-      <div className="bg-white w-full max-w-2xl max-h-[90vh] flex flex-col overflow-hidden rounded-3xl border border-[#E7A3B0]/20 shadow-[0_24px_80px_rgba(17,24,39,0.28)]" onClick={(event) => event.stopPropagation()}>
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+      <ModalBackdrop onClick={onClose} />
+      <div className="relative bg-white w-full max-w-2xl max-h-[90vh] flex flex-col overflow-hidden rounded-3xl border border-[#E7A3B0]/20 shadow-[0_24px_80px_rgba(17,24,39,0.28)]">
         {/* Header */}
         <div className="flex items-start justify-between gap-4 border-b border-[#E7A3B0]/15 bg-[#fffafc] px-6 py-5 shrink-0">
           <div>
@@ -203,7 +203,7 @@ export default function ViewProductDialog({
                       : product.discount.discount_type === "fixed_price"
                         ? `Final price \u20B1${product.discount.discount_value.toFixed(2)}`
                         : `\u20B1${product.discount.discount_value.toFixed(2)} off`}
-                    {product.discount.ends_at ? ` \u2022 Ends ${new Date(product.discount.ends_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}` : ""}
+                    {product.discount.ends_at ? ` \u2022 Ends ${new Date(product.discount.ends_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric", timeZone: "Asia/Manila" })}` : ""}
                   </p>
                 </div>
               </div>

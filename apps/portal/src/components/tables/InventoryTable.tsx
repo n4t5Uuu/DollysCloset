@@ -28,7 +28,7 @@ import {
 import { cn, InventoryProduct as Product, ProductDiscount, Season } from "@dollys-closet/core";
 import { Eye, EyeOff, Pencil, Archive, RotateCcw, PackageSearch, CalendarRange, BadgePercent, MoreHorizontal, X } from "lucide-react";
 import { useState } from "react";
-import { getSeasonColor } from "@/components/seasons/SeasonCalendar";
+import { getSeasonColor } from "@/lib/season-colors";
 
 interface InventoryTableProps {
     mode: "active" | "archived";
@@ -57,6 +57,61 @@ interface InventoryTableProps {
     onBulkCatalogToggle?: (publish: boolean) => void;
     emptyTitle?: string;
     emptyDescription?: string;
+}
+
+function PrimaryActionDialog({
+    product,
+    mode,
+    actionLoading,
+    onArchive,
+    onRestore,
+}: {
+    product: Product;
+    mode: "active" | "archived";
+    actionLoading: boolean;
+    onArchive: (productId: string) => void;
+    onRestore: (productId: string) => void;
+}) {
+    return (
+        <AlertDialog>
+            <AlertDialogTrigger asChild>
+                <Button
+                    size="icon"
+                    variant="outline"
+                    title={mode === "active" ? "Archive product" : "Restore product"}
+                    aria-label={`${mode === "active" ? "Archive" : "Restore"} ${product.product_name}`}
+                    className={mode === "active"
+                        ? "border-amber-200 text-amber-700 bg-amber-50 hover:bg-amber-100 hover:text-amber-800 hover:border-amber-300"
+                        : "border-emerald-200 text-emerald-700 bg-emerald-50 hover:bg-emerald-100 hover:text-emerald-800 hover:border-emerald-300"}
+                    disabled={actionLoading}
+                >
+                    {mode === "active" ? <Archive className="h-4 w-4" /> : <RotateCcw className="h-4 w-4" />}
+                </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent className="bg-white">
+                <AlertDialogHeader>
+                    <AlertDialogTitle className="text-gray-900">
+                        {mode === "active" ? "Archive Product" : "Restore Product"}
+                    </AlertDialogTitle>
+                    <AlertDialogDescription>
+                        {mode === "active"
+                            ? <>Archive <span className="font-semibold">{product.product_name}</span>? Archived products are removed from active dashboards until they are restored.</>
+                            : <>Restore <span className="font-semibold">{product.product_name}</span> to the active inventory list?</>}
+                    </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                    <AlertDialogCancel className="border-zinc-300 bg-white text-zinc-700 hover:bg-zinc-50 hover:text-zinc-900">Cancel</AlertDialogCancel>
+                    <AlertDialogAction
+                        className={`${mode === "active" ? "bg-amber-500 hover:bg-amber-600" : "bg-emerald-600 hover:bg-emerald-700"} text-white cursor-pointer`}
+                        onClick={() => mode === "active" ? onArchive(product.product_id) : onRestore(product.product_id)}
+                        disabled={actionLoading}
+                    >
+                        {mode === "active" ? "Archive" : "Restore"}
+                    </AlertDialogAction>
+                </AlertDialogFooter>
+            </AlertDialogContent>
+        </AlertDialog>
+    );
 }
 
 export function InventoryTable({
@@ -112,6 +167,7 @@ export function InventoryTable({
             month: "short",
             day: "numeric",
             year: "numeric",
+            timeZone: "Asia/Manila",
         });
     };
 
@@ -192,7 +248,7 @@ export function InventoryTable({
                                 <p className="font-semibold">{discount.discount_name || "Discount applied"}</p>
                                 <p className="text-xs text-gray-600">{formatDiscountSummary(discount)}</p>
                                 {discount.ends_at ? (
-                                    <p className="text-xs text-gray-600">Ends {new Date(discount.ends_at).toLocaleString()}</p>
+                                    <p className="text-xs text-gray-600">Ends {new Date(discount.ends_at).toLocaleString("en-US", { timeZone: "Asia/Manila" })}</p>
                                 ) : (
                                     <p className="text-xs text-gray-600">No end date</p>
                                 )}
@@ -230,7 +286,7 @@ export function InventoryTable({
                         </button>
                         {openIconKey === `${product.product_id}-season` && (
                             <>
-                                <div className="fixed inset-0 z-20" onClick={() => setOpenIconKey(null)} />
+                                <button type="button" tabIndex={-1} aria-label="Close menu" className="fixed inset-0 z-20 cursor-default" onClick={() => setOpenIconKey(null)} />
                                 <div className="absolute right-0 top-full mt-1 z-30 bg-white border border-gray-200 rounded-lg shadow-lg p-2.5 min-w-40 space-y-0.5">
                                     <p className="text-xs font-semibold text-gray-900">{season.name}</p>
                                     <p className="text-[11px] text-gray-600">{formatSeasonWindow(season)}</p>
@@ -254,12 +310,12 @@ export function InventoryTable({
                         </button>
                         {openIconKey === `${product.product_id}-discount` && (
                             <>
-                                <div className="fixed inset-0 z-20" onClick={() => setOpenIconKey(null)} />
+                                <button type="button" tabIndex={-1} aria-label="Close menu" className="fixed inset-0 z-20 cursor-default" onClick={() => setOpenIconKey(null)} />
                                 <div className="absolute right-0 top-full mt-1 z-30 bg-white border border-gray-200 rounded-lg shadow-lg p-2.5 min-w-40 space-y-0.5">
                                     <p className="text-xs font-semibold text-gray-900">{discount.discount_name || "Discount applied"}</p>
                                     <p className="text-[11px] text-gray-600">{formatDiscountSummary(discount)}</p>
                                     {discount.ends_at
-                                        ? <p className="text-[11px] text-gray-600">Ends {new Date(discount.ends_at).toLocaleString()}</p>
+                                        ? <p className="text-[11px] text-gray-600">Ends {new Date(discount.ends_at).toLocaleString("en-US", { timeZone: "Asia/Manila" })}</p>
                                         : <p className="text-[11px] text-gray-600">No end date</p>
                                     }
                                     {product.discountedPrice !== null && product.discountedPrice !== undefined && (
@@ -273,47 +329,6 @@ export function InventoryTable({
             </div>
         );
     };
-
-    const PrimaryActionDialog = ({ product }: { product: Product }) => (
-        <AlertDialog>
-            <AlertDialogTrigger asChild>
-                <Button
-                    size="icon"
-                    variant="outline"
-                    title={mode === "active" ? "Archive product" : "Restore product"}
-                    aria-label={`${mode === "active" ? "Archive" : "Restore"} ${product.product_name}`}
-                    className={mode === "active"
-                        ? "border-amber-200 text-amber-700 bg-amber-50 hover:bg-amber-100 hover:text-amber-800 hover:border-amber-300"
-                        : "border-emerald-200 text-emerald-700 bg-emerald-50 hover:bg-emerald-100 hover:text-emerald-800 hover:border-emerald-300"}
-                    disabled={actionLoading}
-                >
-                    {mode === "active" ? <Archive className="h-4 w-4" /> : <RotateCcw className="h-4 w-4" />}
-                </Button>
-            </AlertDialogTrigger>
-            <AlertDialogContent className="bg-white">
-                <AlertDialogHeader>
-                    <AlertDialogTitle className="text-gray-900">
-                        {mode === "active" ? "Archive Product" : "Restore Product"}
-                    </AlertDialogTitle>
-                    <AlertDialogDescription>
-                        {mode === "active"
-                            ? <>Archive <span className="font-semibold">{product.product_name}</span>? Archived products are removed from active dashboards until they are restored.</>
-                            : <>Restore <span className="font-semibold">{product.product_name}</span> to the active inventory list?</>}
-                    </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                    <AlertDialogCancel className="border-zinc-300 bg-white text-zinc-700 hover:bg-zinc-50 hover:text-zinc-900">Cancel</AlertDialogCancel>
-                    <AlertDialogAction
-                        className={`${mode === "active" ? "bg-amber-500 hover:bg-amber-600" : "bg-emerald-600 hover:bg-emerald-700"} text-white cursor-pointer`}
-                        onClick={() => mode === "active" ? handleArchiveProduct(product.product_id) : handleRestoreProduct(product.product_id)}
-                        disabled={actionLoading}
-                    >
-                        {mode === "active" ? "Archive" : "Restore"}
-                    </AlertDialogAction>
-                </AlertDialogFooter>
-            </AlertDialogContent>
-        </AlertDialog>
-    );
 
     const emptyState = (
         <Empty className="border-none rounded-none py-12">
@@ -483,7 +498,7 @@ export function InventoryTable({
                                         </Button>
                                         {moreMenuId === product.product_id && (
                                             <>
-                                                <div className="fixed inset-0 z-20" onClick={() => setMoreMenuId(null)} />
+                                                <button type="button" tabIndex={-1} aria-label="Close menu" className="fixed inset-0 z-20 cursor-default" onClick={() => setMoreMenuId(null)} />
                                                 <div className="absolute right-0 bottom-full mb-1 z-30 bg-white border border-gray-200 rounded-lg shadow-lg py-1 min-w-[120px]">
                                                     <button
                                                         type="button"
@@ -676,7 +691,13 @@ export function InventoryTable({
                                                     <Pencil className="h-4 w-4" />
                                                 </Button>
                                             )}
-                                            <PrimaryActionDialog product={product} />
+                                            <PrimaryActionDialog
+                                                product={product}
+                                                mode={mode}
+                                                actionLoading={actionLoading}
+                                                onArchive={handleArchiveProduct}
+                                                onRestore={handleRestoreProduct}
+                                            />
                                         </div>
                                     </TableCell>
                                 </TableRow>
