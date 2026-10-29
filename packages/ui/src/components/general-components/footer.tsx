@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
+import { fetchFooterContactBody } from "./footer-data";
 
 // change the import of icons since its deprecated
 import {Facebook, Instagram} from "lucide-react";
@@ -35,30 +36,20 @@ export default function Footer() {
     const [contactDetails, setContactDetails] = useState<FooterContactDetails>(defaultFooterContactDetails);
 
     useEffect(() => {
-        const fetchContactDetails = async () => {
-            try {
-                const response = await fetch("/api/business-details?slug=contact", { 
-                    cache: "no-store"
-                });
-                if (!response.ok) return;
+        let cancelled = false;
 
-                const result = await response.json();
-                // The public API returns result.data which contains result.data.body (ContactDetailsPayload)
-                if (!result?.data?.body) return;
+        fetchFooterContactBody().then((parsedBody) => {
+            if (cancelled || !parsedBody) return;
+            setContactDetails({
+                facebookLink: parsedBody.facebookLink || defaultFooterContactDetails.facebookLink,
+                instagramLink: parsedBody.instagramLink || defaultFooterContactDetails.instagramLink,
+                address: parsedBody.address || defaultFooterContactDetails.address,
+            });
+        });
 
-                // Use the shared parsing logic to ensure consistency with the admin side
-                const parsedBody = result.data.body;
-                setContactDetails({
-                    facebookLink: parsedBody.facebookLink || defaultFooterContactDetails.facebookLink,
-                    instagramLink: parsedBody.instagramLink || defaultFooterContactDetails.instagramLink,
-                    address: parsedBody.address || defaultFooterContactDetails.address,
-                });
-            } catch (error) {
-                console.error("Footer fetch error:", error);
-            }
+        return () => {
+            cancelled = true;
         };
-
-        fetchContactDetails();
     }, []);
 
     const facebookHref = normalizeExternalLink(contactDetails.facebookLink);

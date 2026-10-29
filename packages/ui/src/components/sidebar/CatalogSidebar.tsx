@@ -87,8 +87,8 @@ export default function CatalogSidebar({
     const [categorySearch, setCategorySearch] = useState("");
     const [draftMinPrice, setDraftMinPrice] = useState(selectedMinPrice);
     const [draftMaxPrice, setDraftMaxPrice] = useState(selectedMaxPrice);
-    const [minPriceInput, setMinPriceInput] = useState(selectedMinPrice.toString());
-    const [maxPriceInput, setMaxPriceInput] = useState(selectedMaxPrice.toString());
+    const [minPriceInput, setMinPriceInput] = useState(() => selectedMinPrice.toString());
+    const [maxPriceInput, setMaxPriceInput] = useState(() => selectedMaxPrice.toString());
 
     const handleFilterChange = (filter: string) => {
         onFilterChange(filter);
@@ -102,8 +102,9 @@ export default function CatalogSidebar({
         setMaxPriceInput(selectedMaxPrice.toString());
     }, [selectedMaxPrice, selectedMinPrice]);
 
-    const categoryById = new Map(
-        categories.map((category) => [Number(category.category_id), category])
+    const categoryById = useMemo(
+        () => new Map(categories.map((category) => [Number(category.category_id), category])),
+        [categories]
     );
 
     const childrenByParent = categories.reduce<Map<number | null, CatalogCategory[]>>((acc, category) => {

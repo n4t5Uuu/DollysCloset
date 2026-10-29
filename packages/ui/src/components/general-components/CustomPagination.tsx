@@ -96,14 +96,15 @@ export default function CustomPagination({
           </PaginationItem>
 
           {/* Page numbers */}
-          {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-            const pageNum = totalPages <= 5
+          {Array.from({ length: Math.min(5, totalPages) }, (_, i) =>
+            totalPages <= 5
               ? i + 1
               : currentPage <= 3
                 ? i + 1
                 : currentPage >= totalPages - 2
                   ? totalPages - 4 + i
-                  : currentPage - 2 + i;
+                  : currentPage - 2 + i
+          ).map((pageNum) => {
             return (
               <PaginationItem key={pageNum}>
                 <PaginationLink
