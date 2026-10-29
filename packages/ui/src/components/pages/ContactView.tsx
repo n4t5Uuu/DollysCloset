@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { m } from "motion/react";
 import { 
   MapPin, 
@@ -92,7 +92,8 @@ export function ContactView({ pageTitle, initialDetails }: ContactViewProps) {
 
   // 'idle' | 'submitting' | 'success' | 'error'
   const [status, setStatus] = useState("idle");
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  // Re-entry guard for the submit handler; never rendered, so a ref avoids extra renders.
+  const isSubmittingRef = useRef(false);
   const [errorMessage, setErrorMessage] = useState("");
   const [isMapModalOpen, setIsMapModalOpen] = useState(false);
   const displayAddress = details.address || STORE_ADDRESS_CANONICAL;
@@ -144,7 +145,7 @@ export function ContactView({ pageTitle, initialDetails }: ContactViewProps) {
 
   const onSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    if (isSubmitting) return;
+    if (isSubmittingRef.current) return;
     setStatus("submitting");
     setErrorMessage("");
 
@@ -164,7 +165,7 @@ export function ContactView({ pageTitle, initialDetails }: ContactViewProps) {
     payload.append("subject", normalizedSubject);
     payload.append("body", normalizedBody);
 
-    setIsSubmitting(true);
+    isSubmittingRef.current = true;
     try {
       const response = await fetch("https://api.web3forms.com/submit", {
         method: "POST",
@@ -192,7 +193,7 @@ export function ContactView({ pageTitle, initialDetails }: ContactViewProps) {
       setStatus("error");
       setErrorMessage("Something went wrong! Please try again later.");
     } finally {
-      setIsSubmitting(false);
+      isSubmittingRef.current = false;
     }
   };
 
@@ -215,6 +216,7 @@ export function ContactView({ pageTitle, initialDetails }: ContactViewProps) {
             {/* Close Button (visible only on Error or Success) */}
             {status !== "submitting" && (
               <button
+                aria-label="Close"
                 onClick={closeModal}
                 className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 transition-colors"
                 type="button"
@@ -547,10 +549,10 @@ export function ContactView({ pageTitle, initialDetails }: ContactViewProps) {
 
               <form onSubmit={onSubmit} className="space-y-5 flex-1 flex flex-col">
                 <div className="space-y-2">
-                  <label className="font-montserrat text-sm font-semibold text-gray-700">
+                  <label htmlFor="contact-email" className="font-montserrat text-sm font-semibold text-gray-700">
                     Your Email
                   </label>
-                  <Input
+                  <Input id="contact-email"
                     type="email"
                     name="email"
                     placeholder="your@email.com"
@@ -568,10 +570,10 @@ export function ContactView({ pageTitle, initialDetails }: ContactViewProps) {
                 </div>
 
                 <div className="space-y-2">
-                  <label className="font-montserrat text-sm font-semibold text-gray-700">
+                  <label htmlFor="contact-subject" className="font-montserrat text-sm font-semibold text-gray-700">
                     Subject
                   </label>
-                  <Input
+                  <Input id="contact-subject"
                     type="text"
                     name="subject"
                     placeholder="What is this about?"
@@ -589,10 +591,10 @@ export function ContactView({ pageTitle, initialDetails }: ContactViewProps) {
                 </div>
 
                 <div className="space-y-2 flex-1 flex flex-col">
-                  <label className="font-montserrat text-sm font-semibold text-gray-700">
+                  <label htmlFor="contact-message" className="font-montserrat text-sm font-semibold text-gray-700">
                     Message
                   </label>
-                  <Textarea
+                  <Textarea id="contact-message"
                     placeholder="Tell us what's on your mind..."
                     name="body"
                     value={formData.body}

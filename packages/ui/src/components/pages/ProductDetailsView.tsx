@@ -395,6 +395,7 @@ function ProductDetailsContent({ productId, initialProduct, initialCatalog }: Pr
                     className="pointer-events-none absolute inset-x-4 top-1/2 flex -translate-y-1/2 justify-between opacity-0 transition-opacity group-hover:opacity-100"
                   >
                     <button
+                      aria-label="Previous image"
                       onClick={(e) => {
                         e.stopPropagation();
                         paginate(-1);
@@ -404,6 +405,7 @@ function ProductDetailsContent({ productId, initialProduct, initialCatalog }: Pr
                       <ChevronLeft className="h-6 w-6" />
                     </button>
                     <button
+                      aria-label="Next image"
                       onClick={(e) => {
                         e.stopPropagation();
                         paginate(1);
