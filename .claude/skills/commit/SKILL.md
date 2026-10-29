@@ -68,6 +68,8 @@ git diff --cached path/to/file            # confirm what is staged
 
 If the hunks cannot be separated cleanly, commit the file with the concern it mostly serves and say so in the body.
 
+**Squash when necessary.** Fold fixups, reverts of your own just-made commits, and commits that only make sense together into one commit (`git reset --soft` or a non-interactive `git rebase --autosquash`). Squash only commits that are not pushed yet. Never rewrite pushed history without asking.
+
 Stage by explicit path. Do not use `git add -A` or `git add .`.
 
 ## 4. Write the message
