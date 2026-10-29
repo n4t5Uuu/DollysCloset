@@ -87,9 +87,8 @@ export default function ForgotPassword() {
         body: JSON.stringify({ email: trimmedEmail, redirectTo }),
       });
 
-      const result = await response.json().catch(() => ({}));
-
       if (!response.ok) {
+        const result = await response.json().catch(() => ({}));
         toast.error(result.error || "Unable to process request.");
         return;
       }

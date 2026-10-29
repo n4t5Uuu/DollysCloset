@@ -141,7 +141,7 @@ export default function SetPasswordPage() {
                         >
                             New Password
                         </label>
-                        <button 
+                        <button aria-label={showPassword ? "Hide password" : "Show password"} 
                             type="button" 
                             onClick={() => setShowPassword(!showPassword)} 
                             className="absolute right-5 top-1/2 -translate-y-1/2 text-[#B3B3B3] hover:text-[#E7A3B0] transition-colors focus:outline-none cursor-pointer"
