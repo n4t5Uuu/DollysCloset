@@ -298,6 +298,59 @@ interface FloatingCardProps {
     reduceMotion: boolean;
 }
 
+/** Slow vertical drift; the duration and delay vary per slot so cards do not move in sync. */
+function getDriftMotion(slotIndex: number) {
+    return {
+        animate: { translateY: ["0px", "-6px", "0px"] },
+        transition: {
+            duration: 6 + (slotIndex % 4),
+            repeat: Infinity,
+            ease: "easeInOut" as const,
+            delay: (slotIndex % 5) * 0.4,
+        },
+    };
+}
+
+function CardRibbon({ isSoldOut, hasDiscount, isNewArrival, side }: {
+    isSoldOut: boolean;
+    hasDiscount: boolean;
+    isNewArrival?: boolean;
+    side: SlotDef["side"];
+}) {
+    if (!hasDiscount && !isNewArrival && !isSoldOut) return null;
+
+    const ribbonColor = side === "right" ? "#c95f7b" : "#E7A3B0";
+    const label = isSoldOut ? "Sold" : hasDiscount ? "Sale" : "New";
+
+    return (
+        <div
+            className="absolute left-0 top-2 z-10 rounded-r-[4px] px-1.5 py-0.5 shadow-md"
+            style={{ backgroundColor: isSoldOut ? "#121212" : ribbonColor }}
+        >
+            <span className="font-oswald text-[8px] font-semibold uppercase tracking-[0.16em] text-white">
+                {label}
+            </span>
+        </div>
+    );
+}
+
+function CardHoverOverlay({ name, priceText, visible }: { name: string; priceText: string; visible: boolean }) {
+    return (
+        <div
+            className={cn(
+                "pointer-events-none absolute inset-x-0 bottom-0 bg-linear-to-t from-black/85 via-black/55 to-transparent p-2 text-white opacity-0 transition-opacity duration-300",
+                visible && "opacity-100",
+            )}
+        >
+            <p className="line-clamp-2 font-playfair-display text-[11px] leading-tight">{name}</p>
+            <div className="mt-1 flex items-center justify-between gap-1">
+                <span className="font-oswald text-[12px] font-bold tracking-[0.04em]">{priceText}</span>
+                <ArrowUpRight className="h-3 w-3" />
+            </div>
+        </div>
+    );
+}
+
 function FloatingCard({ slot, slotIndex, product, onClick, parallaxX, parallaxY, reduceMotion }: FloatingCardProps) {
     const [hovered, setHovered] = useState(false);
     const validImages = product.images.filter(Boolean);
@@ -311,13 +364,7 @@ function FloatingCard({ slot, slotIndex, product, onClick, parallaxX, parallaxY,
     const tx = useTransform(parallaxX, (v) => v * PARALLAX_PX * slot.depth);
     const ty = useTransform(parallaxY, (v) => v * PARALLAX_PX * slot.depth);
 
-    // Drift duration varies per slot for organic feel.
-    const driftDuration = 6 + (slotIndex % 4);
-
-    const ribbonColor = slot.side === "right" ? "#c95f7b" : "#E7A3B0";
-    const showRibbon = hasDiscount || product.isNewArrival || isSoldOut;
-    const ribbonLabel = isSoldOut ? "Sold" : hasDiscount ? "Sale" : "New";
-
+    const drift = reduceMotion ? undefined : getDriftMotion(slotIndex);
     const priceText = hasDiscount && formattedSalePrice ? formattedSalePrice : formattedPrice;
 
     return (
@@ -331,23 +378,8 @@ function FloatingCard({ slot, slotIndex, product, onClick, parallaxX, parallaxY,
                 x: reduceMotion ? 0 : tx,
                 y: reduceMotion ? 0 : ty,
             }}
-            animate={
-                reduceMotion
-                    ? undefined
-                    : {
-                          translateY: ["0px", "-6px", "0px"],
-                      }
-            }
-            transition={
-                reduceMotion
-                    ? undefined
-                    : {
-                          duration: driftDuration,
-                          repeat: Infinity,
-                          ease: "easeInOut",
-                          delay: (slotIndex % 5) * 0.4,
-                      }
-            }
+            animate={drift?.animate}
+            transition={drift?.transition}
         >
             <button
                 type="button"
@@ -368,35 +400,13 @@ function FloatingCard({ slot, slotIndex, product, onClick, parallaxX, parallaxY,
                     className={cn("object-cover transition-transform duration-500 group-hover:scale-[1.08]", isSoldOut && "grayscale-[0.3]")}
                 />
 
-                {/* Corner ribbon */}
-                {showRibbon && (
-                    <div
-                        className="absolute left-0 top-2 z-10 rounded-r-[4px] px-1.5 py-0.5 shadow-md"
-                        style={{ backgroundColor: isSoldOut ? "#121212" : ribbonColor }}
-                    >
-                        <span className="font-oswald text-[8px] font-semibold uppercase tracking-[0.16em] text-white">
-                            {ribbonLabel}
-                        </span>
-                    </div>
-                )}
-
-                {/* Hover overlay: name + price */}
-                <div
-                    className={cn(
-                        "pointer-events-none absolute inset-x-0 bottom-0 bg-linear-to-t from-black/85 via-black/55 to-transparent p-2 text-white opacity-0 transition-opacity duration-300",
-                        hovered && "opacity-100",
-                    )}
-                >
-                    <p className="line-clamp-2 font-playfair-display text-[11px] leading-tight">
-                        {product.name}
-                    </p>
-                    <div className="mt-1 flex items-center justify-between gap-1">
-                        <span className="font-oswald text-[12px] font-bold tracking-[0.04em]">
-                            {priceText}
-                        </span>
-                        <ArrowUpRight className="h-3 w-3" />
-                    </div>
-                </div>
+                <CardRibbon
+                    isSoldOut={isSoldOut}
+                    hasDiscount={hasDiscount}
+                    isNewArrival={product.isNewArrival}
+                    side={slot.side}
+                />
+                <CardHoverOverlay name={product.name} priceText={priceText} visible={hovered} />
             </button>
         </m.div>
     );
