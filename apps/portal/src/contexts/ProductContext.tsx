@@ -1,7 +1,7 @@
 "use client";
 /* eslint-disable react-hooks/set-state-in-effect */
 
-import React, { createContext, useContext, useState, useEffect } from "react";
+import React, { createContext, useCallback, useContext, useMemo, useState, useEffect } from "react";
 import { type Product } from "@dollys-closet/core";
 import { 
   type CatalogStatus, 
@@ -97,7 +97,7 @@ export function ProductProvider({ children }: { children: React.ReactNode }) {
    * @param log - Initial log payload containing action and product details.
    */
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const logActivity = (log: any) => {
+  const logActivity = useCallback((log: any) => {
     // Only log if user data is available
     if (!user?.email || !userRole) {
       return;
@@ -113,7 +113,7 @@ export function ProductProvider({ children }: { children: React.ReactNode }) {
     };
 
     setActivityLogs((prev) => [newLog, ...prev]);
-  };
+  }, [user, userRole]);
 
   /**
    * Appends a new product record to the global list and initializes its catalog status.
@@ -121,7 +121,7 @@ export function ProductProvider({ children }: { children: React.ReactNode }) {
    * @param product - The full product data object being instantiated.
    * @param status - The initial visibility status (featured/standard/unlisted).
    */
-  const addProduct = (product: Product, status: CatalogStatus) => {
+  const addProduct = useCallback((product: Product, status: CatalogStatus) => {
     setProductList([product, ...productList]);
     setCatalogStatusState({ ...catalogStatus, [product.id]: status });
     if (status !== "unlisted") {
@@ -134,7 +134,7 @@ export function ProductProvider({ children }: { children: React.ReactNode }) {
       productName: product.name,
       statusTo: status,
     });
-  };
+  }, [productList, catalogStatus, previousCatalogStatus, logActivity]);
 
   /**
    * Synchronizes an updated product record with the global list and updates its status.
@@ -142,7 +142,7 @@ export function ProductProvider({ children }: { children: React.ReactNode }) {
    * @param product - Updated product data.
    * @param status - The target visibility status.
    */
-  const updateProduct = (product: Product, status: CatalogStatus) => {
+  const updateProduct = useCallback((product: Product, status: CatalogStatus) => {
     const oldProduct = productList.find(p => p.id === product.id);
     setProductList(productList.map(p => p.id === product.id ? product : p));
     setCatalogStatusState({ ...catalogStatus, [product.id]: status });
@@ -172,14 +172,14 @@ export function ProductProvider({ children }: { children: React.ReactNode }) {
       statusTo: status,
       fieldChanges: fieldChanges.length > 0 ? fieldChanges : undefined,
     });
-  };
+  }, [productList, catalogStatus, previousCatalogStatus, logActivity]);
 
   /**
    * Permanently removes a product from the local catalog and clears its status mapping.
    * Records a "deleted" activity trail event.
    * @param productId - Unique identifier of the product to purge.
    */
-  const deleteProduct = (productId: string) => {
+  const deleteProduct = useCallback((productId: string) => {
     const productToDelete = productList.find((p) => p.id === productId);
     setProductList(productList.filter(p => p.id !== productId));
     const newCatalogStatus = { ...catalogStatus };
@@ -191,14 +191,14 @@ export function ProductProvider({ children }: { children: React.ReactNode }) {
       productId,
       productName: productToDelete?.name,
     });
-  };
+  }, [productList, catalogStatus, logActivity]);
 
   /**
    * Directly updates the visibility tier of a specific product.
    * @param productId - Target product ID.
    * @param status - Target CatalogStatus.
    */
-  const setCatalogStatus = (productId: string, status: CatalogStatus) => {
+  const setCatalogStatus = useCallback((productId: string, status: CatalogStatus) => {
     const fromStatus = catalogStatus[productId];
     setCatalogStatusState({ ...catalogStatus, [productId]: status });
 
@@ -209,14 +209,14 @@ export function ProductProvider({ children }: { children: React.ReactNode }) {
       statusFrom: fromStatus,
       statusTo: status,
     });
-  };
+  }, [catalogStatus, productList, logActivity]);
 
   /**
    * Toggles a product between its last active visibility status and "unlisted".
    * Primarily used for quick publish/unpublish actions on the management dashboard.
    * @param productId - Target product ID.
    */
-  const togglePublishStatus = (productId: string) => {
+  const togglePublishStatus = useCallback((productId: string) => {
     const currentStatus = catalogStatus[productId];
     if (currentStatus === "unlisted") {
       const previousStatus = previousCatalogStatus[productId] || "standard";
@@ -241,14 +241,14 @@ export function ProductProvider({ children }: { children: React.ReactNode }) {
         statusTo: "unlisted",
       });
     }
-  };
+  }, [catalogStatus, previousCatalogStatus, productList, logActivity]);
 
   /**
    * Rotates a product through the visibility hierarchy: standard -> featured -> unlisted.
    * Provides a simplified status management cycle for high-velocity inventory updates.
    * @param productId - Target product ID.
    */
-  const cycleCatalogStatus = (productId: string) => {
+  const cycleCatalogStatus = useCallback((productId: string) => {
     const currentStatus = catalogStatus[productId];
     let newStatus: CatalogStatus;
     
@@ -272,24 +272,39 @@ export function ProductProvider({ children }: { children: React.ReactNode }) {
       statusFrom: currentStatus,
       statusTo: newStatus,
     });
-  };
+  }, [catalogStatus, previousCatalogStatus, productList, logActivity]);
+
+  const value = useMemo(
+    () => ({
+      productList,
+      catalogStatus,
+      previousCatalogStatus,
+      activityLogs,
+      addProduct,
+      updateProduct,
+      deleteProduct,
+      setCatalogStatus,
+      togglePublishStatus,
+      cycleCatalogStatus,
+      logActivity,
+    }),
+    [
+      productList,
+      catalogStatus,
+      previousCatalogStatus,
+      activityLogs,
+      addProduct,
+      updateProduct,
+      deleteProduct,
+      setCatalogStatus,
+      togglePublishStatus,
+      cycleCatalogStatus,
+      logActivity,
+    ]
+  );
 
   return (
-    <ProductContext.Provider
-      value={{
-        productList,
-        catalogStatus,
-        previousCatalogStatus,
-        activityLogs,
-        addProduct,
-        updateProduct,
-        deleteProduct,
-        setCatalogStatus,
-        togglePublishStatus,
-        cycleCatalogStatus,
-        logActivity,
-      }}
-    >
+    <ProductContext.Provider value={value}>
       {children}
     </ProductContext.Provider>
   );
