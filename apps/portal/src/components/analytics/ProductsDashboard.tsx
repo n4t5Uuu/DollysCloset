@@ -1,16 +1,7 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
-import {
-  Bar,
-  BarChart,
-  CartesianGrid,
-  Cell,
-  ResponsiveContainer,
-  Tooltip,
-  XAxis,
-  YAxis,
-} from 'recharts';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { CategoryChart } from './charts/CategoryChart';
 import {
   AlertTriangle,
   ArrowRight,
@@ -174,6 +165,11 @@ export function ProductsDashboard({
   const [period, setPeriod] = useState<Period>('all');
   const [periodLoading, setPeriodLoading] = useState(false);
   const hasSelectedMonth = Boolean(selectedMonth && selectedMonth !== 'all');
+  // A selected month overrides the week/month/all toggle.
+  const activePeriod: Period = hasSelectedMonth ? 'month' : period;
+  const showPeriodLoading = periodLoading && !hasSelectedMonth;
+  // Identifies the latest period request so older responses can't overwrite or clear it.
+  const periodRequestRef = useRef(0);
 
   const fetchData = useCallback(
     async (nextPeriod: Period = 'all', month?: string, silent = false) => {
@@ -212,15 +208,9 @@ export function ProductsDashboard({
     void fetchData(hasSelectedMonth ? 'month' : 'all', selectedMonth);
   }, [fetchData, hasSelectedMonth, refreshToken, retryToken, selectedMonth]);
 
-  useEffect(() => {
-    if (hasSelectedMonth) {
-      setPeriod('month');
-      setPeriodLoading(false);
-    }
-  }, [hasSelectedMonth]);
-
   const handlePeriodChange = useCallback(
     async (nextPeriod: Period) => {
+      const requestId = ++periodRequestRef.current;
       setPeriod(nextPeriod);
       setPeriodLoading(true);
 
@@ -236,6 +226,8 @@ export function ProductsDashboard({
           'Product analytics are unavailable right now.'
         );
 
+        if (requestId !== periodRequestRef.current) return;
+
         setData((currentData) =>
           currentData
             ? {
@@ -248,7 +240,7 @@ export function ProductsDashboard({
       } catch {
         // Keep the existing data visible if this quick refresh fails.
       } finally {
-        setPeriodLoading(false);
+        if (requestId === periodRequestRef.current) setPeriodLoading(false);
       }
     },
     [selectedMonth]
@@ -307,9 +299,9 @@ export function ProductsDashboard({
 
   const rankingScopeDescription = hasSelectedMonth
     ? formatMonthLabel(selectedMonth!)
-    : period === 'week'
+    : activePeriod === 'week'
       ? 'the last 7 days'
-      : period === 'month'
+      : activePeriod === 'month'
         ? 'the last 30 days'
         : 'all time';
 
@@ -333,29 +325,7 @@ export function ProductsDashboard({
             <p className="text-sm text-gray-500">No category breakdown yet.</p>
           ) : (
             <div id="pdf-chart-top-categories">
-              <ResponsiveContainer width="100%" height={260}>
-                <BarChart data={data.topCategories} layout="vertical" margin={{ top: 0, right: 16, left: 0, bottom: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" horizontal={false} />
-                  <XAxis type="number" tick={{ fontSize: 11, fill: '#9ca3af' }} tickLine={false} axisLine={false} allowDecimals={false} />
-                  <YAxis type="category" dataKey="category" tick={{ fontSize: 11, fill: '#6b7280' }} tickLine={false} axisLine={false} width={80} />
-                  <Tooltip
-                    contentStyle={{
-                      fontSize: 12,
-                      borderRadius: 8,
-                      border: '1px solid #e5e7eb',
-                      backgroundColor: '#fff',
-                      color: '#111',
-                    }}
-                    cursor={{ fill: '#f9fafb' }}
-                    formatter={(value) => [value, 'Products']}
-                  />
-                  <Bar dataKey="count" name="Products" radius={[0, 4, 4, 0]}>
-                    {data.topCategories.map((category, index) => (
-                      <Cell key={category.category} fill={index === 0 ? BRAND : '#e5e7eb'} />
-                    ))}
-                  </Bar>
-                </BarChart>
-              </ResponsiveContainer>
+              <CategoryChart data={data.topCategories} />
             </div>
           ),
       },
@@ -402,9 +372,9 @@ export function ProductsDashboard({
                     onClick={() => handlePeriodChange(option)}
                     className="rounded-md px-2.5 py-1 text-xs font-medium transition-colors"
                     style={{
-                      backgroundColor: period === option ? 'white' : 'transparent',
-                      color: period === option ? '#111827' : '#6b7280',
-                      boxShadow: period === option ? '0 1px 2px rgba(0,0,0,0.08)' : 'none',
+                      backgroundColor: activePeriod === option ? 'white' : 'transparent',
+                      color: activePeriod === option ? '#111827' : '#6b7280',
+                      boxShadow: activePeriod === option ? '0 1px 2px rgba(0,0,0,0.08)' : 'none',
                     }}
                   >
                     {option === 'all' ? 'All time' : option === 'month' ? '30 days' : '7 days'}
@@ -413,7 +383,7 @@ export function ProductsDashboard({
               </div>
             )}
 
-            {periodLoading ? (
+            {showPeriodLoading ? (
               <div className="space-y-3 animate-pulse">
                 {[...Array(4)].map((_, index) => (
                   <div key={index} className="h-8 rounded bg-gray-100" />
@@ -593,7 +563,7 @@ export function ProductsDashboard({
           productToEdit={editingProduct}
           onProductSaved={() => {
             setEditingProduct(null);
-            void fetchData(hasSelectedMonth ? 'month' : period, selectedMonth, true);
+            void fetchData(activePeriod, selectedMonth, true);
           }}
         />
       ) : null}

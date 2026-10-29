@@ -2,18 +2,7 @@
 
 import { useEffect, useState, type ReactNode } from 'react';
 import { fetchJson } from '@/lib/fetch-json';
-import {
-  Bar,
-  BarChart,
-  CartesianGrid,
-  Legend,
-  Line,
-  LineChart,
-  ResponsiveContainer,
-  Tooltip,
-  XAxis,
-  YAxis,
-} from 'recharts';
+import { DailyTrafficChart, MonthlyTrafficChart } from './charts/TrafficCharts';
 import {
   AlertTriangle,
   BarChart3,
@@ -350,34 +339,7 @@ export function AnalyticsDashboard({
         contentClassName: 'p-6',
         render: () => (
           <div id="pdf-chart-traffic">
-            <ResponsiveContainer width="100%" height={280}>
-              <LineChart data={chartData} margin={{ top: 4, right: 40, left: 0, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" />
-                <XAxis
-                  dataKey="date"
-                  tick={{ fontSize: 11, fill: '#9ca3af' }}
-                  interval="preserveStartEnd"
-                  tickLine={false}
-                  axisLine={false}
-                />
-                <YAxis yAxisId="left" tick={{ fontSize: 11, fill: '#9ca3af' }} tickLine={false} axisLine={false} allowDecimals={false} />
-                <YAxis yAxisId="right" orientation="right" tick={{ fontSize: 11, fill: '#9ca3af' }} tickLine={false} axisLine={false} allowDecimals={false} />
-                <Tooltip
-                  contentStyle={{
-                    fontSize: 12,
-                    borderRadius: 8,
-                    border: '1px solid #e5e7eb',
-                    backgroundColor: '#ffffff',
-                    color: '#111827',
-                    boxShadow: '0 4px 6px rgba(0,0,0,0.05)',
-                  }}
-                />
-                <Legend wrapperStyle={{ fontSize: 12, color: '#6b7280' }} />
-                <Line yAxisId="left" type="linear" dataKey="users" stroke={BRAND} strokeWidth={2} dot={false} name="Users" />
-                <Line yAxisId="left" type="linear" dataKey="sessions" stroke="#111827" strokeWidth={2} dot={false} name="Sessions" />
-                <Line yAxisId="right" type="linear" dataKey="pageViews" stroke="#9ca3af" strokeWidth={2} dot={false} name="Page Views" />
-              </LineChart>
-            </ResponsiveContainer>
+            <DailyTrafficChart data={chartData} />
           </div>
         ),
       },
@@ -391,28 +353,7 @@ export function AnalyticsDashboard({
         render: () =>
           data.monthlyData.length > 0 ? (
             <div id="pdf-chart-monthly">
-              <ResponsiveContainer width="100%" height={260}>
-                <BarChart data={data.monthlyData} margin={{ top: 4, right: 40, left: 0, bottom: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" vertical={false} />
-                  <XAxis dataKey="month" tick={{ fontSize: 11, fill: '#9ca3af' }} tickLine={false} axisLine={false} />
-                  <YAxis yAxisId="left" tick={{ fontSize: 11, fill: '#9ca3af' }} tickLine={false} axisLine={false} allowDecimals={false} />
-                  <YAxis yAxisId="right" orientation="right" tick={{ fontSize: 11, fill: '#9ca3af' }} tickLine={false} axisLine={false} allowDecimals={false} />
-                  <Tooltip
-                    contentStyle={{
-                      fontSize: 12,
-                      borderRadius: 8,
-                      border: '1px solid #e5e7eb',
-                      backgroundColor: '#fff',
-                      color: '#111827',
-                    }}
-                    cursor={{ fill: '#f9fafb' }}
-                  />
-                  <Legend wrapperStyle={{ fontSize: 12, color: '#6b7280' }} />
-                  <Bar yAxisId="left" dataKey="users" name="Users" fill={BRAND} radius={[4, 4, 0, 0]} />
-                  <Bar yAxisId="left" dataKey="sessions" name="Sessions" fill="#111827" radius={[4, 4, 0, 0]} />
-                  <Bar yAxisId="right" dataKey="pageViews" name="Page Views" fill="#d1d5db" radius={[4, 4, 0, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
+              <MonthlyTrafficChart data={data.monthlyData} />
             </div>
           ) : (
             <p className="text-sm text-gray-500">Monthly traffic data is not available yet.</p>
