@@ -35,6 +35,7 @@ export const employeeHelper = {
         }
 
         const { data, error } = await query
+            // react-doctor-disable-next-line react-doctor/supabase-client-owned-authz-field -- read-only filter; RLS on active_users/tbl_users enforces access
             .eq("role", "employee")
             .order("user_key", { ascending: true });
 

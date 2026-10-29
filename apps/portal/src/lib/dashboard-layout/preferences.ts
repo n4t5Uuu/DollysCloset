@@ -6,6 +6,7 @@ import {
 } from "@/lib/dashboard-layout/config";
 
 export const dashboardPreferenceStore = {
+  // react-doctor-disable-next-line react-doctor/supabase-client-owned-authz-field -- server-only admin client; userId comes from the verified session in the API route
   async get(userId: string, surface: DashboardSurfaceKey) {
     const supabase = createAdminClient();
     const { data, error } = await supabase
