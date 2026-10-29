@@ -176,14 +176,11 @@ function HeroCard({ product, onClick, ribbonBg, heroLabel }: HeroCardProps) {
                 : null;
 
     return (
-        <a
-            href="#"
+        <button
+            type="button"
             aria-label={`View details for ${product.name}`}
-            onClick={(e) => {
-                e.preventDefault();
-                onClick?.();
-            }}
-            className="group relative block h-full w-full overflow-hidden rounded-[1.6rem] border border-[#f1e1e6] bg-[#f7eef1] shadow-[0_18px_46px_rgba(18,18,18,0.14)] transition-all duration-500 hover:-translate-y-1 hover:shadow-[0_28px_60px_rgba(18,18,18,0.18)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#E7A3B0] focus-visible:ring-offset-4"
+            onClick={() => onClick?.()}
+            className="group relative block h-full w-full text-left overflow-hidden rounded-[1.6rem] border border-[#f1e1e6] bg-[#f7eef1] shadow-[0_18px_46px_rgba(18,18,18,0.14)] transition-all duration-500 hover:-translate-y-1 hover:shadow-[0_28px_60px_rgba(18,18,18,0.18)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#E7A3B0] focus-visible:ring-offset-4"
         >
             <div className="relative aspect-[4/5] w-full overflow-hidden">
                 <Image
@@ -240,6 +237,6 @@ function HeroCard({ product, onClick, ribbonBg, heroLabel }: HeroCardProps) {
                     </div>
                 </div>
             </div>
-        </a>
+        </button>
     );
 }

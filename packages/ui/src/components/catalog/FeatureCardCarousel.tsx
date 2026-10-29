@@ -322,6 +322,9 @@ export default function FeatureCardCarousel({ products, onProductClick }: Featur
 
                 {/* Carousel viewport */}
                 <div
+                    role="group"
+                    aria-roledescription="carousel"
+                    aria-label="Featured products"
                     className="relative flex-1 overflow-hidden select-none"
                     style={{
                         height: `${containerHeight}px`,
@@ -347,8 +350,15 @@ export default function FeatureCardCarousel({ products, onProductClick }: Featur
 
                         const opacity = isLaunching && launch!.offset < 0 ? 0 : isVisible ? 1 : 0;
 
+                        const activateCard = () => {
+                            if (hasDragged.current) return;
+                            if (absOffset === 0) onProductClick?.(product);
+                            else setActiveIndex(index);
+                        };
+
                         return (
-                            <div
+                            <button
+                                type="button"
                                 key={product.id}
                                 style={{
                                     position:      "absolute",
@@ -356,20 +366,19 @@ export default function FeatureCardCarousel({ products, onProductClick }: Featur
                                     top:           "50%",
                                     width:         `${cardWidth}px`,
                                     transform:     `translateX(calc(-50% + ${translateX}px)) translateY(-50%) scale(${displayScale})`,
+                                    textAlign:     "left",
                                     transition:    isLaunching ? "none" : "transform 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94), opacity 0.4s ease",
                                     opacity,
                                     zIndex:        10 - absOffset,
                                     visibility:    isVisible ? "visible" : "hidden",
                                     pointerEvents: isVisible ? "auto" : "none",
                                 }}
-                                onClick={() => {
-                                    if (hasDragged.current) return;
-                                    if (absOffset === 0) onProductClick?.(product);
-                                    else setActiveIndex(index);
-                                }}
+                                tabIndex={isVisible ? 0 : -1}
+                                aria-label={product.name}
+                                onClick={activateCard}
                             >
                                 <CardContent product={product} cardImageHeight={cardImageHeight} cardWidth={cardWidth} />
-                            </div>
+                            </button>
                         );
                     })}
 
