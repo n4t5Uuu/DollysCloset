@@ -1220,7 +1220,7 @@ export default function BulkImportModal({
                   </div>
                   <div className="w-full bg-gray-200 rounded-full h-2">
                     <div
-                      className="bg-pink-400 h-2 rounded-full transition-all duration-200"
+                      className="bg-pink-400 h-2 rounded-full transition duration-200"
                       style={{ width: `${importProgress}%` }}
                     />
                   </div>

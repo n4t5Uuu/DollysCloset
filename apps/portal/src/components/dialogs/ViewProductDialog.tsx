@@ -117,7 +117,7 @@ export default function ViewProductDialog({
                           key={image.image_id}
                           type="button"
                           onClick={() => onSelectedImageChange(image.image_url)}
-                          className={`h-16 w-16 shrink-0 overflow-hidden rounded-lg border-2 transition-all ${isSelected ? "border-[#E7A3B0] shadow-sm" : "border-transparent hover:border-[#E7A3B0]/40"}`}
+                          className={`h-16 w-16 shrink-0 overflow-hidden rounded-lg border-2 transition ${isSelected ? "border-[#E7A3B0] shadow-sm" : "border-transparent hover:border-[#E7A3B0]/40"}`}
                           aria-label="Select product image"
                         >
                           <img

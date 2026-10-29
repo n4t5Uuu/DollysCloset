@@ -391,7 +391,7 @@ export default function AddEmployee({ isOpen, onClose, employeeToEdit, onEmploye
 function AdminValidationItem({ isMet, label }: { isMet: boolean; label: string }) {
     return (
         <div className="flex items-center gap-2">
-            <div className={`shrink-0 w-4 h-4 rounded-full flex items-center justify-center transition-all duration-300 ${isMet ? 'bg-emerald-500 text-white' : 'bg-gray-200 text-gray-400'}`}>
+            <div className={`shrink-0 w-4 h-4 rounded-full flex items-center justify-center transition duration-300 ${isMet ? 'bg-emerald-500 text-white' : 'bg-gray-200 text-gray-400'}`}>
                 {isMet ? <Check size={10} strokeWidth={3} /> : <div className="w-1 h-1 rounded-full bg-current" />}
             </div>
             <span className={`text-[11px] transition-colors duration-300 ${isMet ? 'text-gray-900 font-medium' : 'text-gray-400'}`}>

@@ -307,7 +307,7 @@ export default function CategoryCascadingSelect({
                 placeholder="Search categories..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-9 pr-9 h-10 rounded-xl border-zinc-200 bg-zinc-50 focus:bg-white focus:border-[#E7A3B0]/40 transition-all font-montserrat text-base md:text-sm"
+                className="pl-9 pr-9 h-10 rounded-xl border-zinc-200 bg-zinc-50 focus:bg-white focus:border-[#E7A3B0]/40 transition font-montserrat text-base md:text-sm"
               />
               {searchTerm && (
                 <button

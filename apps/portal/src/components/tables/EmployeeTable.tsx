@@ -168,7 +168,7 @@ export function EmployeeTable({
                               variant="outline"
                               title="Edit employee"
                               aria-label={`Edit ${employee.first_name} ${employee.last_name}`}
-                              className="h-7 w-7 bg-pink-50 border-pink-200 text-pink-600 hover:bg-pink-200 rounded-lg shadow-sm hover:shadow-md hover:scale-105 transition-all duration-300"
+                              className="h-7 w-7 bg-pink-50 border-pink-200 text-pink-600 hover:bg-pink-200 rounded-lg shadow-sm hover:shadow-md hover:scale-105 transition duration-300"
                               onClick={() => openEditModal(employee)}
                             >
                               <Pencil className="h-3 w-3" />
@@ -180,7 +180,7 @@ export function EmployeeTable({
                               variant="outline"
                               title="More actions"
                               aria-label={`More actions for ${employee.first_name} ${employee.last_name}`}
-                              className="h-7 w-7 bg-white border border-black text-gray-500 rounded-lg shadow-sm hover:shadow-md hover:scale-105 transition-all duration-300"
+                              className="h-7 w-7 bg-white border border-black text-gray-500 rounded-lg shadow-sm hover:shadow-md hover:scale-105 transition duration-300"
                               onClick={(e) => {
                                 e.stopPropagation();
                                 setMoreMenuId(moreMenuId === employee.user_id ? null : employee.user_id);

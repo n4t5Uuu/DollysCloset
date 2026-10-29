@@ -59,7 +59,7 @@ export default function ViewEmployeeDialog({ employee, onClose }: ViewEmployeeDi
 
         <button
           onClick={onClose}
-          className="w-full px-4 py-3 bg-linear-to-r from-[#E7A3B0] to-[#f0b8c3] text-white rounded-xl hover:from-[#d891a0] hover:to-[#E7A3B0] font-medium transition-all shadow-md hover:shadow-lg cursor-pointer"
+          className="w-full px-4 py-3 bg-linear-to-r from-[#E7A3B0] to-[#f0b8c3] text-white rounded-xl hover:from-[#d891a0] hover:to-[#E7A3B0] font-medium transition shadow-md hover:shadow-lg cursor-pointer"
         >
           Close
         </button>

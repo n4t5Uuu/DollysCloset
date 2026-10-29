@@ -669,7 +669,7 @@ export default function ManageDetailsClient({ role }: ManageDetailsClientProps) 
               key={section.key}
               type="button"
               onClick={() => handleSetActiveSection(section.key)}
-              className={`rounded-2xl border p-4 text-left transition-all ${
+              className={`rounded-2xl border p-4 text-left transition ${
                 isActive
                   ? "border-[#E7A3B0] bg-[#fff5f7] shadow-sm"
                   : "border-gray-200 bg-white hover:border-[#E7A3B0]/50 hover:bg-[#fffafb]"

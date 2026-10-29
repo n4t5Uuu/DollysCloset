@@ -36,13 +36,13 @@ export function AdminDialogFooter({
                     variant="outline"
                     onClick={onCancel}
                     disabled={isLoading}
-                    className="flex-1 border-gray-300 text-gray-700 bg-white hover:bg-white hover:text-black transition-all duration-300 hover:scale-105 hover:shadow-md hover:border-gray-400 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="flex-1 border-gray-300 text-gray-700 bg-white hover:bg-white hover:text-black transition duration-300 hover:scale-105 hover:shadow-md hover:border-gray-400 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                     Cancel
                 </Button>
                 <Button
                     type="submit"
-                    className="flex-1 bg-[#E7A3B0] hover:bg-[#ca8c98] text-white transition-all duration-300 hover:scale-[1.03] active:scale-95 shadow-sm hover:shadow-md disabled:hover:scale-100 disabled:hover:shadow-sm"
+                    className="flex-1 bg-[#E7A3B0] hover:bg-[#ca8c98] text-white transition duration-300 hover:scale-[1.03] active:scale-95 shadow-sm hover:shadow-md disabled:hover:scale-100 disabled:hover:shadow-sm"
                     disabled={isLoading || isActionDisabled}
                 >
                     {isLoading ? (
