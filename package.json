@@ -9,7 +9,8 @@
     "dev": "dotenv -e .env.local -- turbo dev",
     "build": "dotenv -e .env.local -- turbo build",
     "lint": "turbo lint",
-    "format": "prettier --write \"**/*.{ts,tsx,md}\""
+    "format": "prettier --write \"**/*.{ts,tsx,md}\"",
+    "doctor": "npx react-doctor@latest"
   },
   "devDependencies": {
     "dotenv-cli": "^11.0.0",
